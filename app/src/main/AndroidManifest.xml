@@ -2,7 +2,26 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- LSPosed Module Metadata -->
+    <meta-data
+        android:name="xposedmodule"
+        android:value="true" />
+    <meta-data
+        android:name="xposedminversion"
+        android:value="82" />
+    <meta-data
+        android:name="xposeddescription"
+        android:value="Device Spoofing Module with Anti-Detection" />
+    <meta-data
+        android:name="xposedscope"
+        android:resource="@array/xposed_scope" />
+
+    <!-- Permissions for UI functionality -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <application
+        android:name=".PrivacyShieldApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -10,6 +29,18 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PrivacyShield" />
+        android:theme="@style/Theme.PrivacyShield">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.PrivacyShield">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
 
 </manifest>

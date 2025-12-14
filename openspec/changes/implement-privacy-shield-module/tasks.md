@@ -9,37 +9,37 @@
 ## Phase 1: Core Infrastructure (Week 1-2)
 
 ### 1.1 Build Configuration
-- [ ] 1.1.1 Update `gradle/libs.versions.toml` with all required dependencies
-  - Kotlin 2.2.21, Android Gradle Plugin 8.7.3
-  - YukiHookAPI 1.2.1, KSP 2.2.21-1.0.31
+- [x] 1.1.1 Update `gradle/libs.versions.toml` with all required dependencies
+  - Kotlin 2.2.21, Android Gradle Plugin 8.13.0
+  - YukiHookAPI 1.3.1, KSP 2.2.21-2.0.4
   - Compose BOM 2025.12.00, Material 3 1.4.0
-  - DataStore 1.1.2, Coroutines 1.9.0
-  - Serialization 1.8.0, Timber 5.0.1, Coil 2.7.0
-- [ ] 1.1.2 Update root `build.gradle.kts` with required plugins
+  - DataStore 1.2.0, Coroutines 1.10.2
+  - Serialization 1.9.0, Timber 5.0.1, Coil 3.2.0
+- [x] 1.1.2 Update root `build.gradle.kts` with required plugins
   - kotlin-android, compose, serialization, ksp plugins
-- [ ] 1.1.3 Update `settings.gradle.kts` to add Xposed repository
+- [x] 1.1.3 Update `settings.gradle.kts` to add Xposed repository
   - Add `maven { url = uri("https://api.xposed.info/") }`
-- [ ] 1.1.4 Rewrite `app/build.gradle.kts` per PRD specification
-  - compileSdk 36, minSdk 26, targetSdk 36
+- [x] 1.1.4 Rewrite `app/build.gradle.kts` per PRD specification
+  - compileSdk 36, minSdk 26, targetSdk 36 (Android 16)
   - Java 21 source/target compatibility
   - Compose build features, experimental opt-ins
   - All dependency declarations
-- [ ] 1.1.5 Verify Gradle sync completes successfully
+- [ ] 1.1.5 Verify Gradle sync completes successfully ⚠️ (build error - needs fix)
 
 ### 1.2 Android Manifest & Resources
-- [ ] 1.2.1 Update `AndroidManifest.xml` with LSPosed metadata
+- [x] 1.2.1 Update `AndroidManifest.xml` with LSPosed metadata
   - Add xposedmodule=true, xposedminversion=82
   - Add xposeddescription, xposedscope
   - Add QUERY_ALL_PACKAGES permission
   - Add Application class reference
   - Add MainActivity with LAUNCHER intent-filter
-- [ ] 1.2.2 Create `res/values/arrays.xml` for xposed_scope
-- [ ] 1.2.3 Update `res/values/strings.xml` with app strings
-- [ ] 1.2.4 Create `res/values/themes.xml` for Theme.PrivacyShield
+- [x] 1.2.2 Create `res/values/arrays.xml` for xposed_scope
+- [x] 1.2.3 Update `res/values/strings.xml` with app strings
+- [x] 1.2.4 Create `res/values/themes.xml` for Theme.PrivacyShield
 - [ ] 1.2.5 Remove old XML theme files (use Compose theming)
 
 ### 1.3 Project Structure
-- [ ] 1.3.1 Create source directories per PRD structure:
+- [x] 1.3.1 Create source directories per PRD structure:
   ```
   app/src/main/kotlin/com/akil/privacyshield/
   ├── PrivacyShieldApp.kt
@@ -56,24 +56,24 @@
   │   └── navigation/
   └── utils/
   ```
-- [ ] 1.3.2 Create `PrivacyShieldApp.kt` (ModuleApplication)
+- [x] 1.3.2 Create `PrivacyShieldApp.kt` (ModuleApplication)
   - Initialize Timber logging
   - Initialize DataStore
   - YukiHookAPI module status check
 
 ### 1.4 Hook Entry Point
-- [ ] 1.4.1 Create `hook/HookEntry.kt` with @InjectYukiHookWithXposed
+- [x] 1.4.1 Create `hook/HookEntry.kt` with @InjectYukiHookWithXposed
   - Implement IYukiHookXposedInit interface
   - Configure debug logging in onInit()
-  - Implement onHook() with loadHooker() calls
-- [ ] 1.4.2 Verify module appears in LSPosed Manager
-- [ ] 1.4.3 Test basic hook loading with Timber logs
+  - Implement onHook() with loadHooker() calls (placeholder TODOs)
+- [ ] 1.4.2 Verify module appears in LSPosed Manager (pending device test)
+- [ ] 1.4.3 Test basic hook loading with Timber logs (pending device test)
 
 **Phase 1 Validation**:
-- [ ] Project builds without errors
-- [ ] Module appears in LSPosed Manager
-- [ ] Can enable module in LSPosed and reboot
-- [ ] Log messages appear from HookEntry
+- [ ] Project builds without errors ⚠️ (build error - needs fix)
+- [ ] Module appears in LSPosed Manager (pending device test)
+- [ ] Can enable module in LSPosed and reboot (pending device test)
+- [ ] Log messages appear from HookEntry (pending device test)
 
 ---
 
