@@ -780,11 +780,11 @@ plugins {
 }
 
 android {
-    namespace = "com.privacyshield"
+    namespace = "com.akil.privacyshield"
     compileSdk = 36
     
     defaultConfig {
-        applicationId = "com.privacyshield"
+        applicationId = "com.akil.privacyshield"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
