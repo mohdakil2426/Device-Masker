@@ -37,7 +37,40 @@ Complete implementation of PrivacyShield LSPosed module with MVP UI:
 
 ## Recent Changes
 
-### December 15, 2025
+### December 15, 2025 (continued)
+
+| Time | Change | Status |
+|------|--------|--------|
+| 18:30 | Created HomeScreen with animated status card, stats, actions | ✅ |
+| 18:35 | Created SpoofSettingsScreen with 5 expandable categories | ✅ |
+| 18:40 | Created SettingsScreen with appearance/debug toggles | ✅ |
+| 18:45 | Created BottomNavBar with spring animations | ✅ |
+| 18:45 | Created NavDestination sealed class (later replaced) | ⚠️ Crashed |
+| 18:50 | Updated MainActivity with NavHost and bottom nav | ✅ |
+| 19:00 | Fixed animationSpec type mismatches (spring\<Color\>, spring\<IntSize\>) | ✅ |
+| 19:10 | Fixed themes.xml API level warnings (tools:targetApi) | ✅ |
+| 19:50 | **FIXED:** Android 16 crash - replaced sealed class with data class | ✅ |
+| 19:55 | App successfully running on Android 16 device | ✅ |
+
+### Android 16 Navigation Crash Fix
+
+**Problem**: App crashed on launch with `NullPointerException: NavDestination.getRoute()`.
+
+**Root Cause**: Using `sealed class NavDestination { object Home : NavDestination(...) }` 
+caused null objects during Compose recomposition on Android 16 (API 36).
+
+**Solution**: Replaced with simple `data class NavItem` + `object NavRoutes` string constants.
+
+```kotlin
+// OLD (broken on Android 16):
+sealed class NavDestination { object Home : NavDestination("home") }
+
+// NEW (working):
+object NavRoutes { const val HOME = "home" }
+data class NavItem(val route: String, val label: String, ...)
+```
+
+### December 15, 2025 (early)
 
 | Time | Change | Status |
 |------|--------|--------|

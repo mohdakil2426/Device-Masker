@@ -124,6 +124,26 @@ cd privacyshield
 - Generate valid format values (Luhn IMEI, unicast MAC)
 - Hide all Xposed-related patterns from detection
 
+### Android 16 (API 36) Specific Issues
+
+> **Issue Discovered**: Dec 15, 2025
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| **Sealed Class Navigation Crash** | `NullPointerException` on `NavDestination.getRoute()` during Compose recomposition | Use `data class` + string constants instead of sealed class `object` declarations |
+
+**Root Cause**: Sealed class `object` declarations (e.g., `object Home : NavDestination()`) 
+can fail to initialize properly during Jetpack Compose's recomposition cycle on Android 16. 
+When a lambda captures these objects (e.g., in `NavigationBar`), they may be null.
+
+**Solution Applied**: 
+```kotlin
+// Replace sealed class objects with data class + string constants
+object NavRoutes { const val HOME = "home" }
+data class NavItem(val route: String, val label: String, ...)
+val bottomNavItems: List<NavItem> = listOf(...)
+```
+
 ## Dependencies
 
 ### Gradle Version Catalog (`libs.versions.toml`)

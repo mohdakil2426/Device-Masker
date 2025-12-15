@@ -3,6 +3,7 @@ package com.akil.privacyshield.ui.navigation
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -14,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.akil.privacyshield.ui.theme.AppMotion
 
@@ -24,14 +24,14 @@ import com.akil.privacyshield.ui.theme.AppMotion
  * Uses Material 3 NavigationBar with animated icons and labels.
  * Supports spring-based animations for smooth transitions.
  *
- * @param currentDestination Current active destination route
- * @param onNavigate Callback when user selects a destination
+ * @param currentRoute Current active route string
+ * @param onNavigate Callback when user selects a route
  * @param modifier Optional modifier
  */
 @Composable
 fun BottomNavBar(
-    currentDestination: String,
-    onNavigate: (NavDestination) -> Unit,
+    currentRoute: String,
+    onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
@@ -40,43 +40,56 @@ fun BottomNavBar(
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp
     ) {
-        NavDestination.bottomNavItems.forEach { destination ->
-            val selected = currentDestination == destination.route
-
-            // Animate icon scale for selection
-            val scale by animateFloatAsState(
-                targetValue = if (selected) 1.1f else 1.0f,
-                animationSpec = AppMotion.FastSpring,
-                label = "iconScale"
-            )
-
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigate(destination) },
-                icon = {
-                    AnimatedNavIcon(
-                        selectedIcon = destination.selectedIcon,
-                        unselectedIcon = destination.unselectedIcon,
-                        isSelected = selected,
-                        modifier = Modifier.scale(scale)
-                    )
-                },
-                label = {
-                    Text(
-                        text = destination.label,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        bottomNavItems.forEach { item ->
+            BottomNavItem(
+                item = item,
+                isSelected = currentRoute == item.route,
+                onClick = { onNavigate(item.route) }
             )
         }
     }
+}
+
+/**
+ * Individual navigation bar item.
+ */
+@Composable
+private fun RowScope.BottomNavItem(
+    item: NavItem,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    // Animate icon scale for selection
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.1f else 1.0f,
+        animationSpec = AppMotion.FastSpring,
+        label = "iconScale_${item.route}"
+    )
+
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = onClick,
+        icon = {
+            AnimatedNavIcon(
+                item = item,
+                isSelected = isSelected,
+                modifier = Modifier.scale(scale)
+            )
+        },
+        label = {
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelMedium
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
 }
 
 /**
@@ -84,8 +97,7 @@ fun BottomNavBar(
  */
 @Composable
 private fun AnimatedNavIcon(
-    selectedIcon: ImageVector,
-    unselectedIcon: ImageVector,
+    item: NavItem,
     isSelected: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -100,8 +112,8 @@ private fun AnimatedNavIcon(
     )
 
     Icon(
-        imageVector = if (isSelected) selectedIcon else unselectedIcon,
-        contentDescription = null,
+        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+        contentDescription = item.label,
         modifier = modifier.size(24.dp),
         tint = iconColor
     )

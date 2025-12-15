@@ -24,7 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.akil.privacyshield.PrivacyShieldApp
 import com.akil.privacyshield.data.repository.SpoofRepository
 import com.akil.privacyshield.ui.navigation.BottomNavBar
-import com.akil.privacyshield.ui.navigation.NavDestination
+import com.akil.privacyshield.ui.navigation.NavRoutes
 import com.akil.privacyshield.ui.screens.HomeScreen
 import com.akil.privacyshield.ui.screens.SettingsScreen
 import com.akil.privacyshield.ui.screens.SpoofSettingsScreen
@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             PrivacyShieldTheme {
                 val repository = remember { SpoofRepository.getInstance(applicationContext) }
-                PrivacyShieldApp(repository = repository)
+                PrivacyShieldMainApp(repository = repository)
             }
         }
     }
@@ -64,23 +64,23 @@ class MainActivity : ComponentActivity() {
  * Main app composable with navigation.
  */
 @Composable
-fun PrivacyShieldApp(
+fun PrivacyShieldMainApp(
     repository: SpoofRepository,
     navController: NavHostController = rememberNavController()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: NavDestination.Home.route
+    val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.HOME
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             BottomNavBar(
-                currentDestination = currentRoute,
-                onNavigate = { destination ->
-                    navController.navigate(destination.route) {
+                currentRoute = currentRoute,
+                onNavigate = { route ->
+                    navController.navigate(route) {
                         // Pop up to the start destination to avoid stacking
-                        popUpTo(NavDestination.Home.route) {
+                        popUpTo(NavRoutes.HOME) {
                             saveState = true
                         }
                         // Avoid multiple copies of the same destination
@@ -94,7 +94,7 @@ fun PrivacyShieldApp(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = NavDestination.Home.route,
+            startDestination = NavRoutes.HOME,
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
                 fadeIn(animationSpec = spring()) + slideIntoContainer(
@@ -121,11 +121,11 @@ fun PrivacyShieldApp(
                 )
             }
         ) {
-            composable(NavDestination.Home.route) {
+            composable(NavRoutes.HOME) {
                 HomeScreen(
                     repository = repository,
                     onNavigateToSpoof = {
-                        navController.navigate(NavDestination.Spoof.route)
+                        navController.navigate(NavRoutes.SPOOF)
                     },
                     onRegenerateAll = {
                         // Will be connected to ViewModel
@@ -134,7 +134,7 @@ fun PrivacyShieldApp(
                 )
             }
 
-            composable(NavDestination.Spoof.route) {
+            composable(NavRoutes.SPOOF) {
                 SpoofSettingsScreen(
                     repository = repository,
                     onEditValue = { type, value ->
@@ -144,7 +144,7 @@ fun PrivacyShieldApp(
                 )
             }
 
-            composable(NavDestination.Settings.route) {
+            composable(NavRoutes.SETTINGS) {
                 SettingsScreen(
                     onDarkModeChange = { enabled ->
                         Timber.d("Dark mode changed: $enabled")

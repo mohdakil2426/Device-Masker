@@ -10,63 +10,45 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * Navigation destinations for PrivacyShield MVP.
- *
- * Sealed class providing type-safe navigation with associated icons
- * and labels for each destination.
+ * Navigation routes as constants.
+ * Using simple string routes to avoid sealed class initialization issues.
  */
-sealed class NavDestination(
+object NavRoutes {
+    const val HOME = "home"
+    const val SPOOF = "spoof"
+    const val SETTINGS = "settings"
+}
+
+/**
+ * Navigation item data class for bottom navigation.
+ */
+data class NavItem(
     val route: String,
     val label: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
-) {
-    /**
-     * Home screen - Module status and quick overview.
-     */
-    data object Home : NavDestination(
-        route = "home",
+)
+
+/**
+ * All bottom navigation items.
+ */
+val bottomNavItems: List<NavItem> = listOf(
+    NavItem(
+        route = NavRoutes.HOME,
         label = "Home",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
-    )
-
-    /**
-     * Spoof settings - Configure spoof values.
-     */
-    data object Spoof : NavDestination(
-        route = "spoof",
+    ),
+    NavItem(
+        route = NavRoutes.SPOOF,
         label = "Spoof",
         selectedIcon = Icons.Filled.Tune,
         unselectedIcon = Icons.Outlined.Tune
-    )
-
-    /**
-     * Settings screen - App preferences.
-     */
-    data object Settings : NavDestination(
-        route = "settings",
+    ),
+    NavItem(
+        route = NavRoutes.SETTINGS,
         label = "Settings",
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings
     )
-
-    companion object {
-        /**
-         * All bottom navigation destinations.
-         */
-        val bottomNavItems = listOf(Home, Spoof, Settings)
-
-        /**
-         * Get destination by route.
-         */
-        fun fromRoute(route: String?): NavDestination {
-            return when (route) {
-                Home.route -> Home
-                Spoof.route -> Spoof
-                Settings.route -> Settings
-                else -> Home
-            }
-        }
-    }
-}
+)

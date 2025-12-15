@@ -196,20 +196,42 @@ fun SpoofValueCard(
 )
 ```
 
-### 4. Sealed Class Navigation
+### 4. Navigation Routes Pattern
 
-Type-safe navigation destinations:
+Type-safe navigation using string constants and data class (NOT sealed class objects):
 
 ```kotlin
-sealed class NavDestination(val route: String) {
-    object Home : NavDestination("home")
-    object Apps : NavDestination("apps")
-    object SpoofSettings : NavDestination("spoof")
-    object Profiles : NavDestination("profiles")
-    object Diagnostics : NavDestination("diagnostics")
-    object Settings : NavDestination("settings")
+// ⚠️ IMPORTANT: Do NOT use sealed class with object declarations for navigation
+// It causes NullPointerException on Android 16 (API 36) during Compose recomposition
+
+// ✅ CORRECT: String constants + data class
+object NavRoutes {
+    const val HOME = "home"
+    const val SPOOF = "spoof" 
+    const val SETTINGS = "settings"
 }
+
+data class NavItem(
+    val route: String,
+    val label: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
+)
+
+val bottomNavItems: List<NavItem> = listOf(
+    NavItem(route = NavRoutes.HOME, label = "Home", ...),
+    NavItem(route = NavRoutes.SPOOF, label = "Spoof", ...),
+    NavItem(route = NavRoutes.SETTINGS, label = "Settings", ...)
+)
+
+// ❌ WRONG: Sealed class objects (causes crashes on Android 16)
+// sealed class NavDestination { object Home : NavDestination() }
 ```
+
+**Why**: Sealed class object declarations can cause `NullPointerException` during 
+Compose recomposition on Android 16 (API 36). The objects may not be fully 
+initialized when NavigationBar lambda captures them. Using simple data classes 
+with string constants avoids this initialization timing issue.
 
 ### 5. Value Generator Pattern
 
