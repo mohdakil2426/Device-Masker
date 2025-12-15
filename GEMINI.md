@@ -16,3 +16,8 @@ Use `@/openspec/AGENTS.md` to learn:
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
+
+## YukiHookAPI
+
+### All about yuki hook api alwasy read this
+ @/docs/YukiHookAPI_Reference.md

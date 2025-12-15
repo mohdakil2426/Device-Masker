@@ -43,13 +43,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
-    kotlinOptions {
-        jvmTarget = "21"
-        freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
-        )
+    // Updated to modern compilerOptions DSL
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            freeCompilerArgs.addAll(
+                "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
+                "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
+            )
+        }
     }
 
     buildFeatures {
