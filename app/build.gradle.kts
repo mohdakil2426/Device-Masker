@@ -6,6 +6,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 android {
     namespace = "com.akil.privacyshield"
     compileSdk = 36
@@ -60,6 +64,7 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.material)
 
     // ═══════════════════════════════════════════════════════════
     // JETPACK COMPOSE

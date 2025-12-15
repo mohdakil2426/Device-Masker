@@ -6,49 +6,49 @@
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Kotlin** | 2.2.21 | Primary language |
+| **Kotlin** | 2.1.0 | Primary language |
 | **Android SDK** | API 36 (compileSdk) | Android 16 support |
 | **Min SDK** | API 26 (Android 8.0) | Broader device compatibility |
 | **Target SDK** | API 36 | Latest Android 16 |
-| **Java Version** | 21 | Latest LTS |
-| **Gradle** | 8.7.3 (AGP) | Build system |
+| **Java Version** | 21 (Target) / 25 (Host) | Toolchain provisioning via Foojay |
+| **Gradle** | 9.1.0 (Wrapper) | Build system (Java 25 compatible) |
 
 ### UI Framework
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| **Compose BOM** | 2025.12.00 | December 2025 release |
-| **Compose UI** | 1.10.0 | Core UI toolkit |
-| **Material 3** | 1.4.0 | Material 3 Expressive |
-| **Activity Compose** | 1.10.0 | Activity integration |
-| **Navigation Compose** | 2.9.0 | Navigation component |
-| **Lifecycle** | 2.9.0 | Lifecycle-aware components |
+| **Compose BOM** | 2024.12.01 | December 2024 release |
+| **Compose UI** | BOM | Core UI toolkit |
+| **Material 3** | 1.12.0 | Material 3 Expressive |
+| **Activity Compose** | 1.12.1 | Activity integration |
+| **Navigation Compose** | 2.9.6 | Navigation component |
+| **Lifecycle** | 2.10.0 | Lifecycle-aware components |
 
 ### Hooking Framework
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| **YukiHookAPI** | 1.2.1 | Modern Kotlin Hook API |
-| **YukiHookAPI KSP** | 1.2.1 | Annotation processor |
-| **LSPosed** | 1.10.2+ | Framework (external) |
+| **YukiHookAPI** | 1.3.1 | Modern Kotlin Hook API |
+| **YukiHookAPI KSP** | 2.2.21-2.0.4 | Annotation processor |
+| **LSPosed (Xposed)** | 1.10.2+ (API 82) | Framework (external) |
 | **Magisk** | 30.6+ | Root solution (external) |
 
 ### Data & Utilities
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| **DataStore** | 1.1.2 | Preferences storage |
-| **Kotlinx Coroutines** | 1.9.0 | Async operations |
-| **Kotlinx Serialization** | 1.8.0 | JSON serialization |
+| **DataStore** | 1.2.0 | Preferences storage |
+| **Kotlinx Coroutines** | 1.10.2 | Async operations |
+| **Kotlinx Serialization** | 1.9.0 | JSON serialization |
 | **Timber** | 5.0.1 | Logging |
-| **Coil Compose** | 2.7.0 | Image loading (app icons) |
+| **Coil Compose** | 3.2.0 | Image loading (app icons) |
 
 ## Development Setup
 
 ### Prerequisites
 
 1. **Android Studio** Ladybug (2024.2.1) or newer
-2. **JDK 21** (bundled with Android Studio or standalone)
+2. **JDK 25** (Host) & **JDK 21** (Target, auto-provisioned)
 3. **Android SDK** with API 36 platform tools
 4. **Rooted Android Device** with:
    - Magisk 30.6+
@@ -131,47 +131,44 @@ cd privacyshield
 ```toml
 [versions]
 # Core
-agp = "8.7.3"
+agp = "8.13.2"
 kotlin = "2.2.21"
-ksp = "2.2.21-1.0.31"
+ksp = "2.2.21-2.0.4"
 
 # Android
-coreKtx = "1.16.0"
-appcompat = "1.7.0"
-activityCompose = "1.10.0"
-lifecycleRuntimeKtx = "2.9.0"
-navigationCompose = "2.9.0"
+coreKtx = "1.17.0"
+appcompat = "1.7.1"
+activityCompose = "1.12.1"
+lifecycleRuntimeKtx = "2.10.0"
+navigationCompose = "2.9.6"
 
 # Compose
 composeBom = "2025.12.00"
 material3 = "1.4.0"
 
 # YukiHookAPI
-yukihookapi = "1.2.1"
+material = "1.12.0"
+yukihookapi = "1.3.1"
 
 # Data
-datastore = "1.1.2"
-serializationJson = "1.8.0"
-coroutines = "1.9.0"
+datastore = "1.2.0"
+serializationJson = "1.9.0"
+coroutines = "1.10.2"
 
 # Utilities
 timber = "5.0.1"
-coilCompose = "2.7.0"
+coilCompose = "3.2.0"
 
 # Testing
 junit = "4.13.2"
 junitVersion = "1.2.1"
-espressoCore = "3.6.1"
+espressoCore = "3.7.0"
 
 [libraries]
 # ... (library definitions)
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+# ... (plugin definitions)
 ```
 
 ### Repository Configuration
@@ -182,7 +179,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://api.xposed.info/") }  // YukiHookAPI
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        maven { url = uri("https://repo.lsposed.foundation/") } // Xposed API
     }
 }
 ```

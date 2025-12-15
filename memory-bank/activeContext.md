@@ -4,22 +4,32 @@
 
 ### Active Change: `implement-privacy-shield-module`
 
-**Status**: 🔄 Phase 1 In Progress (12/15 tasks complete)  
-**Location**: `openspec/changes/implement-privacy-shield-module/`  
-**Current Phase**: Phase 1 - Core Infrastructure  
-**Next Action**: Fix build error, then complete remaining Phase 1 tasks
+**Status**: ✅ Phase 1 Complete / 🔄 Phase 2 In Progress
+**Location**: `openspec/changes/implement-privacy-shield-module/`
+**Current Phase**: Phase 2 - Device Spoofing
+**Next Action**: Implement `DeviceHooker` and `DeviceGenerators`
 
 ### What's Being Built
 
 Complete implementation of PrivacyShield LSPosed module from empty Android Studio scaffold:
 
-1. **Core Infrastructure** - Build config, manifest, hook entry ← **CURRENT**
-2. **Device Spoofing** - 24+ device identifier hooks
+1. **Core Infrastructure** - Build config, manifest, hook entry ✅ **DONE**
+2. **Device Spoofing** - 24+ device identifier hooks ← **CURRENT**
 3. **Anti-Detection** - Stack trace/ClassLoader/proc maps hiding
 4. **Data Management** - Profiles, per-app config, generators
 5. **User Interface** - Material 3 Expressive with 6 screens
 
 ## Recent Changes
+
+### December 15, 2025
+
+| Time | Change | Status |
+|------|--------|--------|
+| 10:45 | Resolved Java 25 / Gradle Build Issues | ✅ |
+| 10:50 | Upgraded Gradle to 9.1.0 | ✅ |
+| 10:55 | Added Foojay Toolchain Resolver (1.0.0) | ✅ |
+| 11:00 | Verified LSPosed API dependency (repo.lsposed.foundation) | ✅ |
+| 11:05 | Successful `assembleDebug` build | ✅ |
 
 ### December 14, 2025
 
@@ -30,15 +40,6 @@ Complete implementation of PrivacyShield LSPosed module from empty Android Studi
 | 18:45 | Updated root `build.gradle.kts` with plugins | ✅ |
 | 18:45 | Updated `settings.gradle.kts` with Xposed repo | ✅ |
 | 18:46 | Rewrote `app/build.gradle.kts` | ✅ |
-| 18:47 | Updated `AndroidManifest.xml` with LSPosed metadata | ✅ |
-| 18:47 | Created `res/values/arrays.xml`, `strings.xml`, `themes.xml` | ✅ |
-| 18:48 | Created Kotlin source directory structure | ✅ |
-| 18:49 | Created `PrivacyShieldApp.kt` (ModuleApplication) | ✅ |
-| 18:49 | Created `hook/HookEntry.kt` with @InjectYukiHookWithXposed | ✅ |
-| 18:50 | Created `ui/MainActivity.kt` with Compose placeholder | ✅ |
-| 18:51 | Created theme files: Color, Typography, Shapes, Motion, Theme | ✅ |
-| 18:52 | Created package placeholders for future phases | ✅ |
-| 18:55 | Gradle build attempt failed | ⚠️ Needs fix |
 
 ### Files Created in Phase 1
 
@@ -57,18 +58,7 @@ app/src/main/kotlin/com/akil/privacyshield/
 │       └── package-info.kt      ✅ Placeholder
 ├── ui/
 │   ├── MainActivity.kt          ✅ Created
-│   ├── theme/
-│   │   ├── Color.kt             ✅ Created
-│   │   ├── Typography.kt        ✅ Created
-│   │   ├── Shapes.kt            ✅ Created
-│   │   ├── Motion.kt            ✅ Created
-│   │   └── Theme.kt             ✅ Created
-│   ├── screens/
-│   │   └── package-info.kt      ✅ Placeholder
-│   ├── components/
-│   │   └── package-info.kt      ✅ Placeholder
-│   └── navigation/
-│       └── package-info.kt      ✅ Placeholder
+├── ui/theme/                    ✅ Created (Color, Type, Theme, etc.)
 └── utils/
     └── Constants.kt             ✅ Created
 
@@ -80,36 +70,39 @@ app/src/main/res/values/
 
 ## Next Steps
 
-### Immediate
+### Immediate (Phase 2)
 
-1. **Fix Build Error** - Investigate and resolve Gradle build failure
-2. **Complete 1.1.5** - Verify Gradle sync works
-3. **Complete 1.2.5** - Remove old colors.xml if no longer needed
+1. **Create Generators**: Implement `IMEIGenerator`, `MacAddressGenerator`, etc.
+2. **Implement DeviceHooker**: Use YukiHookAPI to hook `TelephonyManager`, `Build`, `Settings.Secure`.
+3. **Connect Hooks**: Register `DeviceHooker` in `HookEntry`. 
 
-### Short-Term (After Build Succeeds)
+### Short-Term
 
-4. Test on physical device with LSPosed
-5. Verify module appears in LSPosed Manager
-6. Confirm HookEntry logs appear
+4. Test spoofing on physical device
+5. Verify values availability in target apps
 
 ## Active Decisions & Considerations
 
-### Decision: Use Latest Stable Versions
+### Decision: Upgrade to Gradle 9.1.0
 
-**Rationale**: PRD specified future versions (Kotlin 2.2.21, Compose BOM 2025.12.00) that don't exist yet.
+**Rationale**: The host environment is running Java 25. Older Gradle versions (8.x) cannot run on Java 25.
 
-**Resolution**: Used latest stable versions available:
-- Kotlin 2.1.0 (instead of 2.2.21)
-- KSP 2.1.0-1.0.29 (matching Kotlin)
-- Compose BOM 2024.12.01 (December 2024)
-- Material 3 1.3.1 (latest stable)
-- compileSdk/targetSdk 35 (Android 15, latest stable)
+**Resolution**: 
+- Upgraded Gradle Wrapper to 9.1.0.
+- Added `org.gradle.toolchains.foojay-resolver-convention` plugin (v1.0.0) to handle Java 21 toolchain provisioning automatically.
 
-### Issue: Build Failure
+### Decision: API Selection
 
-**Status**: ⚠️ Needs investigation  
-**Symptom**: `gradlew assembleDebug` fails with exit code 1  
-**Next Step**: Get detailed error output and fix
+**Rationale**: Both standard Xposed API and YukiHookAPI are needed.
+- **Xposed API (`de.robv.android.xposed:api:82`)**: The fundamental interface for the LSPosed framework.
+- **YukiHookAPI**: The high-level Kotlin wrapper for writing hooks efficiently.
+
+**Status**: Verified dependencies. Both are correctly configured and building.
+
+### Issue: Build Failure (RESOLVED)
+
+**Status**: ✅ Fixed
+**Resolution**: Toolchain issue resolved by Foojay plugin and Gradle upgrade. Build is now successful (`EXIT CODE 0`).
 
 ## Important Patterns & Preferences
 
