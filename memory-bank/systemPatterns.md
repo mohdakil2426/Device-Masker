@@ -99,6 +99,43 @@ override fun onHook() = encase {
 
 **Rationale**: Detection checks may run early; must hide before spoofing begins
 
+### AD-3b: Critical Safety Rules (MUST FOLLOW!)
+
+**Decision**: Never hook system-critical processes or block essential classes
+
+**Forbidden Processes** (SKIP these in HookEntry.onHook()):
+```kotlin
+val forbiddenProcesses = listOf(
+    "android",              // Core Android framework - NEVER HOOK
+    "system_server",        // System server - dangerous
+    "com.android.systemui", // SystemUI - causes UI glitches
+)
+
+if (packageName in forbiddenProcesses || processName in forbiddenProcesses) {
+    return@encase  // Skip entirely!
+}
+```
+
+**Allowed Class Patterns** (NEVER block in AntiDetectHooker):
+```kotlin
+val allowedPatterns = listOf(
+    "com.akil.privacyshield",  // Our own module
+    "androidx.",               // AndroidX libraries  
+    "kotlin.", "kotlinx.",     // Kotlin stdlib
+    "java.",                   // Java stdlib
+    "android.",                // Android framework
+    "com.google.android",      // Google libraries
+)
+```
+
+**Why This Matters**:
+1. YukiHookAPI's `packageName` in `encase {}` can be `"android"` in Zygote scope
+2. Hooking system classes affects ALL apps including the module itself
+3. Blocking essential class loading crashes the module app
+4. **Hard-learned lesson**: App stuck at logo crash was caused by this exact issue!
+
+**Rationale**: Prevents module from crashing itself or the entire system
+
 ### AD-4: DataStore for Persistence
 
 **Decision**: Use Jetpack DataStore (Preferences) over SharedPreferences
@@ -405,3 +442,41 @@ method { name = "newApiMethod" }.hook { ... }  // ❌
 // GOOD
 method { name = "newApiMethod" }.optional().hook { ... }  // ✅
 ```
+
+### ❌ DON'T: Hook System Processes (CRITICAL!)
+
+```kotlin
+// BAD - Causes module app crash and system instability
+override fun onHook() = encase {
+    // No checks! Hooks EVERYTHING including "android" core process
+    loadHooker(AntiDetectHooker)  // ❌ Will block own class loading
+}
+
+// GOOD
+override fun onHook() = encase {
+    // Skip system-critical processes
+    val forbidden = listOf("android", "system_server", "com.android.systemui")
+    if (packageName in forbidden) return@encase  // ✅ Safe
+    
+    loadHooker(AntiDetectHooker)
+}
+```
+
+### ❌ DON'T: Block Essential Class Loading
+
+```kotlin
+// BAD - Blocks module's own dependencies from loading
+private fun shouldBlockClass(className: String): Boolean {
+    return HIDDEN_PATTERNS.any { className.contains(it) }  // ❌ No allowlist!
+}
+
+// GOOD
+private fun shouldBlockClass(className: String): Boolean {
+    // Allowlist essential classes FIRST
+    val allowed = listOf("androidx.", "kotlin.", "java.", "android.")
+    if (allowed.any { className.startsWith(it) }) return false  // ✅ Never block
+    
+    return HIDDEN_PATTERNS.any { className.contains(it) }
+}
+```
+

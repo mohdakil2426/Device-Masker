@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">PrivacyShield</string>
     <string name="app_description">Device Spoofing Module with Anti-Detection</string>
+    <string name="xposed_description">Privacy Shield - Comprehensive device spoofing with anti-detection</string>
     
     <!-- Module Status -->
     <string name="module_active">Module Active</string>

@@ -29,12 +29,12 @@ import com.akil.privacyshield.data.SpoofDataStore
 import com.akil.privacyshield.data.repository.SpoofRepository
 import com.akil.privacyshield.ui.navigation.BottomNavBar
 import com.akil.privacyshield.ui.navigation.NavRoutes
+import com.akil.privacyshield.ui.screens.AppSelectionScreen
+import com.akil.privacyshield.ui.screens.DiagnosticsScreen
 import com.akil.privacyshield.ui.screens.HomeScreen
+import com.akil.privacyshield.ui.screens.ProfileScreen
 import com.akil.privacyshield.ui.screens.SettingsScreen
 import com.akil.privacyshield.ui.screens.SpoofSettingsScreen
-import com.akil.privacyshield.ui.screens.AppSelectionScreen
-import com.akil.privacyshield.ui.screens.ProfileScreen
-import com.akil.privacyshield.ui.screens.DiagnosticsScreen
 import com.akil.privacyshield.ui.theme.AppMotion
 import com.akil.privacyshield.ui.theme.PrivacyShieldTheme
 import kotlinx.coroutines.launch
@@ -43,8 +43,7 @@ import timber.log.Timber
 /**
  * Main Activity for PrivacyShield.
  *
- * Uses Jetpack Compose with Material 3 for the entire UI with edge-to-edge display.
- * Features:
+ * Uses Jetpack Compose with Material 3 for the entire UI with edge-to-edge display. Features:
  * - Bottom navigation with animated transitions
  * - Theme settings persistence (AMOLED, Dynamic Colors)
  * - Spring-based animations for smooth navigation
@@ -71,154 +70,142 @@ class MainActivity : ComponentActivity() {
             // Determine dark theme - always dark in AMOLED mode, otherwise follow system
             val darkTheme = amoledMode || isSystemInDarkTheme()
 
-            PrivacyShieldTheme(
-                darkTheme = darkTheme,
-                dynamicColor = dynamicColors
-            ) {
+            PrivacyShieldTheme(darkTheme = darkTheme, dynamicColor = dynamicColors) {
                 PrivacyShieldMainApp(
-                    repository = repository,
-                    dataStore = dataStore,
-                    amoledMode = amoledMode,
-                    dynamicColors = dynamicColors,
-                    debugLogging = debugLogging
+                        repository = repository,
+                        dataStore = dataStore,
+                        amoledMode = amoledMode,
+                        dynamicColors = dynamicColors,
+                        debugLogging = debugLogging
                 )
             }
         }
     }
 }
 
-/**
- * Main app composable with navigation.
- */
+/** Main app composable with navigation. */
 @Composable
 fun PrivacyShieldMainApp(
-    repository: SpoofRepository,
-    dataStore: SpoofDataStore,
-    amoledMode: Boolean,
-    dynamicColors: Boolean,
-    debugLogging: Boolean,
-    navController: NavHostController = rememberNavController()
+        repository: SpoofRepository,
+        dataStore: SpoofDataStore,
+        amoledMode: Boolean,
+        dynamicColors: Boolean,
+        debugLogging: Boolean,
+        navController: NavHostController = rememberNavController()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.HOME
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            BottomNavBar(
-                currentRoute = currentRoute,
-                onNavigate = { route ->
-                    navController.navigate(route) {
-                        // Pop up to the start destination to avoid stacking
-                        popUpTo(NavRoutes.HOME) {
-                            saveState = true
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                BottomNavBar(
+                        currentRoute = currentRoute,
+                        onNavigate = { route ->
+                            navController.navigate(route) {
+                                // Pop up to the start destination to avoid stacking
+                                popUpTo(NavRoutes.HOME) { saveState = true }
+                                // Avoid multiple copies of the same destination
+                                launchSingleTop = true
+                                // Restore state when re-selecting a previously selected item
+                                restoreState = true
+                            }
                         }
-                        // Avoid multiple copies of the same destination
-                        launchSingleTop = true
-                        // Restore state when re-selecting a previously selected item
-                        restoreState = true
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = NavRoutes.HOME,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = {
-                fadeIn(animationSpec = spring()) + slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                    animationSpec = AppMotion.DefaultSpringOffset
-                )
-            },
-            exitTransition = {
-                fadeOut(animationSpec = spring()) + slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                    animationSpec = AppMotion.DefaultSpringOffset
-                )
-            },
-            popEnterTransition = {
-                fadeIn(animationSpec = spring()) + slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                    animationSpec = AppMotion.DefaultSpringOffset
-                )
-            },
-            popExitTransition = {
-                fadeOut(animationSpec = spring()) + slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                    animationSpec = AppMotion.DefaultSpringOffset
                 )
             }
+    ) { innerPadding ->
+        NavHost(
+                navController = navController,
+                startDestination = NavRoutes.HOME,
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = {
+                    fadeIn(animationSpec = spring()) +
+                            slideIntoContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                    animationSpec = AppMotion.DefaultSpringOffset
+                            )
+                },
+                exitTransition = {
+                    fadeOut(animationSpec = spring()) +
+                            slideOutOfContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                    animationSpec = AppMotion.DefaultSpringOffset
+                            )
+                },
+                popEnterTransition = {
+                    fadeIn(animationSpec = spring()) +
+                            slideIntoContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                    animationSpec = AppMotion.DefaultSpringOffset
+                            )
+                },
+                popExitTransition = {
+                    fadeOut(animationSpec = spring()) +
+                            slideOutOfContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                    animationSpec = AppMotion.DefaultSpringOffset
+                            )
+                }
         ) {
             composable(NavRoutes.HOME) {
                 HomeScreen(
-                    repository = repository,
-                    onNavigateToSpoof = {
-                        navController.navigate(NavRoutes.SPOOF)
-                    },
-                    onRegenerateAll = {
-                        // Will be connected to ViewModel
-                        Timber.d("Regenerate all values requested")
-                    }
+                        repository = repository,
+                        onNavigateToSpoof = { navController.navigate(NavRoutes.SPOOF) },
+                        onRegenerateAll = {
+                            // Will be connected to ViewModel
+                            Timber.d("Regenerate all values requested")
+                        }
                 )
             }
 
             composable(NavRoutes.SPOOF) {
                 SpoofSettingsScreen(
-                    repository = repository,
-                    onEditValue = { type, value ->
-                        // Will open edit dialog
-                        Timber.d("Edit $type: $value")
-                    }
+                        repository = repository,
+                        onEditValue = { type, value ->
+                            // Will open edit dialog
+                            Timber.d("Edit $type: $value")
+                        }
                 )
             }
 
             composable(NavRoutes.SETTINGS) {
                 SettingsScreen(
-                    darkMode = amoledMode,
-                    dynamicColors = dynamicColors,
-                    debugLogging = debugLogging,
-                    onDarkModeChange = { enabled ->
-                        Timber.d("AMOLED mode changed: $enabled")
-                        scope.launch { dataStore.setAmoledMode(enabled) }
-                    },
-                    onDynamicColorChange = { enabled ->
-                        Timber.d("Dynamic colors changed: $enabled")
-                        scope.launch { dataStore.setDynamicColors(enabled) }
-                    },
-                    onDebugLogChange = { enabled ->
-                        Timber.d("Debug logging changed: $enabled")
-                        scope.launch { dataStore.setDebugLogging(enabled) }
-                    }
+                        darkMode = amoledMode,
+                        dynamicColors = dynamicColors,
+                        debugLogging = debugLogging,
+                        onDarkModeChange = { enabled ->
+                            Timber.d("AMOLED mode changed: $enabled")
+                            scope.launch { dataStore.setAmoledMode(enabled) }
+                        },
+                        onDynamicColorChange = { enabled ->
+                            Timber.d("Dynamic colors changed: $enabled")
+                            scope.launch { dataStore.setDynamicColors(enabled) }
+                        },
+                        onDebugLogChange = { enabled ->
+                            Timber.d("Debug logging changed: $enabled")
+                            scope.launch { dataStore.setDebugLogging(enabled) }
+                        },
+                        onNavigateToDiagnostics = { navController.navigate(NavRoutes.DIAGNOSTICS) }
                 )
             }
 
             composable(NavRoutes.APPS) {
                 AppSelectionScreen(
-                    repository = repository,
-                    onAppClick = { app ->
-                        Timber.d("App clicked: ${app.packageName}")
-                    }
+                        repository = repository,
+                        onAppClick = { app -> Timber.d("App clicked: ${app.packageName}") }
                 )
             }
 
             composable(NavRoutes.PROFILES) {
                 ProfileScreen(
-                    repository = repository,
-                    onProfileClick = { profile ->
-                        Timber.d("Profile clicked: ${profile.name}")
-                    }
+                        repository = repository,
+                        onProfileClick = { profile -> Timber.d("Profile clicked: ${profile.name}") }
                 )
             }
 
-            composable(NavRoutes.DIAGNOSTICS) {
-                DiagnosticsScreen(
-                    repository = repository
-                )
-            }
+            composable(NavRoutes.DIAGNOSTICS) { DiagnosticsScreen(repository = repository) }
         }
     }
 }

@@ -6,8 +6,17 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Use JVM 17 for better Android/Xposed compatibility
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
+            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+            "-Xwarning-level=DEPRECATION:disabled"
+        )
+    }
 }
 
 android {
@@ -39,27 +48,29 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Updated to modern compilerOptions DSL
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-            freeCompilerArgs.addAll(
-                "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-                "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
-                "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
-            )
-        }
-    }
+
 
     buildFeatures {
         compose = true
         buildConfig = true
     }
+
+    // CRITICAL: Prevent synthetic lambda classes that cause ClassNotFoundException in Xposed
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        // Ensure all module classes are in the primary dex
+        dex {
+            useLegacyPackaging = true
+        }
+    }
 }
+
 
 dependencies {
     // ═══════════════════════════════════════════════════════════

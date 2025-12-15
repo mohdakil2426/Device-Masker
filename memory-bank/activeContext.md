@@ -4,10 +4,10 @@
 
 ### Active Change: `implement-privacy-shield-module`
 
-**Status**: ✅ Phases 1-5 Full UI Complete (Testing Pending)
+**Status**: ✅ Phases 1-5 Complete + Device Tested ✅
 **Location**: `openspec/changes/implement-privacy-shield-module/`
-**Current Phase**: Phase 5 Full UI Complete → Ready for Device Testing & Polish
-**Next Action**: Test on physical device with LSPosed, finalize Phase 6
+**Current Phase**: Phase 5 Complete → Ready for Phase 6 (Polish & Release)
+**Next Action**: Unit tests, documentation, release build configuration
 
 ### What's Been Built
 
@@ -31,12 +31,13 @@ Complete implementation of PrivacyShield LSPosed module with Full UI:
 5. **User Interface (Full)** - Material 3 Expressive ✅ **DONE**
    - **Screens**: HomeScreen, SpoofSettingsScreen, SettingsScreen, AppSelectionScreen, ProfileScreen, DiagnosticsScreen
    - **Components**: StatusIndicator, ToggleButton, AppListItem, ProfileCard, SpoofValueCard
-   - Bottom navigation with spring animations
+   - **Navigation**: 5-tab bottom nav (Home → Apps → Spoof → Profiles → Settings)
+   - **Diagnostics**: Accessible from Settings > Advanced > Diagnostics
    - AMOLED dark theme with dynamic colors support
 
 ## Recent Changes
 
-### December 15, 2025 (Phase 5 Full UI)
+### December 15, 2025 (Phase 5 Full UI + Critical Bug Fixes)
 
 | Time | Change | Status |
 |------|--------|--------|
@@ -53,6 +54,43 @@ Complete implementation of PrivacyShield LSPosed module with Full UI:
 | 20:25 | Added repository methods for new screens | ✅ |
 | 20:30 | Fixed suspend function issues with rememberCoroutineScope | ✅ |
 | 20:35 | Build verified successful | ✅ |
+| 20:45 | Fixed Gradle deprecation warnings (kotlinOptions -> compilerOptions) | ✅ |
+| 20:55 | Fixed build warnings (deprecated flags, unchecked casts in AntiDetectHooker) | ✅ |
+| 21:10 | FIXED CRITICAL: App stuck at logo (Self-hooking loop) in HookEntry | ✅ |
+| 21:35 | DISABLED: Stack trace hooks in AntiDetectHooker (Bootloop cause) | ✅ |
+| **01:55** | **CRITICAL FIX: Module was hooking 'android' system process** | ✅ |
+| 01:56 | Added forbiddenProcesses list (android, system_server, systemui) | ✅ |
+| 01:57 | Fixed AntiDetectHooker allowlist to never block module dependencies | ✅ |
+| 01:58 | Build verified successful after all fixes | ✅ |
+| **20:02** | **CONFIRMED FIX: App launches correctly after LSPosed enable** | ✅ ✅ |
+
+### Critical Bug Fix: App Stuck at Logo/Splash (December 15, 2025)
+
+**Problem**: App would launch normally before enabling LSPosed module. After enabling and restarting device, app stuck at logo and closed.
+
+**Root Cause Analysis** (from LSPosed logs):
+1. Module was hooking `packageName = "android"` (system process), NOT skipping it
+2. `AntiDetectHooker` was blocking `Class.forName()` and `ClassLoader.loadClass()` for YukiHookAPI patterns
+3. When module app launched, its own classes couldn't load because of the system-level block
+4. `scopes.txt` showed module was in its own scope, triggering self-hook
+
+**Log Evidence**:
+```
+[PrivacyShield][D][android-zygote] PrivacyShield: Starting hooks for package: android
+[PrivacyShield][D][android-zygote] AntiDetectHooker: CRITICAL - Loading anti-detection hooks FIRST
+[PrivacyShield][D][android-zygote] Before Hook Member [ClassLoader.loadClass] done  (×100+ times)
+```
+
+**Solution Applied**:
+1. **HookEntry.kt**: Added `forbiddenProcesses` list to skip `android`, `system_server`, `com.android.systemui`
+2. **HookEntry.kt**: Enhanced self-check to also match `processName.startsWith(selfPackage)`
+3. **AntiDetectHooker.kt**: Added comprehensive `allowedPatterns` in `shouldBlockClass()` to never block:
+   - `com.akil.privacyshield.*`
+   - `androidx.*`, `kotlin.*`, `kotlinx.*`
+   - `android.*`, `java.*`, `com.google.android.*`
+4. **AntiDetectHooker.kt**: Added same skip logic for system processes
+
+**Key Lesson**: The `packageName` in YukiHookAPI's `encase {}` block can be `"android"` when loaded in Zygote scope, NOT just target apps. Always explicitly skip system processes!
 
 ### December 15, 2025 (earlier)
 
@@ -121,21 +159,19 @@ app/src/main/kotlin/com/akil/privacyshield/hook/hooker/
 
 ## Next Steps
 
-### Immediate (Phase 3 - Anti-Detection)
+### Immediate (Phase 6 - Polish & Release)
 
-1. **Create AntiDetectHooker**: Implement Xposed detection bypass
-   - Stack trace filtering (Thread.getStackTrace, Throwable.getStackTrace)
-   - ClassLoader hiding (Class.forName, ClassLoader.loadClass)
-   - /proc/maps filtering (BufferedReader hooks)
-   - Package hiding (PackageManager.getPackageInfo)
+1. **Unit Tests**: Add tests for generators and data models
+2. **Documentation**: Update README, add usage guide
+3. **Release Build**: Configure signing, ProGuard/R8 rules
+4. **Final Testing**: Test all hookers with target apps (IMEI check, DeviceInfo apps)
 
-2. **Load AntiDetectHooker FIRST** in HookEntry.onHook()
+### Future Enhancements
 
-### Short-Term
-
-3. Test spoofing on physical device with LSPosed
-4. Verify hooks trigger with Timber logs
-5. Test with device info apps (IMEI check, DeviceInfo, etc.)
+1. Per-app profile switching via quick settings tile
+2. Backup/restore profiles to file
+3. Import device fingerprints from real devices
+4. Root detection bypass (SafetyNet/Play Integrity)
 
 ## Active Decisions & Considerations
 

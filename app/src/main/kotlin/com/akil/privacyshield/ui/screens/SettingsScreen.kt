@@ -21,12 +21,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -59,35 +58,37 @@ import com.akil.privacyshield.ui.theme.PrivacyShieldTheme
  * @param onDarkModeChange Callback when dark mode preference changes
  * @param onDynamicColorChange Callback when dynamic color preference changes
  * @param onDebugLogChange Callback when debug logging preference changes
+ * @param onNavigateToDiagnostics Callback to navigate to diagnostics screen
  * @param modifier Optional modifier
  */
 @Composable
 fun SettingsScreen(
-    darkMode: Boolean = true,
-    dynamicColors: Boolean = true,
-    debugLogging: Boolean = false,
-    onDarkModeChange: (Boolean) -> Unit = {},
-    onDynamicColorChange: (Boolean) -> Unit = {},
-    onDebugLogChange: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier
+        darkMode: Boolean = true,
+        dynamicColors: Boolean = true,
+        debugLogging: Boolean = false,
+        onDarkModeChange: (Boolean) -> Unit = {},
+        onDynamicColorChange: (Boolean) -> Unit = {},
+        onDebugLogChange: (Boolean) -> Unit = {},
+        onNavigateToDiagnostics: () -> Unit = {},
+        modifier: Modifier = Modifier
 ) {
     var currentDarkMode by remember { mutableStateOf(darkMode) }
     var currentDynamicColors by remember { mutableStateOf(dynamicColors) }
     var currentDebugLogging by remember { mutableStateOf(debugLogging) }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Header
         item {
             Text(
-                text = "Settings",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(vertical = 8.dp)
+                    text = "Settings",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(vertical = 8.dp)
             )
         }
 
@@ -95,27 +96,27 @@ fun SettingsScreen(
         item {
             SettingsSection(title = "Appearance") {
                 SettingsSwitchItem(
-                    icon = Icons.Outlined.DarkMode,
-                    title = "AMOLED Dark Mode",
-                    description = "Pure black background for OLED displays",
-                    checked = currentDarkMode,
-                    onCheckedChange = {
-                        currentDarkMode = it
-                        onDarkModeChange(it)
-                    }
+                        icon = Icons.Outlined.DarkMode,
+                        title = "AMOLED Dark Mode",
+                        description = "Pure black background for OLED displays",
+                        checked = currentDarkMode,
+                        onCheckedChange = {
+                            currentDarkMode = it
+                            onDarkModeChange(it)
+                        }
                 )
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     Spacer(modifier = Modifier.height(8.dp))
                     SettingsSwitchItem(
-                        icon = Icons.Outlined.Palette,
-                        title = "Dynamic Colors",
-                        description = "Use Material You colors from your wallpaper",
-                        checked = currentDynamicColors,
-                        onCheckedChange = {
-                            currentDynamicColors = it
-                            onDynamicColorChange(it)
-                        }
+                            icon = Icons.Outlined.Palette,
+                            title = "Dynamic Colors",
+                            description = "Use Material You colors from your wallpaper",
+                            checked = currentDynamicColors,
+                            onCheckedChange = {
+                                currentDynamicColors = it
+                                onDynamicColorChange(it)
+                            }
                     )
                 }
             }
@@ -125,14 +126,23 @@ fun SettingsScreen(
         item {
             SettingsSection(title = "Advanced") {
                 SettingsSwitchItem(
-                    icon = Icons.Outlined.BugReport,
-                    title = "Debug Logging",
-                    description = "Enable verbose logging for troubleshooting",
-                    checked = currentDebugLogging,
-                    onCheckedChange = {
-                        currentDebugLogging = it
-                        onDebugLogChange(it)
-                    }
+                        icon = Icons.Outlined.BugReport,
+                        title = "Debug Logging",
+                        description = "Enable verbose logging for troubleshooting",
+                        checked = currentDebugLogging,
+                        onCheckedChange = {
+                            currentDebugLogging = it
+                            onDebugLogChange(it)
+                        }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsClickableItem(
+                        icon = Icons.Outlined.Shield,
+                        title = "Diagnostics",
+                        description = "Test spoofing effectiveness and anti-detection",
+                        onClick = onNavigateToDiagnostics
                 )
             }
         }
@@ -141,99 +151,80 @@ fun SettingsScreen(
         item {
             SettingsSection(title = "About") {
                 SettingsInfoItem(
-                    icon = Icons.Outlined.Info,
-                    title = "Version",
-                    value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+                        icon = Icons.Outlined.Info,
+                        title = "Version",
+                        value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsInfoItem(
-                    icon = Icons.Outlined.Code,
-                    title = "Build Type",
-                    value = if (BuildConfig.DEBUG) "Debug" else "Release"
+                        icon = Icons.Outlined.Code,
+                        title = "Build Type",
+                        value = if (BuildConfig.DEBUG) "Debug" else "Release"
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsClickableItem(
-                    icon = Icons.Outlined.Tune,
-                    title = "Module Info",
-                    description = "YukiHookAPI 1.3.1 • LSPosed Module",
-                    onClick = { /* Open module info */ }
+                        icon = Icons.Outlined.Tune,
+                        title = "Module Info",
+                        description = "YukiHookAPI 1.3.1 • LSPosed Module",
+                        onClick = { /* Open module info */}
                 )
             }
         }
 
         // Bottom spacing
-        item {
-            Spacer(modifier = Modifier.height(24.dp))
-        }
+        item { Spacer(modifier = Modifier.height(24.dp)) }
     }
 }
 
-/**
- * Settings section with title and content.
- */
+/** Settings section with title and content. */
 @Composable
-private fun SettingsSection(
-    title: String,
-    content: @Composable () -> Unit
-) {
+private fun SettingsSection(title: String, content: @Composable () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
         )
 
         ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                content()
-            }
-        }
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                        CardDefaults.elevatedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        ),
+                shape = MaterialTheme.shapes.large
+        ) { Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) { content() } }
     }
 }
 
-/**
- * Settings item with switch toggle.
- */
+/** Settings item with switch toggle. */
 @Composable
 private fun SettingsSwitchItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+        icon: ImageVector,
+        title: String,
+        description: String,
+        checked: Boolean,
+        onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
+                modifier =
+                        Modifier.size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(20.dp)
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(20.dp)
             )
         }
 
@@ -241,50 +232,38 @@ private fun SettingsSwitchItem(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
-/**
- * Settings item with read-only info.
- */
+/** Settings item with read-only info. */
 @Composable
-private fun SettingsInfoItem(
-    icon: ImageVector,
-    title: String,
-    value: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+private fun SettingsInfoItem(icon: ImageVector, title: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center
+                modifier =
+                        Modifier.size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(20.dp)
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(20.dp)
             )
         }
 
@@ -292,48 +271,44 @@ private fun SettingsInfoItem(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-/**
- * Settings item with click action.
- */
+/** Settings item with click action. */
 @Composable
 private fun SettingsClickableItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    onClick: () -> Unit
+        icon: ImageVector,
+        title: String,
+        description: String,
+        onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+            verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiaryContainer),
-            contentAlignment = Alignment.Center
+                modifier =
+                        Modifier.size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.tertiaryContainer),
+                contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.size(20.dp)
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(20.dp)
             )
         }
 
@@ -341,22 +316,22 @@ private fun SettingsClickableItem(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -364,7 +339,5 @@ private fun SettingsClickableItem(
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun SettingsScreenPreview() {
-    PrivacyShieldTheme {
-        SettingsScreen()
-    }
+    PrivacyShieldTheme { SettingsScreen() }
 }

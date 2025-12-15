@@ -3,7 +3,7 @@ package com.akil.privacyshield.hook.hooker
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringClass
-import timber.log.Timber
+import com.highcapable.yukihookapi.hook.log.YLog
 import java.util.Locale
 import java.util.TimeZone
 
@@ -36,7 +36,7 @@ object LocationHooker : YukiBaseHooker() {
     private const val SPOOFED_LOCALE_COUNTRY: String = "US"
 
     override fun onHook() {
-        Timber.d("LocationHooker: Starting hooks for package: $packageName")
+        YLog.debug("LocationHooker: Starting hooks for package: $packageName")
 
         // ═══════════════════════════════════════════════════════════
         // LOCATION HOOKS
@@ -56,7 +56,7 @@ object LocationHooker : YukiBaseHooker() {
 
         hookLocale()
 
-        Timber.d("LocationHooker: Hooks registered for package: $packageName")
+        YLog.debug("LocationHooker: Hooks registered for package: $packageName")
     }
 
     /**
@@ -71,7 +71,7 @@ object LocationHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("LocationHooker: Spoofing getLatitude() -> $SPOOFED_LATITUDE")
+                    YLog.debug("LocationHooker: Spoofing getLatitude() -> $SPOOFED_LATITUDE")
                     result = SPOOFED_LATITUDE
                 }
             }
@@ -82,7 +82,7 @@ object LocationHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("LocationHooker: Spoofing getLongitude() -> $SPOOFED_LONGITUDE")
+                    YLog.debug("LocationHooker: Spoofing getLongitude() -> $SPOOFED_LONGITUDE")
                     result = SPOOFED_LONGITUDE
                 }
             }
@@ -93,7 +93,7 @@ object LocationHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("LocationHooker: Spoofing getAltitude() -> $SPOOFED_ALTITUDE")
+                    YLog.debug("LocationHooker: Spoofing getAltitude() -> $SPOOFED_ALTITUDE")
                     result = SPOOFED_ALTITUDE
                 }
             }
@@ -137,7 +137,7 @@ object LocationHooker : YukiBaseHooker() {
             }.hook {
                 after {
                     // The Location class hooks above will handle individual getters
-                    Timber.d("LocationHooker: getLastKnownLocation() called")
+                    YLog.debug("LocationHooker: getLastKnownLocation() called")
                 }
             }
         }
@@ -156,7 +156,7 @@ object LocationHooker : YukiBaseHooker() {
             }.hook {
                 after {
                     val spoofedTimezone = TimeZone.getTimeZone(SPOOFED_TIMEZONE_ID)
-                    Timber.d("LocationHooker: Spoofing TimeZone.getDefault() -> $SPOOFED_TIMEZONE_ID")
+                    YLog.debug("LocationHooker: Spoofing TimeZone.getDefault() -> $SPOOFED_TIMEZONE_ID")
                     result = spoofedTimezone
                 }
             }
@@ -176,7 +176,7 @@ object LocationHooker : YukiBaseHooker() {
             }.hook {
                 after {
                     val spoofedLocale = Locale(SPOOFED_LOCALE_LANGUAGE, SPOOFED_LOCALE_COUNTRY)
-                    Timber.d("LocationHooker: Spoofing Locale.getDefault() -> $spoofedLocale")
+                    YLog.debug("LocationHooker: Spoofing Locale.getDefault() -> $spoofedLocale")
                     result = spoofedLocale
                 }
             }
@@ -188,7 +188,7 @@ object LocationHooker : YukiBaseHooker() {
             }.hook {
                 after {
                     val spoofedLocale = Locale(SPOOFED_LOCALE_LANGUAGE, SPOOFED_LOCALE_COUNTRY)
-                    Timber.d("LocationHooker: Spoofing Locale.getDefault(category) -> $spoofedLocale")
+                    YLog.debug("LocationHooker: Spoofing Locale.getDefault(category) -> $spoofedLocale")
                     result = spoofedLocale
                 }
             }

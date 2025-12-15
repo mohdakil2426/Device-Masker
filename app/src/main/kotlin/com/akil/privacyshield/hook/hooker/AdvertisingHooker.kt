@@ -4,7 +4,7 @@ import com.akil.privacyshield.data.generators.UUIDGenerator
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringClass
-import timber.log.Timber
+import com.highcapable.yukihookapi.hook.log.YLog
 
 /**
  * Advertising Identifier Hooker - Spoofs tracking and advertising IDs.
@@ -33,7 +33,7 @@ object AdvertisingHooker : YukiBaseHooker() {
     }
 
     override fun onHook() {
-        Timber.d("AdvertisingHooker: Starting hooks for package: $packageName")
+        YLog.debug("AdvertisingHooker: Starting hooks for package: $packageName")
 
         // ═══════════════════════════════════════════════════════════
         // GSF ID HOOKS
@@ -53,7 +53,7 @@ object AdvertisingHooker : YukiBaseHooker() {
 
         hookMediaDrmId()
 
-        Timber.d("AdvertisingHooker: Hooks registered for package: $packageName")
+        YLog.debug("AdvertisingHooker: Hooks registered for package: $packageName")
     }
 
     /**
@@ -74,7 +74,7 @@ object AdvertisingHooker : YukiBaseHooker() {
                         after {
                             val key = args(1).string()
                             if (key == "android_id") {
-                                Timber.d("AdvertisingHooker: Spoofing GSF android_id -> $spoofedGsfId")
+                                YLog.debug("AdvertisingHooker: Spoofing GSF android_id -> $spoofedGsfId")
                                 result = spoofedGsfId
                             }
                         }
@@ -92,7 +92,7 @@ object AdvertisingHooker : YukiBaseHooker() {
                             if (key == "android_id") {
                                 // Convert hex GSF ID to long
                                 val longValue = spoofedGsfId.toLongOrNull(16) ?: 0L
-                                Timber.d("AdvertisingHooker: Spoofing GSF android_id (long) -> $longValue")
+                                YLog.debug("AdvertisingHooker: Spoofing GSF android_id (long) -> $longValue")
                                 result = longValue
                             }
                         }
@@ -117,7 +117,7 @@ object AdvertisingHooker : YukiBaseHooker() {
                         paramCount = 1
                     }.hook {
                         after {
-                            Timber.d("AdvertisingHooker: getAdvertisingIdInfo() called")
+                            YLog.debug("AdvertisingHooker: getAdvertisingIdInfo() called")
                         }
                     }
                 }
@@ -135,7 +135,7 @@ object AdvertisingHooker : YukiBaseHooker() {
                         emptyParam()
                     }.hook {
                         after {
-                            Timber.d("AdvertisingHooker: Spoofing AdvertisingId -> $spoofedAdvertisingId")
+                            YLog.debug("AdvertisingHooker: Spoofing AdvertisingId -> $spoofedAdvertisingId")
                             result = spoofedAdvertisingId
                         }
                     }
@@ -167,7 +167,7 @@ object AdvertisingHooker : YukiBaseHooker() {
                     }.hook {
                         after {
                             val spoofedInstanceId = UUIDGenerator.generateInstanceId()
-                            Timber.d("AdvertisingHooker: Spoofing FirebaseInstanceId -> $spoofedInstanceId")
+                            YLog.debug("AdvertisingHooker: Spoofing FirebaseInstanceId -> $spoofedInstanceId")
                             result = spoofedInstanceId
                         }
                     }
@@ -193,7 +193,7 @@ object AdvertisingHooker : YukiBaseHooker() {
 
                     // Common property names for device ID
                     if (propertyName in listOf("deviceUniqueId", "provisioningUniqueId", "serialNumber")) {
-                        Timber.d("AdvertisingHooker: Spoofing MediaDrm.$propertyName")
+                        YLog.debug("AdvertisingHooker: Spoofing MediaDrm.$propertyName")
                         result = spoofedMediaDrmId
                     }
                 }

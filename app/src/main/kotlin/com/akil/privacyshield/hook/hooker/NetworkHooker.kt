@@ -4,7 +4,7 @@ import com.akil.privacyshield.data.generators.MACGenerator
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringClass
-import timber.log.Timber
+import com.highcapable.yukihookapi.hook.log.YLog
 
 /**
  * Network Identifier Hooker - Spoofs WiFi and Bluetooth identifiers.
@@ -33,7 +33,7 @@ object NetworkHooker : YukiBaseHooker() {
     private val spoofedMccMnc: String by lazy { "310260" } // T-Mobile US
 
     override fun onHook() {
-        Timber.d("NetworkHooker: Starting hooks for package: $packageName")
+        YLog.debug("NetworkHooker: Starting hooks for package: $packageName")
 
         // ═══════════════════════════════════════════════════════════
         // WIFI INFO HOOKS
@@ -59,7 +59,7 @@ object NetworkHooker : YukiBaseHooker() {
 
         hookCarrierInfo()
 
-        Timber.d("NetworkHooker: Hooks registered for package: $packageName")
+        YLog.debug("NetworkHooker: Hooks registered for package: $packageName")
     }
 
     /**
@@ -76,7 +76,7 @@ object NetworkHooker : YukiBaseHooker() {
                 after {
                     // On Android 6+, this returns 02:00:00:00:00:00 for privacy
                     // We return our spoofed MAC
-                    Timber.d("NetworkHooker: Spoofing WifiInfo.getMacAddress() -> $spoofedWifiMac")
+                    YLog.debug("NetworkHooker: Spoofing WifiInfo.getMacAddress() -> $spoofedWifiMac")
                     result = spoofedWifiMac
                 }
             }
@@ -88,7 +88,7 @@ object NetworkHooker : YukiBaseHooker() {
             }.hook {
                 after {
                     // SSID is wrapped in quotes: "NetworkName"
-                    Timber.d("NetworkHooker: Spoofing WifiInfo.getSSID() -> $spoofedSsid")
+                    YLog.debug("NetworkHooker: Spoofing WifiInfo.getSSID() -> $spoofedSsid")
                     result = spoofedSsid
                 }
             }
@@ -99,7 +99,7 @@ object NetworkHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("NetworkHooker: Spoofing WifiInfo.getBSSID() -> $spoofedBssid")
+                    YLog.debug("NetworkHooker: Spoofing WifiInfo.getBSSID() -> $spoofedBssid")
                     result = spoofedBssid
                 }
             }
@@ -123,7 +123,7 @@ object NetworkHooker : YukiBaseHooker() {
                     if (originalResult != null && originalResult.size == 6) {
                         // Convert spoofed MAC string to byte array
                         val spoofedBytes = macStringToBytes(spoofedWifiMac)
-                        Timber.d("NetworkHooker: Spoofing NetworkInterface.getHardwareAddress()")
+                        YLog.debug("NetworkHooker: Spoofing NetworkInterface.getHardwareAddress()")
                         result = spoofedBytes
                     }
                 }
@@ -147,7 +147,7 @@ object NetworkHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("NetworkHooker: Spoofing BluetoothAdapter.getAddress() -> $spoofedBluetoothMac")
+                    YLog.debug("NetworkHooker: Spoofing BluetoothAdapter.getAddress() -> $spoofedBluetoothMac")
                     result = spoofedBluetoothMac
                 }
             }
@@ -166,7 +166,7 @@ object NetworkHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("NetworkHooker: Spoofing getNetworkOperatorName() -> $spoofedCarrierName")
+                    YLog.debug("NetworkHooker: Spoofing getNetworkOperatorName() -> $spoofedCarrierName")
                     result = spoofedCarrierName
                 }
             }
@@ -177,7 +177,7 @@ object NetworkHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("NetworkHooker: Spoofing getNetworkOperator() -> $spoofedMccMnc")
+                    YLog.debug("NetworkHooker: Spoofing getNetworkOperator() -> $spoofedMccMnc")
                     result = spoofedMccMnc
                 }
             }
@@ -188,7 +188,7 @@ object NetworkHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("NetworkHooker: Spoofing getSimOperatorName() -> $spoofedCarrierName")
+                    YLog.debug("NetworkHooker: Spoofing getSimOperatorName() -> $spoofedCarrierName")
                     result = spoofedCarrierName
                 }
             }
@@ -199,7 +199,7 @@ object NetworkHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("NetworkHooker: Spoofing getSimOperator() -> $spoofedMccMnc")
+                    YLog.debug("NetworkHooker: Spoofing getSimOperator() -> $spoofedMccMnc")
                     result = spoofedMccMnc
                 }
             }

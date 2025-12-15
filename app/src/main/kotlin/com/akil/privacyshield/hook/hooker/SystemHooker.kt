@@ -5,7 +5,7 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringClass
-import timber.log.Timber
+import com.highcapable.yukihookapi.hook.log.YLog
 
 /**
  * System Properties Hooker - Spoofs Build.* fields and SystemProperties.
@@ -60,7 +60,7 @@ object SystemHooker : YukiBaseHooker() {
         get() = buildProperties["DISPLAY"] ?: "AP2A.240905.003"
 
     override fun onHook() {
-        Timber.d("SystemHooker: Starting hooks for package: $packageName")
+        YLog.debug("SystemHooker: Starting hooks for package: $packageName")
 
         // ═══════════════════════════════════════════════════════════
         // BUILD CLASS STATIC FIELD HOOKS
@@ -80,7 +80,7 @@ object SystemHooker : YukiBaseHooker() {
 
         hookSystemProperties()
 
-        Timber.d("SystemHooker: Hooks registered for package: $packageName")
+        YLog.debug("SystemHooker: Hooks registered for package: $packageName")
     }
 
     /**
@@ -115,9 +115,9 @@ object SystemHooker : YukiBaseHooker() {
             modifyBuildField(buildClass, "TYPE", "user")
             modifyBuildField(buildClass, "TAGS", "release-keys")
 
-            Timber.d("SystemHooker: Build fields modified")
+            YLog.debug("SystemHooker: Build fields modified")
         }.onFailure { e ->
-            Timber.w("SystemHooker: Failed to modify Build fields: ${e.message}")
+            YLog.warn("SystemHooker: Failed to modify Build fields: ${e.message}")
         }
     }
 
@@ -135,9 +135,9 @@ object SystemHooker : YukiBaseHooker() {
             modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
 
             field.set(null, value)
-            Timber.d("SystemHooker: Set Build.$fieldName = $value")
+            YLog.debug("SystemHooker: Set Build.$fieldName = $value")
         } catch (e: Exception) {
-            Timber.w("SystemHooker: Failed to modify Build.$fieldName: ${e.message}")
+            YLog.warn("SystemHooker: Failed to modify Build.$fieldName: ${e.message}")
         }
     }
 
@@ -165,7 +165,7 @@ object SystemHooker : YukiBaseHooker() {
                     val key = args(0).string()
                     val spoofed = getSpoofedProperty(key)
                     if (spoofed != null) {
-                        Timber.d("SystemHooker: Spoofing SystemProperties.get($key) -> $spoofed")
+                        YLog.debug("SystemHooker: Spoofing SystemProperties.get($key) -> $spoofed")
                         result = spoofed
                     }
                 }
@@ -180,7 +180,7 @@ object SystemHooker : YukiBaseHooker() {
                     val key = args(0).string()
                     val spoofed = getSpoofedProperty(key)
                     if (spoofed != null) {
-                        Timber.d("SystemHooker: Spoofing SystemProperties.get($key, def) -> $spoofed")
+                        YLog.debug("SystemHooker: Spoofing SystemProperties.get($key, def) -> $spoofed")
                         result = spoofed
                     }
                 }

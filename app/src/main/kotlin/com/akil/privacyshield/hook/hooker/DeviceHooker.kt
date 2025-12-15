@@ -7,7 +7,7 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringClass
-import timber.log.Timber
+import com.highcapable.yukihookapi.hook.log.YLog
 
 /**
  * Device Identifier Hooker - Spoofs hardware and device identifiers.
@@ -50,7 +50,7 @@ object DeviceHooker : YukiBaseHooker() {
     }
 
     override fun onHook() {
-        Timber.d("DeviceHooker: Starting hooks for package: $packageName")
+        YLog.debug("DeviceHooker: Starting hooks for package: $packageName")
 
         // ═══════════════════════════════════════════════════════════
         // TELEPHONY MANAGER HOOKS
@@ -70,7 +70,7 @@ object DeviceHooker : YukiBaseHooker() {
 
         hookSettingsSecure()
 
-        Timber.d("DeviceHooker: Hooks registered for package: $packageName")
+        YLog.debug("DeviceHooker: Hooks registered for package: $packageName")
     }
 
     /**
@@ -85,7 +85,7 @@ object DeviceHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("DeviceHooker: Spoofing getDeviceId() -> $spoofedImei")
+                    YLog.debug("DeviceHooker: Spoofing getDeviceId() -> $spoofedImei")
                     result = spoofedImei
                 }
             }
@@ -96,7 +96,7 @@ object DeviceHooker : YukiBaseHooker() {
                 param(IntType)
             }.hook {
                 after {
-                    Timber.d("DeviceHooker: Spoofing getDeviceId(slot) -> $spoofedImei")
+                    YLog.debug("DeviceHooker: Spoofing getDeviceId(slot) -> $spoofedImei")
                     result = spoofedImei
                 }
             }
@@ -107,7 +107,7 @@ object DeviceHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("DeviceHooker: Spoofing getImei() -> $spoofedImei")
+                    YLog.debug("DeviceHooker: Spoofing getImei() -> $spoofedImei")
                     result = spoofedImei
                 }
             }
@@ -118,7 +118,7 @@ object DeviceHooker : YukiBaseHooker() {
                 param(IntType)
             }.hook {
                 after {
-                    Timber.d("DeviceHooker: Spoofing getImei(slot) -> $spoofedImei")
+                    YLog.debug("DeviceHooker: Spoofing getImei(slot) -> $spoofedImei")
                     result = spoofedImei
                 }
             }
@@ -130,7 +130,7 @@ object DeviceHooker : YukiBaseHooker() {
                     emptyParam()
                 }.hook {
                     after {
-                        Timber.d("DeviceHooker: Spoofing getMeid() -> $spoofedMeid")
+                        YLog.debug("DeviceHooker: Spoofing getMeid() -> $spoofedMeid")
                         result = spoofedMeid
                     }
                 }
@@ -143,7 +143,7 @@ object DeviceHooker : YukiBaseHooker() {
                     param(IntType)
                 }.hook {
                     after {
-                        Timber.d("DeviceHooker: Spoofing getMeid(slot) -> $spoofedMeid")
+                        YLog.debug("DeviceHooker: Spoofing getMeid(slot) -> $spoofedMeid")
                         result = spoofedMeid
                     }
                 }
@@ -155,7 +155,7 @@ object DeviceHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("DeviceHooker: Spoofing getSubscriberId() -> $spoofedImsi")
+                    YLog.debug("DeviceHooker: Spoofing getSubscriberId() -> $spoofedImsi")
                     result = spoofedImsi
                 }
             }
@@ -167,7 +167,7 @@ object DeviceHooker : YukiBaseHooker() {
                     param(IntType)
                 }.hook {
                     after {
-                        Timber.d("DeviceHooker: Spoofing getSubscriberId(subId) -> $spoofedImsi")
+                        YLog.debug("DeviceHooker: Spoofing getSubscriberId(subId) -> $spoofedImsi")
                         result = spoofedImsi
                     }
                 }
@@ -179,7 +179,7 @@ object DeviceHooker : YukiBaseHooker() {
                 emptyParam()
             }.hook {
                 after {
-                    Timber.d("DeviceHooker: Spoofing getSimSerialNumber() -> $spoofedSimSerial")
+                    YLog.debug("DeviceHooker: Spoofing getSimSerialNumber() -> $spoofedSimSerial")
                     result = spoofedSimSerial
                 }
             }
@@ -191,7 +191,7 @@ object DeviceHooker : YukiBaseHooker() {
                     param(IntType)
                 }.hook {
                     after {
-                        Timber.d("DeviceHooker: Spoofing getSimSerialNumber(subId) -> $spoofedSimSerial")
+                        YLog.debug("DeviceHooker: Spoofing getSimSerialNumber(subId) -> $spoofedSimSerial")
                         result = spoofedSimSerial
                     }
                 }
@@ -213,7 +213,7 @@ object DeviceHooker : YukiBaseHooker() {
                     modifiers { isStatic }
                 }.hook {
                     after {
-                        Timber.d("DeviceHooker: Spoofing Build.getSerial() -> $spoofedSerial")
+                        YLog.debug("DeviceHooker: Spoofing Build.getSerial() -> $spoofedSerial")
                         result = spoofedSerial
                     }
                 }
@@ -238,7 +238,7 @@ object DeviceHooker : YukiBaseHooker() {
                     val key = args(0).string()
                     when (key) {
                         "ro.serialno", "ro.boot.serialno", "ril.serialnumber" -> {
-                            Timber.d("DeviceHooker: Spoofing SystemProperties.get($key) -> $spoofedSerial")
+                            YLog.debug("DeviceHooker: Spoofing SystemProperties.get($key) -> $spoofedSerial")
                             result = spoofedSerial
                         }
                     }
@@ -253,7 +253,7 @@ object DeviceHooker : YukiBaseHooker() {
                     val key = args(0).string()
                     when (key) {
                         "ro.serialno", "ro.boot.serialno", "ril.serialnumber" -> {
-                            Timber.d("DeviceHooker: Spoofing SystemProperties.get($key, def) -> $spoofedSerial")
+                            YLog.debug("DeviceHooker: Spoofing SystemProperties.get($key, def) -> $spoofedSerial")
                             result = spoofedSerial
                         }
                     }
@@ -276,7 +276,7 @@ object DeviceHooker : YukiBaseHooker() {
                 after {
                     val key = args(1).string()
                     if (key == "android_id") {
-                        Timber.d("DeviceHooker: Spoofing Settings.Secure.android_id -> $spoofedAndroidId")
+                        YLog.debug("DeviceHooker: Spoofing Settings.Secure.android_id -> $spoofedAndroidId")
                         result = spoofedAndroidId
                     }
                 }
@@ -291,7 +291,7 @@ object DeviceHooker : YukiBaseHooker() {
                     after {
                         val key = args(1).string()
                         if (key == "android_id") {
-                            Timber.d("DeviceHooker: Spoofing Settings.Secure.android_id (user) -> $spoofedAndroidId")
+                            YLog.debug("DeviceHooker: Spoofing Settings.Secure.android_id (user) -> $spoofedAndroidId")
                             result = spoofedAndroidId
                         }
                     }
