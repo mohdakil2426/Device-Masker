@@ -17,3 +17,4 @@ local.properties
 # YukiHookAPI auto-generated files
 assets/xposed_init
 resources/META-INF/yukihookapi_init
+LogsOutput

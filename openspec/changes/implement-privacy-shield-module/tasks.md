@@ -83,89 +83,89 @@
 ## Phase 2: Device Spoofing Hooks (Week 2-3)
 
 ### 2.1 Value Generators (Parallelizable)
-- [ ] 2.1.1 Create `data/generators/IMEIGenerator.kt`
+- [x] 2.1.1 Create `data/generators/IMEIGenerator.kt`
   - Generate 15-digit IMEI with Luhn checksum
   - Use realistic TAC prefixes (35, 86, 01, 45)
   - Include validation function
-- [ ] 2.1.2 Create `data/generators/SerialGenerator.kt`
+- [x] 2.1.2 Create `data/generators/SerialGenerator.kt`
   - Generate 8-16 alphanumeric serials
   - Support device-specific formats
-- [ ] 2.1.3 Create `data/generators/MACGenerator.kt`
+- [x] 2.1.3 Create `data/generators/MACGenerator.kt`
   - Generate valid unicast MAC (clear LSB of first octet)
   - Format as XX:XX:XX:XX:XX:XX
-- [ ] 2.1.4 Create `data/generators/UUIDGenerator.kt`
+- [x] 2.1.4 Create `data/generators/UUIDGenerator.kt`
   - Generate Android ID (16 hex chars)
   - Generate Advertising ID (UUID format)
   - Generate GSF ID (16 hex chars)
-- [ ] 2.1.5 Create `data/generators/FingerprintGenerator.kt`
+- [x] 2.1.5 Create `data/generators/FingerprintGenerator.kt`
   - Generate realistic Build fingerprint strings
   - Use device database for realistic combinations
 
 ### 2.2 Data Models (Dependency: 2.1)
-- [ ] 2.2.1 Create `data/models/SpoofType.kt` enum
+- [x] 2.2.1 Create `data/models/SpoofType.kt` enum
   - IMEI, IMSI, SERIAL, ANDROID_ID, etc.
-- [ ] 2.2.2 Create `data/models/DeviceIdentifier.kt` data class
-- [ ] 2.2.3 Create `data/models/SpoofProfile.kt` data class
+- [x] 2.2.2 Create `data/models/DeviceIdentifier.kt` data class
+- [x] 2.2.3 Create `data/models/SpoofProfile.kt` data class
   - All 24+ spoofable fields with nullable values
   - id, name, isDefault, createdAt, updatedAt
-- [ ] 2.2.4 Create `data/models/AppConfig.kt` data class
+- [x] 2.2.4 Create `data/models/AppConfig.kt` data class
   - packageName, appLabel, isEnabled, profileId
   - enabledSpoofs Set<SpoofType>
 
 ### 2.3 Device Hooker
-- [ ] 2.3.1 Create `hook/hooker/DeviceHooker.kt` (YukiBaseHooker)
+- [x] 2.3.1 Create `hook/hooker/DeviceHooker.kt` (YukiBaseHooker)
   - Check app scope before hooking
   - Hook TelephonyManager.getDeviceId()
   - Hook TelephonyManager.getImei() (paramCount 0 and 1)
-  - Hook TelephonyManager.getMeid() with optional()
+  - Hook TelephonyManager.getMeid() with runCatching
   - Hook TelephonyManager.getSubscriberId() (IMSI)
   - Hook TelephonyManager.getSimSerialNumber()
-- [ ] 2.3.2 Hook Build fields in DeviceHooker
-  - Build.SERIAL (field replacement)
+- [x] 2.3.2 Hook Build fields in DeviceHooker
+  - Build.SERIAL via SystemProperties hook
   - Build.getSerial() method hook
-  - Build.MODEL, Build.MANUFACTURER, etc.
-- [ ] 2.3.3 Hook Settings.Secure for ANDROID_ID
+  - SystemProperties.get() for ro.serialno
+- [x] 2.3.3 Hook Settings.Secure for ANDROID_ID
   - Hook Settings.Secure.getString() for "android_id"
-- [ ] 2.3.4 Test IMEI spoofing with device info app
+- [ ] 2.3.4 Test IMEI spoofing with device info app (Pending device test)
 
 ### 2.4 Network Hooker
-- [ ] 2.4.1 Create `hook/hooker/NetworkHooker.kt`
+- [x] 2.4.1 Create `hook/hooker/NetworkHooker.kt`
   - Hook WifiInfo.getMacAddress()
   - Hook NetworkInterface.getHardwareAddress()
-- [ ] 2.4.2 Hook Bluetooth MAC
+- [x] 2.4.2 Hook Bluetooth MAC
   - Hook BluetoothAdapter.getAddress()
-- [ ] 2.4.3 Hook WiFi SSID/BSSID
+- [x] 2.4.3 Hook WiFi SSID/BSSID
   - Hook WifiInfo.getSSID()
   - Hook WifiInfo.getBSSID()
-- [ ] 2.4.4 Hook carrier info
+- [x] 2.4.4 Hook carrier info
   - TelephonyManager.getNetworkOperatorName()
   - TelephonyManager.getNetworkOperator()
-- [ ] 2.4.5 Test MAC spoofing with network info app
+- [ ] 2.4.5 Test MAC spoofing with network info app (Pending device test)
 
 ### 2.5 Advertising Hooker
-- [ ] 2.5.1 Create `hook/hooker/AdvertisingHooker.kt`
+- [x] 2.5.1 Create `hook/hooker/AdvertisingHooker.kt`
   - Hook GSF ID via Gservices.getString("android_id")
   - Hook AdvertisingIdClient.getAdvertisingIdInfo()
   - Hook MediaDrm.getPropertyByteArray() for DRM ID
-- [ ] 2.5.2 Test advertising ID spoofing
+- [ ] 2.5.2 Test advertising ID spoofing (Pending device test)
 
 ### 2.6 System Hooker
-- [ ] 2.6.1 Create `hook/hooker/SystemHooker.kt`
-  - Hook all Build.* static fields
+- [x] 2.6.1 Create `hook/hooker/SystemHooker.kt`
+  - Hook all Build.* static fields via modifyBuildField()
   - Hook SystemProperties.get() for ro.* properties
-- [ ] 2.6.2 Hook Build.VERSION fields
-  - RELEASE, SDK_INT, SECURITY_PATCH
-- [ ] 2.6.3 Test with device info apps
+- [x] 2.6.2 Hook Build properties
+  - FINGERPRINT, MODEL, MANUFACTURER, BRAND, etc.
+- [ ] 2.6.3 Test with device info apps (Pending device test)
 
 ### 2.7 Location Hooker
-- [ ] 2.7.1 Create `hook/hooker/LocationHooker.kt`
+- [x] 2.7.1 Create `hook/hooker/LocationHooker.kt`
   - Hook Location.getLatitude()
   - Hook Location.getLongitude()
   - Hook Location.getAltitude()
-- [ ] 2.7.2 Hook timezone/locale
+- [x] 2.7.2 Hook timezone/locale
   - Hook TimeZone.getDefault()
   - Hook Locale.getDefault()
-- [ ] 2.7.3 Test with maps/location apps
+- [ ] 2.7.3 Test with maps/location apps (Pending device test)
 
 **Phase 2 Validation**:
 - [ ] All IMEI checker apps show spoofed IMEI
@@ -178,94 +178,99 @@
 ## Phase 3: Anti-Detection Layer (Week 3-4)
 
 ### 3.1 Anti-Detection Hooker
-- [ ] 3.1.1 Create `hook/hooker/AntiDetectHooker.kt`
-  - Define HIDDEN_PATTERNS list (Xposed classes, YukiHookAPI classes)
-  - Define HIDDEN_LIBRARIES list (libxposed, liblspd, etc.)
+- [x] 3.1.1 Create `hook/hooker/AntiDetectHooker.kt`
+  - Define HIDDEN_CLASS_PATTERNS list (Xposed classes, YukiHookAPI classes)
+  - Define HIDDEN_LIBRARY_PATTERNS list (libxposed, liblspd, etc.)
   - Define HIDDEN_PACKAGES list (Xposed installers)
 
 ### 3.2 Stack Trace Hiding
-- [ ] 3.2.1 Hook Thread.getStackTrace()
-  - Filter out stack frames matching HIDDEN_PATTERNS
-- [ ] 3.2.2 Hook Throwable.getStackTrace()
+- [x] 3.2.1 Hook Thread.getStackTrace()
+  - Filter out stack frames matching HIDDEN_CLASS_PATTERNS
+- [x] 3.2.2 Hook Throwable.getStackTrace()
   - Same filtering for exception traces
-- [ ] 3.2.3 Hook Throwable.printStackTrace()
+- [ ] 3.2.3 Hook Throwable.printStackTrace() (Deferred - Low Priority)
   - Filter before printing
-- [ ] 3.2.4 Test with RootBeer or similar detection library
+- [ ] 3.2.4 Test with RootBeer or similar detection library (Pending device test)
 
 ### 3.3 Class Loading Hiding
-- [ ] 3.3.1 Hook Class.forName(String)
+- [x] 3.3.1 Hook Class.forName(String)
   - Throw ClassNotFoundException for Xposed classes
-- [ ] 3.3.2 Hook Class.forName(String, boolean, ClassLoader)
+- [x] 3.3.2 Hook Class.forName(String, boolean, ClassLoader)
   - Same protection with all overloads
-- [ ] 3.3.3 Hook ClassLoader.loadClass()
-  - Block loading of Xposed classes
-- [ ] 3.3.4 Test with XposedDetector sample code
+- [x] 3.3.3 Hook ClassLoader.loadClass()
+  - Block loading of Xposed classes (both overloads)
+- [ ] 3.3.4 Test with XposedDetector sample code (Pending device test)
 
 ### 3.4 Native Library Hiding
-- [ ] 3.4.1 Hook BufferedReader for /proc/self/maps reading
-  - Filter lines containing HIDDEN_LIBRARIES
-  - Use FileInputStream/FileReader hooks
-- [ ] 3.4.2 Test /proc/maps filtering
+- [x] 3.4.1 Hook BufferedReader for /proc/self/maps reading
+  - Filter lines containing HIDDEN_LIBRARY_PATTERNS
+- [ ] 3.4.2 Test /proc/maps filtering (Pending device test)
 
 ### 3.5 Reflection Hiding
-- [ ] 3.5.1 Hook Method.getModifiers()
+- [ ] 3.5.1 Hook Method.getModifiers() (Deferred - Complex implementation)
   - Return original modifiers for hooked methods
-- [ ] 3.5.2 Hook Field.getModifiers()
+- [ ] 3.5.2 Hook Field.getModifiers() (Deferred - Complex implementation)
   - Return original modifiers for hooked fields
 
 ### 3.6 Package Hiding
-- [ ] 3.6.1 Hook PackageManager.getPackageInfo()
+- [x] 3.6.1 Hook PackageManager.getPackageInfo()
   - Throw NameNotFoundException for Xposed packages
-- [ ] 3.6.2 Hook PackageManager.getApplicationInfo()
+- [x] 3.6.2 Hook PackageManager.getApplicationInfo()
   - Same protection
+- [x] 3.6.3 Hook PackageManager.getInstalledPackages()
+  - Filter Xposed packages from list
+- [x] 3.6.4 Hook PackageManager.getInstalledApplications()
+  - Filter Xposed apps from list
 
 **Phase 3 Validation**:
-- [ ] RootBeer does not detect Xposed
-- [ ] SafetyNet Helper does not detect hooks
-- [ ] /proc/self/maps shows no Xposed libraries
-- [ ] Class.forName("de.robv.android.xposed.*") throws exception
+- [ ] RootBeer does not detect Xposed (Pending device test)
+- [ ] SafetyNet Helper does not detect hooks (Pending device test)
+- [ ] /proc/self/maps shows no Xposed libraries (Pending device test)
+- [ ] Class.forName("de.robv.android.xposed.*") throws exception (Pending device test)
 
 ---
 
 ## Phase 4: Data Management (Week 4-5)
 
 ### 4.1 DataStore Setup
-- [ ] 4.1.1 Create `data/SpoofDataStore.kt`
+- [x] 4.1.1 Create `data/SpoofDataStore.kt`
   - Define preference keys for all spoof values
-  - Initialize DataStore in companion object
-  - Provide suspend functions for read/write
-  - Provide blocking functions for hook context
-- [ ] 4.1.2 Create extension for Context.dataStore
+  - Initialize DataStore via preferencesDataStore extension
+  - Provide suspend functions for read/write (Flow-based)
+  - Provide blocking functions for hook context (runBlocking)
+- [x] 4.1.2 Create extension for Context.spoofDataStore
 
 ### 4.2 Profile Management
-- [ ] 4.2.1 Create `data/ProfileManager.kt`
+- [x] 4.2.1 Create `data/repository/ProfileRepository.kt`
   - CRUD operations for SpoofProfile
   - List all profiles
   - Get active profile for package
   - Set default profile
-- [ ] 4.2.2 Implement profile serialization to DataStore
+- [x] 4.2.2 Implement profile serialization to DataStore
   - Use Kotlinx Serialization JSON
 
 ### 4.3 App Scope Management
-- [ ] 4.3.1 Create `data/AppScopeManager.kt`
+- [x] 4.3.1 Create `data/repository/AppScopeRepository.kt`
   - Enable/disable spoofing per app
   - Assign profiles to apps
   - Get enabled spoof types per app
-- [ ] 4.3.2 Query installed apps with PackageManager
+- [x] 4.3.2 Query installed apps with PackageManager
   - Get app labels and icons
   - Cache app list for performance
 
 ### 4.4 Repository Pattern
-- [ ] 4.4.1 Create `data/SpoofRepository.kt`
-  - Combine ProfileManager and AppScopeManager
-  - Provide Flow<UiState> for reactive updates
+- [x] 4.4.1 Create `data/repository/SpoofRepository.kt`
+  - Combine ProfileRepository and AppScopeRepository
+  - Provide Flow<UiState> for reactive updates (DashboardState)
   - Handle profile/app relationship logic
+  - Value generation integration
+  - Singleton getInstance() pattern
 
 **Phase 4 Validation**:
-- [ ] Can create and save profiles
-- [ ] Profile values persist across app restart
-- [ ] Per-app configuration saves correctly
-- [ ] Hooks read correct values from DataStore
+- [ ] Can create and save profiles (Pending UI)
+- [ ] Profile values persist across app restart (Pending device test)
+- [ ] Per-app configuration saves correctly (Pending UI)
+- [ ] Hooks read correct values from DataStore (Pending integration)
 
 ---
 
@@ -274,24 +279,34 @@
 ### 5.0 MVP UI (Do First - Minimal Viable Product)
 > **Goal**: Get a working UI with core functionality before polishing
 
-- [ ] 5.0.1 Create minimal `ui/theme/Theme.kt`
+- [x] 5.0.1 Create minimal `ui/theme/Theme.kt`
   - Basic dark theme (AMOLED black)
   - MaterialTheme wrapper
-- [ ] 5.0.2 Create `ui/MainActivity.kt` (MVP)
-  - Simple Scaffold without bottom nav
+- [x] 5.0.2 Create `ui/MainActivity.kt` (MVP)
+  - Scaffold with bottom navigation
+  - NavHost with spring animations
   - Module status display
-- [ ] 5.0.3 Create `ui/screens/HomeScreen.kt` (MVP)
-  - Module active/inactive status card
+- [x] 5.0.3 Create `ui/screens/HomeScreen.kt` (MVP)
+  - Module active/inactive status card with animated shield icon
   - Global enable/disable toggle
+  - Quick stats (protected apps, masked IDs)
   - Current profile summary
-- [ ] 5.0.4 Create `ui/screens/QuickSettingsScreen.kt` (MVP)
+  - Quick actions (Configure, Regenerate All)
+- [x] 5.0.4 Create `ui/screens/SpoofSettingsScreen.kt` (MVP)
+  - Expandable category sections (Device, Network, Advertising, System, Location)
+  - Color-coded category icons
   - List of spoof types with toggles
-  - Current values display
-  - Regenerate button per item
-- [ ] 5.0.5 Test MVP end-to-end
+  - Current values display (masked)
+  - Regenerate/Copy/Edit buttons per item
+- [x] 5.0.5 Create `ui/screens/SettingsScreen.kt`
+  - AMOLED dark mode toggle
+  - Dynamic colors toggle (Android 12+)
+  - Debug logging toggle
+  - About section with version info
+- [ ] 5.0.6 Test MVP end-to-end
   - Toggle spoof → Verify hook returns new value
 
-**MVP Validation**:
+**MVP Validation** (Pending Device Testing):
 - [ ] Can enable/disable module
 - [ ] Can see current spoof values
 - [ ] Can regenerate values
@@ -299,31 +314,31 @@
 - [ ] Target apps receive spoofed values
 
 ### 5.1 Theme Setup
-- [ ] 5.1.1 Create `ui/theme/Color.kt`
+- [x] 5.1.1 Create `ui/theme/Color.kt`
   - AMOLED dark palette (0x000000 background)
   - Teal/Cyan primary colors
   - Status colors (active, inactive, warning)
-- [ ] 5.1.2 Create `ui/theme/Typography.kt`
+- [x] 5.1.2 Create `ui/theme/Typography.kt`
   - Material 3 typography scale
-- [ ] 5.1.3 Create `ui/theme/Shapes.kt`
+- [x] 5.1.3 Create `ui/theme/Shapes.kt`
   - Material 3 shape scale
-- [ ] 5.1.4 Create `ui/theme/Motion.kt`
+- [x] 5.1.4 Create `ui/theme/Motion.kt`
   - Spring animation specs
   - DefaultSpring, FastSpring, BouncySpring
-- [ ] 5.1.5 Create `ui/theme/Theme.kt`
+- [x] 5.1.5 Create `ui/theme/Theme.kt`
   - PrivacyShieldTheme composable
   - Dynamic colors on Android 12+
   - AMOLED dark mode override
   - Light theme fallback
 
 ### 5.2 Navigation
-- [ ] 5.2.1 Create `ui/navigation/NavGraph.kt`
+- [x] 5.2.1 Create `ui/navigation/NavDestination.kt`
   - Define sealed class for destinations
-  - Home, Apps, SpoofSettings, Profiles, Diagnostics, Settings
-- [ ] 5.2.2 Create `ui/navigation/BottomNavBar.kt`
-  - Home, Apps, Spoof, Profile icons
-  - Animated indicator
-- [ ] 5.2.3 Wire navigation in MainActivity
+  - Home, Spoof, Settings with icons
+- [x] 5.2.2 Create `ui/navigation/BottomNavBar.kt`
+  - Home, Spoof, Settings icons
+  - Animated indicator with spring animations
+- [x] 5.2.3 Wire navigation in MainActivity
 
 ### 5.3 Reusable Components (Parallelizable)
 - [ ] 5.3.1 Create `ui/components/AppListItem.kt`

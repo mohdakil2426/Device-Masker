@@ -1,6 +1,12 @@
 package com.akil.privacyshield.hook
 
 import com.akil.privacyshield.BuildConfig
+import com.akil.privacyshield.hook.hooker.AdvertisingHooker
+import com.akil.privacyshield.hook.hooker.AntiDetectHooker
+import com.akil.privacyshield.hook.hooker.DeviceHooker
+import com.akil.privacyshield.hook.hooker.LocationHooker
+import com.akil.privacyshield.hook.hooker.NetworkHooker
+import com.akil.privacyshield.hook.hooker.SystemHooker
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.factory.encase
@@ -51,16 +57,16 @@ object HookEntry : IYukiHookXposedInit {
         // CRITICAL: Load anti-detection hooks FIRST
         // This ensures detection checks that run early cannot find us
         // ═══════════════════════════════════════════════════════════
-        // TODO: loadHooker(AntiDetectHooker) - Phase 3
+        loadHooker(AntiDetectHooker)
         
         // ═══════════════════════════════════════════════════════════
         // Device Spoofing Hookers - Phase 2
         // ═══════════════════════════════════════════════════════════
-        // TODO: loadHooker(DeviceHooker)
-        // TODO: loadHooker(NetworkHooker)
-        // TODO: loadHooker(AdvertisingHooker)
-        // TODO: loadHooker(SystemHooker)
-        // TODO: loadHooker(LocationHooker)
+        loadHooker(DeviceHooker)
+        loadHooker(NetworkHooker)
+        loadHooker(AdvertisingHooker)
+        loadHooker(SystemHooker)
+        loadHooker(LocationHooker)
         
         Timber.d("PrivacyShield: Hooks registered for package: $packageName")
     }

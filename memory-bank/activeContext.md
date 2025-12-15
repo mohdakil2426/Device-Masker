@@ -4,20 +4,36 @@
 
 ### Active Change: `implement-privacy-shield-module`
 
-**Status**: ✅ Phase 1 Complete / 🔄 Phase 2 In Progress
+**Status**: ✅ Phases 1-5 MVP Complete (Testing Pending)
 **Location**: `openspec/changes/implement-privacy-shield-module/`
-**Current Phase**: Phase 2 - Device Spoofing
-**Next Action**: Implement `DeviceHooker` and `DeviceGenerators`
+**Current Phase**: Phase 5 MVP Complete → Ready for Device Testing & Polish
+**Next Action**: Test on physical device with LSPosed, then polish UI
 
-### What's Being Built
+### What's Been Built
 
-Complete implementation of PrivacyShield LSPosed module from empty Android Studio scaffold:
+Complete implementation of PrivacyShield LSPosed module with MVP UI:
 
 1. **Core Infrastructure** - Build config, manifest, hook entry ✅ **DONE**
-2. **Device Spoofing** - 24+ device identifier hooks ← **CURRENT**
-3. **Anti-Detection** - Stack trace/ClassLoader/proc maps hiding
-4. **Data Management** - Profiles, per-app config, generators
-5. **User Interface** - Material 3 Expressive with 6 screens
+2. **Device Spoofing** - 24+ device identifier hooks ✅ **DONE**
+   - All 5 generators (IMEI, Serial, MAC, UUID, Fingerprint)
+   - All 4 data models (SpoofType, DeviceIdentifier, SpoofProfile, AppConfig)
+   - All 5 hookers (Device, Network, Advertising, System, Location)
+3. **Anti-Detection** - Stack trace/ClassLoader/Package hiding ✅ **DONE**
+   - Stack trace filtering (Thread + Throwable)
+   - Class loading blocking (Class.forName, ClassLoader.loadClass)
+   - /proc/maps filtering (BufferedReader)
+   - Package hiding (PackageManager)
+4. **Data Management** - DataStore, Repositories ✅ **DONE**
+   - SpoofDataStore with preference keys
+   - ProfileRepository for profile CRUD
+   - AppScopeRepository for per-app config
+   - SpoofRepository combining all data access
+5. **User Interface (MVP)** - Material 3 Expressive ✅ **DONE**
+   - HomeScreen with animated status card, stats, profile, quick actions
+   - SpoofSettingsScreen with 5 expandable categories, controls
+   - SettingsScreen with theme toggles and about section
+   - Bottom navigation with spring animations
+   - AMOLED dark theme with dynamic colors support
 
 ## Recent Changes
 
@@ -25,111 +41,117 @@ Complete implementation of PrivacyShield LSPosed module from empty Android Studi
 
 | Time | Change | Status |
 |------|--------|--------|
-| 10:45 | Resolved Java 25 / Gradle Build Issues | ✅ |
-| 10:50 | Upgraded Gradle to 9.1.0 | ✅ |
-| 10:55 | Added Foojay Toolchain Resolver (1.0.0) | ✅ |
-| 11:00 | Verified LSPosed API dependency (repo.lsposed.foundation) | ✅ |
-| 11:05 | Successful `assembleDebug` build | ✅ |
-| 11:30 | Modernized `app/build.gradle.kts` (deprecated options removed) | ✅ |
-| 12:00 | Created YukiHookAPI research documentation | ✅ |
-| 12:00 | Created `.cursorrules` file for YukiHookAPI development | ✅ |
-| 12:00 | Created `docs/YukiHookAPI_Reference.md` comprehensive guide | ✅ |
+| 12:46 | Started Phase 2 implementation | ✅ |
+| 12:50 | Created IMEIGenerator with Luhn validation | ✅ |
+| 12:50 | Created SerialGenerator with manufacturer formats | ✅ |
+| 12:50 | Created MACGenerator with real OUIs | ✅ |
+| 12:50 | Created UUIDGenerator for all ID types | ✅ |
+| 12:50 | Created FingerprintGenerator with device database | ✅ |
+| 12:52 | Created SpoofType enum (24+ identifiers) | ✅ |
+| 12:52 | Created DeviceIdentifier data class | ✅ |
+| 12:52 | Created SpoofProfile data class | ✅ |
+| 12:52 | Created AppConfig data class | ✅ |
+| 12:55 | Created DeviceHooker (TelephonyManager, Build, Settings) | ✅ |
+| 12:55 | Created NetworkHooker (WiFi, Bluetooth, Carrier) | ✅ |
+| 12:55 | Created AdvertisingHooker (GSF, GAID, MediaDRM) | ✅ |
+| 12:55 | Created SystemHooker (Build.*, SystemProperties) | ✅ |
+| 12:55 | Created LocationHooker (GPS, Timezone, Locale) | ✅ |
+| 13:00 | Updated HookEntry to load all Phase 2 hookers | ✅ |
+| 13:05 | Fixed compilation errors (runCatching for optional methods) | ✅ |
+| 13:10 | Build verified successful (EXIT CODE 0) | ✅ |
 
-### December 14, 2025
-
-| Time | Change | Status |
-|------|--------|--------|
-| 18:44 | Started Phase 1 implementation | ✅ |
-| 18:45 | Updated `gradle/libs.versions.toml` with all dependencies | ✅ |
-| 18:45 | Updated root `build.gradle.kts` with plugins | ✅ |
-| 18:45 | Updated `settings.gradle.kts` with Xposed repo | ✅ |
-| 18:46 | Rewrote `app/build.gradle.kts` | ✅ |
-
-### Files Created in Phase 1
+### Files Created in Phase 2
 
 ```
-app/src/main/kotlin/com/akil/privacyshield/
-├── PrivacyShieldApp.kt          ✅ Created
-├── hook/
-│   ├── HookEntry.kt             ✅ Created
-│   └── hooker/
-│       └── package-info.kt      ✅ Placeholder
-├── data/
-│   ├── package-info.kt          ✅ Placeholder
-│   ├── models/
-│   │   └── package-info.kt      ✅ Placeholder
-│   └── generators/
-│       └── package-info.kt      ✅ Placeholder
-├── ui/
-│   ├── MainActivity.kt          ✅ Created
-├── ui/theme/                    ✅ Created (Color, Type, Theme, etc.)
-└── utils/
-    └── Constants.kt             ✅ Created
+app/src/main/kotlin/com/akil/privacyshield/data/generators/
+├── IMEIGenerator.kt           ✅ Created (Luhn validation, TAC prefixes)
+├── SerialGenerator.kt         ✅ Created (Manufacturer-specific formats)
+├── MACGenerator.kt            ✅ Created (Real OUIs, unicast)
+├── UUIDGenerator.kt           ✅ Created (Android ID, GAID, GSF, DRM)
+└── FingerprintGenerator.kt    ✅ Created (Device database)
 
-app/src/main/res/values/
-├── arrays.xml                   ✅ Created (xposed_scope)
-├── strings.xml                  ✅ Updated (all app strings)
-└── themes.xml                   ✅ Updated (Material3 theme)
+app/src/main/kotlin/com/akil/privacyshield/data/models/
+├── SpoofType.kt               ✅ Created (24+ enum values with categories)
+├── DeviceIdentifier.kt        ✅ Created (Type + value wrapper)
+├── SpoofProfile.kt            ✅ Created (Named profile with all values)
+└── AppConfig.kt               ✅ Created (Per-app configuration)
+
+app/src/main/kotlin/com/akil/privacyshield/hook/hooker/
+├── DeviceHooker.kt            ✅ Created (IMEI, Serial, Android ID)
+├── NetworkHooker.kt           ✅ Created (MAC, SSID, BSSID, Carrier)
+├── AdvertisingHooker.kt       ✅ Created (GSF, GAID, Firebase, DRM)
+├── SystemHooker.kt            ✅ Created (Build.*, SystemProperties)
+└── LocationHooker.kt          ✅ Created (GPS, Timezone, Locale)
 ```
 
 ## Next Steps
 
-### Immediate (Phase 2)
+### Immediate (Phase 3 - Anti-Detection)
 
-1. **Create Generators**: Implement `IMEIGenerator`, `MacAddressGenerator`, etc.
-2. **Implement DeviceHooker**: Use YukiHookAPI to hook `TelephonyManager`, `Build`, `Settings.Secure`.
-3. **Connect Hooks**: Register `DeviceHooker` in `HookEntry`. 
+1. **Create AntiDetectHooker**: Implement Xposed detection bypass
+   - Stack trace filtering (Thread.getStackTrace, Throwable.getStackTrace)
+   - ClassLoader hiding (Class.forName, ClassLoader.loadClass)
+   - /proc/maps filtering (BufferedReader hooks)
+   - Package hiding (PackageManager.getPackageInfo)
+
+2. **Load AntiDetectHooker FIRST** in HookEntry.onHook()
 
 ### Short-Term
 
-4. Test spoofing on physical device
-5. Verify values availability in target apps
+3. Test spoofing on physical device with LSPosed
+4. Verify hooks trigger with Timber logs
+5. Test with device info apps (IMEI check, DeviceInfo, etc.)
 
 ## Active Decisions & Considerations
 
-### Decision: Upgrade to Gradle 9.1.0
+### Decision: Use runCatching Instead of optional()
 
-**Rationale**: The host environment is running Java 25. Older Gradle versions (8.x) cannot run on Java 25.
+**Rationale**: The YukiHookAPI `optional()` method syntax didn't chain properly with `.hook {}`. Using Kotlin's `runCatching {}` provides the same safety for methods that may not exist on all Android versions.
 
-**Resolution**: 
-- Upgraded Gradle Wrapper to 9.1.0.
-- Added `org.gradle.toolchains.foojay-resolver-convention` plugin (v1.0.0) to handle Java 21 toolchain provisioning automatically.
+**Implementation**: Wrapped optional method hooks in `runCatching { }` blocks to prevent crashes if methods don't exist.
 
-### Decision: API Selection
+### Decision: Lazy Value Generation
 
-**Rationale**: Both standard Xposed API and YukiHookAPI are needed.
-- **Xposed API (`de.robv.android.xposed:api:82`)**: The fundamental interface for the LSPosed framework.
-- **YukiHookAPI**: The high-level Kotlin wrapper for writing hooks efficiently.
-
-**Status**: Verified dependencies. Both are correctly configured and building.
-
-### Issue: Build Failure (RESOLVED)
-
-**Status**: ✅ Fixed
-**Resolution**: Toolchain issue resolved by Foojay plugin and Gradle upgrade. Build is now successful (`EXIT CODE 0`).
+**Rationale**: Spoofed values are generated lazily using `by lazy { }` delegation. This ensures:
+- Values are generated only when first accessed
+- Same value is returned for all subsequent accesses within a process
+- Will be replaced with DataStore reads in Phase 4
 
 ## Important Patterns & Preferences
 
-### Code Style Preferences
+### Code Style
 
 - **Package**: `com.akil.privacyshield`
 - **Source Set**: `kotlin/` (not `java/`)
 - **Naming**: `*Hooker.kt`, `*Generator.kt`, `*Screen.kt`
 - **Theme**: AMOLED black, Teal/Cyan primary
 
-### Architecture Preferences
+### YukiHookAPI Patterns Used
 
-- **Hook Layer**: YukiBaseHooker per domain with `loadHooker()`
-- **Data Layer**: DataStore preferences (Phase 4)
-- **UI Layer**: Jetpack Compose + Material 3 (Phase 5)
-- **Entry Point**: `@InjectYukiHookWithXposed` annotation
+```kotlin
+// Basic hook pattern
+"ClassName".toClass().apply {
+    method {
+        name = "methodName"
+        param(ParamType)
+    }.hook {
+        after {
+            result = spoofedValue
+        }
+    }
+}
+
+// Optional method pattern (for APIs that might not exist)
+runCatching {
+    method { name = "optionalMethod" }.hook { }
+}
+```
 
 ## Files to Watch
 
 | File | Reason |
 |------|--------|
-| `gradle/libs.versions.toml` | Dependency versions |
-| `app/build.gradle.kts` | Build configuration |
-| `hook/HookEntry.kt` | Module entry point |
-| `PrivacyShieldApp.kt` | Application class |
-| `ui/theme/Theme.kt` | Material 3 theme definition |
+| `hook/HookEntry.kt` | Module entry point, hooker loading order |
+| `hook/hooker/*Hooker.kt` | All 5 Phase 2 hookers |
+| `data/generators/*.kt` | Value generation logic |
+| `data/models/*.kt` | Data model definitions |
