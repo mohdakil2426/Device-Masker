@@ -8,13 +8,16 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -22,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.akil.privacyshield.PrivacyShieldApp
+import com.akil.privacyshield.data.SpoofDataStore
 import com.akil.privacyshield.data.repository.SpoofRepository
 import com.akil.privacyshield.ui.navigation.BottomNavBar
 import com.akil.privacyshield.ui.navigation.NavRoutes
@@ -33,6 +37,7 @@ import com.akil.privacyshield.ui.screens.ProfileScreen
 import com.akil.privacyshield.ui.screens.DiagnosticsScreen
 import com.akil.privacyshield.ui.theme.AppMotion
 import com.akil.privacyshield.ui.theme.PrivacyShieldTheme
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -41,7 +46,7 @@ import timber.log.Timber
  * Uses Jetpack Compose with Material 3 for the entire UI with edge-to-edge display.
  * Features:
  * - Bottom navigation with animated transitions
- * - Three main screens: Home, Spoof Settings, Settings
+ * - Theme settings persistence (AMOLED, Dynamic Colors)
  * - Spring-based animations for smooth navigation
  */
 class MainActivity : ComponentActivity() {
@@ -55,9 +60,28 @@ class MainActivity : ComponentActivity() {
         Timber.d("MainActivity created, module active: ${PrivacyShieldApp.isXposedModuleActive}")
 
         setContent {
-            PrivacyShieldTheme {
-                val repository = remember { SpoofRepository.getInstance(applicationContext) }
-                PrivacyShieldMainApp(repository = repository)
+            val dataStore = remember { SpoofDataStore(applicationContext) }
+            val repository = remember { SpoofRepository.getInstance(applicationContext) }
+
+            // Collect theme settings from DataStore
+            val amoledMode by dataStore.amoledMode.collectAsState(initial = true)
+            val dynamicColors by dataStore.dynamicColors.collectAsState(initial = true)
+            val debugLogging by dataStore.debugLogging.collectAsState(initial = false)
+
+            // Determine dark theme - always dark in AMOLED mode, otherwise follow system
+            val darkTheme = amoledMode || isSystemInDarkTheme()
+
+            PrivacyShieldTheme(
+                darkTheme = darkTheme,
+                dynamicColor = dynamicColors
+            ) {
+                PrivacyShieldMainApp(
+                    repository = repository,
+                    dataStore = dataStore,
+                    amoledMode = amoledMode,
+                    dynamicColors = dynamicColors,
+                    debugLogging = debugLogging
+                )
             }
         }
     }
@@ -69,10 +93,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PrivacyShieldMainApp(
     repository: SpoofRepository,
+    dataStore: SpoofDataStore,
+    amoledMode: Boolean,
+    dynamicColors: Boolean,
+    debugLogging: Boolean,
     navController: NavHostController = rememberNavController()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.HOME
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -149,14 +178,20 @@ fun PrivacyShieldMainApp(
 
             composable(NavRoutes.SETTINGS) {
                 SettingsScreen(
+                    darkMode = amoledMode,
+                    dynamicColors = dynamicColors,
+                    debugLogging = debugLogging,
                     onDarkModeChange = { enabled ->
-                        Timber.d("Dark mode changed: $enabled")
+                        Timber.d("AMOLED mode changed: $enabled")
+                        scope.launch { dataStore.setAmoledMode(enabled) }
                     },
                     onDynamicColorChange = { enabled ->
                         Timber.d("Dynamic colors changed: $enabled")
+                        scope.launch { dataStore.setDynamicColors(enabled) }
                     },
                     onDebugLogChange = { enabled ->
                         Timber.d("Debug logging changed: $enabled")
+                        scope.launch { dataStore.setDebugLogging(enabled) }
                     }
                 )
             }

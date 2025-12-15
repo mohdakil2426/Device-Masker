@@ -66,6 +66,11 @@ class SpoofDataStore(private val context: Context) {
         private fun appProfileKey(packageName: String): Preferences.Key<String> {
             return stringPreferencesKey("app_profile_$packageName")
         }
+
+        // Theme settings
+        val KEY_AMOLED_MODE = booleanPreferencesKey("theme_amoled_mode")
+        val KEY_DYNAMIC_COLORS = booleanPreferencesKey("theme_dynamic_colors")
+        val KEY_DEBUG_LOGGING = booleanPreferencesKey("debug_logging")
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -105,6 +110,58 @@ class SpoofDataStore(private val context: Context) {
             } else {
                 prefs.remove(KEY_ACTIVE_PROFILE_ID)
             }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // THEME SETTINGS
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Flow of AMOLED mode enabled state.
+     */
+    val amoledMode: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_AMOLED_MODE] ?: true // Default true (AMOLED on)
+    }
+
+    /**
+     * Flow of dynamic colors enabled state.
+     */
+    val dynamicColors: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DYNAMIC_COLORS] ?: true // Default true (dynamic colors on)
+    }
+
+    /**
+     * Flow of debug logging enabled state.
+     */
+    val debugLogging: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DEBUG_LOGGING] ?: false // Default false
+    }
+
+    /**
+     * Sets AMOLED mode.
+     */
+    suspend fun setAmoledMode(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_AMOLED_MODE] = enabled
+        }
+    }
+
+    /**
+     * Sets dynamic colors.
+     */
+    suspend fun setDynamicColors(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_DYNAMIC_COLORS] = enabled
+        }
+    }
+
+    /**
+     * Sets debug logging.
+     */
+    suspend fun setDebugLogging(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_DEBUG_LOGGING] = enabled
         }
     }
 
