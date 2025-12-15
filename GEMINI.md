@@ -20,4 +20,5 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 ## YukiHookAPI
 
 ### All about yuki hook api alwasy read this
- @/docs/YukiHookAPI_Reference.md
+
+ @/docs/rules/lsposed/YukiHookAPI_Reference.md

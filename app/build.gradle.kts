@@ -93,6 +93,9 @@ dependencies {
     // YUKIHOOKAPI (Modern Kotlin Hook Framework)
     // ═══════════════════════════════════════════════════════════
     implementation(libs.yukihookapi.api)
+    implementation(libs.kavaref.core)
+    implementation(libs.kavaref.extension)
+    implementation(libs.hiddenapibypass)
     ksp(libs.yukihookapi.ksp.xposed)
     compileOnly(libs.xposed.api) // Provided at runtime by Xposed framework
 

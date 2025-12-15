@@ -36,7 +36,7 @@ PrivacyShield is an LSPosed/Xposed module designed for device identifier spoofin
 
 ### AD-1: Use YukiHookAPI Instead of Raw Xposed API
 
-**Decision**: Use YukiHookAPI 1.2.1 as the hooking framework.
+**Decision**: Use YukiHookAPI 1.3.1 as the hooking framework.
 
 **Rationale**:
 - Modern Kotlin DSL with type-safe method/field references

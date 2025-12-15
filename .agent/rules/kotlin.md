@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Kotlin Development Rules
 # Official Best Practices & Conventions
 
@@ -469,10 +473,3 @@ fun doSomething(): Unit { }  // Omit Unit
 - [Kotlin Releases](https://kotlinlang.org/docs/releases.html)
 - [GitHub Releases](https://github.com/JetBrains/kotlin/releases)
 - [Kotlin Blog](https://blog.jetbrains.com/kotlin/)
-
----
-
-**Version:** 1.0  
-**Kotlin:** 2.2.21 (Stable) / 2.3.0-RC3 (Preview)  
-**KSP:** 2.2.21-2.0.4  
-**Last Updated:** December 15, 2025

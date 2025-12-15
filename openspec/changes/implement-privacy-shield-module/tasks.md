@@ -10,9 +10,12 @@
 
 ### 1.1 Build Configuration
 - [x] 1.1.1 Update `gradle/libs.versions.toml` with all required dependencies
-  - Kotlin 2.2.21, Android Gradle Plugin 8.13.0
+  - Kotlin 2.2.21, Android Gradle Plugin 8.13.2
   - YukiHookAPI 1.3.1, KSP 2.2.21-2.0.4
+  - KavaRef 1.0.2 (required for YukiHookAPI 1.3.x reflection)
+  - AndroidHiddenApiBypass 6.1 (hidden API access)
   - Compose BOM 2025.12.00, Material 3 1.4.0
+  - Material Components 1.13.0 (XML Views/YukiHookAPI)
   - DataStore 1.2.0, Coroutines 1.10.2
   - Serialization 1.9.0, Timber 5.0.1, Coil 3.2.0
 - [x] 1.1.2 Update root `build.gradle.kts` with required plugins
@@ -267,6 +270,33 @@
 ---
 
 ## Phase 5: User Interface (Week 5-7)
+
+### 5.0 MVP UI (Do First - Minimal Viable Product)
+> **Goal**: Get a working UI with core functionality before polishing
+
+- [ ] 5.0.1 Create minimal `ui/theme/Theme.kt`
+  - Basic dark theme (AMOLED black)
+  - MaterialTheme wrapper
+- [ ] 5.0.2 Create `ui/MainActivity.kt` (MVP)
+  - Simple Scaffold without bottom nav
+  - Module status display
+- [ ] 5.0.3 Create `ui/screens/HomeScreen.kt` (MVP)
+  - Module active/inactive status card
+  - Global enable/disable toggle
+  - Current profile summary
+- [ ] 5.0.4 Create `ui/screens/QuickSettingsScreen.kt` (MVP)
+  - List of spoof types with toggles
+  - Current values display
+  - Regenerate button per item
+- [ ] 5.0.5 Test MVP end-to-end
+  - Toggle spoof → Verify hook returns new value
+
+**MVP Validation**:
+- [ ] Can enable/disable module
+- [ ] Can see current spoof values
+- [ ] Can regenerate values
+- [ ] Changes persist across app restart
+- [ ] Target apps receive spoofed values
 
 ### 5.1 Theme Setup
 - [ ] 5.1.1 Create `ui/theme/Color.kt`
