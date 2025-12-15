@@ -209,10 +209,26 @@ class SpoofRepository(
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Gets installed apps with their configuration.
+     * Gets installed apps with their configuration as a Flow.
      */
-    suspend fun getInstalledApps(includeSystem: Boolean = false): List<InstalledApp> {
+    fun getInstalledApps(): Flow<List<InstalledApp>> {
+        return appScopeRepository.getInstalledAppsFlow()
+    }
+
+    /**
+     * Gets installed apps with their configuration (suspend).
+     */
+    suspend fun getInstalledAppsList(includeSystem: Boolean = false): List<InstalledApp> {
         return appScopeRepository.getInstalledApps(includeSystem)
+    }
+
+    /**
+     * Gets the set of enabled package names as a Flow.
+     */
+    fun getEnabledPackages(): Flow<Set<String>> {
+        return appScopeRepository.appConfigs.map { configs ->
+            configs.filterValues { it.isEnabled }.keys
+        }
     }
 
     /**
@@ -290,6 +306,76 @@ class SpoofRepository(
     fun isAppEnabledBlocking(packageName: String): Boolean {
         return appScopeRepository.isAppEnabledBlocking(packageName)
     }
+
+    /**
+     * Gets the active profile (blocking).
+     */
+    fun getActiveProfileBlocking(): SpoofProfile? {
+        return kotlinx.coroutines.runBlocking {
+            activeProfile.first()
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PROFILE MANAGEMENT (For ProfileScreen)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Gets all profiles as a Flow.
+     */
+    fun getAllProfiles(): Flow<List<SpoofProfile>> = profiles
+
+    /**
+     * Gets the active profile ID as a Flow.
+     */
+    fun getActiveProfileId(): Flow<String?> = dataStore.activeProfileId
+
+    /**
+     * Creates a new profile with generated values.
+     */
+    fun createProfile(name: String, description: String = "") {
+        kotlinx.coroutines.runBlocking {
+            // Create the profile first
+            val newProfile = profileRepository.createProfile(name)
+            
+            // Generate all values for the new profile
+            var updatedProfile = newProfile.copy(description = description)
+            SpoofType.entries.forEach { type ->
+                val value = generateValue(type)
+                updatedProfile = updatedProfile.withValue(type, value)
+            }
+            profileRepository.updateProfile(updatedProfile)
+        }
+    }
+
+    /**
+     * Updates an existing profile.
+     */
+    fun updateProfile(profile: SpoofProfile) {
+        kotlinx.coroutines.runBlocking {
+            profileRepository.updateProfile(profile)
+        }
+    }
+
+    /**
+     * Deletes a profile by ID.
+     */
+    fun deleteProfile(profileId: String) {
+        kotlinx.coroutines.runBlocking {
+            profileRepository.deleteProfile(profileId)
+        }
+    }
+
+    /**
+     * Sets a profile as the default.
+     */
+    fun setDefaultProfile(profileId: String) {
+        kotlinx.coroutines.runBlocking {
+            profileRepository.setAsDefault(profileId)
+            dataStore.setActiveProfileId(profileId)
+        }
+    }
+
 
     companion object {
         @Volatile

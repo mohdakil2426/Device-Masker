@@ -17,6 +17,9 @@ object NavRoutes {
     const val HOME = "home"
     const val SPOOF = "spoof"
     const val SETTINGS = "settings"
+    const val APPS = "apps"
+    const val PROFILES = "profiles"
+    const val DIAGNOSTICS = "diagnostics"
 }
 
 /**

@@ -28,6 +28,9 @@ import com.akil.privacyshield.ui.navigation.NavRoutes
 import com.akil.privacyshield.ui.screens.HomeScreen
 import com.akil.privacyshield.ui.screens.SettingsScreen
 import com.akil.privacyshield.ui.screens.SpoofSettingsScreen
+import com.akil.privacyshield.ui.screens.AppSelectionScreen
+import com.akil.privacyshield.ui.screens.ProfileScreen
+import com.akil.privacyshield.ui.screens.DiagnosticsScreen
 import com.akil.privacyshield.ui.theme.AppMotion
 import com.akil.privacyshield.ui.theme.PrivacyShieldTheme
 import timber.log.Timber
@@ -155,6 +158,30 @@ fun PrivacyShieldMainApp(
                     onDebugLogChange = { enabled ->
                         Timber.d("Debug logging changed: $enabled")
                     }
+                )
+            }
+
+            composable(NavRoutes.APPS) {
+                AppSelectionScreen(
+                    repository = repository,
+                    onAppClick = { app ->
+                        Timber.d("App clicked: ${app.packageName}")
+                    }
+                )
+            }
+
+            composable(NavRoutes.PROFILES) {
+                ProfileScreen(
+                    repository = repository,
+                    onProfileClick = { profile ->
+                        Timber.d("Profile clicked: ${profile.name}")
+                    }
+                )
+            }
+
+            composable(NavRoutes.DIAGNOSTICS) {
+                DiagnosticsScreen(
+                    repository = repository
                 )
             }
         }

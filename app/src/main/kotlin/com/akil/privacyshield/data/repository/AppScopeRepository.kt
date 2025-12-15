@@ -141,6 +141,21 @@ class AppScopeRepository(
     // ═══════════════════════════════════════════════════════════
 
     /**
+     * Gets installed apps as a Flow that updates when configs change.
+     */
+    fun getInstalledAppsFlow(): Flow<List<InstalledApp>> {
+        return appConfigs.map { configs ->
+            // Ensure apps are loaded
+            if (cachedApps == null) {
+                cachedApps = queryInstalledApps(includeSystem = true)
+            }
+            cachedApps!!.map { app ->
+                app.withConfig(configs[app.packageName])
+            }
+        }
+    }
+
+    /**
      * Gets list of installed apps with their spoofing configuration.
      */
     suspend fun getInstalledApps(

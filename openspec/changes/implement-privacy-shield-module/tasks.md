@@ -341,17 +341,17 @@
 - [x] 5.2.3 Wire navigation in MainActivity
 
 ### 5.3 Reusable Components (Parallelizable)
-- [ ] 5.3.1 Create `ui/components/AppListItem.kt`
+- [x] 5.3.1 Create `ui/components/AppListItem.kt`
   - App icon, name, package, status indicator
   - Checkbox for selection
-- [ ] 5.3.2 Create `ui/components/SpoofValueCard.kt`
+- [x] 5.3.2 Create `ui/components/SpoofValueCard.kt`
   - Label, value display
   - Regenerate, Edit, Copy buttons
-- [ ] 5.3.3 Create `ui/components/ProfileCard.kt`
+- [x] 5.3.3 Create `ui/components/ProfileCard.kt`
   - Profile name, summary, active indicator
-- [ ] 5.3.4 Create `ui/components/StatusIndicator.kt`
+- [x] 5.3.4 Create `ui/components/StatusIndicator.kt`
   - Active/Inactive/Warning states with animation
-- [ ] 5.3.5 Create `ui/components/ToggleButton.kt`
+- [x] 5.3.5 Create `ui/components/ToggleButton.kt`
   - Custom toggle with spring animation
 
 ### 5.4 MainActivity
@@ -373,12 +373,12 @@
 - [ ] 5.5.2 Add spring-based entry animations
 
 ### 5.6 AppSelectionScreen
-- [ ] 5.6.1 Create `ui/screens/AppSelectionScreen.kt`
+- [x] 5.6.1 Create `ui/screens/AppSelectionScreen.kt`
   - Searchable app list
   - Checkbox to enable/disable
   - Show assigned profile per app
-- [ ] 5.6.2 Add select all / clear all actions
-- [ ] 5.6.3 Add app filtering (user apps, system apps)
+- [x] 5.6.2 Add select all / clear all actions
+- [x] 5.6.3 Add app filtering (user apps, system apps)
 
 ### 5.7 SpoofSettingsScreen
 - [ ] 5.7.1 Create `ui/screens/SpoofSettingsScreen.kt`
@@ -388,19 +388,19 @@
 - [ ] 5.7.3 Add validation feedback
 
 ### 5.8 ProfileScreen
-- [ ] 5.8.1 Create `ui/screens/ProfileScreen.kt`
+- [x] 5.8.1 Create `ui/screens/ProfileScreen.kt`
   - List of saved profiles
   - Create new profile FAB
-- [ ] 5.8.2 Add profile edit dialog
-- [ ] 5.8.3 Add delete confirmation dialog
-- [ ] 5.8.4 Add set as default option
+- [x] 5.8.2 Add profile edit dialog
+- [x] 5.8.3 Add delete confirmation dialog
+- [x] 5.8.4 Add set as default option
 
 ### 5.9 DiagnosticsScreen
-- [ ] 5.9.1 Create `ui/screens/DiagnosticsScreen.kt`
+- [x] 5.9.1 Create `ui/screens/DiagnosticsScreen.kt`
   - Show current detected values
   - Compare with spoofed values
   - Anti-detection test results
-- [ ] 5.9.2 Add refresh functionality
+- [x] 5.9.2 Add refresh functionality
 
 ### 5.10 SettingsScreen
 - [ ] 5.10.1 Create `ui/screens/SettingsScreen.kt`

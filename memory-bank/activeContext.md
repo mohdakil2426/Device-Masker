@@ -4,14 +4,14 @@
 
 ### Active Change: `implement-privacy-shield-module`
 
-**Status**: ✅ Phases 1-5 MVP Complete (Testing Pending)
+**Status**: ✅ Phases 1-5 Full UI Complete (Testing Pending)
 **Location**: `openspec/changes/implement-privacy-shield-module/`
-**Current Phase**: Phase 5 MVP Complete → Ready for Device Testing & Polish
-**Next Action**: Test on physical device with LSPosed, then polish UI
+**Current Phase**: Phase 5 Full UI Complete → Ready for Device Testing & Polish
+**Next Action**: Test on physical device with LSPosed, finalize Phase 6
 
 ### What's Been Built
 
-Complete implementation of PrivacyShield LSPosed module with MVP UI:
+Complete implementation of PrivacyShield LSPosed module with Full UI:
 
 1. **Core Infrastructure** - Build config, manifest, hook entry ✅ **DONE**
 2. **Device Spoofing** - 24+ device identifier hooks ✅ **DONE**
@@ -28,31 +28,33 @@ Complete implementation of PrivacyShield LSPosed module with MVP UI:
    - ProfileRepository for profile CRUD
    - AppScopeRepository for per-app config
    - SpoofRepository combining all data access
-5. **User Interface (MVP)** - Material 3 Expressive ✅ **DONE**
-   - HomeScreen with animated status card, stats, profile, quick actions
-   - SpoofSettingsScreen with 5 expandable categories, controls
-   - SettingsScreen with theme toggles and about section
+5. **User Interface (Full)** - Material 3 Expressive ✅ **DONE**
+   - **Screens**: HomeScreen, SpoofSettingsScreen, SettingsScreen, AppSelectionScreen, ProfileScreen, DiagnosticsScreen
+   - **Components**: StatusIndicator, ToggleButton, AppListItem, ProfileCard, SpoofValueCard
    - Bottom navigation with spring animations
    - AMOLED dark theme with dynamic colors support
 
 ## Recent Changes
 
-### December 15, 2025 (continued)
+### December 15, 2025 (Phase 5 Full UI)
 
 | Time | Change | Status |
 |------|--------|--------|
-| 18:30 | Created HomeScreen with animated status card, stats, actions | ✅ |
-| 18:35 | Created SpoofSettingsScreen with 5 expandable categories | ✅ |
-| 18:40 | Created SettingsScreen with appearance/debug toggles | ✅ |
-| 18:45 | Created BottomNavBar with spring animations | ✅ |
-| 18:45 | Created NavDestination sealed class (later replaced) | ⚠️ Crashed |
-| 18:50 | Updated MainActivity with NavHost and bottom nav | ✅ |
-| 19:00 | Fixed animationSpec type mismatches (spring\<Color\>, spring\<IntSize\>) | ✅ |
-| 19:10 | Fixed themes.xml API level warnings (tools:targetApi) | ✅ |
-| 19:50 | **FIXED:** Android 16 crash - replaced sealed class with data class | ✅ |
-| 19:55 | App successfully running on Android 16 device | ✅ |
+| 19:55 | Created StatusIndicator with animated dot/badge variants | ✅ |
+| 19:56 | Created ToggleButton with spring physics | ✅ |
+| 19:57 | Created AppListItem with checkbox, icon, status | ✅ |
+| 19:58 | Created ProfileCard with actions (edit/delete/default) | ✅ |
+| 19:59 | Created SpoofValueCard with regenerate/edit/copy | ✅ |
+| 20:00 | Created AppSelectionScreen with search, filters, bulk actions | ✅ |
+| 20:05 | Created ProfileScreen with FAB, dialogs (create/edit/delete) | ✅ |
+| 20:10 | Created DiagnosticsScreen with real vs spoofed comparison | ✅ |
+| 20:15 | Added new routes to NavDestination (APPS, PROFILES, DIAGNOSTICS) | ✅ |
+| 20:20 | Wired new screens in MainActivity NavHost | ✅ |
+| 20:25 | Added repository methods for new screens | ✅ |
+| 20:30 | Fixed suspend function issues with rememberCoroutineScope | ✅ |
+| 20:35 | Build verified successful | ✅ |
 
-### Android 16 Navigation Crash Fix
+### December 15, 2025 (earlier)
 
 **Problem**: App crashed on launch with `NullPointerException: NavDestination.getRoute()`.
 
