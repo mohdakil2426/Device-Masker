@@ -82,6 +82,78 @@ Complete implementation of PrivacyShield LSPosed module with Full UI:
 | 21:52 | Created README.md with full documentation | ✅ |
 | 21:52 | Created docs/USAGE.md detailed walkthrough | ✅ |
 | 22:00 | Verified performance optimizations in place | ✅ |
+| 22:37 | UI CONSISTENCY FIX: AppSelectionScreen inline header | ✅ |
+| 22:37 | UI CONSISTENCY FIX: ProfileScreen inline header | ✅ |
+| 22:37 | Material 3 Pattern: Main nav destinations use inline headers | ✅ |
+| **22:50** | **ProfileScreen: Replaced Scaffold with Box + positioned FAB** | ✅ |
+| **22:55** | **DiagnosticsScreen: Replaced TopAppBar with inline Row header** | ✅ |
+| **23:10** | **CRITICAL FIX: Dark mode content invisible - incomplete color scheme** | ✅ |
+| **23:15** | **Theme.kt: Added complete dark color scheme (background, surface, etc.)** | ✅ |
+| **23:18** | **MainActivity: Dynamic edge-to-edge using DisposableEffect + theme** | ✅ |
+| **23:28** | **Card Consistency: DiagnosticsScreen cards (ModuleStatus, Category)** | ✅ |
+| **23:30** | **Card Consistency: ProfileCard, CompactProfileCard** | ✅ |
+| **23:32** | **Card Consistency: SpoofValueCard** | ✅ |
+| **23:34** | **Card Consistency: AntiDetectionSection** | ✅ |
+| **23:38** | **All cards now use ElevatedCard + surfaceContainerHigh + shapes.large** | ✅ |
+
+### Critical Bug Fix: Dark Mode Content Invisible (December 15, 2025)
+
+**Problem**: App content was completely invisible in dark mode (black on black).
+
+**Root Cause Analysis**:
+1. Regular dark theme (non-AMOLED) was **incomplete** - missing essential colors:
+   - `background`, `onBackground`
+   - `surface`, `onSurface`
+   - All `surfaceContainer` variants
+2. `enableEdgeToEdge()` used `SystemBarStyle.auto()` which follows SYSTEM theme, not app theme
+3. When app uses dark mode but system is light mode, status bar icons became invisible
+
+**Solution Applied**:
+1. **Theme.kt**: Added complete dark color scheme with all 20+ color roles:
+   ```kotlin
+   darkColorScheme(
+       background = Color(0xFF121212),
+       onBackground = Color(0xFFE3E3E3),
+       surface = Color(0xFF121212),
+       onSurface = Color(0xFFE3E3E3),
+       surfaceContainer = Color(0xFF1A1A1A),
+       // ... all surface containers
+   )
+   ```
+2. **MainActivity.kt**: Added `DisposableEffect(darkTheme)` to dynamically update edge-to-edge styling:
+   ```kotlin
+   DisposableEffect(darkTheme) {
+       activity.enableEdgeToEdge(
+           statusBarStyle = if (darkTheme) {
+               SystemBarStyle.dark(Color.TRANSPARENT)
+           } else {
+               SystemBarStyle.light(...)
+           }
+       )
+       onDispose { }
+   }
+   ```
+
+**Key Lesson**: Material 3 `darkColorScheme()` does NOT provide sensible defaults - you MUST specify all color roles!
+
+### Card Consistency Fix (December 15, 2025)
+
+**Problem**: Cards in Profiles and Diagnostics screens had different styling from Settings/Spoof screens.
+
+**Root Cause**:
+1. Some cards used `Card` instead of `ElevatedCard`
+2. Mixed use of `surfaceContainerLow` vs `surfaceContainerHigh`
+3. Missing explicit `shape` on some cards
+
+**Solution Applied**: Standardized all cards to use:
+- `ElevatedCard` (not `Card`)
+- `CardDefaults.elevatedCardColors(containerColor = surfaceContainerHigh)`
+- `MaterialTheme.shapes.large` (sections) or `shapes.medium` (items)
+
+**Files Updated**:
+- `DiagnosticsScreen.kt`: ModuleStatusCard, AntiDetectionSection, CategoryDiagnosticSection
+- `ProfileCard.kt`: ProfileCard, CompactProfileCard
+- `SpoofValueCard.kt`: SpoofValueCard
 
 ### Critical Bug Fix: App Stuck at Logo/Splash (December 15, 2025)
 

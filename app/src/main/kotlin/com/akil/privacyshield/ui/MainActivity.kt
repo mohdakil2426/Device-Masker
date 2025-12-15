@@ -2,18 +2,19 @@ package com.akil.privacyshield.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Enable edge-to-edge display
+        // Initial edge-to-edge setup
         enableEdgeToEdge()
 
         Timber.d("MainActivity created, module active: ${PrivacyShieldApp.isXposedModuleActive}")
@@ -63,17 +64,49 @@ class MainActivity : ComponentActivity() {
             val repository = remember { SpoofRepository.getInstance(applicationContext) }
 
             // Collect theme settings from DataStore
+            val darkMode by dataStore.darkMode.collectAsState(initial = true)
             val amoledMode by dataStore.amoledMode.collectAsState(initial = true)
             val dynamicColors by dataStore.dynamicColors.collectAsState(initial = true)
             val debugLogging by dataStore.debugLogging.collectAsState(initial = false)
 
-            // Determine dark theme - always dark in AMOLED mode, otherwise follow system
-            val darkTheme = amoledMode || isSystemInDarkTheme()
+            // Use dark theme if darkMode is enabled
+            val darkTheme = darkMode
 
-            PrivacyShieldTheme(darkTheme = darkTheme, dynamicColor = dynamicColors) {
+            // Update edge-to-edge styling when theme changes
+            val activity = this@MainActivity
+            DisposableEffect(darkTheme) {
+                activity.enableEdgeToEdge(
+                        statusBarStyle =
+                                if (darkTheme) {
+                                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                                } else {
+                                    SystemBarStyle.light(
+                                            android.graphics.Color.TRANSPARENT,
+                                            android.graphics.Color.TRANSPARENT
+                                    )
+                                },
+                        navigationBarStyle =
+                                if (darkTheme) {
+                                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                                } else {
+                                    SystemBarStyle.light(
+                                            android.graphics.Color.TRANSPARENT,
+                                            android.graphics.Color.TRANSPARENT
+                                    )
+                                }
+                )
+                onDispose {}
+            }
+
+            PrivacyShieldTheme(
+                    darkTheme = darkTheme,
+                    amoledBlack = amoledMode,
+                    dynamicColor = dynamicColors
+            ) {
                 PrivacyShieldMainApp(
                         repository = repository,
                         dataStore = dataStore,
+                        darkMode = darkMode,
                         amoledMode = amoledMode,
                         dynamicColors = dynamicColors,
                         debugLogging = debugLogging
@@ -88,6 +121,7 @@ class MainActivity : ComponentActivity() {
 fun PrivacyShieldMainApp(
         repository: SpoofRepository,
         dataStore: SpoofDataStore,
+        darkMode: Boolean,
         amoledMode: Boolean,
         dynamicColors: Boolean,
         debugLogging: Boolean,
@@ -172,10 +206,15 @@ fun PrivacyShieldMainApp(
 
             composable(NavRoutes.SETTINGS) {
                 SettingsScreen(
-                        darkMode = amoledMode,
+                        darkMode = darkMode,
+                        amoledDarkMode = amoledMode,
                         dynamicColors = dynamicColors,
                         debugLogging = debugLogging,
                         onDarkModeChange = { enabled ->
+                            Timber.d("Dark mode changed: $enabled")
+                            scope.launch { dataStore.setDarkMode(enabled) }
+                        },
+                        onAmoledDarkModeChange = { enabled ->
                             Timber.d("AMOLED mode changed: $enabled")
                             scope.launch { dataStore.setAmoledMode(enabled) }
                         },
@@ -205,7 +244,12 @@ fun PrivacyShieldMainApp(
                 )
             }
 
-            composable(NavRoutes.DIAGNOSTICS) { DiagnosticsScreen(repository = repository) }
+            composable(NavRoutes.DIAGNOSTICS) {
+                DiagnosticsScreen(
+                        repository = repository,
+                        onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

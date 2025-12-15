@@ -20,3 +20,4 @@ resources/META-INF/yukihookapi_init
 LogsOutput
 
 app/release
+/.kotlin/errors

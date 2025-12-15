@@ -15,8 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +38,8 @@ import com.akil.privacyshield.ui.theme.PrivacyShieldTheme
 /**
  * Card displaying a single spoof value with controls.
  *
- * Shows the identifier label, current value, and action buttons
- * for regenerating, editing, and copying the value.
+ * Shows the identifier label, current value, and action buttons for regenerating, editing, and
+ * copying the value.
  *
  * @param identifier The device identifier to display
  * @param onRegenerate Callback to regenerate the value
@@ -52,78 +52,77 @@ import com.akil.privacyshield.ui.theme.PrivacyShieldTheme
  */
 @Composable
 fun SpoofValueCard(
-    identifier: DeviceIdentifier,
-    onRegenerate: () -> Unit,
-    onEdit: (String) -> Unit,
-    onCopy: () -> Unit,
-    onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    showActions: Boolean = true,
-    maskValue: Boolean = false
+        identifier: DeviceIdentifier,
+        onRegenerate: () -> Unit,
+        onEdit: (String) -> Unit,
+        onCopy: () -> Unit,
+        onToggle: (Boolean) -> Unit,
+        modifier: Modifier = Modifier,
+        showActions: Boolean = true,
+        maskValue: Boolean = false
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        shape = MaterialTheme.shapes.medium
+    ElevatedCard(
+            modifier = modifier.fillMaxWidth(),
+            colors =
+                    CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+            shape = MaterialTheme.shapes.medium
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Header Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = identifier.type.displayName,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                            text = identifier.type.displayName,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = identifier.type.category.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = identifier.type.category.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                Switch(
-                    checked = identifier.isEnabled,
-                    onCheckedChange = onToggle
-                )
+                Switch(checked = identifier.isEnabled, onCheckedChange = onToggle)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             // Value Display
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = MaterialTheme.shapes.small
-                    )
-                    .padding(12.dp)
+                    modifier =
+                            Modifier.fillMaxWidth()
+                                    .background(
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            shape = MaterialTheme.shapes.small
+                                    )
+                                    .padding(12.dp)
             ) {
                 Text(
-                    text = if (maskValue) {
-                        maskValueString(identifier.type, identifier.value)
-                    } else {
-                        identifier.value ?: "Not set"
-                    },
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    color = if (identifier.value != null) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                        text =
+                                if (maskValue) {
+                                    maskValueString(identifier.type, identifier.value)
+                                } else {
+                                    identifier.value ?: "Not set"
+                                },
+                        style =
+                                MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = FontFamily.Monospace
+                                ),
+                        color =
+                                if (identifier.value != null) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -131,30 +130,27 @@ fun SpoofValueCard(
             if (showActions) {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     ActionIconButton(
-                        icon = Icons.Default.Refresh,
-                        contentDescription = "Regenerate",
-                        onClick = onRegenerate
+                            icon = Icons.Default.Refresh,
+                            contentDescription = "Regenerate",
+                            onClick = onRegenerate
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
 
                     ActionIconButton(
-                        icon = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        onClick = { onEdit(identifier.value ?: "") }
+                            icon = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            onClick = { onEdit(identifier.value ?: "") }
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
 
                     ActionIconButton(
-                        icon = Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
-                        onClick = onCopy
+                            icon = Icons.Default.ContentCopy,
+                            contentDescription = "Copy",
+                            onClick = onCopy
                     )
                 }
             }
@@ -162,84 +158,72 @@ fun SpoofValueCard(
     }
 }
 
-/**
- * Compact version of SpoofValueCard for dense lists.
- */
+/** Compact version of SpoofValueCard for dense lists. */
 @Composable
 fun CompactSpoofValueCard(
-    label: String,
-    value: String?,
-    onRegenerate: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true
+        label: String,
+        value: String?,
+        onRegenerate: () -> Unit,
+        modifier: Modifier = Modifier,
+        enabled: Boolean = true
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = value ?: "Not set",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = FontFamily.Monospace
-                ),
-                color = if (value != null) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                    text = value ?: "Not set",
+                    style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily.Monospace
+                            ),
+                    color =
+                            if (value != null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
             )
         }
 
-        IconButton(
-            onClick = onRegenerate,
-            enabled = enabled
-        ) {
+        IconButton(onClick = onRegenerate, enabled = enabled) {
             Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Regenerate",
-                tint = MaterialTheme.colorScheme.primary
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Regenerate",
+                    tint = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
 
-/**
- * Small action icon button.
- */
+/** Small action icon button. */
 @Composable
 private fun ActionIconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
+        icon: ImageVector,
+        contentDescription: String,
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier,
+        tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.size(36.dp)
-    ) {
+    IconButton(onClick = onClick, modifier = modifier.size(36.dp)) {
         Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(20.dp)
         )
     }
 }
 
-/**
- * Masks a value for display based on type.
- */
+/** Masks a value for display based on type. */
 private fun maskValueString(type: SpoofType, value: String?): String {
     if (value == null) return "Not set"
 
@@ -286,15 +270,16 @@ private fun maskValueString(type: SpoofType, value: String?): String {
 private fun SpoofValueCardPreview() {
     PrivacyShieldTheme {
         SpoofValueCard(
-            identifier = DeviceIdentifier(
-                type = SpoofType.IMEI,
-                value = "358673091234567",
-                isEnabled = true
-            ),
-            onRegenerate = {},
-            onEdit = {},
-            onCopy = {},
-            onToggle = {}
+                identifier =
+                        DeviceIdentifier(
+                                type = SpoofType.IMEI,
+                                value = "358673091234567",
+                                isEnabled = true
+                        ),
+                onRegenerate = {},
+                onEdit = {},
+                onCopy = {},
+                onToggle = {}
         )
     }
 }
@@ -304,16 +289,17 @@ private fun SpoofValueCardPreview() {
 private fun SpoofValueCardMaskedPreview() {
     PrivacyShieldTheme {
         SpoofValueCard(
-            identifier = DeviceIdentifier(
-                type = SpoofType.WIFI_MAC,
-                value = "A4:83:E7:12:34:56",
-                isEnabled = true
-            ),
-            onRegenerate = {},
-            onEdit = {},
-            onCopy = {},
-            onToggle = {},
-            maskValue = true
+                identifier =
+                        DeviceIdentifier(
+                                type = SpoofType.WIFI_MAC,
+                                value = "A4:83:E7:12:34:56",
+                                isEnabled = true
+                        ),
+                onRegenerate = {},
+                onEdit = {},
+                onCopy = {},
+                onToggle = {},
+                maskValue = true
         )
     }
 }
@@ -322,10 +308,6 @@ private fun SpoofValueCardMaskedPreview() {
 @Composable
 private fun CompactSpoofValueCardPreview() {
     PrivacyShieldTheme {
-        CompactSpoofValueCard(
-            label = "IMEI",
-            value = "358673091234567",
-            onRegenerate = {}
-        )
+        CompactSpoofValueCard(label = "IMEI", value = "358673091234567", onRegenerate = {})
     }
 }

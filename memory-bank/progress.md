@@ -13,7 +13,7 @@
 | **Phase 5 Progress** | 100% Complete ✅ (Device Tested) |
 | **Phase 6 Progress** | 80% Complete ✅ (Tests Pending) |
 | **Total Tasks Completed** | ~110 / 136 (~81%) |
-| **Last Updated** | December 15, 2025 22:03 IST |
+| **Last Updated** | December 15, 2025 23:41 IST |
 
 ## What Works
 
@@ -126,13 +126,35 @@
 - **Solution**: Replaced with `data class NavItem` + `object NavRoutes` string constants  
 - **Status**: ✅ FIXED
 
+### ✅ Issue #3: Dark Mode Content Invisible (RESOLVED)
+- **Description**: App content completely invisible in dark mode (black on black)
+- **Root Cause**: 
+  1. Regular dark theme missing essential colors (`background`, `onBackground`, `surface`, `onSurface`)
+  2. `SystemBarStyle.auto()` follows system theme, not app theme preference
+- **Solution**: 
+  1. Added complete dark color scheme with all 20+ color roles in Theme.kt
+  2. Used `DisposableEffect(darkTheme)` to dynamically update edge-to-edge styling
+- **Status**: ✅ FIXED (Dec 15, 2025 23:18 IST)
+
+### ✅ Issue #4: UI Inconsistency Between Screens (RESOLVED)  
+- **Description**: ProfileScreen and DiagnosticsScreen had different header styles/padding from Settings/Apps
+- **Root Cause**: ProfileScreen used nested Scaffold with extra innerPadding, DiagnosticsScreen used TopAppBar
+- **Solution**: Converted to use Box + LazyColumn with inline headers matching Settings/Apps pattern
+- **Status**: ✅ FIXED (Dec 15, 2025 22:55 IST)
+
+### ✅ Issue #5: Card Color Inconsistency (RESOLVED)  
+- **Description**: Cards in Profiles/Diagnostics had different colors from Settings/Spoof cards
+- **Root Cause**: Mixed use of Card/ElevatedCard and surfaceContainerLow/High
+- **Solution**: Standardized all cards to ElevatedCard + surfaceContainerHigh + shapes.large
+- **Status**: ✅ FIXED (Dec 15, 2025 23:38 IST)
+
 ## Build Status
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| Debug APK | ✅ Success | Dec 15, 2025 22:00 IST |
+| Debug APK | ✅ Success | Dec 15, 2025 23:38 IST |
 | Release APK | ✅ Success | Dec 15, 2025 21:00 IST |
-| Device Test | ✅ Passing | Dec 15, 2025 20:02 IST |
+| Device Test | ✅ Passing | Dec 15, 2025 23:38 IST |
 
 ## Documentation Status
 

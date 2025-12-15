@@ -270,7 +270,60 @@ Compose recomposition on Android 16 (API 36). The objects may not be fully
 initialized when NavigationBar lambda captures them. Using simple data classes 
 with string constants avoids this initialization timing issue.
 
-### 5. Value Generator Pattern
+### 5. Screen Header Pattern (Material 3 Consistency)
+
+**IMPORTANT**: Screen header style depends on navigation context:
+
+#### Main Navigation Destinations (Bottom Nav Tabs)
+Use **inline headers** inside LazyColumn with `headlineMedium` typography:
+
+```kotlin
+// ✅ CORRECT for main nav destinations (Home, Apps, Spoof, Profiles, Settings)
+LazyColumn(
+    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+) {
+    item {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Screen Title",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            // Optional action buttons
+        }
+    }
+    // Content items...
+}
+```
+
+#### Sub-Screens / Detail Screens
+Use **TopAppBar** with Scaffold for screens navigated TO (not in bottom nav):
+
+```kotlin
+// ✅ CORRECT for sub-screens (Diagnostics, Profile Details, etc.)
+Scaffold(
+    topBar = {
+        TopAppBar(
+            title = { Text("Detail Screen") },
+            navigationIcon = { /* Back button */ }
+        )
+    }
+) { innerPadding ->
+    // Content...
+}
+```
+
+| Screen Type | Header Style | Example Screens |
+|-------------|--------------|-----------------|
+| Main Nav Destination | Inline `headlineMedium` | Home, Apps, Spoof, Profiles, Settings |
+| Sub-screen/Detail | TopAppBar in Scaffold | Diagnostics, Profile Edit |
+
+### 6. Value Generator Pattern
 
 Stateless generators with validation:
 
@@ -480,3 +533,130 @@ private fun shouldBlockClass(className: String): Boolean {
 }
 ```
 
+## Theming Patterns
+
+### TP-1: Complete Dark Color Schemes
+
+**Pattern**: Material 3 `darkColorScheme()` does NOT provide sensible defaults - always specify ALL color roles.
+
+```kotlin
+// BAD - Missing critical colors, content will be invisible
+darkColorScheme(
+    primary = PrimaryDark,
+    secondary = SecondaryDark
+    // Missing background, surface, onSurface, etc.!
+)
+
+// GOOD - Complete color scheme
+darkColorScheme(
+    primary = PrimaryDark,
+    onPrimary = Color.Black,
+    // ... all primaries/secondaries/tertiaries/errors
+    
+    // CRITICAL - These are often forgotten:
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFE3E3E3),
+    surface = Color(0xFF121212),
+    onSurface = Color(0xFFE3E3E3),
+    surfaceVariant = Color(0xFF1E1E1E),
+    onSurfaceVariant = Color(0xFFC0C0C0),
+    surfaceContainer = Color(0xFF1A1A1A),
+    surfaceContainerHigh = Color(0xFF242424),
+    surfaceContainerHighest = Color(0xFF2E2E2E),
+    surfaceContainerLow = Color(0xFF161616),
+    surfaceContainerLowest = Color(0xFF0E0E0E)
+)
+```
+
+### TP-2: Dynamic Edge-to-Edge with Theme Changes
+
+**Pattern**: `SystemBarStyle.auto()` follows SYSTEM theme, not app theme. Use `DisposableEffect` to update on app theme changes.
+
+```kotlin
+// BAD - Uses system theme, not app theme
+enableEdgeToEdge()  // or SystemBarStyle.auto()
+
+// GOOD - Reacts to app theme changes
+DisposableEffect(darkTheme) {
+    activity.enableEdgeToEdge(
+        statusBarStyle = if (darkTheme) {
+            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            )
+        },
+        navigationBarStyle = if (darkTheme) {
+            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(...)
+        }
+    )
+    onDispose { }
+}
+```
+
+### TP-3: Consistent Screen Layout Pattern
+
+**Pattern**: Main navigation screens use LazyColumn with inline headers. Sub-screens can use TopAppBar.
+
+```kotlin
+// Main Nav Screens (Home, Apps, Spoof, Profiles, Settings)
+LazyColumn(
+    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    item {
+        Text(
+            text = "Screen Title",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+    }
+    // Content items...
+}
+
+// Sub-Screens with FAB: Use Box + positioned FAB (NOT nested Scaffold)
+Box(modifier = modifier.fillMaxSize()) {
+    LazyColumn(...) { /* content */ }
+    
+    ExtendedFloatingActionButton(
+        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+    )
+}
+```
+
+### TP-4: Consistent Card Styling
+
+**Pattern**: All cards use the same base styling for visual consistency.
+
+```kotlin
+// STANDARD: All cards in the app
+ElevatedCard(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.elevatedCardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    ),
+    shape = MaterialTheme.shapes.large  // or shapes.medium for list items
+) {
+    // Card content
+}
+
+// ACTIVE/SELECTED STATE: Use primaryContainer with alpha
+colors = CardDefaults.elevatedCardColors(
+    containerColor = if (isActive) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+)
+```
+
+**Do NOT use**:
+- `Card` (use `ElevatedCard` instead)
+- `surfaceContainerLow` (use `surfaceContainerHigh`)
+- Missing `colors` parameter (always specify explicitly)
+- Missing `shape` parameter (always specify explicitly)
