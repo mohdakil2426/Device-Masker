@@ -26,7 +26,8 @@ data class SpoofProfile(
         val isDefault: Boolean = false,
         val createdAt: Long = System.currentTimeMillis(),
         val updatedAt: Long = System.currentTimeMillis(),
-        val identifiers: Map<SpoofType, DeviceIdentifier> = emptyMap()
+        val identifiers: Map<SpoofType, DeviceIdentifier> = emptyMap(),
+        val assignedApps: Set<String> = emptySet()
 ) {
     /**
      * Gets a specific identifier value from this profile.
@@ -101,6 +102,55 @@ data class SpoofProfile(
     fun withDefault(isDefault: Boolean): SpoofProfile {
         return copy(isDefault = isDefault, updatedAt = System.currentTimeMillis())
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // ASSIGNED APPS MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Checks if an app is assigned to this profile.
+     *
+     * @param packageName The app's package name to check
+     * @return True if the app is assigned to this profile
+     */
+    fun isAppAssigned(packageName: String): Boolean {
+        return packageName in assignedApps
+    }
+
+    /**
+     * Creates a copy with an app added to assignedApps.
+     *
+     * @param packageName The app's package name to add
+     * @return Updated SpoofProfile with the app assigned
+     */
+    fun addApp(packageName: String): SpoofProfile {
+        val newAssignedApps = assignedApps + packageName
+        return copy(assignedApps = newAssignedApps, updatedAt = System.currentTimeMillis())
+    }
+
+    /**
+     * Creates a copy with an app removed from assignedApps.
+     *
+     * @param packageName The app's package name to remove
+     * @return Updated SpoofProfile with the app removed
+     */
+    fun removeApp(packageName: String): SpoofProfile {
+        val newAssignedApps = assignedApps - packageName
+        return copy(assignedApps = newAssignedApps, updatedAt = System.currentTimeMillis())
+    }
+
+    /**
+     * Creates a copy with a new set of assigned apps.
+     *
+     * @param apps The new set of assigned app package names
+     * @return Updated SpoofProfile with the new assigned apps
+     */
+    fun withAssignedApps(apps: Set<String>): SpoofProfile {
+        return copy(assignedApps = apps, updatedAt = System.currentTimeMillis())
+    }
+
+    /** Returns the count of assigned apps. */
+    fun assignedAppCount(): Int = assignedApps.size
 
     /** Returns a summary string for display in lists. */
     fun summary(): String {

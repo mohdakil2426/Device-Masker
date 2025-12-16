@@ -1,12 +1,10 @@
 package com.astrixforge.devicemasker.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
@@ -16,14 +14,34 @@ import androidx.compose.ui.graphics.vector.ImageVector
 /**
  * Navigation routes as constants. Using simple string routes to avoid sealed class initialization
  * issues on Android 16.
+ *
+ * Profile-centric workflow (4-tab layout):
+ * - HOME: Dashboard with module status and quick actions
+ * - PROFILES: List of spoof profiles (click to open ProfileDetail)
+ * - GLOBAL_SPOOF: Master switches and default values for all spoof types
+ * - SETTINGS: App settings and diagnostics
  */
 object NavRoutes {
-    const val HOME = "home"
-    const val APPS = "apps"
-    const val SPOOF = "spoof"
-    const val PROFILES = "profiles"
-    const val SETTINGS = "settings"
-    const val DIAGNOSTICS = "diagnostics"
+        const val HOME = "home"
+        const val PROFILES = "profiles"
+        const val GLOBAL_SPOOF = "global_spoof"
+        const val SETTINGS = "settings"
+        const val DIAGNOSTICS = "diagnostics"
+
+        // Detail screens (not in bottom nav)
+        const val PROFILE_DETAIL = "profile_detail"
+
+        /**
+         * Creates the route for ProfileDetailScreen with a profile ID parameter. Usage:
+         * navController.navigate(NavRoutes.profileDetailRoute(profileId))
+         */
+        fun profileDetailRoute(profileId: String): String = "$PROFILE_DETAIL/$profileId"
+
+        /**
+         * Route pattern for ProfileDetailScreen (use in NavHost composable). Usage:
+         * composable("${NavRoutes.PROFILE_DETAIL}/{profileId}") { ... }
+         */
+        const val PROFILE_DETAIL_PATTERN = "$PROFILE_DETAIL/{profileId}"
 }
 
 /** Navigation item data class for bottom navigation. */
@@ -35,7 +53,10 @@ data class NavItem(
 )
 
 /**
- * All bottom navigation items (5 tabs as per PRD). Order: Home → Apps → Spoof → Profiles → Settings
+ * Bottom navigation items (4 tabs for profile-centric workflow). Order: Home → Profiles → Global
+ * Spoof → Settings
+ *
+ * Note: Apps tab removed - app assignment is now done within ProfileDetailScreen.
  */
 val bottomNavItems: List<NavItem> =
         listOf(
@@ -46,22 +67,16 @@ val bottomNavItems: List<NavItem> =
                         unselectedIcon = Icons.Outlined.Home
                 ),
                 NavItem(
-                        route = NavRoutes.APPS,
-                        label = "Apps",
-                        selectedIcon = Icons.Filled.Apps,
-                        unselectedIcon = Icons.Outlined.Apps
-                ),
-                NavItem(
-                        route = NavRoutes.SPOOF,
-                        label = "Spoof",
-                        selectedIcon = Icons.Filled.Tune,
-                        unselectedIcon = Icons.Outlined.Tune
-                ),
-                NavItem(
                         route = NavRoutes.PROFILES,
                         label = "Profiles",
                         selectedIcon = Icons.Filled.Person,
                         unselectedIcon = Icons.Outlined.Person
+                ),
+                NavItem(
+                        route = NavRoutes.GLOBAL_SPOOF,
+                        label = "Global",
+                        selectedIcon = Icons.Filled.Tune,
+                        unselectedIcon = Icons.Outlined.Tune
                 ),
                 NavItem(
                         route = NavRoutes.SETTINGS,

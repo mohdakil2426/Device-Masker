@@ -42,6 +42,9 @@ class SpoofDataStore(private val context: Context) {
         val KEY_MODULE_ENABLED = booleanPreferencesKey("module_enabled")
         val KEY_ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
 
+        // GlobalSpoofConfig storage (JSON serialized)
+        val KEY_GLOBAL_CONFIG_JSON = stringPreferencesKey("global_spoof_config_json")
+
         // Spoof value keys (prefixed by type)
         private fun spoofValueKey(type: SpoofType): Preferences.Key<String> {
             return stringPreferencesKey("spoof_value_${type.name}")
@@ -71,6 +74,9 @@ class SpoofDataStore(private val context: Context) {
         val KEY_AMOLED_MODE = booleanPreferencesKey("theme_amoled_mode")
         val KEY_DYNAMIC_COLORS = booleanPreferencesKey("theme_dynamic_colors")
         val KEY_DEBUG_LOGGING = booleanPreferencesKey("debug_logging")
+
+        // Migration version
+        val KEY_MIGRATION_VERSION = stringPreferencesKey("migration_version")
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -221,6 +227,24 @@ class SpoofDataStore(private val context: Context) {
     }
 
     // ═══════════════════════════════════════════════════════════
+    // GLOBAL SPOOF CONFIG STORAGE
+    // ═══════════════════════════════════════════════════════════
+
+    /** Flow of serialized GlobalSpoofConfig JSON. */
+    val globalConfigJson: Flow<String?> =
+            dataStore.data.map { prefs -> prefs[KEY_GLOBAL_CONFIG_JSON] }
+
+    /** Saves GlobalSpoofConfig as JSON. */
+    suspend fun saveGlobalConfigJson(json: String) {
+        dataStore.edit { prefs -> prefs[KEY_GLOBAL_CONFIG_JSON] = json }
+    }
+
+    /** Gets GlobalSpoofConfig JSON synchronously (blocking) for hook context. */
+    fun getGlobalConfigJsonBlocking(): String? {
+        return runBlocking { globalConfigJson.first() }
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // JSON STORAGE (Profiles & App Configs)
     // ═══════════════════════════════════════════════════════════
 
@@ -238,6 +262,11 @@ class SpoofDataStore(private val context: Context) {
     /** Saves app configs as JSON. */
     suspend fun saveAppConfigsJson(json: String) {
         dataStore.edit { prefs -> prefs[KEY_APP_CONFIGS_JSON] = json }
+    }
+
+    /** Gets profiles JSON synchronously (blocking) for hook context. */
+    fun getProfilesJsonBlocking(): String? {
+        return runBlocking { profilesJson.first() }
     }
 
     // ═══════════════════════════════════════════════════════════

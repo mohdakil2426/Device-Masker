@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -42,11 +41,12 @@ import java.util.Locale
 /**
  * Card displaying a spoof profile in a list.
  *
- * Shows profile name, summary, creation date, and action buttons. Highlights the default profile
- * with a star indicator.
+ * Shows profile name, summary, creation date, app count, and action buttons. Highlights the default
+ * profile with a star indicator.
  *
  * @param profile The profile to display
  * @param isActive Whether this profile is currently active
+ * @param appCount Number of apps assigned to this profile
  * @param onClick Callback when the card is clicked
  * @param onEdit Callback when edit is requested
  * @param onDelete Callback when delete is requested
@@ -57,6 +57,7 @@ import java.util.Locale
 fun ProfileCard(
         profile: SpoofProfile,
         isActive: Boolean,
+        appCount: Int = profile.assignedAppCount(),
         onClick: () -> Unit,
         onEdit: () -> Unit,
         onDelete: () -> Unit,
@@ -167,9 +168,14 @@ fun ProfileCard(
             ) {
                 Column {
                     Text(
-                            text = profile.summary(),
+                            text =
+                                    if (appCount > 0)
+                                            "$appCount app${if (appCount != 1) "s" else ""}"
+                                    else "No apps",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color =
+                                    if (appCount > 0) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                             text = "Created ${formatDate(profile.createdAt)}",

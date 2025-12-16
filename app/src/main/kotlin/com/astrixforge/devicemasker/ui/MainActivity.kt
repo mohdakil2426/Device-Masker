@@ -21,21 +21,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.data.SpoofDataStore
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
 import com.astrixforge.devicemasker.ui.navigation.NavRoutes
-import com.astrixforge.devicemasker.ui.screens.AppSelectionScreen
 import com.astrixforge.devicemasker.ui.screens.DiagnosticsScreen
+import com.astrixforge.devicemasker.ui.screens.GlobalSpoofScreen
 import com.astrixforge.devicemasker.ui.screens.HomeScreen
+import com.astrixforge.devicemasker.ui.screens.ProfileDetailScreen
 import com.astrixforge.devicemasker.ui.screens.ProfileScreen
 import com.astrixforge.devicemasker.ui.screens.SettingsScreen
-import com.astrixforge.devicemasker.ui.screens.SpoofSettingsScreen
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import kotlinx.coroutines.launch
@@ -186,7 +188,7 @@ fun DeviceMaskerMainApp(
             composable(NavRoutes.HOME) {
                 HomeScreen(
                         repository = repository,
-                        onNavigateToSpoof = { navController.navigate(NavRoutes.SPOOF) },
+                        onNavigateToSpoof = { navController.navigate(NavRoutes.GLOBAL_SPOOF) },
                         onRegenerateAll = {
                             // Will be connected to ViewModel
                             Timber.d("Regenerate all values requested")
@@ -194,15 +196,8 @@ fun DeviceMaskerMainApp(
                 )
             }
 
-            composable(NavRoutes.SPOOF) {
-                SpoofSettingsScreen(
-                        repository = repository,
-                        onEditValue = { type, value ->
-                            // Will open edit dialog
-                            Timber.d("Edit $type: $value")
-                        }
-                )
-            }
+            // Global Spoof Screen - Master switches and default values
+            composable(NavRoutes.GLOBAL_SPOOF) { GlobalSpoofScreen(repository = repository) }
 
             composable(NavRoutes.SETTINGS) {
                 SettingsScreen(
@@ -230,17 +225,26 @@ fun DeviceMaskerMainApp(
                 )
             }
 
-            composable(NavRoutes.APPS) {
-                AppSelectionScreen(
+            // Profile Detail Screen - Per-profile spoof values and app assignment
+            composable(
+                    route = NavRoutes.PROFILE_DETAIL_PATTERN,
+                    arguments = listOf(navArgument("profileId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val profileId =
+                        backStackEntry.arguments?.getString("profileId") ?: return@composable
+                ProfileDetailScreen(
+                        profileId = profileId,
                         repository = repository,
-                        onAppClick = { app -> Timber.d("App clicked: ${app.packageName}") }
+                        onNavigateBack = { navController.popBackStack() }
                 )
             }
 
             composable(NavRoutes.PROFILES) {
                 ProfileScreen(
                         repository = repository,
-                        onProfileClick = { profile -> Timber.d("Profile clicked: ${profile.name}") }
+                        onProfileClick = { profile ->
+                            navController.navigate(NavRoutes.profileDetailRoute(profile.id))
+                        }
                 )
             }
 
