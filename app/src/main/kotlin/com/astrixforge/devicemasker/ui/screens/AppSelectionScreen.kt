@@ -50,7 +50,7 @@ import kotlinx.coroutines.launch
 /** Filter options for the app list. */
 enum class AppFilter {
     ALL,
-    ENABLED_ONLY
+    ENABLED_ONLY,
 }
 
 /**
@@ -68,9 +68,9 @@ enum class AppFilter {
  */
 @Composable
 fun AppSelectionScreen(
-        repository: SpoofRepository,
-        onAppClick: (InstalledApp) -> Unit,
-        modifier: Modifier = Modifier
+    repository: SpoofRepository,
+    onAppClick: (InstalledApp) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val apps by repository.getInstalledApps().collectAsState(initial = emptyList())
     val enabledPackages by repository.getEnabledPackages().collectAsState(initial = emptySet())
@@ -82,109 +82,106 @@ fun AppSelectionScreen(
 
     // Filter apps: exclude system apps and DeviceMasker, then apply search/filter
     val filteredApps =
-            remember(apps, searchQuery, activeFilter, enabledPackages) {
-                apps.filter { app ->
-                    // Exclude system apps (this module only spoofs user apps)
-                    if (app.isSystemApp) return@filter false
+        remember(apps, searchQuery, activeFilter, enabledPackages) {
+            apps.filter { app ->
+                // Exclude system apps (this module only spoofs user apps)
+                if (app.isSystemApp) return@filter false
 
-                    // Exclude DeviceMasker itself
-                    if (app.packageName == "com.astrixforge.devicemasker") return@filter false
+                // Exclude DeviceMasker itself
+                if (app.packageName == "com.astrixforge.devicemasker") return@filter false
 
-                    val matchesSearch =
-                            if (searchQuery.isBlank()) {
-                                true
-                            } else {
-                                app.label.contains(searchQuery, ignoreCase = true) ||
-                                        app.packageName.contains(searchQuery, ignoreCase = true)
-                            }
+                val matchesSearch =
+                    if (searchQuery.isBlank()) {
+                        true
+                    } else {
+                        app.label.contains(searchQuery, ignoreCase = true) ||
+                            app.packageName.contains(searchQuery, ignoreCase = true)
+                    }
 
-                    val matchesFilter =
-                            when (activeFilter) {
-                                AppFilter.ALL -> true
-                                AppFilter.ENABLED_ONLY -> app.packageName in enabledPackages
-                            }
+                val matchesFilter =
+                    when (activeFilter) {
+                        AppFilter.ALL -> true
+                        AppFilter.ENABLED_ONLY -> app.packageName in enabledPackages
+                    }
 
-                    matchesSearch && matchesFilter
-                }
+                matchesSearch && matchesFilter
             }
+        }
 
     AppSelectionContent(
-            apps = filteredApps,
-            enabledPackages = enabledPackages,
-            isLoading = isLoading,
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it },
-            activeFilter = activeFilter,
-            onFilterChange = { activeFilter = it },
-            onAppSelectionChange = { app, isSelected ->
-                scope.launch { repository.setAppEnabled(app.packageName, isSelected) }
-            },
-            onAppClick = onAppClick,
-            onSelectAll = {
-                scope.launch {
-                    filteredApps.forEach { app -> repository.setAppEnabled(app.packageName, true) }
-                }
-            },
-            onClearAll = {
-                scope.launch {
-                    filteredApps.forEach { app -> repository.setAppEnabled(app.packageName, false) }
-                }
-            },
-            modifier = modifier
+        apps = filteredApps,
+        enabledPackages = enabledPackages,
+        isLoading = isLoading,
+        searchQuery = searchQuery,
+        onSearchQueryChange = { searchQuery = it },
+        activeFilter = activeFilter,
+        onFilterChange = { activeFilter = it },
+        onAppSelectionChange = { app, isSelected ->
+            scope.launch { repository.setAppEnabled(app.packageName, isSelected) }
+        },
+        onAppClick = onAppClick,
+        onSelectAll = {
+            scope.launch {
+                filteredApps.forEach { app -> repository.setAppEnabled(app.packageName, true) }
+            }
+        },
+        onClearAll = {
+            scope.launch {
+                filteredApps.forEach { app -> repository.setAppEnabled(app.packageName, false) }
+            }
+        },
+        modifier = modifier,
     )
 }
 
 /** Stateless content for AppSelectionScreen. */
 @Composable
 fun AppSelectionContent(
-        apps: List<InstalledApp>,
-        enabledPackages: Set<String>,
-        isLoading: Boolean,
-        searchQuery: String,
-        onSearchQueryChange: (String) -> Unit,
-        activeFilter: AppFilter,
-        onFilterChange: (AppFilter) -> Unit,
-        onAppSelectionChange: (InstalledApp, Boolean) -> Unit,
-        onAppClick: (InstalledApp) -> Unit,
-        onSelectAll: () -> Unit,
-        onClearAll: () -> Unit,
-        modifier: Modifier = Modifier
+    apps: List<InstalledApp>,
+    enabledPackages: Set<String>,
+    isLoading: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    activeFilter: AppFilter,
+    onFilterChange: (AppFilter) -> Unit,
+    onAppSelectionChange: (InstalledApp, Boolean) -> Unit,
+    onAppClick: (InstalledApp) -> Unit,
+    onSelectAll: () -> Unit,
+    onClearAll: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding =
-                    androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 8.dp
-                    ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxSize(),
+        contentPadding =
+            androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // Header with title and actions
         item {
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                        text = "Select Apps",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    text = "Select Apps",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Row {
                     IconButton(onClick = onSelectAll) {
                         Icon(
-                                imageVector = Icons.Default.SelectAll,
-                                contentDescription = "Select All",
-                                tint = MaterialTheme.colorScheme.primary
+                            imageVector = Icons.Default.SelectAll,
+                            contentDescription = "Select All",
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                     IconButton(onClick = onClearAll) {
                         Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear All",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Clear All",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -194,49 +191,46 @@ fun AppSelectionContent(
         // Search Bar
         item {
             OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search apps...") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null)
-                    },
-                    trailingIcon = {
-                        AnimatedVisibility(
-                                visible = searchQuery.isNotEmpty(),
-                                enter = fadeIn(),
-                                exit = fadeOut()
-                        ) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear"
-                                )
-                            }
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search apps...") },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = null)
+                },
+                trailingIcon = {
+                    AnimatedVisibility(
+                        visible = searchQuery.isNotEmpty(),
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                    ) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
                         }
-                    },
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.large
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
             )
         }
 
         // Filter Chips
         item {
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilterChipItem(
-                        label = "All Apps",
-                        icon = Icons.Outlined.Apps,
-                        selected = activeFilter == AppFilter.ALL,
-                        onClick = { onFilterChange(AppFilter.ALL) }
+                    label = "All Apps",
+                    icon = Icons.Outlined.Apps,
+                    selected = activeFilter == AppFilter.ALL,
+                    onClick = { onFilterChange(AppFilter.ALL) },
                 )
                 FilterChipItem(
-                        label = "Enabled",
-                        icon = Icons.Default.CheckCircle,
-                        selected = activeFilter == AppFilter.ENABLED_ONLY,
-                        onClick = { onFilterChange(AppFilter.ENABLED_ONLY) }
+                    label = "Enabled",
+                    icon = Icons.Default.CheckCircle,
+                    selected = activeFilter == AppFilter.ENABLED_ONLY,
+                    onClick = { onFilterChange(AppFilter.ENABLED_ONLY) },
                 )
             }
         }
@@ -244,18 +238,18 @@ fun AppSelectionContent(
         // Stats Row
         item {
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                        text = "${apps.size} apps",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "${apps.size} apps",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                        text = "${enabledPackages.size} enabled",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                    text = "${enabledPackages.size} enabled",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -264,16 +258,16 @@ fun AppSelectionContent(
         if (isLoading) {
             item {
                 Box(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(modifier = Modifier.size(48.dp))
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                                text = "Loading apps...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Loading apps...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -282,21 +276,21 @@ fun AppSelectionContent(
             // Empty State
             item {
                 Box(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                                imageVector = Icons.Outlined.Apps,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Outlined.Apps,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                                text = "No apps found",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "No apps found",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (searchQuery.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
@@ -312,10 +306,10 @@ fun AppSelectionContent(
             items(items = apps, key = { it.packageName }) { app ->
                 val isSelected = app.packageName in enabledPackages
                 AppListItem(
-                        app = app,
-                        isSelected = isSelected,
-                        onSelectionChange = { selected -> onAppSelectionChange(app, selected) },
-                        onClick = { onAppClick(app) }
+                    app = app,
+                    isSelected = isSelected,
+                    onSelectionChange = { selected -> onAppSelectionChange(app, selected) },
+                    onClick = { onAppClick(app) },
                 )
             }
         }
@@ -325,18 +319,18 @@ fun AppSelectionContent(
 /** Filter chip for app filtering. */
 @Composable
 private fun FilterChipItem(
-        label: String,
-        icon: ImageVector,
-        selected: Boolean,
-        onClick: () -> Unit
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
 ) {
     FilterChip(
-            selected = selected,
-            onClick = onClick,
-            label = { Text(label) },
-            leadingIcon = {
-                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        leadingIcon = {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        },
     )
 }
 
@@ -349,26 +343,22 @@ private fun FilterChipItem(
 private fun AppSelectionContentPreview() {
     DeviceMaskerTheme {
         AppSelectionContent(
-                apps =
-                        listOf(
-                                InstalledApp("com.example.app1", "Example App 1"),
-                                InstalledApp("com.example.app2", "Example App 2"),
-                                InstalledApp(
-                                        "com.android.settings",
-                                        "Settings",
-                                        isSystemApp = true
-                                ),
-                        ),
-                enabledPackages = setOf("com.example.app1"),
-                isLoading = false,
-                searchQuery = "",
-                onSearchQueryChange = {},
-                activeFilter = AppFilter.ALL,
-                onFilterChange = {},
-                onAppSelectionChange = { _, _ -> },
-                onAppClick = {},
-                onSelectAll = {},
-                onClearAll = {}
+            apps =
+                listOf(
+                    InstalledApp("com.example.app1", "Example App 1"),
+                    InstalledApp("com.example.app2", "Example App 2"),
+                    InstalledApp("com.android.settings", "Settings", isSystemApp = true),
+                ),
+            enabledPackages = setOf("com.example.app1"),
+            isLoading = false,
+            searchQuery = "",
+            onSearchQueryChange = {},
+            activeFilter = AppFilter.ALL,
+            onFilterChange = {},
+            onAppSelectionChange = { _, _ -> },
+            onAppClick = {},
+            onSelectAll = {},
+            onClearAll = {},
         )
     }
 }
@@ -378,17 +368,17 @@ private fun AppSelectionContentPreview() {
 private fun AppSelectionEmptyPreview() {
     DeviceMaskerTheme {
         AppSelectionContent(
-                apps = emptyList(),
-                enabledPackages = emptySet(),
-                isLoading = false,
-                searchQuery = "nonexistent",
-                onSearchQueryChange = {},
-                activeFilter = AppFilter.ALL,
-                onFilterChange = {},
-                onAppSelectionChange = { _, _ -> },
-                onAppClick = {},
-                onSelectAll = {},
-                onClearAll = {}
+            apps = emptyList(),
+            enabledPackages = emptySet(),
+            isLoading = false,
+            searchQuery = "nonexistent",
+            onSearchQueryChange = {},
+            activeFilter = AppFilter.ALL,
+            onFilterChange = {},
+            onAppSelectionChange = { _, _ -> },
+            onAppClick = {},
+            onSelectAll = {},
+            onClearAll = {},
         )
     }
 }

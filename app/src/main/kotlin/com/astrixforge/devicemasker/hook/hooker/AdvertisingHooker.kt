@@ -30,21 +30,21 @@ object AdvertisingHooker : YukiBaseHooker() {
     private fun getProvider(context: Context?): HookDataProvider? {
         if (dataProvider == null && context != null) {
             dataProvider =
-                    runCatching { HookDataProvider.getInstance(context, packageName) }
-                            .onFailure {
-                                YLog.error(
-                                        "AdvertisingHooker: Failed to create HookDataProvider: ${it.message}"
-                                )
-                            }
-                            .getOrNull()
+                runCatching { HookDataProvider.getInstance(context, packageName) }
+                    .onFailure {
+                        YLog.error(
+                            "AdvertisingHooker: Failed to create HookDataProvider: ${it.message}"
+                        )
+                    }
+                    .getOrNull()
         }
         return dataProvider
     }
 
     private fun getSpoofValueOrGenerate(
-            context: Context?,
-            type: SpoofType,
-            generator: () -> String
+        context: Context?,
+        type: SpoofType,
+        generator: () -> String,
     ): String? {
         val provider = getProvider(context)
         if (provider == null) {
@@ -52,11 +52,8 @@ object AdvertisingHooker : YukiBaseHooker() {
             return generator()
         }
 
-        if (!provider.isTypeEnabledGlobally(type)) {
-            YLog.debug("AdvertisingHooker: $type is disabled globally, returning null")
-            return null
-        }
-
+        // getSpoofValue now handles all profile-based checks (profile exists, profile enabled, type
+        // enabled)
         return provider.getSpoofValue(type) ?: generator()
     }
 
@@ -84,53 +81,51 @@ object AdvertisingHooker : YukiBaseHooker() {
             "com.google.android.gsf.Gservices".toClass().apply {
                 runCatching {
                     method {
-                        name = "getString"
-                        param("android.content.ContentResolver".toClass(), StringClass)
-                    }
-                            .hook {
-                                after {
-                                    val key = args(1).string()
-                                    if (key == "android_id") {
-                                        val value =
-                                                getSpoofValueOrGenerate(
-                                                        appContext,
-                                                        SpoofType.GSF_ID
-                                                ) { fallbackGsfId }
-                                        if (value != null) {
-                                            YLog.debug(
-                                                    "AdvertisingHooker: Spoofing GSF android_id -> $value"
-                                            )
-                                            result = value
+                            name = "getString"
+                            param("android.content.ContentResolver".toClass(), StringClass)
+                        }
+                        .hook {
+                            after {
+                                val key = args(1).string()
+                                if (key == "android_id") {
+                                    val value =
+                                        getSpoofValueOrGenerate(appContext, SpoofType.GSF_ID) {
+                                            fallbackGsfId
                                         }
+                                    if (value != null) {
+                                        YLog.debug(
+                                            "AdvertisingHooker: Spoofing GSF android_id -> $value"
+                                        )
+                                        result = value
                                     }
                                 }
                             }
+                        }
                 }
 
                 runCatching {
                     method {
-                        name = "getLong"
-                        paramCount = 3
-                    }
-                            .hook {
-                                after {
-                                    val key = args(1).string()
-                                    if (key == "android_id") {
-                                        val value =
-                                                getSpoofValueOrGenerate(
-                                                        appContext,
-                                                        SpoofType.GSF_ID
-                                                ) { fallbackGsfId }
-                                        if (value != null) {
-                                            val longValue = value.toLongOrNull(16) ?: 0L
-                                            YLog.debug(
-                                                    "AdvertisingHooker: Spoofing GSF android_id (long) -> $longValue"
-                                            )
-                                            result = longValue
+                            name = "getLong"
+                            paramCount = 3
+                        }
+                        .hook {
+                            after {
+                                val key = args(1).string()
+                                if (key == "android_id") {
+                                    val value =
+                                        getSpoofValueOrGenerate(appContext, SpoofType.GSF_ID) {
+                                            fallbackGsfId
                                         }
+                                    if (value != null) {
+                                        val longValue = value.toLongOrNull(16) ?: 0L
+                                        YLog.debug(
+                                            "AdvertisingHooker: Spoofing GSF android_id (long) -> $longValue"
+                                        )
+                                        result = longValue
                                     }
                                 }
                             }
+                        }
                 }
             }
         }
@@ -142,14 +137,12 @@ object AdvertisingHooker : YukiBaseHooker() {
             "com.google.android.gms.ads.identifier.AdvertisingIdClient".toClass().apply {
                 runCatching {
                     method {
-                        name = "getAdvertisingIdInfo"
-                        paramCount = 1
-                    }
-                            .hook {
-                                after {
-                                    YLog.debug("AdvertisingHooker: getAdvertisingIdInfo() called")
-                                }
-                            }
+                            name = "getAdvertisingIdInfo"
+                            paramCount = 1
+                        }
+                        .hook {
+                            after { YLog.debug("AdvertisingHooker: getAdvertisingIdInfo() called") }
+                        }
                 }
             }
         }
@@ -158,37 +151,36 @@ object AdvertisingHooker : YukiBaseHooker() {
             "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info".toClass().apply {
                 runCatching {
                     method {
-                        name = "getId"
-                        emptyParam()
-                    }
-                            .hook {
-                                after {
-                                    val value =
-                                            getSpoofValueOrGenerate(
-                                                    appContext,
-                                                    SpoofType.ADVERTISING_ID
-                                            ) { fallbackAdvertisingId }
-                                    if (value != null) {
-                                        YLog.debug(
-                                                "AdvertisingHooker: Spoofing AdvertisingId -> $value"
-                                        )
-                                        result = value
+                            name = "getId"
+                            emptyParam()
+                        }
+                        .hook {
+                            after {
+                                val value =
+                                    getSpoofValueOrGenerate(appContext, SpoofType.ADVERTISING_ID) {
+                                        fallbackAdvertisingId
                                     }
+                                if (value != null) {
+                                    YLog.debug(
+                                        "AdvertisingHooker: Spoofing AdvertisingId -> $value"
+                                    )
+                                    result = value
                                 }
                             }
+                        }
                 }
 
                 runCatching {
                     method {
-                        name = "isLimitAdTrackingEnabled"
-                        emptyParam()
-                    }
-                            .hook {
-                                after {
-                                    // Optionally return true to indicate user opted out
-                                    // result = true
-                                }
+                            name = "isLimitAdTrackingEnabled"
+                            emptyParam()
+                        }
+                        .hook {
+                            after {
+                                // Optionally return true to indicate user opted out
+                                // result = true
                             }
+                        }
                 }
             }
         }
@@ -198,18 +190,18 @@ object AdvertisingHooker : YukiBaseHooker() {
             "com.google.firebase.iid.FirebaseInstanceId".toClass().apply {
                 runCatching {
                     method {
-                        name = "getId"
-                        emptyParam()
-                    }
-                            .hook {
-                                after {
-                                    val spoofedInstanceId = UUIDGenerator.generateInstanceId()
-                                    YLog.debug(
-                                            "AdvertisingHooker: Spoofing FirebaseInstanceId -> $spoofedInstanceId"
-                                    )
-                                    result = spoofedInstanceId
-                                }
+                            name = "getId"
+                            emptyParam()
+                        }
+                        .hook {
+                            after {
+                                val spoofedInstanceId = UUIDGenerator.generateInstanceId()
+                                YLog.debug(
+                                    "AdvertisingHooker: Spoofing FirebaseInstanceId -> $spoofedInstanceId"
+                                )
+                                result = spoofedInstanceId
                             }
+                        }
                 }
             }
         }
@@ -219,51 +211,45 @@ object AdvertisingHooker : YukiBaseHooker() {
     private fun hookMediaDrmId() {
         "android.media.MediaDrm".toClass().apply {
             method {
-                name = "getPropertyByteArray"
-                param(StringClass)
-            }
-                    .hook {
-                        after {
-                            val propertyName = args(0).string()
+                    name = "getPropertyByteArray"
+                    param(StringClass)
+                }
+                .hook {
+                    after {
+                        val propertyName = args(0).string()
 
-                            if (propertyName in
-                                            listOf(
-                                                    "deviceUniqueId",
-                                                    "provisioningUniqueId",
-                                                    "serialNumber"
-                                            )
-                            ) {
-                                val value =
-                                        getSpoofValueOrGenerate(
-                                                appContext,
-                                                SpoofType.MEDIA_DRM_ID
-                                        ) { fallbackMediaDrmId }
-                                if (value != null) {
-                                    val bytes =
-                                            value.chunked(2)
-                                                    .map { it.toInt(16).toByte() }
-                                                    .toByteArray()
-                                    YLog.debug("AdvertisingHooker: Spoofing MediaDrm.$propertyName")
-                                    result = bytes
+                        if (
+                            propertyName in
+                                listOf("deviceUniqueId", "provisioningUniqueId", "serialNumber")
+                        ) {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.MEDIA_DRM_ID) {
+                                    fallbackMediaDrmId
                                 }
+                            if (value != null) {
+                                val bytes =
+                                    value.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                                YLog.debug("AdvertisingHooker: Spoofing MediaDrm.$propertyName")
+                                result = bytes
                             }
                         }
                     }
+                }
 
             method {
-                name = "getPropertyString"
-                param(StringClass)
-            }
-                    .hook {
-                        after {
-                            val propertyName = args(0).string()
+                    name = "getPropertyString"
+                    param(StringClass)
+                }
+                .hook {
+                    after {
+                        val propertyName = args(0).string()
 
-                            when (propertyName) {
-                                "vendor" -> result = "Google"
-                                "version" -> result = "1.0"
-                            }
+                        when (propertyName) {
+                            "vendor" -> result = "Google"
+                            "version" -> result = "1.0"
                         }
                     }
+                }
         }
     }
 }

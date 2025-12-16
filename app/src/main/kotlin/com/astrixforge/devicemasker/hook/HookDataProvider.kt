@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.hook
 
 import android.content.Context
 import com.astrixforge.devicemasker.data.SpoofDataStore
-import com.astrixforge.devicemasker.data.models.GlobalSpoofConfig
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.models.SpoofType
 import com.highcapable.yukihookapi.hook.log.YLog
@@ -11,13 +10,14 @@ import kotlinx.serialization.json.Json
 /**
  * Provides access to spoof data during hook execution.
  *
- * This class handles reading GlobalSpoofConfig and SpoofProfile data from DataStore in a blocking
- * manner suitable for hook operations. It caches the data to minimize I/O during hooks.
+ * This class handles reading SpoofProfile data from DataStore in a blocking manner suitable for
+ * hook operations. It caches the data to minimize I/O during hooks.
+ *
+ * Each profile works independently with its own isEnabled flag and per-type toggles.
  *
  * Usage in hookers:
  * ```kotlin
  * val provider = HookDataProvider.getInstance(context, packageName)
- * if (!provider.isTypeEnabledGlobally(SpoofType.IMEI)) return@hook
  * val value = provider.getSpoofValue(SpoofType.IMEI)
  * ```
  */
@@ -26,19 +26,9 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
     private val json = Json { ignoreUnknownKeys = true }
 
     // Cached data - lazily loaded on first access
-    private var _globalConfig: GlobalSpoofConfig? = null
     private var _profiles: List<SpoofProfile>? = null
     private var _profileForApp: SpoofProfile? = null
     private var _profileLoaded = false
-
-    /** Gets the GlobalSpoofConfig, loading from DataStore if not cached. */
-    val globalConfig: GlobalSpoofConfig
-        get() {
-            if (_globalConfig == null) {
-                _globalConfig = loadGlobalConfig()
-            }
-            return _globalConfig ?: GlobalSpoofConfig.createDefault()
-        }
 
     /** Gets all profiles, loading from DataStore if not cached. */
     val profiles: List<SpoofProfile>
@@ -68,42 +58,34 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
         }
 
     /**
-     * Checks if a spoof type is enabled globally. If disabled globally, the type should not be
-     * spoofed for any app.
-     */
-    fun isTypeEnabledGlobally(type: SpoofType): Boolean {
-        return globalConfig.isTypeEnabled(type)
-    }
-
-    /**
-     * Gets the spoofed value for a type, considering global and profile settings.
+     * Gets the spoofed value for a type, considering profile settings.
      *
      * Returns null if:
-     * - Type is disabled globally
+     * - No profile is assigned
+     * - Profile is disabled (isEnabled = false)
      * - Type is disabled in the profile
      * - No value is set
      */
     fun getSpoofValue(type: SpoofType): String? {
-        // Check global enabled state first
-        if (!isTypeEnabledGlobally(type)) {
-            YLog.debug("HookDataProvider: Type $type is disabled globally, skipping")
-            return null
-        }
-
         // Get profile for this app
         val profile = profileForApp
         if (profile == null) {
-            // No profile, use global default value
+            YLog.debug("HookDataProvider: No profile for $packageName, skipping $type")
+            return null
+        }
+
+        // Check if profile is enabled (master switch)
+        if (!profile.isEnabled) {
             YLog.debug(
-                    "HookDataProvider: No profile for $packageName, using global default for $type"
+                "HookDataProvider: Profile '${profile.name}' is disabled, skipping $type for $packageName"
             )
-            return globalConfig.getDefaultValue(type)
+            return null
         }
 
         // Check if type is enabled in profile
         if (!profile.isTypeEnabled(type)) {
             YLog.debug(
-                    "HookDataProvider: Type $type is disabled in profile ${profile.name}, skipping"
+                "HookDataProvider: Type $type is disabled in profile ${profile.name}, skipping"
             )
             return null
         }
@@ -119,9 +101,13 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
         return profileForApp?.name ?: "No Profile"
     }
 
+    /** Checks if the profile for this app is enabled. */
+    fun isProfileEnabled(): Boolean {
+        return profileForApp?.isEnabled == true
+    }
+
     /** Clears cached data, forcing reload on next access. */
     fun invalidateCache() {
-        _globalConfig = null
         _profiles = null
         _profileForApp = null
         _profileLoaded = false
@@ -130,21 +116,6 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
     // ═══════════════════════════════════════════════════════════
     // PRIVATE METHODS
     // ═══════════════════════════════════════════════════════════
-
-    private fun loadGlobalConfig(): GlobalSpoofConfig? {
-        return try {
-            val jsonString = dataStore.getGlobalConfigJsonBlocking()
-            if (jsonString.isNullOrBlank()) {
-                YLog.debug("HookDataProvider: No global config found, using defaults")
-                GlobalSpoofConfig.createDefault()
-            } else {
-                json.decodeFromString<GlobalSpoofConfig>(jsonString)
-            }
-        } catch (e: Exception) {
-            YLog.error("HookDataProvider: Failed to load global config: ${e.message}")
-            GlobalSpoofConfig.createDefault()
-        }
-    }
 
     private fun loadProfiles(): List<SpoofProfile>? {
         return try {
@@ -172,7 +143,7 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
         val assignedProfile = allProfiles.find { it.isAppAssigned(packageName) }
         if (assignedProfile != null) {
             YLog.info(
-                    "HookDataProvider: Using assigned profile '${assignedProfile.name}' for $packageName"
+                "HookDataProvider: Using assigned profile '${assignedProfile.name}' for $packageName"
             )
             return assignedProfile
         }
@@ -181,7 +152,7 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
         val defaultProfile = allProfiles.find { it.isDefault }
         if (defaultProfile != null) {
             YLog.debug(
-                    "HookDataProvider: Using default profile '${defaultProfile.name}' for $packageName (no explicit assignment)"
+                "HookDataProvider: Using default profile '${defaultProfile.name}' for $packageName (no explicit assignment)"
             )
             return defaultProfile
         }
@@ -190,7 +161,7 @@ private constructor(private val dataStore: SpoofDataStore, private val packageNa
         val firstProfile = allProfiles.firstOrNull()
         if (firstProfile != null) {
             YLog.debug(
-                    "HookDataProvider: Using first profile '${firstProfile.name}' for $packageName (no default)"
+                "HookDataProvider: Using first profile '${firstProfile.name}' for $packageName (no default)"
             )
             return firstProfile
         }

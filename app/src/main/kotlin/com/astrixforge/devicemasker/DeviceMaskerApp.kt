@@ -47,7 +47,7 @@ class DeviceMaskerApp : ModuleApplication() {
 
         // Log module activation status
         Timber.i(
-                "Device Masker Module Status: ${if (isXposedModuleActive) "Active" else "Inactive"}"
+            "Device Masker Module Status: ${if (isXposedModuleActive) "Active" else "Inactive"}"
         )
     }
 

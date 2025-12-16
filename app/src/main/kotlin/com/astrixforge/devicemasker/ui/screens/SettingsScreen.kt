@@ -73,320 +73,315 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
  */
 @Composable
 fun SettingsScreen(
-        darkMode: Boolean = true,
-        amoledDarkMode: Boolean = true,
-        dynamicColors: Boolean = true,
-        debugLogging: Boolean = false,
-        onDarkModeChange: (Boolean) -> Unit = {},
-        onAmoledDarkModeChange: (Boolean) -> Unit = {},
-        onDynamicColorChange: (Boolean) -> Unit = {},
-        onDebugLogChange: (Boolean) -> Unit = {},
-        onNavigateToDiagnostics: () -> Unit = {},
-        modifier: Modifier = Modifier
+    darkMode: Boolean = true,
+    amoledDarkMode: Boolean = true,
+    dynamicColors: Boolean = true,
+    debugLogging: Boolean = false,
+    onDarkModeChange: (Boolean) -> Unit = {},
+    onAmoledDarkModeChange: (Boolean) -> Unit = {},
+    onDynamicColorChange: (Boolean) -> Unit = {},
+    onDebugLogChange: (Boolean) -> Unit = {},
+    onNavigateToDiagnostics: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
-        var currentDarkMode by remember { mutableStateOf(darkMode) }
-        var currentAmoledDarkMode by remember { mutableStateOf(amoledDarkMode) }
-        var currentDynamicColors by remember { mutableStateOf(dynamicColors) }
-        var currentDebugLogging by remember { mutableStateOf(debugLogging) }
+    var currentDarkMode by remember { mutableStateOf(darkMode) }
+    var currentAmoledDarkMode by remember { mutableStateOf(amoledDarkMode) }
+    var currentDynamicColors by remember { mutableStateOf(dynamicColors) }
+    var currentDebugLogging by remember { mutableStateOf(debugLogging) }
 
-        LazyColumn(
-                modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-                // Header
-                item {
-                        Text(
-                                text = "Settings",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                }
-
-                // Appearance Section
-                item {
-                        SettingsSection(title = "Appearance") {
-                                // Dark Mode Toggle
-                                SettingsSwitchItem(
-                                        icon =
-                                                if (currentDarkMode) Icons.Outlined.DarkMode
-                                                else Icons.Outlined.LightMode,
-                                        title = "Dark Mode",
-                                        description =
-                                                if (currentDarkMode) "Dark theme enabled"
-                                                else "Light theme enabled",
-                                        checked = currentDarkMode,
-                                        onCheckedChange = {
-                                                currentDarkMode = it
-                                                onDarkModeChange(it)
-                                                // If dark mode is disabled, also disable AMOLED
-                                                if (!it) {
-                                                        currentAmoledDarkMode = false
-                                                        onAmoledDarkModeChange(false)
-                                                }
-                                        }
-                                )
-
-                                // AMOLED Dark Mode (only visible when dark mode is enabled)
-                                AnimatedVisibility(
-                                        visible = currentDarkMode,
-                                        enter = expandVertically(),
-                                        exit = shrinkVertically()
-                                ) {
-                                        Column {
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                SettingsSwitchItem(
-                                                        icon = Icons.Outlined.Contrast,
-                                                        title = "AMOLED Dark Mode",
-                                                        description =
-                                                                "Pure black background for OLED displays",
-                                                        checked = currentAmoledDarkMode,
-                                                        onCheckedChange = {
-                                                                currentAmoledDarkMode = it
-                                                                onAmoledDarkModeChange(it)
-                                                        }
-                                                )
-                                        }
-                                }
-
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        SettingsSwitchItem(
-                                                icon = Icons.Outlined.Palette,
-                                                title = "Dynamic Colors",
-                                                description =
-                                                        "Use Material You colors from your wallpaper",
-                                                checked = currentDynamicColors,
-                                                onCheckedChange = {
-                                                        currentDynamicColors = it
-                                                        onDynamicColorChange(it)
-                                                }
-                                        )
-                                }
-                        }
-                }
-
-                // Advanced Section
-                item {
-                        SettingsSection(title = "Advanced") {
-                                SettingsSwitchItem(
-                                        icon = Icons.Outlined.BugReport,
-                                        title = "Debug Logging",
-                                        description = "Enable verbose logging for troubleshooting",
-                                        checked = currentDebugLogging,
-                                        onCheckedChange = {
-                                                currentDebugLogging = it
-                                                onDebugLogChange(it)
-                                        }
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                SettingsClickableItem(
-                                        icon = Icons.Outlined.Shield,
-                                        title = "Diagnostics",
-                                        description =
-                                                "Test spoofing effectiveness and anti-detection",
-                                        onClick = onNavigateToDiagnostics
-                                )
-                        }
-                }
-
-                // About Section
-                item {
-                        SettingsSection(title = "About") {
-                                SettingsInfoItem(
-                                        icon = Icons.Outlined.Info,
-                                        title = "Version",
-                                        value =
-                                                "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                SettingsInfoItem(
-                                        icon = Icons.Outlined.Code,
-                                        title = "Build Type",
-                                        value = if (BuildConfig.DEBUG) "Debug" else "Release"
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                SettingsClickableItem(
-                                        icon = Icons.Outlined.Tune,
-                                        title = "Module Info",
-                                        description = "YukiHookAPI 1.3.1 • LSPosed Module",
-                                        onClick = { /* Open module info */}
-                                )
-                        }
-                }
-
-                // Bottom spacing
-                item { Spacer(modifier = Modifier.height(24.dp)) }
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Header
+        item {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
         }
+
+        // Appearance Section
+        item {
+            SettingsSection(title = "Appearance") {
+                // Dark Mode Toggle
+                SettingsSwitchItem(
+                    icon =
+                        if (currentDarkMode) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
+                    title = "Dark Mode",
+                    description =
+                        if (currentDarkMode) "Dark theme enabled" else "Light theme enabled",
+                    checked = currentDarkMode,
+                    onCheckedChange = {
+                        currentDarkMode = it
+                        onDarkModeChange(it)
+                        // If dark mode is disabled, also disable AMOLED
+                        if (!it) {
+                            currentAmoledDarkMode = false
+                            onAmoledDarkModeChange(false)
+                        }
+                    },
+                )
+
+                // AMOLED Dark Mode (only visible when dark mode is enabled)
+                AnimatedVisibility(
+                    visible = currentDarkMode,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SettingsSwitchItem(
+                            icon = Icons.Outlined.Contrast,
+                            title = "AMOLED Dark Mode",
+                            description = "Pure black background for OLED displays",
+                            checked = currentAmoledDarkMode,
+                            onCheckedChange = {
+                                currentAmoledDarkMode = it
+                                onAmoledDarkModeChange(it)
+                            },
+                        )
+                    }
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SettingsSwitchItem(
+                        icon = Icons.Outlined.Palette,
+                        title = "Dynamic Colors",
+                        description = "Use Material You colors from your wallpaper",
+                        checked = currentDynamicColors,
+                        onCheckedChange = {
+                            currentDynamicColors = it
+                            onDynamicColorChange(it)
+                        },
+                    )
+                }
+            }
+        }
+
+        // Advanced Section
+        item {
+            SettingsSection(title = "Advanced") {
+                SettingsSwitchItem(
+                    icon = Icons.Outlined.BugReport,
+                    title = "Debug Logging",
+                    description = "Enable verbose logging for troubleshooting",
+                    checked = currentDebugLogging,
+                    onCheckedChange = {
+                        currentDebugLogging = it
+                        onDebugLogChange(it)
+                    },
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsClickableItem(
+                    icon = Icons.Outlined.Shield,
+                    title = "Diagnostics",
+                    description = "Test spoofing effectiveness and anti-detection",
+                    onClick = onNavigateToDiagnostics,
+                )
+            }
+        }
+
+        // About Section
+        item {
+            SettingsSection(title = "About") {
+                SettingsInfoItem(
+                    icon = Icons.Outlined.Info,
+                    title = "Version",
+                    value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsInfoItem(
+                    icon = Icons.Outlined.Code,
+                    title = "Build Type",
+                    value = if (BuildConfig.DEBUG) "Debug" else "Release",
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsClickableItem(
+                    icon = Icons.Outlined.Tune,
+                    title = "Module Info",
+                    description = "YukiHookAPI 1.3.1 • LSPosed Module",
+                    onClick = { /* Open module info */ },
+                )
+            }
+        }
+
+        // Bottom spacing
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+    }
 }
 
 /** Settings section with title and content. */
 @Composable
 private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                        text = title,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
 
-                ElevatedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                                CardDefaults.elevatedCardColors(
-                                        containerColor =
-                                                MaterialTheme.colorScheme.surfaceContainerHigh
-                                ),
-                        shape = MaterialTheme.shapes.large
-                ) { Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) { content() } }
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors =
+                CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+            shape = MaterialTheme.shapes.large,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) { content() }
         }
+    }
 }
 
 /** Settings item with switch toggle. */
 @Composable
 private fun SettingsSwitchItem(
-        icon: ImageVector,
-        title: String,
-        description: String,
-        checked: Boolean,
-        onCheckedChange: (Boolean) -> Unit
+    icon: ImageVector,
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
 ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                        modifier =
-                                Modifier.size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                ) {
-                        Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(20.dp)
-                        )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                                text = title,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                                text = description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                }
-
-                Switch(checked = checked, onCheckedChange = onCheckedChange)
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier =
+                Modifier.size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(20.dp),
+            )
         }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
 }
 
 /** Settings item with read-only info. */
 @Composable
 private fun SettingsInfoItem(icon: ImageVector, title: String, value: String) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                        modifier =
-                                Modifier.size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                        contentAlignment = Alignment.Center
-                ) {
-                        Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(20.dp)
-                        )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                                text = title,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                                text = value,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                }
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier =
+                Modifier.size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp),
+            )
         }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 /** Settings item with click action. */
 @Composable
 private fun SettingsClickableItem(
-        icon: ImageVector,
-        title: String,
-        description: String,
-        onClick: () -> Unit
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit,
 ) {
-        Row(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-                verticalAlignment = Alignment.CenterVertically
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier =
+                Modifier.size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer),
+            contentAlignment = Alignment.Center,
         ) {
-                Box(
-                        modifier =
-                                Modifier.size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.tertiaryContainer),
-                        contentAlignment = Alignment.Center
-                ) {
-                        Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(20.dp)
-                        )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                                text = title,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                                text = description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                }
-
-                Icon(
-                        imageVector = Icons.Filled.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(20.dp),
+            )
         }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Icon(
+            imageVector = Icons.Filled.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun SettingsScreenPreview() {
-        DeviceMaskerTheme { SettingsScreen() }
+    DeviceMaskerTheme { SettingsScreen() }
 }

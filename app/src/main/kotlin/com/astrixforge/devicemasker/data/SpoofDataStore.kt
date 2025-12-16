@@ -18,7 +18,7 @@ import kotlinx.coroutines.runBlocking
  * inter-process access.
  */
 val Context.spoofDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "spoof_preferences")
+    preferencesDataStore(name = "spoof_preferences")
 
 /**
  * DataStore manager for spoofed values and module configuration.
@@ -41,9 +41,6 @@ class SpoofDataStore(private val context: Context) {
         // Global settings
         val KEY_MODULE_ENABLED = booleanPreferencesKey("module_enabled")
         val KEY_ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
-
-        // GlobalSpoofConfig storage (JSON serialized)
-        val KEY_GLOBAL_CONFIG_JSON = stringPreferencesKey("global_spoof_config_json")
 
         // Spoof value keys (prefixed by type)
         private fun spoofValueKey(type: SpoofType): Preferences.Key<String> {
@@ -85,11 +82,11 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of module enabled state. */
     val moduleEnabled: Flow<Boolean> =
-            dataStore.data.map { prefs -> prefs[KEY_MODULE_ENABLED] ?: true }
+        dataStore.data.map { prefs -> prefs[KEY_MODULE_ENABLED] ?: true }
 
     /** Flow of active profile ID. */
     val activeProfileId: Flow<String?> =
-            dataStore.data.map { prefs -> prefs[KEY_ACTIVE_PROFILE_ID] }
+        dataStore.data.map { prefs -> prefs[KEY_ACTIVE_PROFILE_ID] }
 
     /** Sets the module enabled state. */
     suspend fun setModuleEnabled(enabled: Boolean) {
@@ -113,27 +110,27 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of dark mode enabled state. */
     val darkMode: Flow<Boolean> =
-            dataStore.data.map { prefs ->
-                prefs[KEY_DARK_MODE] ?: true // Default true (dark mode on)
-            }
+        dataStore.data.map { prefs ->
+            prefs[KEY_DARK_MODE] ?: true // Default true (dark mode on)
+        }
 
     /** Flow of AMOLED mode enabled state. */
     val amoledMode: Flow<Boolean> =
-            dataStore.data.map { prefs ->
-                prefs[KEY_AMOLED_MODE] ?: true // Default true (AMOLED on)
-            }
+        dataStore.data.map { prefs ->
+            prefs[KEY_AMOLED_MODE] ?: true // Default true (AMOLED on)
+        }
 
     /** Flow of dynamic colors enabled state. */
     val dynamicColors: Flow<Boolean> =
-            dataStore.data.map { prefs ->
-                prefs[KEY_DYNAMIC_COLORS] ?: true // Default true (dynamic colors on)
-            }
+        dataStore.data.map { prefs ->
+            prefs[KEY_DYNAMIC_COLORS] ?: true // Default true (dynamic colors on)
+        }
 
     /** Flow of debug logging enabled state. */
     val debugLogging: Flow<Boolean> =
-            dataStore.data.map { prefs ->
-                prefs[KEY_DEBUG_LOGGING] ?: false // Default false
-            }
+        dataStore.data.map { prefs ->
+            prefs[KEY_DEBUG_LOGGING] ?: false // Default false
+        }
 
     /** Sets dark mode. */
     suspend fun setDarkMode(enabled: Boolean) {
@@ -161,11 +158,11 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of a specific spoof value. */
     fun getSpoofValueFlow(type: SpoofType): Flow<String?> =
-            dataStore.data.map { prefs -> prefs[spoofValueKey(type)] }
+        dataStore.data.map { prefs -> prefs[spoofValueKey(type)] }
 
     /** Flow of whether a spoof type is enabled. */
     fun isSpoofEnabledFlow(type: SpoofType): Flow<Boolean> =
-            dataStore.data.map { prefs -> prefs[spoofEnabledKey(type)] ?: true }
+        dataStore.data.map { prefs -> prefs[spoofEnabledKey(type)] ?: true }
 
     /** Sets a spoof value for a specific type. */
     suspend fun setSpoofValue(type: SpoofType, value: String?) {
@@ -202,13 +199,13 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of whether spoofing is enabled for an app. */
     fun isAppEnabledFlow(packageName: String): Flow<Boolean> =
-            dataStore.data.map { prefs ->
-                prefs[appEnabledKey(packageName)] ?: false // Default disabled for safety
-            }
+        dataStore.data.map { prefs ->
+            prefs[appEnabledKey(packageName)] ?: false // Default disabled for safety
+        }
 
     /** Flow of the profile ID assigned to an app. */
     fun getAppProfileIdFlow(packageName: String): Flow<String?> =
-            dataStore.data.map { prefs -> prefs[appProfileKey(packageName)] }
+        dataStore.data.map { prefs -> prefs[appProfileKey(packageName)] }
 
     /** Enables or disables spoofing for an app. */
     suspend fun setAppEnabled(packageName: String, enabled: Boolean) {
@@ -224,24 +221,6 @@ class SpoofDataStore(private val context: Context) {
                 prefs.remove(appProfileKey(packageName))
             }
         }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // GLOBAL SPOOF CONFIG STORAGE
-    // ═══════════════════════════════════════════════════════════
-
-    /** Flow of serialized GlobalSpoofConfig JSON. */
-    val globalConfigJson: Flow<String?> =
-            dataStore.data.map { prefs -> prefs[KEY_GLOBAL_CONFIG_JSON] }
-
-    /** Saves GlobalSpoofConfig as JSON. */
-    suspend fun saveGlobalConfigJson(json: String) {
-        dataStore.edit { prefs -> prefs[KEY_GLOBAL_CONFIG_JSON] = json }
-    }
-
-    /** Gets GlobalSpoofConfig JSON synchronously (blocking) for hook context. */
-    fun getGlobalConfigJsonBlocking(): String? {
-        return runBlocking { globalConfigJson.first() }
     }
 
     // ═══════════════════════════════════════════════════════════

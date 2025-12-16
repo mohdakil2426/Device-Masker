@@ -37,22 +37,20 @@ object DeviceHooker : YukiBaseHooker() {
     private fun getProvider(context: Context?): HookDataProvider? {
         if (dataProvider == null && context != null) {
             dataProvider =
-                    runCatching { HookDataProvider.getInstance(context, packageName) }
-                            .onFailure {
-                                YLog.error(
-                                        "DeviceHooker: Failed to create HookDataProvider: ${it.message}"
-                                )
-                            }
-                            .getOrNull()
+                runCatching { HookDataProvider.getInstance(context, packageName) }
+                    .onFailure {
+                        YLog.error("DeviceHooker: Failed to create HookDataProvider: ${it.message}")
+                    }
+                    .getOrNull()
         }
         return dataProvider
     }
 
     /** Gets a spoof value from the provider, with fallback to generator. */
     private fun getSpoofValueOrGenerate(
-            context: Context?,
-            type: SpoofType,
-            generator: () -> String
+        context: Context?,
+        type: SpoofType,
+        generator: () -> String,
     ): String? {
         val provider = getProvider(context)
         if (provider == null) {
@@ -61,13 +59,8 @@ object DeviceHooker : YukiBaseHooker() {
             return generator()
         }
 
-        // Check global enabled state
-        if (!provider.isTypeEnabledGlobally(type)) {
-            YLog.debug("DeviceHooker: $type is disabled globally, returning null")
-            return null
-        }
-
-        // Get value from profile, or use generated fallback if no value set
+        // getSpoofValue now handles all profile-based checks (profile exists, profile enabled, type
+        // enabled)
         return provider.getSpoofValue(type) ?: generator()
     }
 
@@ -119,194 +112,180 @@ object DeviceHooker : YukiBaseHooker() {
 
             // getDeviceId() - Legacy device ID (IMEI/MEID)
             method {
-                name = "getDeviceId"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.IMEI) {
-                                        fallbackImei
-                                    }
-                            if (value != null) {
-                                YLog.debug("DeviceHooker: Spoofing getDeviceId() -> $value")
-                                result = value
-                            }
+                    name = "getDeviceId"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.IMEI) { fallbackImei }
+                        if (value != null) {
+                            YLog.debug("DeviceHooker: Spoofing getDeviceId() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getDeviceId(int slotIndex) - Per-slot device ID
             method {
-                name = "getDeviceId"
-                param(IntType)
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.IMEI) {
-                                        fallbackImei
-                                    }
-                            if (value != null) {
-                                YLog.debug("DeviceHooker: Spoofing getDeviceId(slot) -> $value")
-                                result = value
-                            }
+                    name = "getDeviceId"
+                    param(IntType)
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.IMEI) { fallbackImei }
+                        if (value != null) {
+                            YLog.debug("DeviceHooker: Spoofing getDeviceId(slot) -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getImei() - IMEI with no slot parameter
             method {
-                name = "getImei"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.IMEI) {
-                                        fallbackImei
-                                    }
-                            if (value != null) {
-                                YLog.debug("DeviceHooker: Spoofing getImei() -> $value")
-                                result = value
-                            }
+                    name = "getImei"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.IMEI) { fallbackImei }
+                        if (value != null) {
+                            YLog.debug("DeviceHooker: Spoofing getImei() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getImei(int slotIndex) - Per-slot IMEI
             method {
-                name = "getImei"
-                param(IntType)
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.IMEI) {
-                                        fallbackImei
-                                    }
-                            if (value != null) {
-                                YLog.debug("DeviceHooker: Spoofing getImei(slot) -> $value")
-                                result = value
-                            }
+                    name = "getImei"
+                    param(IntType)
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.IMEI) { fallbackImei }
+                        if (value != null) {
+                            YLog.debug("DeviceHooker: Spoofing getImei(slot) -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getMeid() - MEID for CDMA devices (may not exist on all devices)
             runCatching {
                 method {
-                    name = "getMeid"
-                    emptyParam()
-                }
-                        .hook {
-                            after {
-                                val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.MEID) {
-                                            fallbackMeid
-                                        }
-                                if (value != null) {
-                                    YLog.debug("DeviceHooker: Spoofing getMeid() -> $value")
-                                    result = value
-                                }
+                        name = "getMeid"
+                        emptyParam()
+                    }
+                    .hook {
+                        after {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.MEID) { fallbackMeid }
+                            if (value != null) {
+                                YLog.debug("DeviceHooker: Spoofing getMeid() -> $value")
+                                result = value
                             }
                         }
+                    }
             }
 
             // getMeid(int slotIndex) - Per-slot MEID
             runCatching {
                 method {
-                    name = "getMeid"
-                    param(IntType)
-                }
-                        .hook {
-                            after {
-                                val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.MEID) {
-                                            fallbackMeid
-                                        }
-                                if (value != null) {
-                                    YLog.debug("DeviceHooker: Spoofing getMeid(slot) -> $value")
-                                    result = value
-                                }
+                        name = "getMeid"
+                        param(IntType)
+                    }
+                    .hook {
+                        after {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.MEID) { fallbackMeid }
+                            if (value != null) {
+                                YLog.debug("DeviceHooker: Spoofing getMeid(slot) -> $value")
+                                result = value
                             }
                         }
+                    }
             }
 
             // getSubscriberId() - IMSI
             method {
-                name = "getSubscriberId"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.IMSI) {
-                                        generateImsi()
-                                    }
-                            if (value != null) {
-                                YLog.debug("DeviceHooker: Spoofing getSubscriberId() -> $value")
-                                result = value
-                            }
+                    name = "getSubscriberId"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.IMSI) { generateImsi() }
+                        if (value != null) {
+                            YLog.debug("DeviceHooker: Spoofing getSubscriberId() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getSubscriberId(int subId) - Per-subscription IMSI
             runCatching {
                 method {
-                    name = "getSubscriberId"
-                    param(IntType)
-                }
-                        .hook {
-                            after {
-                                val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.IMSI) {
-                                            generateImsi()
-                                        }
-                                if (value != null) {
-                                    YLog.debug(
-                                            "DeviceHooker: Spoofing getSubscriberId(subId) -> $value"
-                                    )
-                                    result = value
-                                }
-                            }
-                        }
-            }
-
-            // getSimSerialNumber() - ICCID
-            method {
-                name = "getSimSerialNumber"
-                emptyParam()
-            }
+                        name = "getSubscriberId"
+                        param(IntType)
+                    }
                     .hook {
                         after {
                             val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.ICCID) {
-                                        generateSimSerial()
-                                    }
+                                getSpoofValueOrGenerate(appContext, SpoofType.IMSI) {
+                                    generateImsi()
+                                }
                             if (value != null) {
-                                YLog.debug("DeviceHooker: Spoofing getSimSerialNumber() -> $value")
+                                YLog.debug(
+                                    "DeviceHooker: Spoofing getSubscriberId(subId) -> $value"
+                                )
                                 result = value
                             }
                         }
                     }
+            }
+
+            // getSimSerialNumber() - ICCID
+            method {
+                    name = "getSimSerialNumber"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.ICCID) {
+                                generateSimSerial()
+                            }
+                        if (value != null) {
+                            YLog.debug("DeviceHooker: Spoofing getSimSerialNumber() -> $value")
+                            result = value
+                        }
+                    }
+                }
 
             // getSimSerialNumber(int subId) - Per-subscription ICCID
             runCatching {
                 method {
-                    name = "getSimSerialNumber"
-                    param(IntType)
-                }
-                        .hook {
-                            after {
-                                val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.ICCID) {
-                                            generateSimSerial()
-                                        }
-                                if (value != null) {
-                                    YLog.debug(
-                                            "DeviceHooker: Spoofing getSimSerialNumber(subId) -> $value"
-                                    )
-                                    result = value
+                        name = "getSimSerialNumber"
+                        param(IntType)
+                    }
+                    .hook {
+                        after {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.ICCID) {
+                                    generateSimSerial()
                                 }
+                            if (value != null) {
+                                YLog.debug(
+                                    "DeviceHooker: Spoofing getSimSerialNumber(subId) -> $value"
+                                )
+                                result = value
                             }
                         }
+                    }
             }
         }
     }
@@ -319,21 +298,21 @@ object DeviceHooker : YukiBaseHooker() {
             // Build.getSerial() method (API 26+)
             runCatching {
                 method {
-                    name = "getSerial"
-                    modifiers { isStatic }
-                }
-                        .hook {
-                            after {
-                                val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.SERIAL) {
-                                            fallbackSerial
-                                        }
-                                if (value != null) {
-                                    YLog.debug("DeviceHooker: Spoofing Build.getSerial() -> $value")
-                                    result = value
+                        name = "getSerial"
+                        modifiers { isStatic }
+                    }
+                    .hook {
+                        after {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.SERIAL) {
+                                    fallbackSerial
                                 }
+                            if (value != null) {
+                                YLog.debug("DeviceHooker: Spoofing Build.getSerial() -> $value")
+                                result = value
                             }
                         }
+                    }
             }
         }
 
@@ -345,52 +324,56 @@ object DeviceHooker : YukiBaseHooker() {
     private fun hookSystemProperties() {
         "android.os.SystemProperties".toClass().apply {
             method {
-                name = "get"
-                param(StringClass)
-            }
-                    .hook {
-                        after {
-                            val key = args(0).string()
-                            when (key) {
-                                "ro.serialno", "ro.boot.serialno", "ril.serialnumber" -> {
-                                    val value =
-                                            getSpoofValueOrGenerate(appContext, SpoofType.SERIAL) {
-                                                fallbackSerial
-                                            }
-                                    if (value != null) {
-                                        YLog.debug(
-                                                "DeviceHooker: Spoofing SystemProperties.get($key) -> $value"
-                                        )
-                                        result = value
+                    name = "get"
+                    param(StringClass)
+                }
+                .hook {
+                    after {
+                        val key = args(0).string()
+                        when (key) {
+                            "ro.serialno",
+                            "ro.boot.serialno",
+                            "ril.serialnumber" -> {
+                                val value =
+                                    getSpoofValueOrGenerate(appContext, SpoofType.SERIAL) {
+                                        fallbackSerial
                                     }
+                                if (value != null) {
+                                    YLog.debug(
+                                        "DeviceHooker: Spoofing SystemProperties.get($key) -> $value"
+                                    )
+                                    result = value
                                 }
                             }
                         }
                     }
+                }
 
             method {
-                name = "get"
-                param(StringClass, StringClass)
-            }
-                    .hook {
-                        after {
-                            val key = args(0).string()
-                            when (key) {
-                                "ro.serialno", "ro.boot.serialno", "ril.serialnumber" -> {
-                                    val value =
-                                            getSpoofValueOrGenerate(appContext, SpoofType.SERIAL) {
-                                                fallbackSerial
-                                            }
-                                    if (value != null) {
-                                        YLog.debug(
-                                                "DeviceHooker: Spoofing SystemProperties.get($key, def) -> $value"
-                                        )
-                                        result = value
+                    name = "get"
+                    param(StringClass, StringClass)
+                }
+                .hook {
+                    after {
+                        val key = args(0).string()
+                        when (key) {
+                            "ro.serialno",
+                            "ro.boot.serialno",
+                            "ril.serialnumber" -> {
+                                val value =
+                                    getSpoofValueOrGenerate(appContext, SpoofType.SERIAL) {
+                                        fallbackSerial
                                     }
+                                if (value != null) {
+                                    YLog.debug(
+                                        "DeviceHooker: Spoofing SystemProperties.get($key, def) -> $value"
+                                    )
+                                    result = value
                                 }
                             }
                         }
                     }
+                }
         }
     }
 
@@ -400,51 +383,50 @@ object DeviceHooker : YukiBaseHooker() {
 
             // Settings.Secure.getString(ContentResolver, String)
             method {
-                name = "getString"
-                param("android.content.ContentResolver".toClass(), StringClass)
-            }
+                    name = "getString"
+                    param("android.content.ContentResolver".toClass(), StringClass)
+                }
+                .hook {
+                    after {
+                        val key = args(1).string()
+                        if (key == "android_id") {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.ANDROID_ID) {
+                                    fallbackAndroidId
+                                }
+                            if (value != null) {
+                                YLog.debug(
+                                    "DeviceHooker: Spoofing Settings.Secure.android_id -> $value"
+                                )
+                                result = value
+                            }
+                        }
+                    }
+                }
+
+            // Settings.Secure.getStringForUser (hidden API)
+            runCatching {
+                method {
+                        name = "getStringForUser"
+                        param("android.content.ContentResolver".toClass(), StringClass, IntType)
+                    }
                     .hook {
                         after {
                             val key = args(1).string()
                             if (key == "android_id") {
                                 val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.ANDROID_ID) {
-                                            fallbackAndroidId
-                                        }
+                                    getSpoofValueOrGenerate(appContext, SpoofType.ANDROID_ID) {
+                                        fallbackAndroidId
+                                    }
                                 if (value != null) {
                                     YLog.debug(
-                                            "DeviceHooker: Spoofing Settings.Secure.android_id -> $value"
+                                        "DeviceHooker: Spoofing Settings.Secure.android_id (user) -> $value"
                                     )
                                     result = value
                                 }
                             }
                         }
                     }
-
-            // Settings.Secure.getStringForUser (hidden API)
-            runCatching {
-                method {
-                    name = "getStringForUser"
-                    param("android.content.ContentResolver".toClass(), StringClass, IntType)
-                }
-                        .hook {
-                            after {
-                                val key = args(1).string()
-                                if (key == "android_id") {
-                                    val value =
-                                            getSpoofValueOrGenerate(
-                                                    appContext,
-                                                    SpoofType.ANDROID_ID
-                                            ) { fallbackAndroidId }
-                                    if (value != null) {
-                                        YLog.debug(
-                                                "DeviceHooker: Spoofing Settings.Secure.android_id (user) -> $value"
-                                        )
-                                        result = value
-                                    }
-                                }
-                            }
-                        }
             }
         }
     }

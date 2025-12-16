@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.astrixforge.devicemasker.data.models.GlobalSpoofConfig
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -15,8 +14,8 @@ import kotlinx.serialization.json.Json
  * Manages data migrations between app versions.
  *
  * Migration versions:
- * - V1: Initial schema (profiles without assignedApps, no GlobalSpoofConfig)
- * - V2: Profile-centric workflow (profiles with assignedApps, GlobalSpoofConfig added)
+ * - V1: Initial schema (profiles without assignedApps)
+ * - V2: Profile-centric workflow (profiles with assignedApps, independent profiles)
  */
 object MigrationManager {
 
@@ -78,106 +77,95 @@ object MigrationManager {
      * Migration V1 → V2: Profile-centric workflow
      *
      * Changes:
-     * 1. Initialize GlobalSpoofConfig with all types enabled
-     * 2. Read AppConfig entries and add apps to corresponding profiles' assignedApps
-     * 3. Copy default values from existing profiles to GlobalSpoofConfig
+     * 1. Read AppConfig entries and add apps to corresponding profiles' assignedApps
+     * 2. Ensure profiles have isEnabled field (defaults to true)
      */
     private suspend fun migrateV1ToV2(context: Context) =
-            withContext(Dispatchers.IO) {
-                val dataStore = SpoofDataStore(context)
+        withContext(Dispatchers.IO) {
+            val dataStore = SpoofDataStore(context)
 
-                // 1. Initialize GlobalSpoofConfig if not exists
-                val existingConfigJson = dataStore.globalConfigJson.first()
-                if (existingConfigJson.isNullOrBlank()) {
-                    // Create default GlobalSpoofConfig with all types enabled
-                    val globalConfig = GlobalSpoofConfig()
-                    val configJson = json.encodeToString(globalConfig)
-                    dataStore.saveGlobalConfigJson(configJson)
-                }
+            // 1. Read existing profiles
+            val profilesJson = dataStore.profilesJson.first()
+            if (profilesJson.isNullOrBlank()) {
+                // No profiles exist, create a default profile
+                val defaultProfile = SpoofProfile.createDefaultProfile()
+                val profiles = listOf(defaultProfile)
+                dataStore.saveProfilesJson(json.encodeToString(profiles))
+                return@withContext
+            }
 
-                // 2. Read existing profiles
-                val profilesJson = dataStore.profilesJson.first()
-                if (profilesJson.isNullOrBlank()) {
-                    // No profiles exist, create a default profile
+            // 2. Parse existing profiles
+            val existingProfiles =
+                try {
+                    json.decodeFromString<List<SpoofProfile>>(profilesJson)
+                } catch (e: Exception) {
+                    // If parsing fails, create fresh
                     val defaultProfile = SpoofProfile.createDefaultProfile()
-                    val profiles = listOf(defaultProfile)
-                    dataStore.saveProfilesJson(json.encodeToString(profiles))
+                    dataStore.saveProfilesJson(json.encodeToString(listOf(defaultProfile)))
                     return@withContext
                 }
 
-                // 3. Parse existing profiles
-                val existingProfiles =
-                        try {
-                            json.decodeFromString<List<SpoofProfile>>(profilesJson)
-                        } catch (e: Exception) {
-                            // If parsing fails, create fresh
-                            val defaultProfile = SpoofProfile.createDefaultProfile()
-                            dataStore.saveProfilesJson(json.encodeToString(listOf(defaultProfile)))
-                            return@withContext
+            // 3. Read AppConfig entries and migrate app assignments
+            val appConfigsJson = dataStore.appConfigsJson.first()
+            if (!appConfigsJson.isNullOrBlank()) {
+                try {
+                    // Parse AppConfig entries to get app-profile mappings
+                    val appConfigs = json.decodeFromString<List<AppConfigEntry>>(appConfigsJson)
+
+                    // Build map of profileId -> set of packageNames
+                    val profileApps = mutableMapOf<String, MutableSet<String>>()
+                    for (config in appConfigs) {
+                        if (config.profileId != null) {
+                            profileApps
+                                .getOrPut(config.profileId) { mutableSetOf() }
+                                .add(config.packageName)
                         }
+                    }
 
-                // 4. Read AppConfig entries and migrate app assignments
-                val appConfigsJson = dataStore.appConfigsJson.first()
-                if (!appConfigsJson.isNullOrBlank()) {
-                    try {
-                        // Parse AppConfig entries to get app-profile mappings
-                        val appConfigs = json.decodeFromString<List<AppConfigEntry>>(appConfigsJson)
-
-                        // Build map of profileId -> set of packageNames
-                        val profileApps = mutableMapOf<String, MutableSet<String>>()
-                        for (config in appConfigs) {
-                            if (config.profileId != null) {
-                                profileApps
-                                        .getOrPut(config.profileId) { mutableSetOf() }
-                                        .add(config.packageName)
+                    // Update profiles with assigned apps
+                    val updatedProfiles =
+                        existingProfiles.map { profile ->
+                            val apps = profileApps[profile.id] ?: emptySet()
+                            if (apps.isNotEmpty()) {
+                                profile.copy(assignedApps = apps)
+                            } else {
+                                profile
                             }
                         }
 
-                        // Update profiles with assigned apps
-                        val updatedProfiles =
-                                existingProfiles.map { profile ->
-                                    val apps = profileApps[profile.id] ?: emptySet()
-                                    if (apps.isNotEmpty()) {
-                                        profile.copy(assignedApps = apps)
-                                    } else {
-                                        profile
-                                    }
-                                }
-
-                        // Save updated profiles
-                        dataStore.saveProfilesJson(json.encodeToString(updatedProfiles))
-                    } catch (e: Exception) {
-                        // Migration failed for app configs, profiles remain unchanged
-                        // This is not fatal - users can re-assign apps manually
-                    }
-                }
-
-                // 5. Ensure at least one default profile exists
-                val finalProfilesJson = dataStore.profilesJson.first()
-                if (finalProfilesJson.isNullOrBlank()) {
-                    val defaultProfile = SpoofProfile.createDefaultProfile()
-                    dataStore.saveProfilesJson(json.encodeToString(listOf(defaultProfile)))
-                } else {
-                    val profiles =
-                            try {
-                                json.decodeFromString<List<SpoofProfile>>(finalProfilesJson)
-                            } catch (e: Exception) {
-                                emptyList()
-                            }
-
-                    if (profiles.isEmpty() || profiles.none { it.isDefault }) {
-                        // No default profile, make first one default or create new
-                        val updated =
-                                if (profiles.isEmpty()) {
-                                    listOf(SpoofProfile.createDefaultProfile())
-                                } else {
-                                    listOf(profiles.first().copy(isDefault = true)) +
-                                            profiles.drop(1)
-                                }
-                        dataStore.saveProfilesJson(json.encodeToString(updated))
-                    }
+                    // Save updated profiles
+                    dataStore.saveProfilesJson(json.encodeToString(updatedProfiles))
+                } catch (e: Exception) {
+                    // Migration failed for app configs, profiles remain unchanged
+                    // This is not fatal - users can re-assign apps manually
                 }
             }
+
+            // 4. Ensure at least one default profile exists
+            val finalProfilesJson = dataStore.profilesJson.first()
+            if (finalProfilesJson.isNullOrBlank()) {
+                val defaultProfile = SpoofProfile.createDefaultProfile()
+                dataStore.saveProfilesJson(json.encodeToString(listOf(defaultProfile)))
+            } else {
+                val profiles =
+                    try {
+                        json.decodeFromString<List<SpoofProfile>>(finalProfilesJson)
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+
+                if (profiles.isEmpty() || profiles.none { it.isDefault }) {
+                    // No default profile, make first one default or create new
+                    val updated =
+                        if (profiles.isEmpty()) {
+                            listOf(SpoofProfile.createDefaultProfile())
+                        } else {
+                            listOf(profiles.first().copy(isDefault = true)) + profiles.drop(1)
+                        }
+                    dataStore.saveProfilesJson(json.encodeToString(updated))
+                }
+            }
+        }
 
     private fun getMigrationPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -186,8 +174,8 @@ object MigrationManager {
     /** Helper class for parsing old AppConfig entries during migration. */
     @kotlinx.serialization.Serializable
     private data class AppConfigEntry(
-            val packageName: String,
-            val profileId: String? = null,
-            val isEnabled: Boolean = true
+        val packageName: String,
+        val profileId: String? = null,
+        val isEnabled: Boolean = true,
     )
 }

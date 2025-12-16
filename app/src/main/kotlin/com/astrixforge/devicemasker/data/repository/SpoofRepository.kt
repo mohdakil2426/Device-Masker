@@ -7,7 +7,6 @@ import com.astrixforge.devicemasker.data.generators.IMEIGenerator
 import com.astrixforge.devicemasker.data.generators.MACGenerator
 import com.astrixforge.devicemasker.data.generators.SerialGenerator
 import com.astrixforge.devicemasker.data.generators.UUIDGenerator
-import com.astrixforge.devicemasker.data.models.GlobalSpoofConfig
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofProfile
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
@@ -50,29 +48,29 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
     /** Flow of enabled app count. */
     val enabledAppCount: Flow<Int> =
-            appScopeRepository.appConfigs.map { configs -> configs.values.count { it.isEnabled } }
+        appScopeRepository.appConfigs.map { configs -> configs.values.count { it.isEnabled } }
 
     /** Combined UI state flow for dashboard. */
     data class DashboardState(
-            val isModuleEnabled: Boolean,
-            val activeProfile: SpoofProfile?,
-            val enabledAppCount: Int,
-            val profileCount: Int
+        val isModuleEnabled: Boolean,
+        val activeProfile: SpoofProfile?,
+        val enabledAppCount: Int,
+        val profileCount: Int,
     )
 
     val dashboardState: Flow<DashboardState> =
-            combine(moduleEnabled, activeProfile, enabledAppCount, profiles) {
-                    enabled,
-                    profile,
-                    appCount,
-                    profileList ->
-                DashboardState(
-                        isModuleEnabled = enabled,
-                        activeProfile = profile,
-                        enabledAppCount = appCount,
-                        profileCount = profileList.size
-                )
-            }
+        combine(moduleEnabled, activeProfile, enabledAppCount, profiles) {
+            enabled,
+            profile,
+            appCount,
+            profileList ->
+            DashboardState(
+                isModuleEnabled = enabled,
+                activeProfile = profile,
+                enabledAppCount = appCount,
+                profileCount = profileList.size,
+            )
+        }
 
     // ═══════════════════════════════════════════════════════════
     // MODULE SETTINGS
@@ -89,92 +87,13 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     }
 
     // ═══════════════════════════════════════════════════════════
-    // GLOBAL SPOOF CONFIG
+    // JSON SERIALIZATION
     // ═══════════════════════════════════════════════════════════
 
     private val json = Json {
         ignoreUnknownKeys = true
         prettyPrint = false
         encodeDefaults = true
-    }
-
-    /** Flow of GlobalSpoofConfig. */
-    val globalConfig: Flow<GlobalSpoofConfig> =
-            dataStore.globalConfigJson.map { jsonString ->
-                if (jsonString.isNullOrEmpty()) {
-                    GlobalSpoofConfig.createDefault()
-                } else {
-                    try {
-                        json.decodeFromString<GlobalSpoofConfig>(jsonString)
-                    } catch (e: Exception) {
-                        GlobalSpoofConfig.createDefault()
-                    }
-                }
-            }
-
-    /** Gets the current GlobalSpoofConfig. */
-    suspend fun getGlobalConfig(): GlobalSpoofConfig {
-        return globalConfig.first()
-    }
-
-    /** Saves the GlobalSpoofConfig. */
-    suspend fun saveGlobalConfig(config: GlobalSpoofConfig) {
-        val jsonString = json.encodeToString(config)
-        dataStore.saveGlobalConfigJson(jsonString)
-    }
-
-    /**
-     * Sets whether a SpoofType is enabled globally (master switch).
-     *
-     * @param type The spoof type to update
-     * @param enabled Whether to enable or disable the type
-     */
-    suspend fun setTypeEnabledGlobally(type: SpoofType, enabled: Boolean) {
-        val config = getGlobalConfig()
-        val updatedConfig = config.withTypeEnabled(type, enabled)
-        saveGlobalConfig(updatedConfig)
-    }
-
-    /**
-     * Sets the default value for a SpoofType (template for new profiles).
-     *
-     * @param type The spoof type to update
-     * @param value The new default value
-     */
-    suspend fun setGlobalDefaultValue(type: SpoofType, value: String) {
-        val config = getGlobalConfig()
-        val updatedConfig = config.withDefaultValue(type, value)
-        saveGlobalConfig(updatedConfig)
-    }
-
-    /**
-     * Checks if a SpoofType is enabled globally (blocking for hook context).
-     *
-     * @param type The spoof type to check
-     * @return True if the type is enabled globally
-     */
-    fun isTypeEnabledGloballyBlocking(type: SpoofType): Boolean {
-        val jsonString = dataStore.getGlobalConfigJsonBlocking()
-        if (jsonString.isNullOrEmpty()) return true // Default: all enabled
-        return try {
-            val config = json.decodeFromString<GlobalSpoofConfig>(jsonString)
-            config.isTypeEnabled(type)
-        } catch (e: Exception) {
-            true // Default: enabled if error
-        }
-    }
-
-    /**
-     * Initializes GlobalSpoofConfig with default values if not already set. This is called on first
-     * launch or migration.
-     */
-    suspend fun initializeGlobalConfigIfNeeded() {
-        val existingConfigJson = dataStore.globalConfigJson.first()
-        if (existingConfigJson.isNullOrEmpty()) {
-            // Create config with generated default values
-            val config = GlobalSpoofConfig.createWithDefaults { type -> generateValue(type) }
-            saveGlobalConfig(config)
-        }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -208,31 +127,31 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
             // System
             SpoofType.BUILD_FINGERPRINT -> FingerprintGenerator.generate()
-            SpoofType.BUILD_MODEL -> FingerprintGenerator.generateBuildProperties()["MODEL"]
-                            ?: "Pixel 8"
+            SpoofType.BUILD_MODEL ->
+                FingerprintGenerator.generateBuildProperties()["MODEL"] ?: "Pixel 8"
             SpoofType.BUILD_MANUFACTURER ->
-                    FingerprintGenerator.generateBuildProperties()["MANUFACTURER"] ?: "Google"
-            SpoofType.BUILD_BRAND -> FingerprintGenerator.generateBuildProperties()["BRAND"]
-                            ?: "google"
-            SpoofType.BUILD_DEVICE -> FingerprintGenerator.generateBuildProperties()["DEVICE"]
-                            ?: "shiba"
-            SpoofType.BUILD_PRODUCT -> FingerprintGenerator.generateBuildProperties()["PRODUCT"]
-                            ?: "shiba"
-            SpoofType.BUILD_BOARD -> FingerprintGenerator.generateBuildProperties()["BOARD"]
-                            ?: "shiba"
+                FingerprintGenerator.generateBuildProperties()["MANUFACTURER"] ?: "Google"
+            SpoofType.BUILD_BRAND ->
+                FingerprintGenerator.generateBuildProperties()["BRAND"] ?: "google"
+            SpoofType.BUILD_DEVICE ->
+                FingerprintGenerator.generateBuildProperties()["DEVICE"] ?: "shiba"
+            SpoofType.BUILD_PRODUCT ->
+                FingerprintGenerator.generateBuildProperties()["PRODUCT"] ?: "shiba"
+            SpoofType.BUILD_BOARD ->
+                FingerprintGenerator.generateBuildProperties()["BOARD"] ?: "shiba"
 
             // Location
             SpoofType.LOCATION_LATITUDE -> String.format("%.6f", (-90.0..90.0).random())
             SpoofType.LOCATION_LONGITUDE -> String.format("%.6f", (-180.0..180.0).random())
             SpoofType.TIMEZONE ->
-                    listOf(
-                                    "America/New_York",
-                                    "America/Los_Angeles",
-                                    "Europe/London",
-                                    "Asia/Tokyo",
-                                    "Australia/Sydney"
-                            )
-                            .random()
+                listOf(
+                        "America/New_York",
+                        "America/Los_Angeles",
+                        "Europe/London",
+                        "Asia/Tokyo",
+                        "Australia/Sydney",
+                    )
+                    .random()
             SpoofType.LOCALE -> listOf("en_US", "en_GB", "ja_JP", "de_DE", "fr_FR").random()
         }
     }
@@ -326,11 +245,11 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
         // Get the profile for this app
         val profileId = appConfig.profileId
         val profile =
-                if (profileId != null) {
-                    profileRepository.getProfileById(profileId)
-                } else {
-                    profileRepository.getDefaultProfile()
-                }
+            if (profileId != null) {
+                profileRepository.getProfileById(profileId)
+            } else {
+                profileRepository.getDefaultProfile()
+            }
 
         // Get the value from the profile
         var value = profile?.getValue(type)
@@ -379,22 +298,16 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     /** Gets the active profile ID as a Flow. */
     fun getActiveProfileId(): Flow<String?> = dataStore.activeProfileId
 
-    /**
-     * Creates a new profile with values copied from GlobalSpoofConfig defaults. If a global default
-     * value is not set, generates a new value.
-     */
+    /** Creates a new profile with generated spoof values. */
     fun createProfile(name: String, description: String = "") {
         kotlinx.coroutines.runBlocking {
             // Create the profile first
             val newProfile = profileRepository.createProfile(name)
 
-            // Get global config to copy default values
-            val globalSpoofConfig = getGlobalConfig()
-
-            // Initialize with values from global config or generate if not set
+            // Initialize with generated values for all spoof types
             var updatedProfile = newProfile.copy(description = description)
             SpoofType.entries.forEach { type ->
-                val value = globalSpoofConfig.getDefaultValue(type) ?: generateValue(type)
+                val value = generateValue(type)
                 updatedProfile = updatedProfile.withValue(type, value)
             }
             profileRepository.updateProfile(updatedProfile)
@@ -419,20 +332,34 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
         }
     }
 
+    /** Sets whether a profile is enabled (master switch for all its apps). */
+    suspend fun setProfileEnabled(profileId: String, enabled: Boolean) {
+        val profile = profileRepository.getProfileById(profileId) ?: return
+        val updatedProfile = profile.withEnabled(enabled)
+        profileRepository.updateProfile(updatedProfile)
+    }
+
+    /** Toggles whether a profile is enabled. */
+    suspend fun toggleProfileEnabled(profileId: String) {
+        val profile = profileRepository.getProfileById(profileId) ?: return
+        val updatedProfile = profile.toggleEnabled()
+        profileRepository.updateProfile(updatedProfile)
+    }
+
     companion object {
         @Volatile private var INSTANCE: SpoofRepository? = null
 
         /** Gets the singleton instance. */
         fun getInstance(context: Context): SpoofRepository {
             return INSTANCE
-                    ?: synchronized(this) {
-                        INSTANCE
-                                ?: SpoofRepository(
-                                                context.applicationContext,
-                                                SpoofDataStore(context.applicationContext)
-                                        )
-                                        .also { INSTANCE = it }
-                    }
+                ?: synchronized(this) {
+                    INSTANCE
+                        ?: SpoofRepository(
+                                context.applicationContext,
+                                SpoofDataStore(context.applicationContext),
+                            )
+                            .also { INSTANCE = it }
+                }
         }
     }
 }

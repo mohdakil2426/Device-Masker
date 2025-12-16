@@ -33,7 +33,6 @@ import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
 import com.astrixforge.devicemasker.ui.navigation.NavRoutes
 import com.astrixforge.devicemasker.ui.screens.DiagnosticsScreen
-import com.astrixforge.devicemasker.ui.screens.GlobalSpoofScreen
 import com.astrixforge.devicemasker.ui.screens.HomeScreen
 import com.astrixforge.devicemasker.ui.screens.ProfileDetailScreen
 import com.astrixforge.devicemasker.ui.screens.ProfileScreen
@@ -78,40 +77,40 @@ class MainActivity : ComponentActivity() {
             val activity = this@MainActivity
             DisposableEffect(darkTheme) {
                 activity.enableEdgeToEdge(
-                        statusBarStyle =
-                                if (darkTheme) {
-                                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                                } else {
-                                    SystemBarStyle.light(
-                                            android.graphics.Color.TRANSPARENT,
-                                            android.graphics.Color.TRANSPARENT
-                                    )
-                                },
-                        navigationBarStyle =
-                                if (darkTheme) {
-                                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                                } else {
-                                    SystemBarStyle.light(
-                                            android.graphics.Color.TRANSPARENT,
-                                            android.graphics.Color.TRANSPARENT
-                                    )
-                                }
+                    statusBarStyle =
+                        if (darkTheme) {
+                            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                        } else {
+                            SystemBarStyle.light(
+                                android.graphics.Color.TRANSPARENT,
+                                android.graphics.Color.TRANSPARENT,
+                            )
+                        },
+                    navigationBarStyle =
+                        if (darkTheme) {
+                            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                        } else {
+                            SystemBarStyle.light(
+                                android.graphics.Color.TRANSPARENT,
+                                android.graphics.Color.TRANSPARENT,
+                            )
+                        },
                 )
                 onDispose {}
             }
 
             DeviceMaskerTheme(
-                    darkTheme = darkTheme,
-                    amoledBlack = amoledMode,
-                    dynamicColor = dynamicColors
+                darkTheme = darkTheme,
+                amoledBlack = amoledMode,
+                dynamicColor = dynamicColors,
             ) {
                 DeviceMaskerMainApp(
-                        repository = repository,
-                        dataStore = dataStore,
-                        darkMode = darkMode,
-                        amoledMode = amoledMode,
-                        dynamicColors = dynamicColors,
-                        debugLogging = debugLogging
+                    repository = repository,
+                    dataStore = dataStore,
+                    darkMode = darkMode,
+                    amoledMode = amoledMode,
+                    dynamicColors = dynamicColors,
+                    debugLogging = debugLogging,
                 )
             }
         }
@@ -121,137 +120,134 @@ class MainActivity : ComponentActivity() {
 /** Main app composable with navigation. */
 @Composable
 fun DeviceMaskerMainApp(
-        repository: SpoofRepository,
-        dataStore: SpoofDataStore,
-        darkMode: Boolean,
-        amoledMode: Boolean,
-        dynamicColors: Boolean,
-        debugLogging: Boolean,
-        navController: NavHostController = rememberNavController()
+    repository: SpoofRepository,
+    dataStore: SpoofDataStore,
+    darkMode: Boolean,
+    amoledMode: Boolean,
+    dynamicColors: Boolean,
+    debugLogging: Boolean,
+    navController: NavHostController = rememberNavController(),
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.HOME
     val scope = rememberCoroutineScope()
 
     Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                BottomNavBar(
-                        currentRoute = currentRoute,
-                        onNavigate = { route ->
-                            navController.navigate(route) {
-                                // Pop up to the start destination to avoid stacking
-                                popUpTo(NavRoutes.HOME) { saveState = true }
-                                // Avoid multiple copies of the same destination
-                                launchSingleTop = true
-                                // Restore state when re-selecting a previously selected item
-                                restoreState = true
-                            }
-                        }
-                )
-            }
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            BottomNavBar(
+                currentRoute = currentRoute,
+                onNavigate = { route ->
+                    navController.navigate(route) {
+                        // Pop up to the start destination to avoid stacking
+                        popUpTo(NavRoutes.HOME) { saveState = true }
+                        // Avoid multiple copies of the same destination
+                        launchSingleTop = true
+                        // Restore state when re-selecting a previously selected item
+                        restoreState = true
+                    }
+                },
+            )
+        },
     ) { innerPadding ->
         NavHost(
-                navController = navController,
-                startDestination = NavRoutes.HOME,
-                modifier = Modifier.padding(innerPadding),
-                enterTransition = {
-                    fadeIn(animationSpec = spring()) +
-                            slideIntoContainer(
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                                    animationSpec = AppMotion.DefaultSpringOffset
-                            )
-                },
-                exitTransition = {
-                    fadeOut(animationSpec = spring()) +
-                            slideOutOfContainer(
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                                    animationSpec = AppMotion.DefaultSpringOffset
-                            )
-                },
-                popEnterTransition = {
-                    fadeIn(animationSpec = spring()) +
-                            slideIntoContainer(
-                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                    animationSpec = AppMotion.DefaultSpringOffset
-                            )
-                },
-                popExitTransition = {
-                    fadeOut(animationSpec = spring()) +
-                            slideOutOfContainer(
-                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                    animationSpec = AppMotion.DefaultSpringOffset
-                            )
-                }
+            navController = navController,
+            startDestination = NavRoutes.HOME,
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                fadeIn(animationSpec = spring()) +
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
+            },
+            exitTransition = {
+                fadeOut(animationSpec = spring()) +
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = spring()) +
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = spring()) +
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
+            },
         ) {
             composable(NavRoutes.HOME) {
                 HomeScreen(
-                        repository = repository,
-                        onNavigateToSpoof = { navController.navigate(NavRoutes.GLOBAL_SPOOF) },
-                        onRegenerateAll = {
-                            // Will be connected to ViewModel
-                            Timber.d("Regenerate all values requested")
-                        }
+                    repository = repository,
+                    onNavigateToSpoof = { navController.navigate(NavRoutes.PROFILES) },
+                    onRegenerateAll = {
+                        // Will be connected to ViewModel
+                        Timber.d("Regenerate all values requested")
+                    },
                 )
             }
 
-            // Global Spoof Screen - Master switches and default values
-            composable(NavRoutes.GLOBAL_SPOOF) { GlobalSpoofScreen(repository = repository) }
-
             composable(NavRoutes.SETTINGS) {
                 SettingsScreen(
-                        darkMode = darkMode,
-                        amoledDarkMode = amoledMode,
-                        dynamicColors = dynamicColors,
-                        debugLogging = debugLogging,
-                        onDarkModeChange = { enabled ->
-                            Timber.d("Dark mode changed: $enabled")
-                            scope.launch { dataStore.setDarkMode(enabled) }
-                        },
-                        onAmoledDarkModeChange = { enabled ->
-                            Timber.d("AMOLED mode changed: $enabled")
-                            scope.launch { dataStore.setAmoledMode(enabled) }
-                        },
-                        onDynamicColorChange = { enabled ->
-                            Timber.d("Dynamic colors changed: $enabled")
-                            scope.launch { dataStore.setDynamicColors(enabled) }
-                        },
-                        onDebugLogChange = { enabled ->
-                            Timber.d("Debug logging changed: $enabled")
-                            scope.launch { dataStore.setDebugLogging(enabled) }
-                        },
-                        onNavigateToDiagnostics = { navController.navigate(NavRoutes.DIAGNOSTICS) }
+                    darkMode = darkMode,
+                    amoledDarkMode = amoledMode,
+                    dynamicColors = dynamicColors,
+                    debugLogging = debugLogging,
+                    onDarkModeChange = { enabled ->
+                        Timber.d("Dark mode changed: $enabled")
+                        scope.launch { dataStore.setDarkMode(enabled) }
+                    },
+                    onAmoledDarkModeChange = { enabled ->
+                        Timber.d("AMOLED mode changed: $enabled")
+                        scope.launch { dataStore.setAmoledMode(enabled) }
+                    },
+                    onDynamicColorChange = { enabled ->
+                        Timber.d("Dynamic colors changed: $enabled")
+                        scope.launch { dataStore.setDynamicColors(enabled) }
+                    },
+                    onDebugLogChange = { enabled ->
+                        Timber.d("Debug logging changed: $enabled")
+                        scope.launch { dataStore.setDebugLogging(enabled) }
+                    },
+                    onNavigateToDiagnostics = { navController.navigate(NavRoutes.DIAGNOSTICS) },
                 )
             }
 
             // Profile Detail Screen - Per-profile spoof values and app assignment
             composable(
-                    route = NavRoutes.PROFILE_DETAIL_PATTERN,
-                    arguments = listOf(navArgument("profileId") { type = NavType.StringType })
+                route = NavRoutes.PROFILE_DETAIL_PATTERN,
+                arguments = listOf(navArgument("profileId") { type = NavType.StringType }),
             ) { backStackEntry ->
                 val profileId =
-                        backStackEntry.arguments?.getString("profileId") ?: return@composable
+                    backStackEntry.arguments?.getString("profileId") ?: return@composable
                 ProfileDetailScreen(
-                        profileId = profileId,
-                        repository = repository,
-                        onNavigateBack = { navController.popBackStack() }
+                    profileId = profileId,
+                    repository = repository,
+                    onNavigateBack = { navController.popBackStack() },
                 )
             }
 
             composable(NavRoutes.PROFILES) {
                 ProfileScreen(
-                        repository = repository,
-                        onProfileClick = { profile ->
-                            navController.navigate(NavRoutes.profileDetailRoute(profile.id))
-                        }
+                    repository = repository,
+                    onProfileClick = { profile ->
+                        navController.navigate(NavRoutes.profileDetailRoute(profile.id))
+                    },
                 )
             }
 
             composable(NavRoutes.DIAGNOSTICS) {
                 DiagnosticsScreen(
-                        repository = repository,
-                        onNavigateBack = { navController.popBackStack() }
+                    repository = repository,
+                    onNavigateBack = { navController.popBackStack() },
                 )
             }
         }

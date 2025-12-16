@@ -2,176 +2,165 @@
 
 ## Current Work Focus
 
-### ✅ Completed Change: `refactor-profile-workflow` (ARCHIVED)
+### ✅ Completed Change: `refactor-independent-profiles`
 
-**Status**: Fully Complete & Archived
-**Location**: `openspec/changes/archive/2025-12-16-refactor-profile-workflow/`
-**Archived Date**: December 17, 2025
+**Status**: Complete - Ready to Archive
+**Location**: `openspec/changes/refactor-independent-profiles/`
+**Started**: December 17, 2025
+**Completed**: December 17, 2025
 
-### Remaining Active Changes
+#### All Phases Complete
+- ✅ Phase 1: Data Model Changes (isEnabled field)
+- ✅ Phase 2: Remove GlobalSpoofConfig (BREAKING)
+- ✅ Phase 3: Navigation Updates (3-tab layout)
+- ✅ Phase 4: ProfileScreen Updates (enable switch, 12-char limit)
+- ✅ Phase 5: ProfileDetailScreen (collapse state, app filtering, real icons)
+- ✅ Phase 6: HomeScreen Updates (profile dropdown)
+- ✅ Phase 7: Hook Layer Updates (all hookers refactored)
+- ✅ Phase 8: Testing & Validation (all tests passed)
+- ✅ Phase 9: Cleanup (Spotless formatting configured)
 
-| Change ID | Status | Progress |
-|-----------|--------|----------|
-| `implement-privacy-shield-module` | Active | 126/149 tasks |
-| `rebrand-to-device-masker` | Not Started | 0/103 tasks |
+### Archived Changes
 
-## Completed Work: Profile-Centric Workflow Redesign
-
-### Summary
-
-The profile-centric workflow redesign was a major architectural change that:
-1. Moved app assignment from central AppConfig to profile-based `SpoofProfile.assignedApps`
-2. Added `GlobalSpoofConfig` for master switches and default value templates
-3. Reorganized navigation from 5-tab to 4-tab layout
-4. Implemented `ProfileDetailScreen` with tabbed interface (Spoof Values / Apps)
-5. Updated all hookers to use profile-based value resolution via `HookDataProvider`
-6. Added data migration from V1 to V2 schema
-
-### All 9 Phases Complete
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| Phase 1 | Data Model Changes | ✅ |
-| Phase 2 | Navigation Updates | ✅ |
-| Phase 3 | GlobalSpoofScreen | ✅ |
-| Phase 4 | ProfileDetailScreen | ✅ |
-| Phase 5 | Profile Screen Updates | ✅ |
-| Phase 6 | Hook Layer Updates | ✅ |
-| Phase 7 | Data Migration | ✅ |
-| Phase 8 | Cleanup & Polish | ✅ |
-| Phase 9 | Testing | ✅ |
-
-### Key Files Created/Modified
-
-#### New Files
-- `data/models/GlobalSpoofConfig.kt` - Master switches and default values
-- `hook/HookDataProvider.kt` - Profile resolution for hook layer
-- `data/MigrationManager.kt` - V1→V2 data migration
-- `ui/screens/GlobalSpoofScreen.kt` - Global spoof settings UI
-- `ui/screens/ProfileDetailScreen.kt` - Profile detail with tabs
-
-#### Modified Files
-- `SpoofProfile.kt` - Added `assignedApps: Set<String>`
-- `SpoofDataStore.kt` - GlobalSpoofConfig storage
-- `ProfileRepository.kt` - App assignment methods
-- `SpoofRepository.kt` - GlobalSpoofConfig support
-- `NavDestination.kt` - 4-tab layout
-- `MainActivity.kt` - Updated navigation
-- All `*Hooker.kt` files - Profile-based value resolution
+| Change ID | Status | Archived Date |
+|-----------|--------|---------------|
+| `implement-privacy-shield-module` | Archived | Dec 16, 2025 |
+| `refactor-profile-workflow` | Archived | Dec 17, 2025 |
+| `refactor-independent-profiles` | Ready to Archive | Dec 17, 2025 |
 
 ## Recent Changes
 
-### December 17, 2025 (Profile Workflow Archive)
+### December 17, 2025 (Independent Profiles Refactor)
 
 | Time | Change | Status |
 |------|--------|--------|
-| 00:40 | Completed Phase 9 testing | ✅ |
-| 00:41 | Archived refactor-profile-workflow change | ✅ |
-| 00:42 | Updated memory bank | ✅ |
+| 02:55 | HomeScreen profile dropdown selector | ✅ |
+| 02:50 | Real app icons in ProfileDetailScreen | ✅ |
+| 02:50 | Filter system apps and own app | ✅ |
+| 02:50 | Session-based collapse state for spoof cards | ✅ |
+| 02:50 | 12-character limit on profile names | ✅ |
+| 02:45 | Removed GlobalSpoofConfig from ProfileDetailScreen | ✅ |
+| 02:40 | Refactored all 5 hookers - removed isTypeEnabledGlobally | ✅ |
+| 02:35 | Updated MigrationManager - removed GlobalSpoofConfig refs | ✅ |
+| 02:30 | Build verification - SUCCESS | ✅ |
 
-### December 16, 2025 (Profile Workflow Completion)
+### Key Accomplishments Today
+1. **Removed GlobalSpoofConfig entirely** - Profiles are now fully independent
+2. **Updated all 5 hookers** - Removed `isTypeEnabledGlobally` checks
+3. **HomeScreen profile dropdown** - Select active profile from dropdown
+4. **Real app icons** - Using PackageManager to load actual app icons
+5. **System app filtering** - Excludes system apps and own app by default
+6. **12-char profile name limit** - With character counter in dialog
+7. **Session-based UI state** - Spoof cards default to collapsed
 
-| Time | Change | Status |
-|------|--------|--------|
-| 19:00 | Phase 6: Updated all 5 hookers with HookDataProvider | ✅ |
-| 20:00 | Phase 7: Created MigrationManager with V1→V2 migration | ✅ |
-| 21:00 | Phase 8: UI Polish (empty states, loading, snackbars) | ✅ |
-| 23:12 | Phase 8.2.3: Added confirmation snackbars | ✅ |
+## Architecture Overview (Post-Refactor)
 
-### December 16, 2025 (Profile Workflow Start)
-
-| Time | Change | Status |
-|------|--------|--------|
-| 14:32 | Created proposal, design, tasks for profile workflow | ✅ |
-| 15:00 | Phase 1: Data model changes (GlobalSpoofConfig, assignedApps) | ✅ |
-| 16:00 | Phase 2: Navigation updates (4-tab layout) | ✅ |
-| 17:00 | Phase 3 & 4: GlobalSpoofScreen and ProfileDetailScreen | ✅ |
-| 18:00 | Phase 5: Updated ProfileCard with app count | ✅ |
-
-## Next Steps
-
-### Immediate Priority
-- Continue with `implement-privacy-shield-module` remaining tasks (23 remaining)
-- OR start `rebrand-to-device-masker` change
-
-### Future Enhancements
-1. Per-app profile switching via quick settings tile
-2. Backup/restore profiles to file
-3. Import device fingerprints from real devices
-4. Root detection bypass (SafetyNet/Play Integrity)
-
-## Architecture Overview (Post-Redesign)
-
-### Data Flow
+### Data Flow (NEW - Independent Profiles)
 ```
-User selects app → Find profile with app in assignedApps → Use profile values
-                                    ↓
-                    GlobalSpoofConfig.isTypeEnabled() check
-                                    ↓
-                         If enabled → Return spoofed value
-                         If disabled → Return original value
+User selects app → Find profile with app in assignedApps
+                         ↓
+              Check profile.isEnabled
+                         ↓
+         If enabled → Check type.isEnabled in profile
+                         ↓
+              If enabled → Return spoofed value
+              If disabled → Return null (original value)
 ```
 
-### Navigation Structure
+**Key Difference**: No more global config checks! Each profile controls its own:
+- Master enable/disable switch (`profile.isEnabled`)
+- Per-type enable/disable toggles (`profile.isTypeEnabled(type)`)
+
+### Navigation Structure (3-Tab Layout)
 ```
-Bottom Navigation (4 tabs):
-├── Home (Dashboard)
+Bottom Navigation (3 tabs):
+├── Home (Dashboard with profile dropdown)
 ├── Profiles → ProfileDetailScreen (with tabs)
-│   ├── Tab: Spoof Values (per-profile)
-│   └── Tab: Apps (assignment)
-├── Global Spoof (master switches + defaults)
+│   ├── Tab: Spoof Values (per-profile, collapsed by default)
+│   └── Tab: Apps (filtered, real icons)
 └── Settings
 ```
 
-## Files to Watch
+### HomeScreen Profile Dropdown
+- Shows all profiles with selection state
+- Updates protected apps count based on selected profile
+- "Configure" navigates to selected profile's detail screen
+- "Regenerate All" regenerates values for selected profile
 
-| File | Reason |
+### Hooker Pattern (SIMPLIFIED)
+```kotlin
+private fun getSpoofValueOrGenerate(
+    context: Context?,
+    type: SpoofType,
+    generator: () -> String
+): String? {
+    val provider = getProvider(context)
+    if (provider == null) {
+        return generator() // Fallback
+    }
+    
+    // getSpoofValue now handles ALL checks:
+    // 1. Profile exists for this app
+    // 2. Profile is enabled
+    // 3. Type is enabled in profile
+    return provider.getSpoofValue(type) ?: generator()
+}
+```
+
+## Files Modified Today
+
+| File | Change |
 |------|--------|
-| `hook/HookDataProvider.kt` | Central profile resolution for hooks |
-| `data/MigrationManager.kt` | Data schema migrations |
-| `data/models/GlobalSpoofConfig.kt` | Master switch logic |
-| `ui/screens/ProfileDetailScreen.kt` | Main profile editing UI |
-| `hook/hooker/*Hooker.kt` | All 5 hookers use profile values |
+| `ui/screens/HomeScreen.kt` | Added profile dropdown selector |
+| `ui/screens/ProfileDetailScreen.kt` | Real icons, filtering, collapse state |
+| `ui/screens/ProfileScreen.kt` | 12-char name limit |
+| `hook/hooker/DeviceHooker.kt` | Removed isTypeEnabledGlobally check |
+| `hook/hooker/NetworkHooker.kt` | Removed isTypeEnabledGlobally check |
+| `hook/hooker/SystemHooker.kt` | Removed isTypeEnabledGlobally check |
+| `hook/hooker/LocationHooker.kt` | Removed isTypeEnabledGlobally check |
+| `hook/hooker/AdvertisingHooker.kt` | Removed isTypeEnabledGlobally check |
+| `data/MigrationManager.kt` | Removed GlobalSpoofConfig references |
+
+## Next Steps
+
+### Device Testing Required
+- Test profile enable/disable switch works
+- Test disabled profiles don't hook apps
+- Test app filtering (system apps, own app)
+- Test real app icons display correctly
+- Test HomeScreen profile dropdown
+- Test spoof card collapse state persists
+
+### Cleanup Tasks
+- Remove unused imports
+- Run code formatting
+- Final build verification on device
 
 ## Important Patterns & Preferences
 
-### Profile-Based Spoofing Pattern
+### Profile-Based Spoofing Pattern (NEW)
 ```kotlin
-fun getSpoofValueOrGenerate(
-    packageName: String,
-    spoofType: SpoofType,
-    generateValue: () -> String
-): String? {
-    val config = getGlobalConfig()
-    if (!config.isTypeEnabled(spoofType)) {
-        YLog.debug("$spoofType disabled globally, skipping spoof")
+// In HookDataProvider.getSpoofValue()
+fun getSpoofValue(type: SpoofType): String? {
+    val profile = _profile ?: return null
+    
+    // Master switch check
+    if (!profile.isEnabled) {
+        YLog.debug("Profile '${profile.name}' is disabled")
         return null
     }
     
-    val profile = getProfileForPackage(packageName)
-    if (profile != null) {
-        val identifier = profile.getIdentifier(spoofType)
-        if (identifier != null && identifier.isEnabled) {
-            YLog.debug("Using profile '${profile.name}' value for $spoofType")
-            return identifier.value
-        }
+    // Type-level check
+    if (!profile.isTypeEnabled(type)) {
+        YLog.debug("$type is disabled in profile '${profile.name}'")
+        return null
     }
     
-    // Fallback to generated value
-    return generateValue()
+    return profile.getValue(type)
 }
 ```
 
-### Snackbar Confirmation Pattern
-```kotlin
-scope.launch {
-    // Perform action
-    repository.updateProfile(updated)
-    
-    // Show confirmation
-    snackbarHostState.showSnackbar(
-        message = "${type.displayName} regenerated",
-        duration = SnackbarDuration.Short
-    )
-}
-```
+### No More Global Config!
+The old pattern with `isTypeEnabledGlobally()` has been completely removed.
+Profiles are now independent - each controls its own spoofing behavior.
+

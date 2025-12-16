@@ -30,21 +30,19 @@ object SystemHooker : YukiBaseHooker() {
     private fun getProvider(context: Context?): HookDataProvider? {
         if (dataProvider == null && context != null) {
             dataProvider =
-                    runCatching { HookDataProvider.getInstance(context, packageName) }
-                            .onFailure {
-                                YLog.error(
-                                        "SystemHooker: Failed to create HookDataProvider: ${it.message}"
-                                )
-                            }
-                            .getOrNull()
+                runCatching { HookDataProvider.getInstance(context, packageName) }
+                    .onFailure {
+                        YLog.error("SystemHooker: Failed to create HookDataProvider: ${it.message}")
+                    }
+                    .getOrNull()
         }
         return dataProvider
     }
 
     private fun getSpoofValueOrGenerate(
-            context: Context?,
-            type: SpoofType,
-            generator: () -> String
+        context: Context?,
+        type: SpoofType,
+        generator: () -> String,
     ): String? {
         val provider = getProvider(context)
         if (provider == null) {
@@ -52,11 +50,8 @@ object SystemHooker : YukiBaseHooker() {
             return generator()
         }
 
-        if (!provider.isTypeEnabledGlobally(type)) {
-            YLog.debug("SystemHooker: $type is disabled globally, returning null")
-            return null
-        }
-
+        // getSpoofValue now handles all profile-based checks (profile exists, profile enabled, type
+        // enabled)
         return provider.getSpoofValue(type) ?: generator()
     }
 
@@ -70,16 +65,22 @@ object SystemHooker : YukiBaseHooker() {
 
     private val fallbackFingerprint: String
         get() = fallbackBuildProperties["FINGERPRINT"] ?: FingerprintGenerator.generate()
+
     private val fallbackModel: String
         get() = fallbackBuildProperties["MODEL"] ?: "Pixel 8"
+
     private val fallbackManufacturer: String
         get() = fallbackBuildProperties["MANUFACTURER"] ?: "Google"
+
     private val fallbackBrand: String
         get() = fallbackBuildProperties["BRAND"] ?: "google"
+
     private val fallbackDevice: String
         get() = fallbackBuildProperties["DEVICE"] ?: "shiba"
+
     private val fallbackProduct: String
         get() = fallbackBuildProperties["PRODUCT"] ?: "shiba"
+
     private val fallbackBoard: String
         get() = fallbackBuildProperties["BOARD"] ?: "shiba"
 
@@ -99,25 +100,25 @@ object SystemHooker : YukiBaseHooker() {
     /** Hooks Build class static fields. */
     private fun hookBuildFields() {
         runCatching {
-            val buildClass = "android.os.Build".toClass()
+                val buildClass = "android.os.Build".toClass()
 
-            // These field modifications happen at hook time
-            modifyBuildField(buildClass, "FINGERPRINT", fallbackFingerprint)
-            modifyBuildField(buildClass, "MODEL", fallbackModel)
-            modifyBuildField(buildClass, "MANUFACTURER", fallbackManufacturer)
-            modifyBuildField(buildClass, "BRAND", fallbackBrand)
-            modifyBuildField(buildClass, "DEVICE", fallbackDevice)
-            modifyBuildField(buildClass, "PRODUCT", fallbackProduct)
-            modifyBuildField(buildClass, "BOARD", fallbackBoard)
-            modifyBuildField(buildClass, "HOST", "build.google.com")
-            modifyBuildField(buildClass, "TYPE", "user")
-            modifyBuildField(buildClass, "TAGS", "release-keys")
+                // These field modifications happen at hook time
+                modifyBuildField(buildClass, "FINGERPRINT", fallbackFingerprint)
+                modifyBuildField(buildClass, "MODEL", fallbackModel)
+                modifyBuildField(buildClass, "MANUFACTURER", fallbackManufacturer)
+                modifyBuildField(buildClass, "BRAND", fallbackBrand)
+                modifyBuildField(buildClass, "DEVICE", fallbackDevice)
+                modifyBuildField(buildClass, "PRODUCT", fallbackProduct)
+                modifyBuildField(buildClass, "BOARD", fallbackBoard)
+                modifyBuildField(buildClass, "HOST", "build.google.com")
+                modifyBuildField(buildClass, "TYPE", "user")
+                modifyBuildField(buildClass, "TAGS", "release-keys")
 
-            YLog.debug("SystemHooker: Build fields modified")
-        }
-                .onFailure { e ->
-                    YLog.warn("SystemHooker: Failed to modify Build fields: ${e.message}")
-                }
+                YLog.debug("SystemHooker: Build fields modified")
+            }
+            .onFailure { e ->
+                YLog.warn("SystemHooker: Failed to modify Build fields: ${e.message}")
+            }
     }
 
     /** Modifies a static field value using reflection. */
@@ -147,40 +148,40 @@ object SystemHooker : YukiBaseHooker() {
     private fun hookSystemProperties() {
         "android.os.SystemProperties".toClass().apply {
             method {
-                name = "get"
-                param(StringClass)
-            }
-                    .hook {
-                        after {
-                            val key = args(0).string()
-                            hookContext = appContext
-                            val spoofed = getSpoofedProperty(appContext, key)
-                            if (spoofed != null) {
-                                YLog.debug(
-                                        "SystemHooker: Spoofing SystemProperties.get($key) -> $spoofed"
-                                )
-                                result = spoofed
-                            }
+                    name = "get"
+                    param(StringClass)
+                }
+                .hook {
+                    after {
+                        val key = args(0).string()
+                        hookContext = appContext
+                        val spoofed = getSpoofedProperty(appContext, key)
+                        if (spoofed != null) {
+                            YLog.debug(
+                                "SystemHooker: Spoofing SystemProperties.get($key) -> $spoofed"
+                            )
+                            result = spoofed
                         }
                     }
+                }
 
             method {
-                name = "get"
-                param(StringClass, StringClass)
-            }
-                    .hook {
-                        after {
-                            val key = args(0).string()
-                            hookContext = appContext
-                            val spoofed = getSpoofedProperty(appContext, key)
-                            if (spoofed != null) {
-                                YLog.debug(
-                                        "SystemHooker: Spoofing SystemProperties.get($key, def) -> $spoofed"
-                                )
-                                result = spoofed
-                            }
+                    name = "get"
+                    param(StringClass, StringClass)
+                }
+                .hook {
+                    after {
+                        val key = args(0).string()
+                        hookContext = appContext
+                        val spoofed = getSpoofedProperty(appContext, key)
+                        if (spoofed != null) {
+                            YLog.debug(
+                                "SystemHooker: Spoofing SystemProperties.get($key, def) -> $spoofed"
+                            )
+                            result = spoofed
                         }
                     }
+                }
         }
     }
 

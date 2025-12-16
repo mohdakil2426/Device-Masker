@@ -31,28 +31,28 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
 
     /** Flow of all saved profiles. */
     val profiles: Flow<List<SpoofProfile>> =
-            dataStore.profilesJson.map { jsonString ->
-                if (jsonString.isNullOrEmpty()) {
-                    // Return default profile if none exist
+        dataStore.profilesJson.map { jsonString ->
+            if (jsonString.isNullOrEmpty()) {
+                // Return default profile if none exist
+                listOf(SpoofProfile.createDefaultProfile())
+            } else {
+                try {
+                    json.decodeFromString<List<SpoofProfile>>(jsonString)
+                } catch (e: Exception) {
                     listOf(SpoofProfile.createDefaultProfile())
-                } else {
-                    try {
-                        json.decodeFromString<List<SpoofProfile>>(jsonString)
-                    } catch (e: Exception) {
-                        listOf(SpoofProfile.createDefaultProfile())
-                    }
                 }
             }
+        }
 
     /** Flow of the currently active profile. */
     val activeProfile: Flow<SpoofProfile?> =
-            dataStore.activeProfileId.map { profileId ->
-                if (profileId == null) {
-                    getDefaultProfile()
-                } else {
-                    getProfileById(profileId)
-                }
+        dataStore.activeProfileId.map { profileId ->
+            if (profileId == null) {
+                getDefaultProfile()
+            } else {
+                getProfileById(profileId)
             }
+        }
 
     /** Gets a profile by its ID. */
     suspend fun getProfileById(id: String): SpoofProfile? {
@@ -123,13 +123,13 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
         val currentProfiles = profiles.first().toMutableList()
 
         val duplicated =
-                original.copy(
-                        id = java.util.UUID.randomUUID().toString(),
-                        name = newName,
-                        isDefault = false,
-                        createdAt = System.currentTimeMillis(),
-                        updatedAt = System.currentTimeMillis()
-                )
+            original.copy(
+                id = java.util.UUID.randomUUID().toString(),
+                name = newName,
+                isDefault = false,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+            )
 
         currentProfiles.add(duplicated)
         saveProfiles(currentProfiles)

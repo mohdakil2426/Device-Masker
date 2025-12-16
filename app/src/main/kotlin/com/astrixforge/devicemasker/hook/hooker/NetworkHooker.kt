@@ -30,21 +30,21 @@ object NetworkHooker : YukiBaseHooker() {
     private fun getProvider(context: Context?): HookDataProvider? {
         if (dataProvider == null && context != null) {
             dataProvider =
-                    runCatching { HookDataProvider.getInstance(context, packageName) }
-                            .onFailure {
-                                YLog.error(
-                                        "NetworkHooker: Failed to create HookDataProvider: ${it.message}"
-                                )
-                            }
-                            .getOrNull()
+                runCatching { HookDataProvider.getInstance(context, packageName) }
+                    .onFailure {
+                        YLog.error(
+                            "NetworkHooker: Failed to create HookDataProvider: ${it.message}"
+                        )
+                    }
+                    .getOrNull()
         }
         return dataProvider
     }
 
     private fun getSpoofValueOrGenerate(
-            context: Context?,
-            type: SpoofType,
-            generator: () -> String
+        context: Context?,
+        type: SpoofType,
+        generator: () -> String,
     ): String? {
         val provider = getProvider(context)
         if (provider == null) {
@@ -52,11 +52,8 @@ object NetworkHooker : YukiBaseHooker() {
             return generator()
         }
 
-        if (!provider.isTypeEnabledGlobally(type)) {
-            YLog.debug("NetworkHooker: $type is disabled globally, returning null")
-            return null
-        }
-
+        // getSpoofValue now handles all profile-based checks (profile exists, profile enabled, type
+        // enabled)
         return provider.getSpoofValue(type) ?: generator()
     }
 
@@ -88,59 +85,57 @@ object NetworkHooker : YukiBaseHooker() {
 
             // getMacAddress() - WiFi MAC address
             method {
-                name = "getMacAddress"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.WIFI_MAC) {
-                                        fallbackWifiMac
-                                    }
-                            if (value != null) {
-                                YLog.debug(
-                                        "NetworkHooker: Spoofing WifiInfo.getMacAddress() -> $value"
-                                )
-                                result = value
+                    name = "getMacAddress"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.WIFI_MAC) {
+                                fallbackWifiMac
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing WifiInfo.getMacAddress() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getSSID() - Connected network name
             method {
-                name = "getSSID"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.WIFI_SSID) {
-                                        fallbackSsid
-                                    }
-                            if (value != null) {
-                                YLog.debug("NetworkHooker: Spoofing WifiInfo.getSSID() -> $value")
-                                result = value
+                    name = "getSSID"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.WIFI_SSID) {
+                                fallbackSsid
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing WifiInfo.getSSID() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getBSSID() - Connected access point MAC
             method {
-                name = "getBSSID"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.WIFI_BSSID) {
-                                        fallbackBssid
-                                    }
-                            if (value != null) {
-                                YLog.debug("NetworkHooker: Spoofing WifiInfo.getBSSID() -> $value")
-                                result = value
+                    name = "getBSSID"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.WIFI_BSSID) {
+                                fallbackBssid
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing WifiInfo.getBSSID() -> $value")
+                            result = value
                         }
                     }
+                }
         }
     }
 
@@ -150,27 +145,27 @@ object NetworkHooker : YukiBaseHooker() {
 
             // getHardwareAddress() - Returns byte array of MAC address
             method {
-                name = "getHardwareAddress"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val originalResult = result as? ByteArray
-                            if (originalResult != null && originalResult.size == 6) {
-                                val value =
-                                        getSpoofValueOrGenerate(appContext, SpoofType.WIFI_MAC) {
-                                            fallbackWifiMac
-                                        }
-                                if (value != null) {
-                                    val spoofedBytes = macStringToBytes(value)
-                                    YLog.debug(
-                                            "NetworkHooker: Spoofing NetworkInterface.getHardwareAddress()"
-                                    )
-                                    result = spoofedBytes
+                    name = "getHardwareAddress"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val originalResult = result as? ByteArray
+                        if (originalResult != null && originalResult.size == 6) {
+                            val value =
+                                getSpoofValueOrGenerate(appContext, SpoofType.WIFI_MAC) {
+                                    fallbackWifiMac
                                 }
+                            if (value != null) {
+                                val spoofedBytes = macStringToBytes(value)
+                                YLog.debug(
+                                    "NetworkHooker: Spoofing NetworkInterface.getHardwareAddress()"
+                                )
+                                result = spoofedBytes
                             }
                         }
                     }
+                }
         }
     }
 
@@ -180,23 +175,23 @@ object NetworkHooker : YukiBaseHooker() {
 
             // getAddress() - Bluetooth MAC address
             method {
-                name = "getAddress"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.BLUETOOTH_MAC) {
-                                        fallbackBluetoothMac
-                                    }
-                            if (value != null) {
-                                YLog.debug(
-                                        "NetworkHooker: Spoofing BluetoothAdapter.getAddress() -> $value"
-                                )
-                                result = value
+                    name = "getAddress"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.BLUETOOTH_MAC) {
+                                fallbackBluetoothMac
                             }
+                        if (value != null) {
+                            YLog.debug(
+                                "NetworkHooker: Spoofing BluetoothAdapter.getAddress() -> $value"
+                            )
+                            result = value
                         }
                     }
+                }
         }
     }
 
@@ -206,77 +201,75 @@ object NetworkHooker : YukiBaseHooker() {
 
             // getNetworkOperatorName() - Carrier name
             method {
-                name = "getNetworkOperatorName"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_NAME) {
-                                        fallbackCarrierName
-                                    }
-                            if (value != null) {
-                                YLog.debug(
-                                        "NetworkHooker: Spoofing getNetworkOperatorName() -> $value"
-                                )
-                                result = value
+                    name = "getNetworkOperatorName"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_NAME) {
+                                fallbackCarrierName
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing getNetworkOperatorName() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getNetworkOperator() - MCC+MNC string
             method {
-                name = "getNetworkOperator"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_MCC_MNC) {
-                                        fallbackMccMnc
-                                    }
-                            if (value != null) {
-                                YLog.debug("NetworkHooker: Spoofing getNetworkOperator() -> $value")
-                                result = value
+                    name = "getNetworkOperator"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_MCC_MNC) {
+                                fallbackMccMnc
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing getNetworkOperator() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getSimOperatorName() - SIM carrier name
             method {
-                name = "getSimOperatorName"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_NAME) {
-                                        fallbackCarrierName
-                                    }
-                            if (value != null) {
-                                YLog.debug("NetworkHooker: Spoofing getSimOperatorName() -> $value")
-                                result = value
+                    name = "getSimOperatorName"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_NAME) {
+                                fallbackCarrierName
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing getSimOperatorName() -> $value")
+                            result = value
                         }
                     }
+                }
 
             // getSimOperator() - SIM MCC+MNC
             method {
-                name = "getSimOperator"
-                emptyParam()
-            }
-                    .hook {
-                        after {
-                            val value =
-                                    getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_MCC_MNC) {
-                                        fallbackMccMnc
-                                    }
-                            if (value != null) {
-                                YLog.debug("NetworkHooker: Spoofing getSimOperator() -> $value")
-                                result = value
+                    name = "getSimOperator"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val value =
+                            getSpoofValueOrGenerate(appContext, SpoofType.CARRIER_MCC_MNC) {
+                                fallbackMccMnc
                             }
+                        if (value != null) {
+                            YLog.debug("NetworkHooker: Spoofing getSimOperator() -> $value")
+                            result = value
                         }
                     }
+                }
         }
     }
 

@@ -161,12 +161,75 @@ UI Events → ViewModel → Repository → DataStore
 
 ### AD-6: Profile-Based Configuration
 
-**Decision**: Named profiles assignable per-app
+**Decision**: Named profiles assignable per-app with independent enable/disable
 
 **Structure**:
-- `SpoofProfile`: Named collection of spoofed values
-- `AppConfig`: Links package name to profile + enabled spoofs
+- `SpoofProfile`: Named collection of spoofed values with `isEnabled` flag
+- `assignedApps: Set<String>`: Apps assigned to this profile
 - Default profile for apps without explicit config
+
+### AD-6b: Independent Profiles (No Global Config)
+
+**Decision**: Remove GlobalSpoofConfig entirely, profiles are fully independent
+
+**Why Global Config Was Removed** (Dec 17, 2025):
+- **Simpler Mental Model**: Each profile controls its own behavior
+- **No Conflicts**: No confusing interaction between global and profile settings
+- **Cleaner Code**: Hookers only check profile settings, not two layers
+
+**New Data Flow**:
+```
+App Launch → HookDataProvider.getProfileForPackage()
+                      ↓
+           Profile found? No → Return null (no spoofing)
+                      ↓ Yes
+           Profile.isEnabled? No → Return null (no spoofing)
+                      ↓ Yes
+           Type enabled in profile? No → Return null
+                      ↓ Yes
+           Return spoofed value
+```
+
+**Old Flow (Removed)**:
+```
+❌ GlobalSpoofConfig.isTypeEnabled() → Profile.isTypeEnabled()
+```
+
+**Hooker Pattern (Simplified)**:
+```kotlin
+private fun getSpoofValueOrGenerate(
+    context: Context?,
+    type: SpoofType,
+    generator: () -> String
+): String? {
+    val provider = getProvider(context)
+    if (provider == null) {
+        return generator() // No provider, use fallback
+    }
+    
+    // getSpoofValue handles ALL checks:
+    // 1. Profile exists for this app
+    // 2. Profile.isEnabled == true
+    // 3. Profile.isTypeEnabled(type) == true
+    return provider.getSpoofValue(type) ?: generator()
+}
+```
+
+**Profile Model**:
+```kotlin
+data class SpoofProfile(
+    val id: String,
+    val name: String,
+    val isEnabled: Boolean = true,  // Master switch per profile
+    val isDefault: Boolean = false,
+    val assignedApps: Set<String> = emptySet(),
+    val identifiers: List<DeviceIdentifier> = emptyList()
+) {
+    fun isTypeEnabled(type: SpoofType): Boolean
+    fun getValue(type: SpoofType): String?
+    fun withEnabled(enabled: Boolean): SpoofProfile
+}
+```
 
 ### AD-7: Material 3 Expressive Design
 
