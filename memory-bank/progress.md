@@ -1,4 +1,4 @@
-# Progress: PrivacyShield
+# Progress: Device Masker
 
 ## Overall Status
 
@@ -26,7 +26,7 @@
 - [x] AndroidManifest.xml - LSPosed metadata, permissions
 - [x] Resources (arrays, strings, themes)
 - [x] Project structure created
-- [x] PrivacyShieldApp.kt - ModuleApplication
+- [x] Device MaskerApp.kt - ModuleApplication
 - [x] HookEntry.kt - @InjectYukiHookWithXposed
 - [x] UI Theme foundation (Color, Typography, Shapes, Motion, Theme)
 
@@ -162,7 +162,7 @@
 |----------|--------|----------|
 | README.md | ✅ Complete | `/README.md` |
 | USAGE.md | ✅ Complete | `/docs/USAGE.md` |
-| PRD | ✅ Complete | `/docs/prd/PrivacyShield_PRD.md` |
+| PRD | ✅ Complete | `/docs/prd/Device Masker_PRD.md` |
 
 ## Files Created Summary
 

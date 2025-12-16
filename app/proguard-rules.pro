@@ -1,4 +1,4 @@
-# PrivacyShield ProGuard Rules
+# Device Masker ProGuard Rules
 # ========================================
 
 # ═══════════════════════════════════════════════════════════
@@ -48,18 +48,18 @@
 -dontwarn io.github.lsposed.**
 
 # ═══════════════════════════════════════════════════════════
-# PRIVACYSHIELD MODULE - Keep hook entry points
+# DEVICE MASKER MODULE - Keep hook entry points
 # ═══════════════════════════════════════════════════════════
 
 # Keep our hook entry and all hookers
--keep class com.akil.privacyshield.hook.** { *; }
--keep class com.akil.privacyshield.hook.hooker.** { *; }
+-keep class com.astrixforge.devicemasker.hook.** { *; }
+-keep class com.astrixforge.devicemasker.hook.hooker.** { *; }
 
 # Keep data models (for serialization)
--keep class com.akil.privacyshield.data.models.** { *; }
+-keep class com.astrixforge.devicemasker.data.models.** { *; }
 
 # Keep generators
--keep class com.akil.privacyshield.data.generators.** { *; }
+-keep class com.astrixforge.devicemasker.data.generators.** { *; }
 
 # ═══════════════════════════════════════════════════════════
 # KOTLIN SERIALIZATION

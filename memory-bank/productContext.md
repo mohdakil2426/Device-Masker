@@ -1,4 +1,4 @@
-# Product Context: PrivacyShield
+# Product Context: Device Masker
 
 ## Why This Project Exists
 
@@ -15,7 +15,7 @@ These identifiers include IMEI, Serial Number, MAC Address, Android ID, Advertis
 
 ### The Solution
 
-PrivacyShield intercepts system API calls that retrieve device identifiers and returns user-configured spoofed values instead. This allows users to:
+Device Masker intercepts system API calls that retrieve device identifiers and returns user-configured spoofed values instead. This allows users to:
 - Present a different device identity to each app
 - Regenerate identifiers at will
 - Protect against device fingerprinting
@@ -46,12 +46,12 @@ This makes it ideal for privacy-focused modifications that need to work across m
 ### User Journey
 
 1. **Install & Enable**
-   - User installs PrivacyShield APK
+   - User installs Device Masker APK
    - Opens LSPosed Manager, enables the module
    - Reboots device (or soft reboot for LSPosed)
 
 2. **Configure Apps**
-   - Open PrivacyShield app
+   - Open Device Masker app
    - Go to "Apps" screen
    - Select apps to protect (enable spoofing)
    - Optionally assign specific profiles to apps
@@ -159,7 +159,7 @@ This makes it ideal for privacy-focused modifications that need to work across m
 - **XPrivacy/XPrivacyLua**: Comprehensive but complex, heavy
 - **DeviceFaker**: Outdated, limited Android version support
 
-### PrivacyShield Differentiators
+### Device Masker Differentiators
 1. **Modern Stack**: YukiHookAPI, Jetpack Compose, Material 3
 2. **Anti-Detection Built-in**: Not just spoofing, but hiding the hooks
 3. **Android 16 Support**: Latest API level compatibility

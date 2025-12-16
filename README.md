@@ -1,4 +1,4 @@
-# 🔒 PrivacyShield
+# 🔒 Device Masker
 
 **Device Identifier Spoofing LSPosed Module**
 
@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![LSPosed](https://img.shields.io/badge/LSPosed-1.10.2%2B-orange.svg)](https://github.com/LSPosed/LSPosed)
 
-PrivacyShield is an open-source LSPosed/Xposed module that **spoofs device identifiers** and provides a robust **anti-detection layer** to prevent apps from detecting hook injection. Designed for privacy-conscious users and security researchers.
+Device Masker is an open-source LSPosed/Xposed module that **spoofs device identifiers** and provides a robust **anti-detection layer** to prevent apps from detecting hook injection. Designed for privacy-conscious users and security researchers.
 
 ---
 
@@ -75,20 +75,20 @@ PrivacyShield is an open-source LSPosed/Xposed module that **spoofs device ident
    - Flash in Magisk as a module
    - Reboot device
 
-3. **Install PrivacyShield**
-   - Download APK from [Releases](https://github.com/your-repo/privacyshield/releases)
+3. **Install Device Masker**
+   - Download APK from [Releases](https://github.com/your-repo/Device Masker/releases)
    - Install the APK
    - Open LSPosed Manager
 
 4. **Enable Module**
-   - In LSPosed Manager, find "PrivacyShield"
+   - In LSPosed Manager, find "Device Masker"
    - Enable the module
    - Select apps to hook (or leave empty for all)
-   - **⚠️ IMPORTANT**: Do NOT select PrivacyShield itself!
+   - **⚠️ IMPORTANT**: Do NOT select Device Masker itself!
    - Reboot device
 
 5. **Configure Spoofing**
-   - Open PrivacyShield app
+   - Open Device Masker app
    - Configure spoof values in "Spoof" tab
    - Select apps in "Apps" tab
 
@@ -125,13 +125,13 @@ Profiles let you save different spoof configurations:
 ## ⚠️ Important Notes
 
 ### Do NOT Hook These
-- **PrivacyShield itself** - Will crash the app
+- **Device Masker itself** - Will crash the app
 - **System apps** (generally) - May cause instability
 - **LSPosed Manager** - Can break the framework
 
 ### Recommended Companion Modules
 
-PrivacyShield focuses on device spoofing. For complete protection, use with:
+Device Masker focuses on device spoofing. For complete protection, use with:
 
 | Protection | Module | Purpose |
 |------------|--------|---------|
@@ -144,7 +144,7 @@ PrivacyShield focuses on device spoofing. For complete protection, use with:
 Most banking apps use multiple detection methods:
 1. Root detection → Use Shamiko
 2. SafetyNet/Play Integrity → Use Play Integrity Fix
-3. Device fingerprinting → Use PrivacyShield
+3. Device fingerprinting → Use Device Masker
 4. All three are typically needed together
 
 ---
@@ -160,8 +160,8 @@ Most banking apps use multiple detection methods:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/privacyshield.git
-cd privacyshield
+git clone https://github.com/your-repo/Device Masker.git
+cd Device Masker
 
 # Build debug APK
 ./gradlew assembleDebug
@@ -180,7 +180,7 @@ cd privacyshield
 
 ### Architecture
 ```
-PrivacyShield/
+Device Masker/
 ├── hook/                   # YukiHookAPI Layer
 │   ├── HookEntry.kt        # Module entry point
 │   └── hooker/             # Individual hookers
@@ -229,8 +229,8 @@ PrivacyShield/
 **Cause**: Module is hooking itself
 **Solution**: 
 1. Open LSPosed Manager
-2. Find PrivacyShield in module scope
-3. Remove `com.akil.privacyshield` from selected apps
+2. Find Device Masker in module scope
+3. Remove `com.astrixforge.devicemasker` from selected apps
 4. Reboot
 
 ### Module Not Working
@@ -283,9 +283,9 @@ This module is for **educational and security research purposes only**.
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-repo/privacyshield/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/privacyshield/discussions)
+- **Issues**: [GitHub Issues](https://github.com/your-repo/Device-Masker/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-repo/Device-Masker/discussions)
 
 ---
 
-Made with ❤️ by Akil
+Made with ❤️ by AstrixForge

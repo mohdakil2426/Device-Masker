@@ -27,5 +27,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PrivacyShield"
+rootProject.name = "DeviceMasker"
 include(":app")

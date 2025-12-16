@@ -1,14 +1,14 @@
-# Project Brief: PrivacyShield
+# Project Brief: Device Masker
 
 ## Overview
 
-**PrivacyShield** is an open-source LSPosed/Xposed module for Android that provides comprehensive device identifier spoofing with a robust anti-detection layer. The module is designed to protect user privacy by intercepting and spoofing device identifiers while preventing apps from detecting the hook injection.
+**Device Masker** is an open-source LSPosed/Xposed module for Android that provides comprehensive device identifier spoofing with a robust anti-detection layer. The module is designed to protect user privacy by intercepting and spoofing device identifiers while preventing apps from detecting the hook injection.
 
 ## Core Philosophy
 
 > **"Do one thing excellently"** - Spoof device identifiers and hide the injection, nothing more.
 
-PrivacyShield focuses exclusively on spoofing and anti-detection. Root hiding, SafetyNet bypass, and Play Integrity bypass are intentionally out of scope and delegated to companion modules (Shamiko, PIF, Tricky Store).
+Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, SafetyNet bypass, and Play Integrity bypass are intentionally out of scope and delegated to companion modules (Shamiko, PIF, Tricky Store).
 
 ## Project Goals
 
@@ -78,7 +78,7 @@ PrivacyShield focuses exclusively on spoofing and anti-detection. Root hiding, S
 
 ## Key Stakeholders
 
-- **Developer**: AKIL (com.akil.privacyshield)
+- **Developer**: AstrixForge (com.astrixforge.devicemasker)
 - **License**: GPL-3.0 (Open Source for Educational Purposes)
 - **Target Framework**: LSPosed 1.10.2+ on Magisk 30.6+
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-**PrivacyShield** is an open-source LSPosed module focused on **device identifier spoofing** with a robust **anti-detection layer**. The module is designed to protect user privacy by spoofing device identifiers while preventing apps from detecting hook injection.
+**Device Masker** is an open-source LSPosed module focused on **device identifier spoofing** with a robust **anti-detection layer**. The module is designed to protect user privacy by spoofing device identifiers while preventing apps from detecting hook injection.
 
 ### Core Philosophy
 > **"Do one thing excellently"** - Spoof device identifiers and hide the injection, nothing more.
@@ -30,7 +30,7 @@
 - Kotlin official style guide
 - 4-space indentation
 - 120-character line limit
-- Package names: `com.akil.privacyshield.*`
+- Package names: `com.AstrixForge.Device Masker.*`
 - Use `@Serializable` for data classes that need persistence
 - Use `data class` for immutable state
 - Use `object` for singletons (Hookers, Managers)
@@ -106,5 +106,5 @@
 - [YukiHookAPI Documentation](https://highcapable.github.io/YukiHookAPI/en/)
 - [LSPosed GitHub](https://github.com/LSPosed/LSPosed)
 - [Material 3 Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)
-- [PRD Document](./docs/prd/PrivacyShield_PRD.md)
+- [PRD Document](./docs/prd/Device Masker_PRD.md)
 - [Best Practices](./docs/prd/CodeExamples_BestPractices.md)

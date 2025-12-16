@@ -1,4 +1,4 @@
-# 📚 PrivacyShield - Code Examples & Best Practices
+# 📚 Device Masker - Code Examples & Best Practices
 ## December 2025 | YukiHookAPI + Material 3 Expressive
 
 ---
@@ -27,7 +27,7 @@ object HookEntry : IYukiHookXposedInit {
     
     // ✅ Configure in onInit()
     override fun onInit() = configs {
-        debugLog { tag = "PrivacyShield"; isEnable = BuildConfig.DEBUG }
+        debugLog { tag = "Device Masker"; isEnable = BuildConfig.DEBUG }
         isDebug = BuildConfig.DEBUG
     }
     
@@ -307,7 +307,7 @@ object SpoofDataStore {
 
 ```kotlin
 @Composable
-fun PrivacyShieldTheme(
+fun Device MaskerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
@@ -482,7 +482,7 @@ data class SpoofUiState(
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    YOUR MODULE                           │
-│               (PrivacyShield)                            │
+│               (Device Masker)                            │
 │                                                          │
 │  • Device Spoofing                                       │
 │  • Anti-Hook Detection                                   │

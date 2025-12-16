@@ -20,11 +20,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.akil.privacyshield"
+    namespace = "com.astrixforge.devicemasker"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.akil.privacyshield"
+        applicationId = "com.astrixforge.devicemasker"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

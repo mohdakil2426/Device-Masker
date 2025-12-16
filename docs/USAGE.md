@@ -1,6 +1,6 @@
-# 📖 PrivacyShield Usage Guide
+# 📖 Device Masker Usage Guide
 
-This guide provides a detailed walkthrough of using PrivacyShield to protect your privacy.
+This guide provides a detailed walkthrough of using Device Masker to protect your privacy.
 
 ---
 
@@ -8,7 +8,7 @@ This guide provides a detailed walkthrough of using PrivacyShield to protect you
 
 ### Step 1: Verify Module Status
 
-When you first open PrivacyShield, the **Home** screen shows:
+When you first open Device Masker, the **Home** screen shows:
 
 1. **Module Status** - Should show "ACTIVE" if LSPosed is working
 2. **Protected Apps** - Number of apps with spoofing enabled
@@ -16,7 +16,7 @@ When you first open PrivacyShield, the **Home** screen shows:
 
 > ⚠️ If module shows "INACTIVE", ensure:
 > - LSPosed is installed and working
-> - PrivacyShield is enabled in LSPosed Manager
+> - Device Masker is enabled in LSPosed Manager
 > - Device was rebooted after enabling
 
 ### Step 2: Select Target Apps
@@ -36,7 +36,7 @@ Navigate to **Apps** tab:
 - Any app that tracks you
 
 **Apps to AVOID:**
-- ❌ PrivacyShield itself
+- ❌ Device Masker itself
 - ❌ System Settings
 - ❌ LSPosed Manager
 - ❌ Magisk app

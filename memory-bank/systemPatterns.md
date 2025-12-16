@@ -1,4 +1,4 @@
-# System Patterns: PrivacyShield
+# System Patterns: Device Masker
 
 ## System Architecture
 
@@ -12,7 +12,7 @@
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                            PRIVACYSHIELD MODULE                          │
+│                            Device Masker MODULE                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
@@ -119,7 +119,7 @@ if (packageName in forbiddenProcesses || processName in forbiddenProcesses) {
 **Allowed Class Patterns** (NEVER block in AntiDetectHooker):
 ```kotlin
 val allowedPatterns = listOf(
-    "com.akil.privacyshield",  // Our own module
+    "com.astrixforge.devicemasker",  // Our own module
     "androidx.",               // AndroidX libraries  
     "kotlin.", "kotlinx.",     // Kotlin stdlib
     "java.",                   // Java stdlib

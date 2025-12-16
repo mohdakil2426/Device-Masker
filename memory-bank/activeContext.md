@@ -1,4 +1,4 @@
-# Active Context: PrivacyShield
+# Active Context: Device Masker
 
 ## Current Work Focus
 
@@ -11,7 +11,7 @@
 
 ### What's Been Built
 
-Complete implementation of PrivacyShield LSPosed module with Full UI:
+Complete implementation of Device Masker LSPosed module with Full UI:
 
 1. **Core Infrastructure** - Build config, manifest, hook entry ✅ **DONE**
 2. **Device Spoofing** - 24+ device identifier hooks ✅ **DONE**
@@ -167,16 +167,16 @@ Complete implementation of PrivacyShield LSPosed module with Full UI:
 
 **Log Evidence**:
 ```
-[PrivacyShield][D][android-zygote] PrivacyShield: Starting hooks for package: android
-[PrivacyShield][D][android-zygote] AntiDetectHooker: CRITICAL - Loading anti-detection hooks FIRST
-[PrivacyShield][D][android-zygote] Before Hook Member [ClassLoader.loadClass] done  (×100+ times)
+[Device Masker][D][android-zygote] Device Masker: Starting hooks for package: android
+[Device Masker][D][android-zygote] AntiDetectHooker: CRITICAL - Loading anti-detection hooks FIRST
+[Device Masker][D][android-zygote] Before Hook Member [ClassLoader.loadClass] done  (×100+ times)
 ```
 
 **Solution Applied**:
 1. **HookEntry.kt**: Added `forbiddenProcesses` list to skip `android`, `system_server`, `com.android.systemui`
 2. **HookEntry.kt**: Enhanced self-check to also match `processName.startsWith(selfPackage)`
 3. **AntiDetectHooker.kt**: Added comprehensive `allowedPatterns` in `shouldBlockClass()` to never block:
-   - `com.akil.privacyshield.*`
+   - `com.astrixforge.devicemasker.*`
    - `androidx.*`, `kotlin.*`, `kotlinx.*`
    - `android.*`, `java.*`, `com.google.android.*`
 4. **AntiDetectHooker.kt**: Added same skip logic for system processes
@@ -227,20 +227,20 @@ data class NavItem(val route: String, val label: String, ...)
 ### Files Created in Phase 2
 
 ```
-app/src/main/kotlin/com/akil/privacyshield/data/generators/
+app/src/main/kotlin/com/astrixforge/devicemasker/data/generators/
 ├── IMEIGenerator.kt           ✅ Created (Luhn validation, TAC prefixes)
 ├── SerialGenerator.kt         ✅ Created (Manufacturer-specific formats)
 ├── MACGenerator.kt            ✅ Created (Real OUIs, unicast)
 ├── UUIDGenerator.kt           ✅ Created (Android ID, GAID, GSF, DRM)
 └── FingerprintGenerator.kt    ✅ Created (Device database)
 
-app/src/main/kotlin/com/akil/privacyshield/data/models/
+app/src/main/kotlin/com/astrixforge/devicemasker/data/models/
 ├── SpoofType.kt               ✅ Created (24+ enum values with categories)
 ├── DeviceIdentifier.kt        ✅ Created (Type + value wrapper)
 ├── SpoofProfile.kt            ✅ Created (Named profile with all values)
 └── AppConfig.kt               ✅ Created (Per-app configuration)
 
-app/src/main/kotlin/com/akil/privacyshield/hook/hooker/
+app/src/main/kotlin/com/astrixforge/devicemasker/hook/hooker/
 ├── DeviceHooker.kt            ✅ Created (IMEI, Serial, Android ID)
 ├── NetworkHooker.kt           ✅ Created (MAC, SSID, BSSID, Carrier)
 ├── AdvertisingHooker.kt       ✅ Created (GSF, GAID, Firebase, DRM)
@@ -291,7 +291,7 @@ app/src/main/kotlin/com/akil/privacyshield/hook/hooker/
 
 ### Code Style
 
-- **Package**: `com.akil.privacyshield`
+- **Package**: `com.astrixforge.devicemasker`
 - **Source Set**: `kotlin/` (not `java/`)
 - **Naming**: `*Hooker.kt`, `*Generator.kt`, `*Screen.kt`
 - **Theme**: AMOLED black, Teal/Cyan primary

@@ -1,4 +1,4 @@
-# Technical Context: PrivacyShield
+# Technical Context: Device Masker
 
 ## Technology Stack
 
@@ -59,11 +59,11 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/akil/privacyshield.git
-cd privacyshield
+git clone https://github.com/astrixforge/devicemasker.git
+cd Device Masker
 
 # Open in Android Studio
-# File → Open → select privacyshield directory
+# File → Open → select Device Masker directory
 
 # Sync Gradle (automatic or manual)
 # Build → Make Project
@@ -215,7 +215,7 @@ dependencyResolutionManagement {
 @InjectYukiHookWithXposed
 object HookEntry : IYukiHookXposedInit {
     override fun onInit() = configs {
-        debugLog { tag = "PrivacyShield"; isEnable = BuildConfig.DEBUG }
+        debugLog { tag = "Device Masker"; isEnable = BuildConfig.DEBUG }
     }
     
     override fun onHook() = encase {
@@ -292,17 +292,17 @@ object SpoofDataStore {
 
 ### No External API Calls
 
-PrivacyShield operates entirely offline. No network requests are made to external services. All data stays on device.
+Device Masker operates entirely offline. No network requests are made to external services. All data stays on device.
 
 ## File Structure
 
 ```
-PrivacyShield/
+Device Masker/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── kotlin/com/akil/privacyshield/
-│   │   │   │   ├── PrivacyShieldApp.kt          # Application class
+│   │   │   ├── kotlin/com/astrixforge/devicemasker/
+│   │   │   │   ├── Device MaskerApp.kt          # Application class
 │   │   │   │   ├── hook/                        # YukiHookAPI layer
 │   │   │   │   │   ├── HookEntry.kt
 │   │   │   │   │   └── hooker/
