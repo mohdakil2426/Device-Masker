@@ -72,9 +72,10 @@ class MainActivity : ComponentActivity() {
             val dynamicColors by dataStore.dynamicColors.collectAsState(initial = true)
             val debugLogging by dataStore.debugLogging.collectAsState(initial = false)
 
-            // Determine if dark theme based on theme mode
+            // Determine actual dark state for edge-to-edge styling
+            // isSystemInDarkTheme() is evaluated here in composition context
             val isSystemDark = isSystemInDarkTheme()
-            val darkTheme =
+            val isDarkModeActive =
                     when (themeMode) {
                         ThemeMode.SYSTEM -> isSystemDark
                         ThemeMode.LIGHT -> false
@@ -83,10 +84,10 @@ class MainActivity : ComponentActivity() {
 
             // Update edge-to-edge styling when theme changes
             val activity = this@MainActivity
-            DisposableEffect(darkTheme) {
+            DisposableEffect(isDarkModeActive) {
                 activity.enableEdgeToEdge(
                         statusBarStyle =
-                                if (darkTheme) {
+                                if (isDarkModeActive) {
                                     SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                                 } else {
                                     SystemBarStyle.light(
@@ -95,7 +96,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                         navigationBarStyle =
-                                if (darkTheme) {
+                                if (isDarkModeActive) {
                                     SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                                 } else {
                                     SystemBarStyle.light(
@@ -107,8 +108,9 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
 
+            // Pass ThemeMode directly - theme handles system detection internally
             DeviceMaskerTheme(
-                    darkTheme = darkTheme,
+                    themeMode = themeMode,
                     amoledBlack = amoledMode,
                     dynamicColor = dynamicColors,
             ) {
