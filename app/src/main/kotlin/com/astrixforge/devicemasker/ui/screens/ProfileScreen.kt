@@ -61,7 +61,6 @@ fun ProfileScreen(
         modifier: Modifier = Modifier,
 ) {
     val profiles by repository.getAllProfiles().collectAsState(initial = emptyList())
-    val activeProfileId by repository.getActiveProfileId().collectAsState(initial = null)
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf<SpoofProfile?>(null) }
@@ -70,12 +69,13 @@ fun ProfileScreen(
 
     ProfileScreenContent(
             profiles = profiles,
-            activeProfileId = activeProfileId,
             onProfileClick = onProfileClick,
             onCreateProfile = { showCreateDialog = true },
             onEditProfile = { showEditDialog = it },
             onDeleteProfile = { showDeleteDialog = it },
-            onSetDefault = { profile -> repository.setDefaultProfile(profile.id) },
+            onSetDefault = { profile ->
+                scope.launch { repository.setDefaultProfile(profile.id) }
+            },
             onEnableChange = { profile, enabled ->
                 scope.launch { repository.setProfileEnabled(profile.id, enabled) }
             },
@@ -87,8 +87,10 @@ fun ProfileScreen(
         CreateProfileDialog(
                 onDismiss = { showCreateDialog = false },
                 onCreate = { name, description ->
-                    repository.createProfile(name, description)
-                    showCreateDialog = false
+                    scope.launch {
+                        repository.createProfile(name, description)
+                        showCreateDialog = false
+                    }
                 },
         )
     }
@@ -99,14 +101,16 @@ fun ProfileScreen(
                 profile = profile,
                 onDismiss = { showEditDialog = null },
                 onSave = { name, description ->
-                    repository.updateProfile(
-                            profile.copy(
-                                    name = name,
-                                    description = description,
-                                    updatedAt = System.currentTimeMillis(),
-                            )
-                    )
-                    showEditDialog = null
+                    scope.launch {
+                        repository.updateProfile(
+                                profile.copy(
+                                        name = name,
+                                        description = description,
+                                        updatedAt = System.currentTimeMillis(),
+                                )
+                        )
+                        showEditDialog = null
+                    }
                 },
         )
     }
@@ -117,8 +121,10 @@ fun ProfileScreen(
                 profile = profile,
                 onDismiss = { showDeleteDialog = null },
                 onConfirm = {
-                    repository.deleteProfile(profile.id)
-                    showDeleteDialog = null
+                    scope.launch {
+                        repository.deleteProfile(profile.id)
+                        showDeleteDialog = null
+                    }
                 },
         )
     }
@@ -128,14 +134,13 @@ fun ProfileScreen(
 @Composable
 fun ProfileScreenContent(
         profiles: List<SpoofProfile>,
-        activeProfileId: String?,
         onProfileClick: (SpoofProfile) -> Unit,
         onCreateProfile: () -> Unit,
         onEditProfile: (SpoofProfile) -> Unit,
         onDeleteProfile: (SpoofProfile) -> Unit,
         onSetDefault: (SpoofProfile) -> Unit,
-        onEnableChange: (SpoofProfile, Boolean) -> Unit = { _, _ -> },
         modifier: Modifier = Modifier,
+        onEnableChange: (SpoofProfile, Boolean) -> Unit = { _, _ -> },
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -349,7 +354,6 @@ private fun ProfileScreenContentPreview() {
                                 SpoofProfile.createNew("Samsung Galaxy S24"),
                                 SpoofProfile.createNew("Pixel 9 Pro"),
                         ),
-                activeProfileId = null,
                 onProfileClick = {},
                 onCreateProfile = {},
                 onEditProfile = {},
@@ -365,7 +369,6 @@ private fun ProfileScreenEmptyPreview() {
     DeviceMaskerTheme {
         ProfileScreenContent(
                 profiles = emptyList(),
-                activeProfileId = null,
                 onProfileClick = {},
                 onCreateProfile = {},
                 onEditProfile = {},

@@ -527,6 +527,7 @@ private fun runDiagnostics(
             type = SpoofType.ANDROID_ID,
             realValue =
                 try {
+                    @Suppress("HardwareIds")
                     Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
                 } catch (_: Exception) {
                     null

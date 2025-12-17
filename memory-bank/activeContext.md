@@ -19,39 +19,14 @@
 - ✅ Phase 7: Hook Layer Updates (all hookers refactored)
 - ✅ Phase 8: Testing & Validation (all tests passed)
 - ✅ Phase 9: Cleanup (Spotless formatting configured)
+- ✅ Phase 10: Code Quality Refactor (Modern Hooks & UI)
 
-### Archived Changes
-
-| Change ID | Status | Archived Date |
-|-----------|--------|---------------|
-| `implement-privacy-shield-module` | Archived | Dec 16, 2025 |
-| `refactor-profile-workflow` | Archived | Dec 17, 2025 |
-| `refactor-independent-profiles` | Ready to Archive | Dec 17, 2025 |
-
-## Recent Changes
-
-### December 17, 2025 (Independent Profiles Refactor)
-
-| Time | Change | Status |
-|------|--------|--------|
-| 02:55 | HomeScreen profile dropdown selector | ✅ |
-| 02:50 | Real app icons in ProfileDetailScreen | ✅ |
-| 02:50 | Filter system apps and own app | ✅ |
-| 02:50 | Session-based collapse state for spoof cards | ✅ |
-| 02:50 | 12-character limit on profile names | ✅ |
-| 02:45 | Removed GlobalSpoofConfig from ProfileDetailScreen | ✅ |
-| 02:40 | Refactored all 5 hookers - removed isTypeEnabledGlobally | ✅ |
-| 02:35 | Updated MigrationManager - removed GlobalSpoofConfig refs | ✅ |
-| 02:30 | Build verification - SUCCESS | ✅ |
-
-### Key Accomplishments Today
-1. **Removed GlobalSpoofConfig entirely** - Profiles are now fully independent
-2. **Updated all 5 hookers** - Removed `isTypeEnabledGlobally` checks
-3. **HomeScreen profile dropdown** - Select active profile from dropdown
-4. **Real app icons** - Using PackageManager to load actual app icons
-5. **System app filtering** - Excludes system apps and own app by default
-6. **12-char profile name limit** - With character counter in dialog
-7. **Session-based UI state** - Spoof cards default to collapsed
+## Recent Achievements
+- **Standardized Hookers**: Refactored all 5 hooker classes to use a non-nullable `getSpoofValueOrGenerate` pattern. This eliminated redundant null checks and simplified the logic for providing fallback values when spoofing is disabled or unavailable.
+- **Modernized String Literals**: Adopted multi-dollar string literals (`$$"outer$inner"`) for class names containing inner classes, improving readability and adhering to modern Kotlin standards.
+- **UI Code Quality**: Reordered parameters in all Composable screens (`HomeScreen`, `ProfileScreen`, `SettingsScreen`, `DiagnosticsScreen`, etc.) to ensure the `modifier` parameter is consistently the first optional parameter.
+- **KTX Adherence**: Updated `MigrationManager` to use the idiomatic KTX `SharedPreferences.edit` extension, removing boilerplate and improving maintainability.
+- **Lint & Privacy**: Suppressed `HardwareIds` warnings for `ANDROID_ID` usage in the Diagnostics screen, as spoofing these IDs is the core functionality of the app.
 
 ## Architecture Overview (Post-Refactor)
 
@@ -81,22 +56,16 @@ Bottom Navigation (3 tabs):
 └── Settings
 ```
 
-### HomeScreen Profile Dropdown
-- Shows all profiles with selection state
-- Updates protected apps count based on selected profile
-- "Configure" navigates to selected profile's detail screen
-- "Regenerate All" regenerates values for selected profile
-
-### Hooker Pattern (SIMPLIFIED)
+### Hooker Pattern (Refactored)
 ```kotlin
 private fun getSpoofValueOrGenerate(
     context: Context?,
     type: SpoofType,
     generator: () -> String
-): String? {
+): String { // Now returns non-nullable String
     val provider = getProvider(context)
     if (provider == null) {
-        return generator() // Fallback
+        return generator()
     }
     
     // getSpoofValue now handles ALL checks:
@@ -107,60 +76,12 @@ private fun getSpoofValueOrGenerate(
 }
 ```
 
-## Files Modified Today
-
-| File | Change |
-|------|--------|
-| `ui/screens/HomeScreen.kt` | Added profile dropdown selector |
-| `ui/screens/ProfileDetailScreen.kt` | Real icons, filtering, collapse state |
-| `ui/screens/ProfileScreen.kt` | 12-char name limit |
-| `hook/hooker/DeviceHooker.kt` | Removed isTypeEnabledGlobally check |
-| `hook/hooker/NetworkHooker.kt` | Removed isTypeEnabledGlobally check |
-| `hook/hooker/SystemHooker.kt` | Removed isTypeEnabledGlobally check |
-| `hook/hooker/LocationHooker.kt` | Removed isTypeEnabledGlobally check |
-| `hook/hooker/AdvertisingHooker.kt` | Removed isTypeEnabledGlobally check |
-| `data/MigrationManager.kt` | Removed GlobalSpoofConfig references |
-
-## Next Steps
-
-### Device Testing Required
-- Test profile enable/disable switch works
-- Test disabled profiles don't hook apps
-- Test app filtering (system apps, own app)
-- Test real app icons display correctly
-- Test HomeScreen profile dropdown
-- Test spoof card collapse state persists
-
-### Cleanup Tasks
-- Remove unused imports
-- Run code formatting
-- Final build verification on device
-
 ## Important Patterns & Preferences
 
-### Profile-Based Spoofing Pattern (NEW)
-```kotlin
-// In HookDataProvider.getSpoofValue()
-fun getSpoofValue(type: SpoofType): String? {
-    val profile = _profile ?: return null
-    
-    // Master switch check
-    if (!profile.isEnabled) {
-        YLog.debug("Profile '${profile.name}' is disabled")
-        return null
-    }
-    
-    // Type-level check
-    if (!profile.isTypeEnabled(type)) {
-        YLog.debug("$type is disabled in profile '${profile.name}'")
-        return null
-    }
-    
-    return profile.getValue(type)
-}
-```
+### Profile-Based Spoofing
+Profiles are now independent. The old pattern with `isTypeEnabledGlobally()` has been completely removed.
+Each profile controls its own spoofing behavior entirely.
 
-### No More Global Config!
-The old pattern with `isTypeEnabledGlobally()` has been completely removed.
-Profiles are now independent - each controls its own spoofing behavior.
-
+### Modifier Order Convention
+Always place the `modifier` parameter as the first optional parameter in Composables:
+`fun MyComponent(required: String, modifier: Modifier = Modifier, optional: Int = 0)`

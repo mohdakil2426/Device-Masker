@@ -60,14 +60,14 @@ import java.util.Locale
 @Composable
 fun ProfileCard(
         profile: SpoofProfile,
-        isEnabled: Boolean = profile.isEnabled,
-        appCount: Int = profile.assignedAppCount(),
         onClick: () -> Unit,
         onEdit: () -> Unit,
         onDelete: () -> Unit,
         onSetDefault: () -> Unit,
-        onEnableChange: (Boolean) -> Unit = {},
         modifier: Modifier = Modifier,
+        isEnabled: Boolean = profile.isEnabled,
+        appCount: Int = profile.assignedAppCount(),
+        onEnableChange: (Boolean) -> Unit = {},
 ) {
     val contentAlpha = if (isEnabled) 1f else 0.5f
 

@@ -88,6 +88,7 @@ enum class ThemeMode(val displayName: String) {
  */
 @Composable
 fun SettingsScreen(
+        modifier: Modifier = Modifier,
         themeMode: ThemeMode = ThemeMode.SYSTEM,
         amoledDarkMode: Boolean = true,
         dynamicColors: Boolean = true,
@@ -97,32 +98,15 @@ fun SettingsScreen(
         onDynamicColorChange: (Boolean) -> Unit = {},
         onDebugLogChange: (Boolean) -> Unit = {},
         onNavigateToDiagnostics: () -> Unit = {},
-        modifier: Modifier = Modifier,
 ) {
-        // Use effect to sync local state with prop changes from upstream
-        var currentThemeMode by remember { mutableStateOf(themeMode) }
-        var currentAmoledDarkMode by remember { mutableStateOf(amoledDarkMode) }
-        var currentDynamicColors by remember { mutableStateOf(dynamicColors) }
-        var currentDebugLogging by remember { mutableStateOf(debugLogging) }
-
-        // Sync local state when parameters change (e.g., from DataStore updates)
-        LaunchedEffect(themeMode) { currentThemeMode = themeMode }
-        LaunchedEffect(amoledDarkMode) { currentAmoledDarkMode = amoledDarkMode }
-        LaunchedEffect(dynamicColors) { currentDynamicColors = dynamicColors }
-        LaunchedEffect(debugLogging) { currentDebugLogging = debugLogging }
-
         // Dialog state for theme mode selection
         var showThemeModeDialog by remember { mutableStateOf(false) }
 
         // Get actual system dark mode state
         val isSystemDark = isSystemInDarkTheme()
 
-        // Determine if dark mode is ACTUALLY active (for showing AMOLED option)
-        // - If SYSTEM: follow the system setting
-        // - If DARK: always dark
-        // - If LIGHT: always light
         val isDarkModeActive =
-                when (currentThemeMode) {
+                when (themeMode) {
                         ThemeMode.SYSTEM -> isSystemDark
                         ThemeMode.DARK -> true
                         ThemeMode.LIGHT -> false
@@ -150,13 +134,14 @@ fun SettingsScreen(
                                 // Theme Mode (opens dialog)
                                 SettingsClickableItemWithValue(
                                         icon =
-                                                when (currentThemeMode) {
+                                                when (themeMode) {
                                                         ThemeMode.DARK -> Icons.Outlined.DarkMode
                                                         ThemeMode.LIGHT -> Icons.Outlined.LightMode
                                                         ThemeMode.SYSTEM -> Icons.Outlined.Contrast
+                                                        else -> Icons.Outlined.Contrast
                                                 },
                                         title = "Theme",
-                                        description = currentThemeMode.displayName,
+                                        description = themeMode.displayName,
                                         onClick = { showThemeModeDialog = true },
                                 )
 
@@ -173,11 +158,8 @@ fun SettingsScreen(
                                                         title = "AMOLED Dark Mode",
                                                         description =
                                                                 "Pure black background for OLED displays",
-                                                        checked = currentAmoledDarkMode,
-                                                        onCheckedChange = {
-                                                                currentAmoledDarkMode = it
-                                                                onAmoledDarkModeChange(it)
-                                                        },
+                                                        checked = amoledDarkMode,
+                                                        onCheckedChange = onAmoledDarkModeChange,
                                                 )
                                         }
                                 }
@@ -189,11 +171,8 @@ fun SettingsScreen(
                                                 title = "Dynamic Colors",
                                                 description =
                                                         "Use Material You colors from your wallpaper",
-                                                checked = currentDynamicColors,
-                                                onCheckedChange = {
-                                                        currentDynamicColors = it
-                                                        onDynamicColorChange(it)
-                                                },
+                                                checked = dynamicColors,
+                                                onCheckedChange = onDynamicColorChange,
                                         )
                                 }
                         }
@@ -206,11 +185,8 @@ fun SettingsScreen(
                                         icon = Icons.Outlined.BugReport,
                                         title = "Debug Logging",
                                         description = "Enable verbose logging for troubleshooting",
-                                        checked = currentDebugLogging,
-                                        onCheckedChange = {
-                                                currentDebugLogging = it
-                                                onDebugLogChange(it)
-                                        },
+                                        checked = debugLogging,
+                                        onCheckedChange = onDebugLogChange,
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -261,9 +237,8 @@ fun SettingsScreen(
         // Theme Mode Selection Dialog
         if (showThemeModeDialog) {
                 ThemeModeDialog(
-                        currentMode = currentThemeMode,
+                        currentMode = themeMode,
                         onModeSelected = { mode ->
-                                currentThemeMode = mode
                                 onThemeModeChange(mode)
                                 showThemeModeDialog = false
                         },

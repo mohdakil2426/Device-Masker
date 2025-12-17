@@ -97,6 +97,7 @@ import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import kotlinx.coroutines.launch
+import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 
 /**
  * Profile Detail Screen with tabbed interface.
@@ -214,15 +215,7 @@ fun ProfileDetailScreen(
                                                                                 val identifier =
                                                                                         p.getIdentifier(
                                                                                                 type
-                                                                                        )
-                                                                                                ?: com.astrixforge
-                                                                                                        .devicemasker
-                                                                                                        .data
-                                                                                                        .models
-                                                                                                        .DeviceIdentifier
-                                                                                                        .createDefault(
-                                                                                                                type
-                                                                                                        )
+                                                                                        ) ?: DeviceIdentifier.createDefault(type)
                                                                                 val updated =
                                                                                         p.withIdentifier(
                                                                                                 identifier
@@ -329,6 +322,7 @@ private fun ProfileSpoofContent(
                                         onCopy = { value ->
                                                 clipboardManager.setText(AnnotatedString(value))
                                         },
+                                        modifier = Modifier.fillMaxWidth()
                                 )
                         }
                 }
@@ -345,6 +339,7 @@ private fun ProfileCategorySection(
         onRegenerate: (SpoofType) -> Unit,
         onToggle: (SpoofType, Boolean) -> Unit,
         onCopy: (String) -> Unit,
+        modifier: Modifier = Modifier,
 ) {
         var isExpanded by remember { mutableStateOf(false) }
         val rotationAngle by
@@ -375,7 +370,7 @@ private fun ProfileCategorySection(
         val typesInCategory = SpoofType.byCategory(category)
 
         ElevatedCard(
-                modifier = Modifier.fillMaxWidth().animateContentSize(animationSpec = spring()),
+                modifier = modifier.animateContentSize(animationSpec = spring()),
                 colors =
                         CardDefaults.elevatedCardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -459,6 +454,7 @@ private fun ProfileCategorySection(
                                                         },
                                                         onRegenerate = { onRegenerate(type) },
                                                         onCopy = { onCopy(value) },
+                                                        modifier = Modifier.fillMaxWidth()
                                                 )
                                         }
                                 }
@@ -476,9 +472,10 @@ private fun ProfileSpoofItem(
         onToggle: (Boolean) -> Unit,
         onRegenerate: () -> Unit,
         onCopy: () -> Unit,
+        modifier: Modifier = Modifier,
 ) {
         Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = modifier,
                 colors =
                         CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = MaterialTheme.shapes.medium,
@@ -707,6 +704,7 @@ private fun ProfileAppsContent(
                                                 assignedToOtherProfileName =
                                                         assignedToOtherProfile?.name,
                                                 onToggle = { checked -> onAppToggle(app, checked) },
+                                                modifier = Modifier.fillMaxWidth()
                                         )
                                 }
 
@@ -723,6 +721,7 @@ private fun AppListItem(
         isAssigned: Boolean,
         assignedToOtherProfileName: String?,
         onToggle: (Boolean) -> Unit,
+        modifier: Modifier = Modifier,
 ) {
         val context = LocalContext.current
         val isDisabled = assignedToOtherProfileName != null
@@ -738,7 +737,7 @@ private fun AppListItem(
                 }
 
         Card(
-                modifier = Modifier.fillMaxWidth().alpha(if (isDisabled) 0.6f else 1f),
+                modifier = modifier.alpha(if (isDisabled) 0.6f else 1f),
                 colors =
                         CardDefaults.cardColors(
                                 containerColor =

@@ -87,8 +87,8 @@ fun HomeScreen(
     repository: SpoofRepository,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
-    onNavigateToProfile: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onNavigateToProfile: ((String) -> Unit)? = null,
 ) {
     val profiles by repository.profiles.collectAsState(initial = emptyList())
     val dashboardState by
@@ -179,6 +179,7 @@ fun HomeScreenContent(
             isXposedActive = isXposedActive,
             isModuleEnabled = isModuleEnabled,
             onModuleEnabledChange = onModuleEnabledChange,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -210,6 +211,7 @@ fun HomeScreenContent(
             selectedProfile = selectedProfile,
             onProfileSelected = onProfileSelected,
             onClick = onNavigateToSpoof,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -218,6 +220,7 @@ fun HomeScreenContent(
         QuickActionsSection(
             onNavigateToSpoof = onNavigateToSpoof,
             onRegenerateAll = onRegenerateAll,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -230,6 +233,7 @@ private fun StatusCard(
     isXposedActive: Boolean,
     isModuleEnabled: Boolean,
     onModuleEnabledChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val statusColor by
         animateColorAsState(
@@ -246,7 +250,7 @@ private fun StatusCard(
         )
 
     Card(
-        modifier = Modifier.fillMaxWidth().scale(scale),
+        modifier = modifier.scale(scale),
         colors =
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = MaterialTheme.shapes.extraLarge,
@@ -416,6 +420,7 @@ private fun ProfileSelectorCard(
     selectedProfile: SpoofProfile?,
     onProfileSelected: (SpoofProfile) -> Unit,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
     val rotationAngle by
@@ -426,7 +431,7 @@ private fun ProfileSelectorCard(
         )
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors =
             CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -567,8 +572,12 @@ private fun ProfileSelectorCard(
 
 /** Quick actions section. */
 @Composable
-private fun QuickActionsSection(onNavigateToSpoof: () -> Unit, onRegenerateAll: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun QuickActionsSection(
+    onNavigateToSpoof: () -> Unit,
+    onRegenerateAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Quick Actions",
             style = MaterialTheme.typography.titleMedium,
