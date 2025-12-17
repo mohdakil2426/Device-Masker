@@ -528,7 +528,7 @@ private fun runDiagnostics(
             realValue =
                 try {
                     Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 },
             spoofedValue = profile?.getValue(SpoofType.ANDROID_ID),
@@ -569,7 +569,7 @@ private fun runAntiDetectionTests(): List<AntiDetectionTest> {
                 try {
                     val stackTrace = Thread.currentThread().stackTrace
                     stackTrace.none { it.className.contains("xposed", ignoreCase = true) }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     false
                 },
         ),
@@ -580,9 +580,9 @@ private fun runAntiDetectionTests(): List<AntiDetectionTest> {
                 try {
                     Class.forName("de.robv.android.xposed.XposedBridge")
                     false
-                } catch (e: ClassNotFoundException) {
+                } catch (_: ClassNotFoundException) {
                     true
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     false
                 },
         ),

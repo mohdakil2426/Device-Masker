@@ -48,7 +48,6 @@ import java.util.Locale
  * Highlights the default profile with a star indicator.
  *
  * @param profile The profile to display
- * @param isActive Whether this profile is currently active
  * @param isEnabled Whether spoofing is enabled for this profile
  * @param appCount Number of apps assigned to this profile
  * @param onClick Callback when the card is clicked
@@ -60,80 +59,55 @@ import java.util.Locale
  */
 @Composable
 fun ProfileCard(
-    profile: SpoofProfile,
-    isActive: Boolean,
-    isEnabled: Boolean = profile.isEnabled,
-    appCount: Int = profile.assignedAppCount(),
-    onClick: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onSetDefault: () -> Unit,
-    onEnableChange: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier,
+        profile: SpoofProfile,
+        isEnabled: Boolean = profile.isEnabled,
+        appCount: Int = profile.assignedAppCount(),
+        onClick: () -> Unit,
+        onEdit: () -> Unit,
+        onDelete: () -> Unit,
+        onSetDefault: () -> Unit,
+        onEnableChange: (Boolean) -> Unit = {},
+        modifier: Modifier = Modifier,
 ) {
     val contentAlpha = if (isEnabled) 1f else 0.5f
 
     ElevatedCard(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors =
-            CardDefaults.elevatedCardColors(
-                containerColor =
-                    if (isActive) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    }
-            ),
-        shape = MaterialTheme.shapes.large,
+            modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+            colors =
+                    CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+            shape = MaterialTheme.shapes.large,
     ) {
         Column(modifier = Modifier.padding(16.dp).alpha(contentAlpha)) {
-            // Header Row with Switch
+            // Profile Info Row with Switch
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Enable/Disable Switch
-                Switch(
-                    checked = isEnabled,
-                    onCheckedChange = onEnableChange,
-                    colors =
-                        SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Profile Info Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
                 ) {
                     // Profile Icon
                     Box(
-                        modifier =
-                            Modifier.size(40.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    shape = CircleShape,
-                                ),
-                        contentAlignment = Alignment.Center,
+                            modifier =
+                                    Modifier.size(40.dp)
+                                            .background(
+                                                    color =
+                                                            MaterialTheme.colorScheme.primary.copy(
+                                                                    alpha = 0.15f
+                                                            ),
+                                                    shape = CircleShape,
+                                            ),
+                            contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp),
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
                         )
                     }
 
@@ -142,11 +116,11 @@ fun ProfileCard(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = profile.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                    text = profile.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                             )
 
                             if (profile.isDefault) {
@@ -157,55 +131,54 @@ fun ProfileCard(
 
                         if (profile.description.isNotBlank()) {
                             Text(
-                                text = profile.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                    text = profile.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
                 }
 
-                // Active indicator
-                if (isActive) {
-                    Box(
-                        modifier =
-                            Modifier.size(24.dp)
-                                .background(color = StatusActive, shape = CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Active",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
+                // Enable/Disable Switch
+                Switch(
+                        checked = isEnabled,
+                        onCheckedChange = onEnableChange,
+                        colors =
+                                SwitchDefaults.colors(
+                                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                        checkedTrackColor =
+                                                MaterialTheme.colorScheme.primaryContainer,
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                        uncheckedTrackColor =
+                                                MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             // Stats Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
                     Text(
-                        text =
-                            if (appCount > 0) "$appCount app${if (appCount != 1) "s" else ""}"
-                            else "No apps",
-                        style = MaterialTheme.typography.bodySmall,
-                        color =
-                            if (appCount > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            text =
+                                    if (appCount > 0)
+                                            "$appCount app${if (appCount != 1) "s" else ""}"
+                                    else "No apps",
+                            style = MaterialTheme.typography.bodySmall,
+                            color =
+                                    if (appCount > 0) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "Created ${formatDate(profile.createdAt)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            text = "Created ${formatDate(profile.createdAt)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
 
@@ -214,30 +187,30 @@ fun ProfileCard(
                     if (!profile.isDefault) {
                         IconButton(onClick = onSetDefault, modifier = Modifier.size(36.dp)) {
                             Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Set as Default",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Set as Default",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
                             )
                         }
                     }
 
                     IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
                         Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
                         )
                     }
 
                     if (!profile.isDefault) {
                         IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                             Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp),
                             )
                         }
                     }
@@ -251,18 +224,17 @@ fun ProfileCard(
 @Composable
 private fun DefaultBadge(modifier: Modifier = Modifier) {
     Box(
-        modifier =
-            modifier
-                .background(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = MaterialTheme.shapes.small,
-                )
-                .padding(horizontal = 6.dp, vertical = 2.dp)
+            modifier =
+                    modifier.background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = MaterialTheme.shapes.small,
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = "Default",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onPrimary,
+                text = "Default",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
@@ -270,52 +242,54 @@ private fun DefaultBadge(modifier: Modifier = Modifier) {
 /** Compact profile card for selection lists. */
 @Composable
 fun CompactProfileCard(
-    profile: SpoofProfile,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+        profile: SpoofProfile,
+        isSelected: Boolean,
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier,
 ) {
     ElevatedCard(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors =
-            CardDefaults.elevatedCardColors(
-                containerColor =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    }
-            ),
-        shape = MaterialTheme.shapes.medium,
+            modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+            colors =
+                    CardDefaults.elevatedCardColors(
+                            containerColor =
+                                    if (isSelected) {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(
+                                                alpha = 0.3f
+                                        )
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    }
+                    ),
+            shape = MaterialTheme.shapes.medium,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                modifier = Modifier.size(24.dp),
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                    modifier = Modifier.size(24.dp),
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = profile.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                        text = profile.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = profile.summary(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = profile.summary(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -326,10 +300,10 @@ fun CompactProfileCard(
             if (isSelected) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
-                    tint = StatusActive,
-                    modifier = Modifier.size(20.dp),
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = StatusActive,
+                        modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -351,12 +325,11 @@ private fun formatDate(timestamp: Long): String {
 private fun ProfileCardDefaultPreview() {
     DeviceMaskerTheme {
         ProfileCard(
-            profile = SpoofProfile.createDefaultProfile(),
-            isActive = true,
-            onClick = {},
-            onEdit = {},
-            onDelete = {},
-            onSetDefault = {},
+                profile = SpoofProfile.createDefaultProfile(),
+                onClick = {},
+                onEdit = {},
+                onDelete = {},
+                onSetDefault = {},
         )
     }
 }
@@ -366,12 +339,11 @@ private fun ProfileCardDefaultPreview() {
 private fun ProfileCardCustomPreview() {
     DeviceMaskerTheme {
         ProfileCard(
-            profile = SpoofProfile.createNew("Samsung Galaxy S24"),
-            isActive = false,
-            onClick = {},
-            onEdit = {},
-            onDelete = {},
-            onSetDefault = {},
+                profile = SpoofProfile.createNew("Samsung Galaxy S24"),
+                onClick = {},
+                onEdit = {},
+                onDelete = {},
+                onSetDefault = {},
         )
     }
 }
@@ -381,9 +353,9 @@ private fun ProfileCardCustomPreview() {
 private fun CompactProfileCardPreview() {
     DeviceMaskerTheme {
         CompactProfileCard(
-            profile = SpoofProfile.createDefaultProfile(),
-            isSelected = true,
-            onClick = {},
+                profile = SpoofProfile.createDefaultProfile(),
+                isSelected = true,
+                onClick = {},
         )
     }
 }

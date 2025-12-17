@@ -56,9 +56,9 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun ProfileScreen(
-    repository: SpoofRepository,
-    onProfileClick: (SpoofProfile) -> Unit,
-    modifier: Modifier = Modifier,
+        repository: SpoofRepository,
+        onProfileClick: (SpoofProfile) -> Unit,
+        modifier: Modifier = Modifier,
 ) {
     val profiles by repository.getAllProfiles().collectAsState(initial = emptyList())
     val activeProfileId by repository.getActiveProfileId().collectAsState(initial = null)
@@ -69,57 +69,57 @@ fun ProfileScreen(
     val scope = rememberCoroutineScope()
 
     ProfileScreenContent(
-        profiles = profiles,
-        activeProfileId = activeProfileId,
-        onProfileClick = onProfileClick,
-        onCreateProfile = { showCreateDialog = true },
-        onEditProfile = { showEditDialog = it },
-        onDeleteProfile = { showDeleteDialog = it },
-        onSetDefault = { profile -> repository.setDefaultProfile(profile.id) },
-        onEnableChange = { profile, enabled ->
-            scope.launch { repository.setProfileEnabled(profile.id, enabled) }
-        },
-        modifier = modifier,
+            profiles = profiles,
+            activeProfileId = activeProfileId,
+            onProfileClick = onProfileClick,
+            onCreateProfile = { showCreateDialog = true },
+            onEditProfile = { showEditDialog = it },
+            onDeleteProfile = { showDeleteDialog = it },
+            onSetDefault = { profile -> repository.setDefaultProfile(profile.id) },
+            onEnableChange = { profile, enabled ->
+                scope.launch { repository.setProfileEnabled(profile.id, enabled) }
+            },
+            modifier = modifier,
     )
 
     // Create Profile Dialog
     if (showCreateDialog) {
         CreateProfileDialog(
-            onDismiss = { showCreateDialog = false },
-            onCreate = { name, description ->
-                repository.createProfile(name, description)
-                showCreateDialog = false
-            },
+                onDismiss = { showCreateDialog = false },
+                onCreate = { name, description ->
+                    repository.createProfile(name, description)
+                    showCreateDialog = false
+                },
         )
     }
 
     // Edit Profile Dialog
     showEditDialog?.let { profile ->
         EditProfileDialog(
-            profile = profile,
-            onDismiss = { showEditDialog = null },
-            onSave = { name, description ->
-                repository.updateProfile(
-                    profile.copy(
-                        name = name,
-                        description = description,
-                        updatedAt = System.currentTimeMillis(),
+                profile = profile,
+                onDismiss = { showEditDialog = null },
+                onSave = { name, description ->
+                    repository.updateProfile(
+                            profile.copy(
+                                    name = name,
+                                    description = description,
+                                    updatedAt = System.currentTimeMillis(),
+                            )
                     )
-                )
-                showEditDialog = null
-            },
+                    showEditDialog = null
+                },
         )
     }
 
     // Delete Confirmation Dialog
     showDeleteDialog?.let { profile ->
         DeleteProfileDialog(
-            profile = profile,
-            onDismiss = { showDeleteDialog = null },
-            onConfirm = {
-                repository.deleteProfile(profile.id)
-                showDeleteDialog = null
-            },
+                profile = profile,
+                onDismiss = { showDeleteDialog = null },
+                onConfirm = {
+                    repository.deleteProfile(profile.id)
+                    showDeleteDialog = null
+                },
         )
     }
 }
@@ -127,30 +127,30 @@ fun ProfileScreen(
 /** Stateless content for ProfileScreen. */
 @Composable
 fun ProfileScreenContent(
-    profiles: List<SpoofProfile>,
-    activeProfileId: String?,
-    onProfileClick: (SpoofProfile) -> Unit,
-    onCreateProfile: () -> Unit,
-    onEditProfile: (SpoofProfile) -> Unit,
-    onDeleteProfile: (SpoofProfile) -> Unit,
-    onSetDefault: (SpoofProfile) -> Unit,
-    onEnableChange: (SpoofProfile, Boolean) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier,
+        profiles: List<SpoofProfile>,
+        activeProfileId: String?,
+        onProfileClick: (SpoofProfile) -> Unit,
+        onCreateProfile: () -> Unit,
+        onEditProfile: (SpoofProfile) -> Unit,
+        onDeleteProfile: (SpoofProfile) -> Unit,
+        onSetDefault: (SpoofProfile) -> Unit,
+        onEnableChange: (SpoofProfile, Boolean) -> Unit = { _, _ -> },
+        modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header - same style as Settings/Apps
             item {
                 Text(
-                    text = "Profiles",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(vertical = 8.dp),
+                        text = "Profiles",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(vertical = 8.dp),
                 )
             }
 
@@ -158,28 +158,30 @@ fun ProfileScreenContent(
                 // Empty State
                 item {
                     Box(
-                        modifier = Modifier.fillMaxWidth().height(300.dp),
-                        contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxWidth().height(300.dp),
+                            contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "No profiles yet",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    text = "No profiles yet",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Tap + to create your first profile",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color =
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    text = "Tap + to create your first profile",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color =
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                    alpha = 0.7f
+                                            ),
                             )
                         }
                     }
@@ -188,14 +190,13 @@ fun ProfileScreenContent(
                 // Profile List
                 items(items = profiles, key = { it.id }) { profile ->
                     ProfileCard(
-                        profile = profile,
-                        isActive = profile.id == activeProfileId,
-                        isEnabled = profile.isEnabled,
-                        onClick = { onProfileClick(profile) },
-                        onEdit = { onEditProfile(profile) },
-                        onDelete = { onDeleteProfile(profile) },
-                        onSetDefault = { onSetDefault(profile) },
-                        onEnableChange = { enabled -> onEnableChange(profile, enabled) },
+                            profile = profile,
+                            isEnabled = profile.isEnabled,
+                            onClick = { onProfileClick(profile) },
+                            onEdit = { onEditProfile(profile) },
+                            onDelete = { onDeleteProfile(profile) },
+                            onSetDefault = { onSetDefault(profile) },
+                            onEnableChange = { enabled -> onEnableChange(profile, enabled) },
                     )
                 }
 
@@ -206,12 +207,12 @@ fun ProfileScreenContent(
 
         // FAB positioned at bottom end
         ExtendedFloatingActionButton(
-            onClick = onCreateProfile,
-            icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
-            text = { Text("New Profile") },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                onClick = onCreateProfile,
+                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+                text = { Text("New Profile") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
         )
     }
 }
@@ -219,87 +220,89 @@ fun ProfileScreenContent(
 /** Dialog for creating a new profile. */
 @Composable
 fun CreateProfileDialog(
-    onDismiss: () -> Unit,
-    onCreate: (name: String, description: String) -> Unit,
+        onDismiss: () -> Unit,
+        onCreate: (name: String, description: String) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     val isValid = name.isNotBlank()
 
     AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
-        title = { Text("Create Profile") },
-        text = {
-            Column {
-                val maxNameLength = 12
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { if (it.length <= maxNameLength) name = it },
-                    label = { Text("Profile Name") },
-                    placeholder = { Text("e.g., Samsung") },
-                    singleLine = true,
-                    supportingText = { Text("${name.length}/$maxNameLength") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
-                    placeholder = { Text("e.g., For banking apps") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onCreate(name.trim(), description.trim()) }, enabled = isValid) {
-                Text("Create")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            onDismissRequest = onDismiss,
+            icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+            title = { Text("Create Profile") },
+            text = {
+                Column {
+                    val maxNameLength = 12
+                    OutlinedTextField(
+                            value = name,
+                            onValueChange = { if (it.length <= maxNameLength) name = it },
+                            label = { Text("Profile Name") },
+                            placeholder = { Text("e.g., Samsung") },
+                            singleLine = true,
+                            supportingText = { Text("${name.length}/$maxNameLength") },
+                            modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Description (optional)") },
+                            placeholder = { Text("e.g., For banking apps") },
+                            modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                        onClick = { onCreate(name.trim(), description.trim()) },
+                        enabled = isValid
+                ) { Text("Create") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 /** Dialog for editing a profile. */
 @Composable
 fun EditProfileDialog(
-    profile: SpoofProfile,
-    onDismiss: () -> Unit,
-    onSave: (name: String, description: String) -> Unit,
+        profile: SpoofProfile,
+        onDismiss: () -> Unit,
+        onSave: (name: String, description: String) -> Unit,
 ) {
     var name by remember { mutableStateOf(profile.name) }
     var description by remember { mutableStateOf(profile.description) }
     val isValid = name.isNotBlank()
 
     AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-        title = { Text("Edit Profile") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Profile Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(name.trim(), description.trim()) }, enabled = isValid) {
-                Text("Save")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            onDismissRequest = onDismiss,
+            icon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+            title = { Text("Edit Profile") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Profile Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Description (optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                        onClick = { onSave(name.trim(), description.trim()) },
+                        enabled = isValid
+                ) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -307,27 +310,27 @@ fun EditProfileDialog(
 @Composable
 fun DeleteProfileDialog(profile: SpoofProfile, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-            )
-        },
-        title = { Text("Delete Profile?") },
-        text = {
-            Text(
-                "Are you sure you want to delete \"${profile.name}\"? " +
-                    "Apps using this profile will switch to the default profile."
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Delete", color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            onDismissRequest = onDismiss,
+            icon = {
+                Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            title = { Text("Delete Profile?") },
+            text = {
+                Text(
+                        "Are you sure you want to delete \"${profile.name}\"? " +
+                                "Apps using this profile will switch to the default profile."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = onConfirm) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
@@ -340,18 +343,18 @@ fun DeleteProfileDialog(profile: SpoofProfile, onDismiss: () -> Unit, onConfirm:
 private fun ProfileScreenContentPreview() {
     DeviceMaskerTheme {
         ProfileScreenContent(
-            profiles =
-                listOf(
-                    SpoofProfile.createDefaultProfile(),
-                    SpoofProfile.createNew("Samsung Galaxy S24"),
-                    SpoofProfile.createNew("Pixel 9 Pro"),
-                ),
-            activeProfileId = null,
-            onProfileClick = {},
-            onCreateProfile = {},
-            onEditProfile = {},
-            onDeleteProfile = {},
-            onSetDefault = {},
+                profiles =
+                        listOf(
+                                SpoofProfile.createDefaultProfile(),
+                                SpoofProfile.createNew("Samsung Galaxy S24"),
+                                SpoofProfile.createNew("Pixel 9 Pro"),
+                        ),
+                activeProfileId = null,
+                onProfileClick = {},
+                onCreateProfile = {},
+                onEditProfile = {},
+                onDeleteProfile = {},
+                onSetDefault = {},
         )
     }
 }
@@ -361,13 +364,13 @@ private fun ProfileScreenContentPreview() {
 private fun ProfileScreenEmptyPreview() {
     DeviceMaskerTheme {
         ProfileScreenContent(
-            profiles = emptyList(),
-            activeProfileId = null,
-            onProfileClick = {},
-            onCreateProfile = {},
-            onEditProfile = {},
-            onDeleteProfile = {},
-            onSetDefault = {},
+                profiles = emptyList(),
+                activeProfileId = null,
+                onProfileClick = {},
+                onCreateProfile = {},
+                onEditProfile = {},
+                onDeleteProfile = {},
+                onSetDefault = {},
         )
     }
 }

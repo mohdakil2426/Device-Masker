@@ -29,12 +29,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,96 +36,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.data.models.InstalledApp
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import kotlinx.coroutines.launch
 
 /** Filter options for the app list. */
 enum class AppFilter {
     ALL,
     ENABLED_ONLY,
-}
-
-/**
- * Screen for selecting apps to enable spoofing.
- *
- * Features:
- * - Searchable app list
- * - Filter by user/system apps
- * - Select all / clear all actions
- * - Shows spoofing status per app
- *
- * @param repository The SpoofRepository for data access
- * @param onAppClick Callback when an app is clicked for details
- * @param modifier Optional modifier
- */
-@Composable
-fun AppSelectionScreen(
-    repository: SpoofRepository,
-    onAppClick: (InstalledApp) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val apps by repository.getInstalledApps().collectAsState(initial = emptyList())
-    val enabledPackages by repository.getEnabledPackages().collectAsState(initial = emptySet())
-    val isLoading = apps.isEmpty()
-    val scope = rememberCoroutineScope()
-
-    var searchQuery by remember { mutableStateOf("") }
-    var activeFilter by remember { mutableStateOf(AppFilter.ALL) }
-
-    // Filter apps: exclude system apps and DeviceMasker, then apply search/filter
-    val filteredApps =
-        remember(apps, searchQuery, activeFilter, enabledPackages) {
-            apps.filter { app ->
-                // Exclude system apps (this module only spoofs user apps)
-                if (app.isSystemApp) return@filter false
-
-                // Exclude DeviceMasker itself
-                if (app.packageName == "com.astrixforge.devicemasker") return@filter false
-
-                val matchesSearch =
-                    if (searchQuery.isBlank()) {
-                        true
-                    } else {
-                        app.label.contains(searchQuery, ignoreCase = true) ||
-                            app.packageName.contains(searchQuery, ignoreCase = true)
-                    }
-
-                val matchesFilter =
-                    when (activeFilter) {
-                        AppFilter.ALL -> true
-                        AppFilter.ENABLED_ONLY -> app.packageName in enabledPackages
-                    }
-
-                matchesSearch && matchesFilter
-            }
-        }
-
-    AppSelectionContent(
-        apps = filteredApps,
-        enabledPackages = enabledPackages,
-        isLoading = isLoading,
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        activeFilter = activeFilter,
-        onFilterChange = { activeFilter = it },
-        onAppSelectionChange = { app, isSelected ->
-            scope.launch { repository.setAppEnabled(app.packageName, isSelected) }
-        },
-        onAppClick = onAppClick,
-        onSelectAll = {
-            scope.launch {
-                filteredApps.forEach { app -> repository.setAppEnabled(app.packageName, true) }
-            }
-        },
-        onClearAll = {
-            scope.launch {
-                filteredApps.forEach { app -> repository.setAppEnabled(app.packageName, false) }
-            }
-        },
-        modifier = modifier,
-    )
 }
 
 /** Stateless content for AppSelectionScreen. */

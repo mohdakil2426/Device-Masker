@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.astrixforge.devicemasker.data.models.SpoofType
+import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -18,7 +19,7 @@ import kotlinx.coroutines.runBlocking
  * inter-process access.
  */
 val Context.spoofDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "spoof_preferences")
+        preferencesDataStore(name = "spoof_preferences")
 
 /**
  * DataStore manager for spoofed values and module configuration.
@@ -67,7 +68,7 @@ class SpoofDataStore(private val context: Context) {
         }
 
         // Theme settings
-        val KEY_DARK_MODE = booleanPreferencesKey("theme_dark_mode")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_AMOLED_MODE = booleanPreferencesKey("theme_amoled_mode")
         val KEY_DYNAMIC_COLORS = booleanPreferencesKey("theme_dynamic_colors")
         val KEY_DEBUG_LOGGING = booleanPreferencesKey("debug_logging")
@@ -82,11 +83,11 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of module enabled state. */
     val moduleEnabled: Flow<Boolean> =
-        dataStore.data.map { prefs -> prefs[KEY_MODULE_ENABLED] ?: true }
+            dataStore.data.map { prefs -> prefs[KEY_MODULE_ENABLED] ?: true }
 
     /** Flow of active profile ID. */
     val activeProfileId: Flow<String?> =
-        dataStore.data.map { prefs -> prefs[KEY_ACTIVE_PROFILE_ID] }
+            dataStore.data.map { prefs -> prefs[KEY_ACTIVE_PROFILE_ID] }
 
     /** Sets the module enabled state. */
     suspend fun setModuleEnabled(enabled: Boolean) {
@@ -108,33 +109,38 @@ class SpoofDataStore(private val context: Context) {
     // THEME SETTINGS
     // ═══════════════════════════════════════════════════════════
 
-    /** Flow of dark mode enabled state. */
-    val darkMode: Flow<Boolean> =
-        dataStore.data.map { prefs ->
-            prefs[KEY_DARK_MODE] ?: true // Default true (dark mode on)
-        }
+    /** Flow of theme mode (SYSTEM, LIGHT, DARK). */
+    val themeMode: Flow<ThemeMode> =
+            dataStore.data.map { prefs ->
+                val modeName = prefs[KEY_THEME_MODE] ?: ThemeMode.SYSTEM.name
+                try {
+                    ThemeMode.valueOf(modeName)
+                } catch (e: IllegalArgumentException) {
+                    ThemeMode.SYSTEM
+                }
+            }
 
     /** Flow of AMOLED mode enabled state. */
     val amoledMode: Flow<Boolean> =
-        dataStore.data.map { prefs ->
-            prefs[KEY_AMOLED_MODE] ?: true // Default true (AMOLED on)
-        }
+            dataStore.data.map { prefs ->
+                prefs[KEY_AMOLED_MODE] ?: true // Default true (AMOLED on)
+            }
 
     /** Flow of dynamic colors enabled state. */
     val dynamicColors: Flow<Boolean> =
-        dataStore.data.map { prefs ->
-            prefs[KEY_DYNAMIC_COLORS] ?: true // Default true (dynamic colors on)
-        }
+            dataStore.data.map { prefs ->
+                prefs[KEY_DYNAMIC_COLORS] ?: true // Default true (dynamic colors on)
+            }
 
     /** Flow of debug logging enabled state. */
     val debugLogging: Flow<Boolean> =
-        dataStore.data.map { prefs ->
-            prefs[KEY_DEBUG_LOGGING] ?: false // Default false
-        }
+            dataStore.data.map { prefs ->
+                prefs[KEY_DEBUG_LOGGING] ?: false // Default false
+            }
 
-    /** Sets dark mode. */
-    suspend fun setDarkMode(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[KEY_DARK_MODE] = enabled }
+    /** Sets theme mode. */
+    suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { prefs -> prefs[KEY_THEME_MODE] = mode.name }
     }
 
     /** Sets AMOLED mode. */
@@ -158,11 +164,11 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of a specific spoof value. */
     fun getSpoofValueFlow(type: SpoofType): Flow<String?> =
-        dataStore.data.map { prefs -> prefs[spoofValueKey(type)] }
+            dataStore.data.map { prefs -> prefs[spoofValueKey(type)] }
 
     /** Flow of whether a spoof type is enabled. */
     fun isSpoofEnabledFlow(type: SpoofType): Flow<Boolean> =
-        dataStore.data.map { prefs -> prefs[spoofEnabledKey(type)] ?: true }
+            dataStore.data.map { prefs -> prefs[spoofEnabledKey(type)] ?: true }
 
     /** Sets a spoof value for a specific type. */
     suspend fun setSpoofValue(type: SpoofType, value: String?) {
@@ -199,13 +205,13 @@ class SpoofDataStore(private val context: Context) {
 
     /** Flow of whether spoofing is enabled for an app. */
     fun isAppEnabledFlow(packageName: String): Flow<Boolean> =
-        dataStore.data.map { prefs ->
-            prefs[appEnabledKey(packageName)] ?: false // Default disabled for safety
-        }
+            dataStore.data.map { prefs ->
+                prefs[appEnabledKey(packageName)] ?: false // Default disabled for safety
+            }
 
     /** Flow of the profile ID assigned to an app. */
     fun getAppProfileIdFlow(packageName: String): Flow<String?> =
-        dataStore.data.map { prefs -> prefs[appProfileKey(packageName)] }
+            dataStore.data.map { prefs -> prefs[appProfileKey(packageName)] }
 
     /** Enables or disables spoofing for an app. */
     suspend fun setAppEnabled(packageName: String, enabled: Boolean) {
