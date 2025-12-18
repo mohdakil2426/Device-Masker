@@ -39,14 +39,6 @@ class AppScopeRepository(private val context: Context) {
             cachedApps ?: emptyList()
         }
 
-    /** Searches installed apps by name or package. */
-    suspend fun searchApps(query: String, includeSystem: Boolean = false): List<InstalledApp> {
-        val lowercaseQuery = query.lowercase()
-        return getInstalledApps(includeSystem).filter { app ->
-            app.label.lowercase().contains(lowercaseQuery) ||
-                app.packageName.lowercase().contains(lowercaseQuery)
-        }
-    }
 
     /** Queries installed apps from PackageManager. */
     private fun queryInstalledApps(includeSystem: Boolean): List<InstalledApp> {
@@ -73,8 +65,4 @@ class AppScopeRepository(private val context: Context) {
             .sortedBy { it.label.lowercase() }
     }
 
-    /** Clears the app cache. */
-    fun clearCache() {
-        cachedApps = null
-    }
 }

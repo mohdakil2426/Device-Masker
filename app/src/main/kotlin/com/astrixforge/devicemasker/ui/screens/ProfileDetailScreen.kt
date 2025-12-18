@@ -36,12 +36,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Refresh
+import androidx.core.graphics.createBitmap
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Devices
@@ -54,6 +55,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
@@ -94,7 +96,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.createBitmap
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.data.models.SpoofCategory
@@ -619,11 +620,11 @@ private fun ProfileAppsContent(
                                 shape = RoundedCornerShape(12.dp),
                         )
 
-                        // Stats
                         Text(
                                 text =
-                                        stringResource(
-                                                id = R.string.profile_detail_apps_assigned_stats,
+                                        pluralStringResource(
+                                                id = R.plurals.profile_detail_apps_assigned_stats,
+                                                count = filteredApps.size,
                                                 filteredApps.size,
                                                 profile?.assignedAppCount() ?: 0
                                         ),

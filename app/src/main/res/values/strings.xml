@@ -1,20 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Device Masker</string>
-    <string name="app_description">Device Spoofing Module with Anti-Detection</string>
     <string name="xposed_description">Device Masker - Comprehensive device spoofing with
         anti-detection</string>
 
     <!-- Module Status -->
     <string name="module_active">Module Active</string>
     <string name="module_inactive">Module Inactive</string>
-    <string name="module_not_activated">Module not activated in LSPosed</string>
-    <string name="protected_apps">Protected apps</string>
 
     <!-- Navigation -->
-    <string name="nav_home">Home</string>
-    <string name="nav_profiles">Profiles</string>
-    <string name="nav_settings">Settings</string>
 
     <!-- Home Screen -->
     <string name="home_module_not_injected">Module Not Injected</string>
@@ -27,10 +21,14 @@
     <string name="home_active_profile_label">Active Profile</string>
     <string name="home_no_profile">No Profile</string>
     <string name="home_profile_disabled_tag">(Disabled)</string>
-    <string name="home_apps_assigned_count">%d apps assigned</string>
-    <string name="home_apps_count">%d apps</string>
-    <string name="home_select_profile">Select Profile</string>
-    <string name="home_view_profile">View Profile</string>
+    <plurals name="home_apps_assigned_count">
+        <item quantity="one">%d app assigned</item>
+        <item quantity="other">%d apps assigned</item>
+    </plurals>
+    <plurals name="home_apps_count">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
     <string name="home_no_profiles_available">No profiles available</string>
     <string name="home_quick_actions">Quick Actions</string>
     <string name="home_action_configure">Configure</string>
@@ -49,13 +47,6 @@
     <string name="profile_delete_warning">This action cannot be undone. All assigned apps will use
         their default settings.</string>
     <string name="profile_import_profiles">Import Profiles</string>
-    <string name="profile_import_hint">Paste JSON content here</string>
-    <string name="profile_import_action">Import</string>
-    <string name="profile_import_success">Profiles imported successfully</string>
-    <string name="profile_import_failure">Failed to import profiles</string>
-    <string name="profile_export_success">Profiles exported to clipboard</string>
-    <string name="profile_default">Default Profile</string>
-    <string name="profile_set_default">Set as default</string>
 
     <!-- Settings Screen -->
     <string name="settings_title">Settings</string>
@@ -80,11 +71,6 @@
 
     <!-- Diagnostics Screen -->
     <string name="diagnostics_title">Diagnostics</string>
-    <string name="diagnostics_hook_status">Hook Status</string>
-    <string name="diagnostics_anti_detection">Anti-Detection</string>
-    <string name="diagnostics_spoofing_test">Spoofing Test</string>
-    <string name="diagnostics_system_info">System Info</string>
-    <string name="diagnostics_refresh">Refresh Diagnostics</string>
     <string name="diagnostics_pull_refresh">Pull down to refresh</string>
     <string name="diagnostics_module_active_desc">Hooks are being applied to target apps</string>
     <string name="diagnostics_module_inactive_desc">Enable module in LSPosed Manager</string>
@@ -94,10 +80,15 @@
     <string name="diagnostics_real_label">Real</string>
     <string name="diagnostics_spoofed_label">Spoofed</string>
     <string name="diagnostics_unknown">Unknown</string>
-    <string name="diagnostics_passed">Passed</string>
-    <string name="diagnostics_failed">Failed</string>
-    <string name="diagnostics_tests_passed">%1$d/%2$d tests passed</string>
-    <string name="diagnostics_items_count">%d items</string>
+    <plurals name="diagnostics_tests_passed">
+        <item quantity="one">%d test passed</item>
+        <item quantity="other">%1$d/%2$d tests passed</item>
+    </plurals>
+    <plurals name="diagnostics_items_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="diagnostics_anti_detection">Anti-Detection</string>
 
     <string name="diagnostics_test_stack_trace">Stack Trace Filtering</string>
     <string name="diagnostics_test_stack_trace_desc">Xposed classes hidden from stack traces</string>
@@ -121,11 +112,18 @@
     <string name="profile_detail_adjust_search">Try adjusting your search or filter</string>
     <string name="profile_detail_assigned_to">Assigned to: %s</string>
     <string name="profile_detail_locked">Assigned to another profile</string>
-    <string name="profile_detail_apps_assigned_stats">%1$d apps • %2$d assigned</string>
+    <plurals name="profile_detail_apps_assigned_stats">
+        <item quantity="one">%1$d app • %2$d assigned</item>
+        <item quantity="other">%1$d apps • %2$d assigned</item>
+    </plurals>
+
+    <plurals name="profile_card_apps_count">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
 
     <!-- Actions -->
     <string name="action_regenerate">Regenerate</string>
-    <string name="action_edit">Edit</string>
     <string name="action_copy">Copy</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
@@ -135,12 +133,7 @@
     <string name="action_collapse">Collapse</string>
 
     <!-- Validation -->
-    <string name="validation_imei_invalid">Invalid IMEI format (15 digits required)</string>
-    <string name="validation_mac_invalid">Invalid MAC address format</string>
-    <string name="validation_android_id_invalid">Invalid Android ID (16 hex chars required)</string>
+    <string name="validation_invalid_format">Invalid format for %s</string>
 
     <!-- Misc -->
-    <string name="copied_to_clipboard">Copied to clipboard</string>
-    <string name="value_regenerated">Value regenerated</string>
-    <string name="all_values_regenerated">All values regenerated</string>
 </resources>

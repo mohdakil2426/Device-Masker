@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
+import com.astrixforge.devicemasker.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -163,10 +165,11 @@ fun ProfileCard(
             ) {
                 Column {
                     Text(
-                            text =
-                                    if (appCount > 0)
-                                            "$appCount app${if (appCount != 1) "s" else ""}"
-                                    else "No apps",
+                            text = pluralStringResource(
+                                id = R.plurals.profile_card_apps_count,
+                                count = appCount,
+                                appCount
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color =
                                     if (appCount > 0) MaterialTheme.colorScheme.primary

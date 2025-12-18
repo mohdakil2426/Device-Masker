@@ -46,7 +46,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
 import com.astrixforge.devicemasker.R
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember

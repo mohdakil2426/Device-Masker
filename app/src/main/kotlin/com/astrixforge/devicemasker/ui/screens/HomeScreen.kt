@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -34,14 +32,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import androidx.compose.ui.res.stringResource
-import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,21 +52,25 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.DeviceMaskerApp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
+import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
+import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
+import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
-import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
-import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
-import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
-import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import kotlinx.coroutines.launch
 
 /**
@@ -130,7 +128,6 @@ fun HomeScreen(
         profiles = profiles,
         selectedProfile = selectedProfile,
         onProfileSelected = { profile ->
-            selectedProfileId = profile.id
             scope.launch { repository.setActiveProfile(profile.id) }
         },
         enabledAppsCount = protectedAppsCount,
@@ -486,7 +483,7 @@ private fun ProfileSelectorCard(
                     }
                     if (selectedProfile != null) {
                         Text(
-                            text = stringResource(id = R.string.home_apps_assigned_count, selectedProfile.assignedAppCount()),
+                            text = pluralStringResource(id = R.plurals.home_apps_assigned_count, count = selectedProfile.assignedAppCount(), selectedProfile.assignedAppCount()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -538,7 +535,7 @@ private fun ProfileSelectorCard(
                                                 else FontWeight.Normal,
                                         )
                                         Text(
-                                            text = stringResource(id = R.string.home_apps_count, profile.assignedAppCount()),
+                                            text = pluralStringResource(id = R.plurals.home_apps_count, count = profile.assignedAppCount(), profile.assignedAppCount()),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )

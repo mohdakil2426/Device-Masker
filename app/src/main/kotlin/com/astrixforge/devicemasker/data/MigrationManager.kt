@@ -6,7 +6,6 @@ import androidx.core.content.edit
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString

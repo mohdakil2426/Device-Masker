@@ -8,7 +8,6 @@ import com.astrixforge.devicemasker.data.generators.IMEIGenerator
 import com.astrixforge.devicemasker.data.generators.MACGenerator
 import com.astrixforge.devicemasker.data.generators.SerialGenerator
 import com.astrixforge.devicemasker.data.generators.UUIDGenerator
-import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.models.SpoofType
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 
 /**
  * Main repository combining all spoof-related data operations.

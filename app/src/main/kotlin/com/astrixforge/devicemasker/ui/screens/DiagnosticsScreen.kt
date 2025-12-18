@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.astrixforge.devicemasker.R
@@ -275,7 +276,7 @@ private fun AntiDetectionSection(tests: List<AntiDetectionTest>) {
     AnimatedSection(
         title = stringResource(id = R.string.diagnostics_anti_detection),
         icon = Icons.Outlined.Security,
-        count = stringResource(id = R.string.diagnostics_tests_passed, passedCount, tests.size),
+        count = pluralStringResource(id = R.plurals.diagnostics_tests_passed, count = passedCount, passedCount, tests.size),
         countColor = if (passedCount == tests.size) StatusActive else StatusWarning,
         isExpanded = isExpanded,
         onExpandChange = { isExpanded = it },
@@ -337,7 +338,7 @@ private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<Dia
 
     AnimatedSection(
         title = category.displayName,
-        count = stringResource(id = R.string.diagnostics_items_count, results.size),
+        count = pluralStringResource(id = R.plurals.diagnostics_items_count, count = results.size, results.size),
         isExpanded = isExpanded,
         onExpandChange = { isExpanded = it },
     ) {

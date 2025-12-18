@@ -164,7 +164,7 @@ object ExpressiveShapePresets {
     val Compact = 8.dp
     
     /** Pill shape - full rounding */
-    val Pill = 50 // percentage
+    const val Pill = 50 // percentage
     
     /** Square - no rounding */
     val Square = 0.dp

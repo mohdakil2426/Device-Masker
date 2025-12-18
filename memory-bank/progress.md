@@ -22,6 +22,9 @@
 - ✅ Consistent spring-animated press feedback on all icon buttons
 - ✅ **FIXED**: Centered `AnimatedLoadingOverlay` with background dimming and touch blocking
 - ✅ **FIXED**: `AdvertisingHooker` inner class `$Info` syntax error
+- ✅ **Code Hygiene**: Removed unused code, unified DataStore naming, and refactored strings to plurals
+- ✅ **Build Optimization**: Fixed KDocs, removed unused imports, and applied constant optimizations
+- ✅ **Data Consistency**: Integrated hook cache invalidation on profile updates
 
 ---
 
@@ -169,6 +172,10 @@
 | ProfileScreen LaunchedEffect/delay | ✅ FIXED (Dec 18) |
 | Loading animation stuck in top-left | ✅ FIXED (Dec 18) |
 | Dialogs and Sections stuck (not closing) | ✅ FIXED (Dec 18) |
+| Hook Data Staleness in Cache | ✅ FIXED (Dec 18) |
+| Unused Imports and Dead Code | ✅ FIXED (Dec 18) |
+| Inconsistent DataStore Naming | ✅ FIXED (Dec 18) |
+| Misused Plurals in Labels | ✅ FIXED (Dec 18) |
 
 ## Milestones
 

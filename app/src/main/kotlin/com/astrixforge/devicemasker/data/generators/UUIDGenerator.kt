@@ -1,7 +1,6 @@
 package com.astrixforge.devicemasker.data.generators
 
 import java.util.UUID
-import kotlin.random.Random
 
 /**
  * UUID and ID Generator for various Android identifiers.

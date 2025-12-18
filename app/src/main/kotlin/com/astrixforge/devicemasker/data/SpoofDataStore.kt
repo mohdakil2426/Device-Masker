@@ -19,7 +19,7 @@ import kotlinx.coroutines.runBlocking
  * inter-process access.
  */
 val Context.spoofDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "spoof_preferences")
+        preferencesDataStore(name = com.astrixforge.devicemasker.utils.Constants.DATASTORE_NAME)
 
 /**
  * DataStore manager for spoofed values and module configuration.
@@ -43,14 +43,6 @@ class SpoofDataStore(private val context: Context) {
         val KEY_MODULE_ENABLED = booleanPreferencesKey("module_enabled")
         val KEY_ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
 
-        // Spoof value keys (prefixed by type)
-        private fun spoofValueKey(type: SpoofType): Preferences.Key<String> {
-            return stringPreferencesKey("spoof_value_${type.name}")
-        }
-
-        private fun spoofEnabledKey(type: SpoofType): Preferences.Key<Boolean> {
-            return booleanPreferencesKey("spoof_enabled_${type.name}")
-        }
 
         // Profile storage (JSON serialized)
         val KEY_PROFILES_JSON = stringPreferencesKey("profiles_json")
@@ -64,8 +56,6 @@ class SpoofDataStore(private val context: Context) {
         val KEY_DYNAMIC_COLORS = booleanPreferencesKey("theme_dynamic_colors")
         val KEY_DEBUG_LOGGING = booleanPreferencesKey("debug_logging")
 
-        // Migration version
-        val KEY_MIGRATION_VERSION = stringPreferencesKey("migration_version")
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -169,12 +159,4 @@ class SpoofDataStore(private val context: Context) {
         return runBlocking { profilesJson.first() }
     }
  
-    // ═══════════════════════════════════════════════════════════
-    // BLOCKING FUNCTIONS (For Hook Context)
-    // ═══════════════════════════════════════════════════════════
- 
-    /** Checks if module is enabled synchronously (blocking). */
-    fun isModuleEnabledBlocking(): Boolean {
-        return runBlocking { moduleEnabled.first() }
-    }
 }

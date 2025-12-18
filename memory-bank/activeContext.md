@@ -15,6 +15,14 @@
 - ✅ Replaced all standard `CircularProgressIndicator` with `ExpressiveLoadingIndicator` (Morphing Shapes)
 - ✅ Integrated `ExpressiveLoadingIndicatorWithLabel` for more informative loading states in list views
 - ✅ Integrated `CompactExpressiveIconButton` for all interactive actions in `ProfileScreen`
+- ✅ **Build & Code Hygiene**:
+    - Unified `DATASTORE_NAME` across `Constants.kt` and `SpoofDataStore.kt`
+    - Removed unused methods/keys from `SpoofDataStore.kt`, `FingerprintGenerator.kt`, and `HookDataProvider.kt`
+    - Refactored count-related strings to use Android `<plurals>` and `pluralStringResource`
+    - Removed 100+ unused import directives for cleaner compilation
+    - Fixed KDoc unresolved reference in `ExpressivePullToRefresh.kt`
+    - Applied `const val` optimizations in `MorphingShape.kt`
+    - Integrated hook cache invalidation in `ProfileRepository`
 
 #### Files Updated This Session
 | File | Changes |

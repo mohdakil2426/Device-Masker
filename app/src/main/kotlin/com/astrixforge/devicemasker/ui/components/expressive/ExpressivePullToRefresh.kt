@@ -31,7 +31,7 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
  * Material 3 Expressive Pull-to-Refresh container.
  *
  * Wraps content with pull-to-refresh functionality using the M3 Expressive
- * [LoadingIndicator] (morphing shapes) instead of the standard circular indicator.
+ * [androidx.compose.material3.LoadingIndicator] (morphing shapes) instead of the standard circular indicator.
  *
  * Features:
  * - Morphing shape animation during refresh

@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.data.repository
 import com.astrixforge.devicemasker.data.SpoofDataStore
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.models.SpoofType
+import com.astrixforge.devicemasker.hook.HookDataProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -116,24 +117,6 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
         }
     }
 
-    /** Duplicates a profile with a new name. */
-    suspend fun duplicateProfile(id: String, newName: String): SpoofProfile? {
-        val original = getProfileById(id) ?: return null
-        val currentProfiles = profiles.first().toMutableList()
-
-        val duplicated =
-            original.copy(
-                id = java.util.UUID.randomUUID().toString(),
-                name = newName,
-                isDefault = false,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
-            )
-
-        currentProfiles.add(duplicated)
-        saveProfiles(currentProfiles)
-        return duplicated
-    }
 
     /** Sets a profile as the default. */
     suspend fun setAsDefault(id: String) {
@@ -148,19 +131,7 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
     // PROFILE VALUE OPERATIONS
     // ═══════════════════════════════════════════════════════════
 
-    /** Updates a specific spoof value in a profile. */
-    suspend fun updateProfileValue(profileId: String, type: SpoofType, value: String?) {
-        val profile = getProfileById(profileId) ?: return
-        val updatedProfile = profile.withValue(type, value)
-        updateProfile(updatedProfile)
-    }
 
-    /** Toggles a spoof type enabled state in a profile. */
-    suspend fun toggleProfileSpoofType(profileId: String, type: SpoofType) {
-        val profile = getProfileById(profileId) ?: return
-        val updatedProfile = profile.withTypeToggled(type)
-        updateProfile(updatedProfile)
-    }
 
     /** Gets the spoof value for a type from the active profile. */
     suspend fun getActiveValue(type: SpoofType): String? {
@@ -176,6 +147,8 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
     private suspend fun saveProfiles(profileList: List<SpoofProfile>) {
         val jsonString = json.encodeToString(profileList)
         dataStore.saveProfilesJson(jsonString)
+        // Invalidate hook cache to ensure fresh data for any hooks running in the current process
+        HookDataProvider.invalidateAll()
     }
 
     /** Exports all profiles as JSON string. */
@@ -198,15 +171,7 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
     // BLOCKING FUNCTIONS (For Hook Context)
     // ═══════════════════════════════════════════════════════════
 
-    /** Gets the active profile synchronously (blocking). */
-    fun getActiveProfileBlocking(): SpoofProfile? {
-        return kotlinx.coroutines.runBlocking { activeProfile.first() }
-    }
 
-    /** Gets a spoof value from the active profile synchronously (blocking). */
-    fun getActiveValueBlocking(type: SpoofType): String? {
-        return kotlinx.coroutines.runBlocking { getActiveValue(type) }
-    }
 
     // ═══════════════════════════════════════════════════════════
     // ASSIGNED APPS MANAGEMENT
@@ -230,11 +195,6 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
      * @param packageName The app's package name to look up
      * @return The profile for this app (assigned or default)
      */
-    fun getProfileForAppBlocking(packageName: String): SpoofProfile? {
-        return kotlinx.coroutines.runBlocking {
-            getProfileForApp(packageName) ?: getDefaultProfile()
-        }
-    }
 
     /**
      * Adds an app to a profile's assignedApps. If the app is already in another profile, it will be
@@ -283,9 +243,6 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
      * @param packageName The app's package name to check
      * @return True if the app is assigned to some profile
      */
-    suspend fun isAppAssignedToAnyProfile(packageName: String): Boolean {
-        return profiles.first().any { packageName in it.assignedApps }
-    }
 
     /**
      * Gets the profile ID that has a specific app assigned.
@@ -293,20 +250,10 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
      * @param packageName The app's package name to look up
      * @return The profile ID, or null if not assigned
      */
-    suspend fun getProfileIdForApp(packageName: String): String? {
-        return getProfileForApp(packageName)?.id
-    }
 
     /**
      * Gets all apps assigned across all profiles.
      *
      * @return Map of packageName to profileId
      */
-    suspend fun getAllAppAssignments(): Map<String, String> {
-        val assignments = mutableMapOf<String, String>()
-        profiles.first().forEach { profile ->
-            profile.assignedApps.forEach { packageName -> assignments[packageName] = profile.id }
-        }
-        return assignments
-    }
 }

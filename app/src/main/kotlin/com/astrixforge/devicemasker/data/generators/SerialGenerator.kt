@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.data.generators
 
-import kotlin.random.Random
 
 /**
  * Serial Number Generator for device spoofing.
