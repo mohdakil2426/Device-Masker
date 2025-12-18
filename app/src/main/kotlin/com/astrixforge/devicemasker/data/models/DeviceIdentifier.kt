@@ -25,11 +25,6 @@ data class DeviceIdentifier(
         return copy(value = newValue, lastModified = System.currentTimeMillis())
     }
 
-    /** Creates a copy with toggled enabled state. */
-    fun toggleEnabled(): DeviceIdentifier {
-        return copy(isEnabled = !isEnabled, lastModified = System.currentTimeMillis())
-    }
-
     companion object {
         /**
          * Creates a default DeviceIdentifier for a given type. The value will be null

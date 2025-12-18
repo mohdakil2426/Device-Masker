@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.data.repository
 
 import com.astrixforge.devicemasker.data.SpoofDataStore
 import com.astrixforge.devicemasker.data.models.SpoofProfile
-import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.hook.HookDataProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -132,13 +131,6 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
     // ═══════════════════════════════════════════════════════════
 
 
-
-    /** Gets the spoof value for a type from the active profile. */
-    suspend fun getActiveValue(type: SpoofType): String? {
-        val active = activeProfile.first() ?: return null
-        return active.getValue(type)
-    }
-
     // ═══════════════════════════════════════════════════════════
     // PERSISTENCE
     // ═══════════════════════════════════════════════════════════
@@ -176,17 +168,6 @@ class ProfileRepository(private val dataStore: SpoofDataStore) {
     // ═══════════════════════════════════════════════════════════
     // ASSIGNED APPS MANAGEMENT
     // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Gets the profile that has a specific app assigned. Each app can only be assigned to one
-     * profile.
-     *
-     * @param packageName The app's package name to look up
-     * @return The SpoofProfile with this app assigned, or null if not assigned to any profile
-     */
-    suspend fun getProfileForApp(packageName: String): SpoofProfile? {
-        return profiles.first().find { profile -> packageName in profile.assignedApps }
-    }
 
     /**
      * Gets the profile for an app synchronously (blocking). Falls back to default profile if app is

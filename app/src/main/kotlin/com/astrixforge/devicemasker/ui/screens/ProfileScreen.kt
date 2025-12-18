@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -44,13 +43,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import com.astrixforge.devicemasker.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.components.ProfileCard
-import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
@@ -161,10 +159,10 @@ fun ProfileScreen(
         CreateProfileDialog(
                 onDismiss = { showCreateDialog = false },
                 onCreate = { name, description ->
-                    showCreateDialog = false
                     scope.launch {
                         repository.createProfile(name, description)
                     }
+                    showCreateDialog = false
                 },
         )
     }
@@ -175,7 +173,6 @@ fun ProfileScreen(
                 profile = profile,
                 onDismiss = { showEditDialog = null },
                 onSave = { name, description ->
-                    showEditDialog = null
                     scope.launch {
                         repository.updateProfile(
                                 profile.copy(
@@ -185,6 +182,7 @@ fun ProfileScreen(
                                 )
                         )
                     }
+                    showEditDialog = null
                 },
         )
     }
@@ -192,13 +190,12 @@ fun ProfileScreen(
     // Delete Confirmation Dialog
     showDeleteDialog?.let { profile ->
         DeleteProfileDialog(
-                profile = profile,
-                onDismiss = { showDeleteDialog = null },
+            onDismiss = { showDeleteDialog = null },
                 onConfirm = {
-                    showDeleteDialog = null
                     scope.launch {
                         repository.deleteProfile(profile.id)
                     }
+                    showDeleteDialog = null
                 },
         )
     }
@@ -430,7 +427,7 @@ fun EditProfileDialog(
 
 /** Dialog for confirming profile deletion. */
 @Composable
-fun DeleteProfileDialog(profile: SpoofProfile, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+fun DeleteProfileDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
             onDismissRequest = onDismiss,
             icon = {

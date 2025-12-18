@@ -136,29 +136,6 @@ fun SectionHeader(
     }
 }
 
-/**
- * Section header variant with subtitle instead of count.
- */
-@Composable
-fun SectionHeaderWithSubtitle(
-    title: String,
-    subtitle: String,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    isExpanded: Boolean = true,
-    onExpandChange: ((Boolean) -> Unit)? = null
-) {
-    SectionHeader(
-        title = title,
-        modifier = modifier,
-        icon = icon,
-        count = subtitle,
-        countColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        isExpanded = isExpanded,
-        onExpandChange = onExpandChange
-    )
-}
-
 // ═══════════════════════════════════════════════════════════
 // Previews
 // ═══════════════════════════════════════════════════════════

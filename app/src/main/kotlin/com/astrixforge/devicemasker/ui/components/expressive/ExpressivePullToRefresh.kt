@@ -14,7 +14,6 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -148,38 +147,3 @@ fun ExpressiveRefreshIndicator(
     }
 }
 
-/**
- * Compact version using standard M3 pull-to-refresh indicator.
- * 
- * Falls back to the default PullToRefreshDefaults.Indicator when
- * the expressive indicator is not needed.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun StandardPullToRefresh(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    content: @Composable BoxScope.() -> Unit,
-) {
-    val state = rememberPullToRefreshState()
-
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        state = state,
-        modifier = modifier.fillMaxSize(),
-        indicator = {
-            PullToRefreshDefaults.Indicator(
-                modifier = Modifier.align(Alignment.TopCenter),
-                isRefreshing = isRefreshing,
-                state = state,
-                containerColor = containerColor,
-                color = color,
-            )
-        },
-        content = content,
-    )
-}

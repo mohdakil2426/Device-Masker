@@ -8,7 +8,6 @@ import com.astrixforge.devicemasker.data.generators.IMEIGenerator
 import com.astrixforge.devicemasker.data.generators.MACGenerator
 import com.astrixforge.devicemasker.data.generators.SerialGenerator
 import com.astrixforge.devicemasker.data.generators.UUIDGenerator
-import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.models.SpoofType
 import kotlinx.coroutines.flow.Flow
@@ -30,8 +29,8 @@ import kotlinx.coroutines.runBlocking
  * @param dataStore The SpoofDataStore instance
  */
 class SpoofRepository(private val context: Context, private val dataStore: SpoofDataStore) {
-    val profileRepository = ProfileRepository(dataStore)
-    val appScopeRepository = AppScopeRepository(context)
+    val profileRepository: ProfileRepository = ProfileRepository(dataStore)
+    val appScopeRepository: AppScopeRepository = AppScopeRepository(context)
 
     // ═══════════════════════════════════════════════════════════
     // UI STATE FLOWS
@@ -61,11 +60,10 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     )
 
     val dashboardState: Flow<DashboardState> =
-        combine(moduleEnabled, activeProfile, enabledAppCount, profiles) {
-            enabled,
-            profile,
-            appCount,
-            profileList ->
+        combine(moduleEnabled, activeProfile, enabledAppCount, profiles) { enabled,
+                                                                           profile,
+                                                                           appCount,
+                                                                           profileList ->
             DashboardState(
                 isModuleEnabled = enabled,
                 activeProfile = profile,
@@ -121,14 +119,19 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
             SpoofType.BUILD_FINGERPRINT -> FingerprintGenerator.generate()
             SpoofType.BUILD_MODEL ->
                 FingerprintGenerator.generateBuildProperties()["MODEL"] ?: "Pixel 8"
+
             SpoofType.BUILD_MANUFACTURER ->
                 FingerprintGenerator.generateBuildProperties()["MANUFACTURER"] ?: "Google"
+
             SpoofType.BUILD_BRAND ->
                 FingerprintGenerator.generateBuildProperties()["BRAND"] ?: "google"
+
             SpoofType.BUILD_DEVICE ->
                 FingerprintGenerator.generateBuildProperties()["DEVICE"] ?: "shiba"
+
             SpoofType.BUILD_PRODUCT ->
                 FingerprintGenerator.generateBuildProperties()["PRODUCT"] ?: "shiba"
+
             SpoofType.BUILD_BOARD ->
                 FingerprintGenerator.generateBuildProperties()["BOARD"] ?: "shiba"
 
@@ -137,13 +140,14 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
             SpoofType.LOCATION_LONGITUDE -> String.format(java.util.Locale.US, "%.6f", (-180.0..180.0).random())
             SpoofType.TIMEZONE ->
                 listOf(
-                        "America/New_York",
-                        "America/Los_Angeles",
-                        "Europe/London",
-                        "Asia/Tokyo",
-                        "Australia/Sydney",
-                    )
+                    "America/New_York",
+                    "America/Los_Angeles",
+                    "Europe/London",
+                    "Asia/Tokyo",
+                    "Australia/Sydney",
+                )
                     .random()
+
             SpoofType.LOCALE -> listOf("en_US", "en_GB", "ja_JP", "de_DE", "fr_FR").random()
         }
     }
@@ -171,17 +175,14 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     // ═══════════════════════════════════════════════════════════
 
 
-
-
     // ═══════════════════════════════════════════════════════════
     // BLOCKING FUNCTIONS (For Hook Context)
     // ═══════════════════════════════════════════════════════════
 
 
-
     /** Gets the active profile (blocking). */
     fun getActiveProfileBlocking(): SpoofProfile? {
-        return kotlinx.coroutines.runBlocking { activeProfile.first() }
+        return runBlocking { activeProfile.first() }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -244,7 +245,8 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
     companion object {
         @SuppressLint("StaticFieldLeak")
-        @Volatile private var INSTANCE: SpoofRepository? = null
+        @Volatile
+        private var INSTANCE: SpoofRepository? = null
 
         /** Gets the singleton instance. */
         fun getInstance(context: Context): SpoofRepository {
@@ -252,9 +254,9 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
                 ?: synchronized(this) {
                     INSTANCE
                         ?: SpoofRepository(
-                                context.applicationContext,
-                                SpoofDataStore(context.applicationContext),
-                            )
+                            context.applicationContext,
+                            SpoofDataStore(context.applicationContext),
+                        )
                             .also { INSTANCE = it }
                 }
         }

@@ -133,7 +133,6 @@
     <string name="action_collapse">Collapse</string>
 
     <!-- Validation -->
-    <string name="validation_invalid_format">Invalid format for %s</string>
 
     <!-- Misc -->
 </resources>

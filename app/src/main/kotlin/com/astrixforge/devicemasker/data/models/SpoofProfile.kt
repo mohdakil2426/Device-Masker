@@ -85,20 +85,9 @@ data class SpoofProfile(
         return withIdentifier(existing.withValue(value))
     }
 
-    /** Creates a copy with toggled enabled state for a specific type. */
-    fun withTypeToggled(type: SpoofType): SpoofProfile {
-        val existing = identifiers[type] ?: DeviceIdentifier.createDefault(type)
-        return withIdentifier(existing.toggleEnabled())
-    }
-
     /** Creates a copy with updated enabled state. */
     fun withEnabled(enabled: Boolean): SpoofProfile {
         return copy(isEnabled = enabled, updatedAt = System.currentTimeMillis())
-    }
-
-    /** Creates a copy with toggled enabled state. */
-    fun toggleEnabled(): SpoofProfile {
-        return copy(isEnabled = !isEnabled, updatedAt = System.currentTimeMillis())
     }
 
     // ═══════════════════════════════════════════════════════════

@@ -61,15 +61,6 @@ object UUIDGenerator {
     }
 
     /**
-     * Generates a standard UUID v4.
-     *
-     * @return A UUID string in standard format
-     */
-    fun generateUUID(): String {
-        return UUID.randomUUID().toString()
-    }
-
-    /**
      * Generates a random Instance ID (used by Firebase/Google Play Services).
      * Typically a 22-character random string.
      *

@@ -43,11 +43,6 @@ object AppMotion {
             stiffness = Spring.StiffnessLow                 // 200 - slow, expressive
         )
 
-        val ExpressiveDp: SpringSpec<Dp> = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
-
         /**
          * Standard spring for typical interactions.
          * Subtle bounce, medium stiffness - minimal overshoot.
@@ -56,16 +51,6 @@ object AppMotion {
         val Standard: SpringSpec<Float> = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,    // 0.75 - slight bounce
             stiffness = Spring.StiffnessMediumLow          // 400 - moderate speed
-        )
-
-        val StandardDp: SpringSpec<Dp> = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        )
-
-        val StandardOffset: SpringSpec<IntOffset> = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
         )
 
         val StandardIntSize: SpringSpec<IntSize> = spring(
@@ -114,39 +99,12 @@ object AppMotion {
             stiffness = Spring.StiffnessMedium             // 1500 - responsive
         )
 
-        /**
-         * Quick spring for immediate visual feedback.
-         * No bounce, high stiffness - instant response.
-         * Use for: Hover states, immediate color feedback.
-         */
-        val Quick: SpringSpec<Float> = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,     // 1.0 - no bounce
-            stiffness = Spring.StiffnessHigh               // 10000 - instant
-        )
     }
 
     // ╔═══════════════════════════════════════════════════════════════════════════╗
     // ║                         LEGACY SPRINGS (Deprecated)                        ║
     // ║              Use Spatial.* or Effect.* for new code                        ║
     // ╚═══════════════════════════════════════════════════════════════════════════╝
-
-    // Default Spring - For most transitions
-    @Deprecated(
-        message = "Use Spatial.Standard for position/scale or Effect.Color for colors",
-        replaceWith = ReplaceWith("Spatial.Standard")
-    )
-    val DefaultSpring: SpringSpec<Float> =
-        spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        )
-
-    @Deprecated(
-        message = "Use Spatial.StandardDp for position/size animations",
-        replaceWith = ReplaceWith("Spatial.StandardDp")
-    )
-    val DefaultSpringDp: SpringSpec<Dp> =
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
 
     @Deprecated(
         message = "Use Spatial.StandardOffset for position animations",
@@ -170,57 +128,10 @@ object AppMotion {
         )
 
     @Deprecated(
-        message = "Use Spatial.SnappyDp for quick size animations",
-        replaceWith = ReplaceWith("Spatial.SnappyDp")
-    )
-    val FastSpringDp: SpringSpec<Dp> =
-        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
-
-    // Bouncy Spring - For playful interactions
-    @Deprecated(
-        message = "Use Spatial.Expressive for bouncy scale/position animations",
-        replaceWith = ReplaceWith("Spatial.Expressive")
-    )
-    val BouncySpring: SpringSpec<Float> =
-        spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessLow)
-
-    @Deprecated(
         message = "Use Spatial.ExpressiveDp for bouncy size animations",
         replaceWith = ReplaceWith("Spatial.ExpressiveDp")
     )
     val BouncySpringDp: SpringSpec<Dp> =
         spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessLow)
 
-    // Gentle Spring - For subtle, slow animations
-    @Deprecated(
-        message = "Use Spatial.Standard for subtle animations",
-        replaceWith = ReplaceWith("Spatial.Standard")
-    )
-    val GentleSpring: SpringSpec<Float> =
-        spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessVeryLow,
-        )
-
-    @Deprecated(
-        message = "Use Spatial.StandardDp for subtle size animations",
-        replaceWith = ReplaceWith("Spatial.StandardDp")
-    )
-    val GentleSpringDp: SpringSpec<Dp> =
-        spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessVeryLow)
-
-    // Snappy Spring - For instant feedback
-    @Deprecated(
-        message = "Use Spatial.Snappy for quick scale or Effect.Quick for instant feedback",
-        replaceWith = ReplaceWith("Spatial.Snappy")
-    )
-    val SnappySpring: SpringSpec<Float> =
-        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
-
-    @Deprecated(
-        message = "Use Spatial.SnappyDp for quick size animations",
-        replaceWith = ReplaceWith("Spatial.SnappyDp")
-    )
-    val SnappySpringDp: SpringSpec<Dp> =
-        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
 }
