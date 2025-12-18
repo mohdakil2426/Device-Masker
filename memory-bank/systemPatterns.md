@@ -52,7 +52,7 @@
 
 ### AD-1: YukiHookAPI Selection
 
-**Decision**: Use YukiHookAPI 1.2.1 instead of raw Xposed API
+**Decision**: Use YukiHookAPI 1.3.1 instead of raw Xposed API
 
 **Rationale**:
 - Modern Kotlin DSL with type-safe method/field references
@@ -133,6 +133,7 @@ val allowedPatterns = listOf(
 2. Hooking system classes affects ALL apps including the module itself
 3. Blocking essential class loading crashes the module app
 4. **Hard-learned lesson**: App stuck at logo crash was caused by this exact issue!
+5. **Warning Cleanup**: Use `@Suppress("UNCHECKED_CAST")` with safe casts (`as? Array<StackTraceElement>`) in `AntiDetectHooker` to avoid cluttering the build log with non-critical warnings.
 
 **Rationale**: Prevents module from crashing itself or the entire system
 
@@ -306,6 +307,15 @@ CompactExpressiveIconButton(
 - Pure black (#000000) background in dark mode
 - Secondary color for active navigation labels (M3 1.4.0+ spec)
 - ExpressiveSwitch uses `colorScheme.primary` for checked track (theme-aware)
+
+### AD-8: UI Layering (Z-Order) for Overlays
+
+**Decision**: Place all overlays (Loading, Error, Dialogs) as the **last child** of the main `Box` container.
+
+**Rationale**:
+- In Jetpack Compose `Box`, the rendering order is sequential; later children appear on top.
+- Ensures `AnimatedLoadingOverlay` properly obscures and blocks interaction with the dashboard while loading.
+- Prevents components from being "cut off" or obscured by sibling elements.
 
 ## Design Patterns in Use
 

@@ -17,14 +17,15 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
+# Note befor making anychanges alway use web search and context7 MCP to get the most up-to-date documentation. and very with official resources docs bestpractices and guidelines. 
+
+# Official Documentation & Resources
+
 ## YukiHookAPI
 
 ### All about yuki hook api alwasy read this
 
 @/docs/rules/lsposed/YukiHookAPI_Reference.md
-
-
-# Official Documentation & Resources
 
 > **Note:** Always use `context7` MCP and web search for the most up-to-date documentation.
 

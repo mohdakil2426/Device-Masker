@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
+import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import java.text.SimpleDateFormat
@@ -71,13 +72,18 @@ fun ProfileCard(
 ) {
     val contentAlpha = if (isEnabled) 1f else 0.5f
 
+    val cardShape = animatedRoundedCornerShape(
+        targetRadius = if (isEnabled) 24.dp else 16.dp,
+        label = "profileCardMorph"
+    )
+
     ElevatedCard(
             modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
             colors =
                     CardDefaults.elevatedCardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     ),
-            shape = MaterialTheme.shapes.large,
+            shape = cardShape,
     ) {
         Column(modifier = Modifier.padding(16.dp).alpha(contentAlpha)) {
             // Profile Info Row with Switch
@@ -235,10 +241,16 @@ fun CompactProfileCard(
         onClick: () -> Unit,
         modifier: Modifier = Modifier,
 ) {
+    val compactShape = animatedRoundedCornerShape(
+        targetRadius = if (isSelected) 16.dp else 12.dp,
+        label = "compactProfileCardMorph"
+    )
+
     ExpressiveCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         isSelected = isSelected,
+        shape = compactShape,
     ) {
         Row(
                 modifier = Modifier.fillMaxWidth().padding(12.dp),

@@ -58,15 +58,6 @@ class SpoofDataStore(private val context: Context) {
         // App config storage (JSON serialized)
         val KEY_APP_CONFIGS_JSON = stringPreferencesKey("app_configs_json")
 
-        // Per-app keys (dynamically generated)
-        private fun appEnabledKey(packageName: String): Preferences.Key<Boolean> {
-            return booleanPreferencesKey("app_enabled_$packageName")
-        }
-
-        private fun appProfileKey(packageName: String): Preferences.Key<String> {
-            return stringPreferencesKey("app_profile_$packageName")
-        }
-
         // Theme settings
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_AMOLED_MODE = booleanPreferencesKey("theme_amoled_mode")
@@ -159,18 +150,6 @@ class SpoofDataStore(private val context: Context) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SPOOF VALUES (Per-Type)
-    // ═══════════════════════════════════════════════════════════
-
-    /** Flow of a specific spoof value. */
-    fun getSpoofValueFlow(type: SpoofType): Flow<String?> =
-            dataStore.data.map { prefs -> prefs[spoofValueKey(type)] }
-
-    /** Flow of whether a spoof type is enabled. */
-    fun isSpoofEnabledFlow(type: SpoofType): Flow<Boolean> =
-            dataStore.data.map { prefs -> prefs[spoofEnabledKey(type)] ?: true }
-
-    // ═══════════════════════════════════════════════════════════
     // JSON STORAGE (Profiles & App Configs)
     // ═══════════════════════════════════════════════════════════
  
@@ -197,14 +176,5 @@ class SpoofDataStore(private val context: Context) {
     /** Checks if module is enabled synchronously (blocking). */
     fun isModuleEnabledBlocking(): Boolean {
         return runBlocking { moduleEnabled.first() }
-    }
- 
-    // ═══════════════════════════════════════════════════════════
-    // UTILITY FUNCTIONS
-    // ═══════════════════════════════════════════════════════════
- 
-    /** Clears all preferences. */
-    suspend fun clearAll() {
-        dataStore.edit { prefs -> prefs.clear() }
     }
 }

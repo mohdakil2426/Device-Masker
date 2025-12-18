@@ -30,6 +30,8 @@
 | Library | Version | Purpose |
 |---------|---------|---------|
 | **YukiHookAPI** | 1.3.1 | Modern Kotlin Hook API |
+| **KavaRef** | 1.0.2 | Reflection engine (required by Yuki v1.3+) |
+| **AndroidHiddenApiBypass** | 6.1 | Access to hidden APIs |
 | **YukiHookAPI KSP** | 2.2.21-2.0.4 | Annotation processor |
 | **LSPosed (Xposed)** | 1.10.2+ (API 82) | Framework (external) |
 | **Magisk** | 30.6+ | Root solution (external) |
@@ -168,8 +170,10 @@ composeBom = "2025.12.00"
 material3 = "1.5.0-alpha11"
 
 # YukiHookAPI
-material = "1.12.0"
+material = "1.13.0"
 yukihookapi = "1.3.1"
+kavaref = "1.0.2"
+hiddenapibypass = "6.1"
 
 # Data
 datastore = "1.2.0"

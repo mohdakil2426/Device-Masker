@@ -91,16 +91,6 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     }
 
     // ═══════════════════════════════════════════════════════════
-    // JSON SERIALIZATION
-    // ═══════════════════════════════════════════════════════════
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        prettyPrint = false
-        encodeDefaults = true
-    }
-
-    // ═══════════════════════════════════════════════════════════
     // VALUE GENERATION
     // ═══════════════════════════════════════════════════════════
 
@@ -176,67 +166,20 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
         return start + (endInclusive - start) * kotlin.random.Random.nextDouble()
     }
 
-    /** Regenerates a value in the active profile. */
-    suspend fun regenerateValue(type: SpoofType) {
-        val profile = activeProfile.first() ?: return
-        val newValue = generateValue(type)
-        profileRepository.updateProfileValue(profile.id, type, newValue)
-    }
-
-    /** Regenerates all values in the active profile. */
-    suspend fun regenerateAllValues() {
-        val profile = activeProfile.first() ?: return
-
-        SpoofType.entries.forEach { type ->
-            val newValue = generateValue(type)
-            profileRepository.updateProfileValue(profile.id, type, newValue)
-        }
-    }
-
-    /** Regenerates values for a specific category. */
-    suspend fun regenerateCategory(category: SpoofCategory) {
-        val profile = activeProfile.first() ?: return
-
-        SpoofType.byCategory(category).forEach { type ->
-            val newValue = generateValue(type)
-            profileRepository.updateProfileValue(profile.id, type, newValue)
-        }
-    }
+    // ═══════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════
     // APP MANAGEMENT DELEGATES
     // ═══════════════════════════════════════════════════════════
 
-    /** Gets installed apps list. */
-    suspend fun getInstalledAppsList(includeSystem: Boolean = false): List<InstalledApp> {
-        return appScopeRepository.getInstalledApps(includeSystem)
-    }
 
-    /** Enables/disables an app for a specific profile. */
-    suspend fun setAppEnabled(profileId: String, packageName: String, enabled: Boolean) {
-        if (enabled) {
-            profileRepository.addAppToProfile(profileId, packageName)
-        } else {
-            profileRepository.removeAppFromProfile(profileId, packageName)
-        }
-    }
 
 
     // ═══════════════════════════════════════════════════════════
     // BLOCKING FUNCTIONS (For Hook Context)
     // ═══════════════════════════════════════════════════════════
 
-    /** Checks if module is enabled (blocking). */
-    fun isModuleEnabledBlocking(): Boolean {
-        return dataStore.isModuleEnabledBlocking()
-    }
 
-    /** Checks if app is enabled for spoofing (blocking). */
-    fun isAppEnabledBlocking(packageName: String): Boolean {
-        return runBlocking {
-            profiles.first().any { it.isEnabled && it.isAppAssigned(packageName) }
-        }
-    }
 
     /** Gets the active profile (blocking). */
     fun getActiveProfileBlocking(): SpoofProfile? {
@@ -249,9 +192,6 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
     /** Gets all profiles as a Flow. */
     fun getAllProfiles(): Flow<List<SpoofProfile>> = profiles
-
-    /** Gets the active profile ID as a Flow. */
-    fun getActiveProfileId(): Flow<String?> = dataStore.activeProfileId
 
     /** Creates a new profile with generated spoof values. */
     suspend fun createProfile(name: String, description: String = "") {
@@ -287,13 +227,6 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     suspend fun setProfileEnabled(profileId: String, enabled: Boolean) {
         val profile = profileRepository.getProfileById(profileId) ?: return
         val updatedProfile = profile.withEnabled(enabled)
-        profileRepository.updateProfile(updatedProfile)
-    }
-
-    /** Toggles whether a profile is enabled. */
-    suspend fun toggleProfileEnabled(profileId: String) {
-        val profile = profileRepository.getProfileById(profileId) ?: return
-        val updatedProfile = profile.toggleEnabled()
         profileRepository.updateProfile(updatedProfile)
     }
 

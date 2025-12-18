@@ -208,15 +208,10 @@ object FingerprintGenerator {
             "16" to 36,
         )
 
-    /**
-     * Generates a complete, realistic build fingerprint.
-     *
-     * @param androidVersion The target Android version (e.g., "14", "15")
-     * @return A complete build fingerprint string
-     */
-    fun generate(androidVersion: String = "14"): String {
+    /** Generates a random build fingerprint. */
+    fun generate(): String {
         val device = DEVICE_DATABASE.random()
-        return generateForDevice(device, androidVersion)
+        return generateForDevice(device, "14")
     }
 
     /**

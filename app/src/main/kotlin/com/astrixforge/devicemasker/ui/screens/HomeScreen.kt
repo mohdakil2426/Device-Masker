@@ -38,8 +38,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -67,6 +70,9 @@ import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
+import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
+import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import kotlinx.coroutines.launch
 
 /**
@@ -167,14 +173,16 @@ fun HomeScreenContent(
     onRegenerateAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier =
-            modifier
+    Box(modifier = modifier.fillMaxSize()) {
+
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .alpha(if (profiles.isEmpty() && selectedProfile == null) 0f else 1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
         // Status Card - Hero Section
         StatusCard(
             isXposedActive = isXposedActive,
@@ -193,13 +201,13 @@ fun HomeScreenContent(
             StatCard(
                 icon = Icons.Outlined.Apps,
                 value = enabledAppsCount.toString(),
-                label = "Protected Apps",
+                label = stringResource(id = R.string.home_protected_apps_label),
                 modifier = Modifier.weight(1f),
             )
             StatCard(
                 icon = Icons.Outlined.Fingerprint,
                 value = maskedIdentifiersCount.toString(),
-                label = "Masked IDs",
+                label = stringResource(id = R.string.home_masked_ids_label),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -226,6 +234,11 @@ fun HomeScreenContent(
 
         Spacer(modifier = Modifier.height(24.dp))
     }
+
+    AnimatedLoadingOverlay(isLoading = profiles.isEmpty() && selectedProfile == null) {
+        ExpressiveLoadingIndicatorWithLabel(label = "Loading Dashboard...")
+    }
+}
 }
 
 /** Hero status card showing module activation status. */
@@ -250,11 +263,16 @@ private fun StatusCard(
             label = "cardScale",
         )
 
+    val statusShape = animatedRoundedCornerShape(
+        targetRadius = if (isXposedActive && isModuleEnabled) 28.dp else 16.dp,
+        label = "statusCardMorph"
+    )
+
     Card(
         modifier = modifier.scale(scale),
         colors =
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = statusShape,
     ) {
         Box(
             modifier =
@@ -290,7 +308,7 @@ private fun StatusCard(
 
                 // Status Text
                 Text(
-                    text = "DeviceMasker",
+                    text = stringResource(id = R.string.app_name),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -308,9 +326,9 @@ private fun StatusCard(
                     Text(
                         text =
                             when {
-                                !isXposedActive -> "Module Not Injected"
-                                isModuleEnabled -> "Protection Active"
-                                else -> "Protection Disabled"
+                                !isXposedActive -> stringResource(id = R.string.home_module_not_injected)
+                                isModuleEnabled -> stringResource(id = R.string.home_protection_active)
+                                else -> stringResource(id = R.string.home_protection_disabled)
                             },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -328,7 +346,7 @@ private fun StatusCard(
                             )
                     ) {
                         Text(
-                            text = "⚠️ Enable in LSPosed Manager and reboot",
+                            text = stringResource(id = R.string.home_enable_instruction),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -341,7 +359,7 @@ private fun StatusCard(
                     Spacer(modifier = Modifier.height(20.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Module Enabled",
+                            text = stringResource(id = R.string.home_module_enabled_label),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -446,13 +464,13 @@ private fun ProfileSelectorCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Active Profile",
+                        text = stringResource(id = R.string.home_active_profile_label),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = selectedProfile?.name ?: "No Profile",
+                            text = selectedProfile?.name ?: stringResource(id = R.string.home_no_profile),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -460,7 +478,7 @@ private fun ProfileSelectorCard(
                         if (selectedProfile?.isEnabled == false) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "(Disabled)",
+                                text = stringResource(id = R.string.home_profile_disabled_tag),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -468,7 +486,7 @@ private fun ProfileSelectorCard(
                     }
                     if (selectedProfile != null) {
                         Text(
-                            text = "${selectedProfile.assignedAppCount()} apps assigned",
+                            text = stringResource(id = R.string.home_apps_assigned_count, selectedProfile.assignedAppCount()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -498,7 +516,7 @@ private fun ProfileSelectorCard(
             ) {
                 if (profiles.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text("No profiles available") },
+                        text = { Text(stringResource(id = R.string.home_no_profiles_available)) },
                         onClick = { dropdownExpanded = false },
                         enabled = false,
                     )
@@ -520,7 +538,7 @@ private fun ProfileSelectorCard(
                                                 else FontWeight.Normal,
                                         )
                                         Text(
-                                            text = "${profile.assignedAppCount()} apps",
+                                            text = stringResource(id = R.string.home_apps_count, profile.assignedAppCount()),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -528,7 +546,7 @@ private fun ProfileSelectorCard(
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         if (!profile.isEnabled) {
                                             Text(
-                                                text = "Disabled",
+                                                text = stringResource(id = R.string.home_profile_disabled_tag).trim('(', ')'),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.error,
                                             )
@@ -565,7 +583,7 @@ private fun QuickActionsSection(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "Quick Actions",
+            text = stringResource(id = R.string.home_quick_actions),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -575,12 +593,12 @@ private fun QuickActionsSection(
         QuickActionGroup(
             actions = listOf(
                 QuickAction(
-                    label = "Configure",
+                    label = stringResource(id = R.string.home_action_configure),
                     icon = Icons.Outlined.Fingerprint,
                     onClick = onNavigateToSpoof
                 ),
                 QuickAction(
-                    label = "Regenerate",
+                    label = stringResource(id = R.string.action_regenerate),
                     icon = Icons.Filled.Refresh,
                     onClick = onRegenerateAll
                 )

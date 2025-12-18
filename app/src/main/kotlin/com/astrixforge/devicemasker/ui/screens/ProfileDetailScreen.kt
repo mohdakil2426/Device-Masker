@@ -53,8 +53,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.res.stringResource
+import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
+import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
+import com.astrixforge.devicemasker.data.models.DeviceIdentifier
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -97,7 +103,6 @@ import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import kotlinx.coroutines.launch
-import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 
 /**
  * Profile Detail Screen with tabbed interface.
@@ -137,7 +142,11 @@ fun ProfileDetailScreen(
         LaunchedEffect(pagerState.currentPage) { selectedTab = pagerState.currentPage }
 
         Box(modifier = modifier.fillMaxSize()) {
-                Column(modifier = Modifier.fillMaxSize()) {
+
+                Column(
+                        modifier = Modifier.fillMaxSize()
+                                .alpha(if (profile == null) 0f else 1f)
+                ) {
                         // Header
                         Row(
                                 modifier =
@@ -148,12 +157,12 @@ fun ProfileDetailScreen(
                                 IconButton(onClick = onNavigateBack) {
                                         Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                                contentDescription = "Back",
+                                                contentDescription = stringResource(id = R.string.profile_detail_back),
                                         )
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                        text = profile?.name ?: "Profile",
+                                        text = profile?.name ?: stringResource(id = R.string.profile_detail_title),
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface,
@@ -167,7 +176,7 @@ fun ProfileDetailScreen(
                                 Tab(
                                         selected = selectedTab == 0,
                                         onClick = { selectedTab = 0 },
-                                        text = { Text("Spoof Values") },
+                                        text = { Text(stringResource(id = R.string.profile_detail_tab_spoof)) },
                                         icon = {
                                                 Icon(Icons.Filled.Tune, contentDescription = null)
                                         },
@@ -175,7 +184,7 @@ fun ProfileDetailScreen(
                                 Tab(
                                         selected = selectedTab == 1,
                                         onClick = { selectedTab = 1 },
-                                        text = { Text("Apps") },
+                                        text = { Text(stringResource(id = R.string.profile_detail_tab_apps)) },
                                         icon = {
                                                 Icon(Icons.Filled.Apps, contentDescription = null)
                                         },
@@ -262,6 +271,12 @@ fun ProfileDetailScreen(
                                 }
                         }
                 }
+
+                AnimatedLoadingOverlay(isLoading = profile == null) {
+                        ExpressiveLoadingIndicatorWithLabel(
+                                label = "Initializing profile..."
+                        )
+                }
         }
 }
 
@@ -300,7 +315,7 @@ private fun ProfileSpoofContent(
                                         ) {
                                                 Text(
                                                         text =
-                                                                "Configure which identifiers to spoof for this profile.",
+                                                                stringResource(id = R.string.profile_detail_spoof_desc),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color =
                                                                 MaterialTheme.colorScheme
@@ -369,13 +384,17 @@ private fun ProfileCategorySection(
 
         val typesInCategory = SpoofType.byCategory(category)
 
+        val categoryShape = animatedRoundedCornerShape(
+                targetRadius = if (isExpanded) 24.dp else 16.dp
+        )
+
         ElevatedCard(
                 modifier = modifier.animateContentSize(animationSpec = spring()),
                 colors =
                         CardDefaults.elevatedCardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                         ),
-                shape = MaterialTheme.shapes.large,
+                shape = categoryShape,
         ) {
                 Column {
                         // Header
@@ -419,7 +438,7 @@ private fun ProfileCategorySection(
                                 Icon(
                                         imageVector = Icons.Filled.ExpandLess,
                                         contentDescription =
-                                                if (isExpanded) "Collapse" else "Expand",
+                                                if (isExpanded) stringResource(id = R.string.action_collapse) else stringResource(id = R.string.action_expand),
                                         modifier = Modifier.rotate(rotationAngle),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -508,7 +527,7 @@ private fun ProfileSpoofItem(
                                         verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                         Text(
-                                                text = value.ifEmpty { "Not set" },
+                                                text = value.ifEmpty { stringResource(id = R.string.profile_detail_not_set) },
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontFamily = FontFamily.Monospace,
                                                 color = MaterialTheme.colorScheme.primary,
@@ -521,13 +540,13 @@ private fun ProfileSpoofItem(
                                                 CompactExpressiveIconButton(
                                                         onClick = onCopy,
                                                         icon = Icons.Filled.ContentCopy,
-                                                        contentDescription = "Copy",
+                                                        contentDescription = stringResource(id = R.string.action_copy),
                                                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                                 )
                                                 CompactExpressiveIconButton(
                                                         onClick = onRegenerate,
                                                         icon = Icons.Filled.Refresh,
-                                                        contentDescription = "Regenerate",
+                                                        contentDescription = stringResource(id = R.string.action_regenerate),
                                                         tint = MaterialTheme.colorScheme.primary,
                                                 )
                                         }
@@ -591,7 +610,7 @@ private fun ProfileAppsContent(
                         OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                placeholder = { Text("Search apps...") },
+                                placeholder = { Text(stringResource(id = R.string.profile_detail_search_hint)) },
                                 leadingIcon = {
                                         Icon(Icons.Filled.Search, contentDescription = null)
                                 },
@@ -603,7 +622,11 @@ private fun ProfileAppsContent(
                         // Stats
                         Text(
                                 text =
-                                        "${filteredApps.size} apps • ${profile?.assignedAppCount() ?: 0} assigned",
+                                        stringResource(
+                                                id = R.string.profile_detail_apps_assigned_stats,
+                                                filteredApps.size,
+                                                profile?.assignedAppCount() ?: 0
+                                        ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -616,17 +639,9 @@ private fun ProfileAppsContent(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                         ) {
-                                Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                        androidx.compose.material3.CircularProgressIndicator()
-                                        Text(
-                                                text = "Loading apps...",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                }
+                                ExpressiveLoadingIndicatorWithLabel(
+                                        label = stringResource(id = R.string.profile_detail_loading_apps)
+                                )
                         }
                 } else if (filteredApps.isEmpty()) {
                         // Empty state for search results
@@ -647,12 +662,12 @@ private fun ProfileAppsContent(
                                                                 .copy(alpha = 0.5f),
                                         )
                                         Text(
-                                                text = "No apps found",
+                                                text = stringResource(id = R.string.profile_detail_no_apps_found),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         Text(
-                                                text = "Try adjusting your search or filter",
+                                                text = stringResource(id = R.string.profile_detail_adjust_search),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color =
                                                         MaterialTheme.colorScheme.onSurfaceVariant
@@ -763,7 +778,7 @@ private fun AppListItem(
                                         text =
                                                 if (isDisabled
                                                 )
-                                                        "Assigned to: $assignedToOtherProfileName"
+                                                        stringResource(id = R.string.profile_detail_assigned_to, assignedToOtherProfileName ?: "")
                                                 else app.packageName,
                                         style = MaterialTheme.typography.bodySmall,
                                         color =
@@ -778,7 +793,7 @@ private fun AppListItem(
                         if (isDisabled) {
                                 Icon(
                                         imageVector = Icons.Filled.Lock,
-                                        contentDescription = "Assigned to another profile",
+                                        contentDescription = stringResource(id = R.string.profile_detail_locked),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(24.dp),
                                 )

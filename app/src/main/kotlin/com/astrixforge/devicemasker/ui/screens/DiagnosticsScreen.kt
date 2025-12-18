@@ -39,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.astrixforge.devicemasker.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.DeviceMaskerApp
@@ -170,13 +172,13 @@ fun DiagnosticsContent(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "Diagnostics",
+                            text = stringResource(id = R.string.diagnostics_title),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Pull down to refresh",
+                            text = stringResource(id = R.string.diagnostics_pull_refresh),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -237,7 +239,7 @@ private fun ModuleStatusCard(isXposedActive: Boolean) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isXposedActive) "Module Active" else "Module Inactive",
+                    text = if (isXposedActive) stringResource(id = R.string.module_active) else stringResource(id = R.string.module_inactive),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isXposedActive) StatusActive else StatusInactive,
@@ -246,9 +248,9 @@ private fun ModuleStatusCard(isXposedActive: Boolean) {
                 Text(
                     text =
                         if (isXposedActive) {
-                            "Hooks are being applied to target apps"
+                            stringResource(id = R.string.diagnostics_module_active_desc)
                         } else {
-                            "Enable module in LSPosed Manager"
+                            stringResource(id = R.string.diagnostics_module_inactive_desc)
                         },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -259,7 +261,7 @@ private fun ModuleStatusCard(isXposedActive: Boolean) {
 }
 
 /** Anti-detection test result. */
-data class AntiDetectionTest(val name: String, val description: String, val isPassed: Boolean)
+data class AntiDetectionTest(val nameRes: Int, val descriptionRes: Int, val isPassed: Boolean)
 
 /**
  * Section showing anti-detection test results.
@@ -271,9 +273,9 @@ private fun AntiDetectionSection(tests: List<AntiDetectionTest>) {
     val passedCount = tests.count { it.isPassed }
 
     AnimatedSection(
-        title = "Anti-Detection",
+        title = stringResource(id = R.string.diagnostics_anti_detection),
         icon = Icons.Outlined.Security,
-        count = "$passedCount/${tests.size} tests passed",
+        count = stringResource(id = R.string.diagnostics_tests_passed, passedCount, tests.size),
         countColor = if (passedCount == tests.size) StatusActive else StatusWarning,
         isExpanded = isExpanded,
         onExpandChange = { isExpanded = it },
@@ -312,12 +314,12 @@ private fun AntiDetectionTestItem(test: AntiDetectionTest) {
 
         Column {
             Text(
-                text = test.name,
+                text = stringResource(id = test.nameRes),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = test.description,
+                text = stringResource(id = test.descriptionRes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -335,7 +337,7 @@ private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<Dia
 
     AnimatedSection(
         title = category.displayName,
-        count = "${results.size} items",
+        count = stringResource(id = R.string.diagnostics_items_count, results.size),
         isExpanded = isExpanded,
         onExpandChange = { isExpanded = it },
     ) {
@@ -373,9 +375,9 @@ private fun DiagnosticResultItem(result: DiagnosticResult) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ValueColumn(label = "Real", value = result.realValue, modifier = Modifier.weight(1f))
+            ValueColumn(labelRes = R.string.diagnostics_real_label, value = result.realValue, modifier = Modifier.weight(1f))
             ValueColumn(
-                label = "Spoofed",
+                labelRes = R.string.diagnostics_spoofed_label,
                 value = result.spoofedValue,
                 modifier = Modifier.weight(1f),
             )
@@ -386,11 +388,11 @@ private fun DiagnosticResultItem(result: DiagnosticResult) {
 /** Status badge for diagnostic result. */
 @Composable
 private fun StatusBadge(status: DiagnosticStatus) {
-    val (color, text) =
+    val (color, textRes) =
         when (status) {
-            DiagnosticStatus.SUCCESS -> StatusActive to "Spoofed"
-            DiagnosticStatus.WARNING -> StatusWarning to "Not Spoofed"
-            DiagnosticStatus.INACTIVE -> MaterialTheme.colorScheme.onSurfaceVariant to "Inactive"
+            DiagnosticStatus.SUCCESS -> StatusActive to R.string.diagnostics_hook_success
+            DiagnosticStatus.WARNING -> StatusWarning to R.string.diagnostics_hook_failure
+            DiagnosticStatus.INACTIVE -> MaterialTheme.colorScheme.onSurfaceVariant to R.string.diagnostics_hook_inactive
         }
 
     Box(
@@ -401,21 +403,21 @@ private fun StatusBadge(status: DiagnosticStatus) {
                 )
                 .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelSmall, color = color)
+        Text(text = stringResource(id = textRes), style = MaterialTheme.typography.labelSmall, color = color)
     }
 }
 
 /** Column showing a value with label. */
 @Composable
-private fun ValueColumn(label: String, value: String?, modifier: Modifier = Modifier) {
+private fun ValueColumn(labelRes: Int, value: String?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(
-            text = label,
+            text = stringResource(id = labelRes),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = value ?: "Unknown",
+            text = value ?: stringResource(id = R.string.diagnostics_unknown),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color =
                 if (value != null) {
@@ -479,8 +481,8 @@ private fun runDiagnostics(
 private fun runAntiDetectionTests(): List<AntiDetectionTest> {
     return listOf(
         AntiDetectionTest(
-            name = "Stack Trace Filtering",
-            description = "Xposed classes hidden from stack traces",
+            nameRes = R.string.diagnostics_test_stack_trace,
+            descriptionRes = R.string.diagnostics_test_stack_trace_desc,
             isPassed =
                 try {
                     val stackTrace = Thread.currentThread().stackTrace
@@ -490,8 +492,8 @@ private fun runAntiDetectionTests(): List<AntiDetectionTest> {
                 },
         ),
         AntiDetectionTest(
-            name = "Class Loading Protection",
-            description = "XposedBridge class not loadable",
+            nameRes = R.string.diagnostics_test_class_loading,
+            descriptionRes = R.string.diagnostics_test_class_loading_desc,
             isPassed =
                 try {
                     Class.forName("de.robv.android.xposed.XposedBridge")
@@ -503,13 +505,13 @@ private fun runAntiDetectionTests(): List<AntiDetectionTest> {
                 },
         ),
         AntiDetectionTest(
-            name = "Native Library Hiding",
-            description = "/proc/maps filtered",
+            nameRes = R.string.diagnostics_test_native_hiding,
+            descriptionRes = R.string.diagnostics_test_native_hiding_desc,
             isPassed = true, // Assume success if module is active
         ),
         AntiDetectionTest(
-            name = "Package Hiding",
-            description = "LSPosed package not visible",
+            nameRes = R.string.diagnostics_test_package_hiding,
+            descriptionRes = R.string.diagnostics_test_package_hiding_desc,
             isPassed = true, // Assume success if module is active
         ),
     )
@@ -544,9 +546,9 @@ private fun DiagnosticsContentPreview() {
                 ),
             antiDetectionResults =
                 listOf(
-                    AntiDetectionTest("Stack Trace", "Hidden", true),
-                    AntiDetectionTest("Class Loading", "Protected", true),
-                    AntiDetectionTest("Native Libs", "Filtered", false),
+                    AntiDetectionTest(R.string.diagnostics_test_stack_trace, R.string.diagnostics_test_stack_trace_desc, true),
+                    AntiDetectionTest(R.string.diagnostics_test_class_loading, R.string.diagnostics_test_class_loading_desc, true),
+                    AntiDetectionTest(R.string.diagnostics_test_native_hiding, R.string.diagnostics_test_native_hiding_desc, false),
                 ),
             isRefreshing = false,
             onRefresh = {},

@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
@@ -49,6 +50,7 @@ fun ExpressiveCard(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     enabled: Boolean = true,
+    shape: Shape = MaterialTheme.shapes.large,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -86,7 +88,7 @@ fun ExpressiveCard(
                 onClick = onClick
             ),
         colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
-        shape = MaterialTheme.shapes.large,
+        shape = shape,
     ) {
         Column(content = content)
     }

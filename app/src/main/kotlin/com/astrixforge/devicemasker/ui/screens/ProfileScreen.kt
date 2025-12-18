@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -42,15 +43,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.astrixforge.devicemasker.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.components.ProfileCard
+import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -118,8 +125,19 @@ fun ProfileScreen(
         }
     }
 
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            delay(1000) // Simulate refresh
+            isRefreshing = false
+        }
+    }
+
     ProfileScreenContent(
             profiles = profiles,
+            isRefreshing = isRefreshing,
+            onRefresh = { isRefreshing = true },
             onProfileClick = onProfileClick,
             onCreateProfile = { showCreateDialog = true },
             onEditProfile = { showEditDialog = it },
@@ -145,9 +163,9 @@ fun ProfileScreen(
         CreateProfileDialog(
                 onDismiss = { showCreateDialog = false },
                 onCreate = { name, description ->
+                    showCreateDialog = false
                     scope.launch {
                         repository.createProfile(name, description)
-                        showCreateDialog = false
                     }
                 },
         )
@@ -159,6 +177,7 @@ fun ProfileScreen(
                 profile = profile,
                 onDismiss = { showEditDialog = null },
                 onSave = { name, description ->
+                    showEditDialog = null
                     scope.launch {
                         repository.updateProfile(
                                 profile.copy(
@@ -167,7 +186,6 @@ fun ProfileScreen(
                                         updatedAt = System.currentTimeMillis(),
                                 )
                         )
-                        showEditDialog = null
                     }
                 },
         )
@@ -179,9 +197,9 @@ fun ProfileScreen(
                 profile = profile,
                 onDismiss = { showDeleteDialog = null },
                 onConfirm = {
+                    showDeleteDialog = null
                     scope.launch {
                         repository.deleteProfile(profile.id)
-                        showDeleteDialog = null
                     }
                 },
         )
@@ -192,6 +210,8 @@ fun ProfileScreen(
 @Composable
 fun ProfileScreenContent(
         profiles: List<SpoofProfile>,
+        isRefreshing: Boolean,
+        onRefresh: () -> Unit,
         onProfileClick: (SpoofProfile) -> Unit,
         onCreateProfile: () -> Unit,
         onEditProfile: (SpoofProfile) -> Unit,
@@ -209,6 +229,10 @@ fun ProfileScreenContent(
     }
     
     Box(modifier = modifier.fillMaxSize()) {
+        ExpressivePullToRefresh(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh
+        ) {
         LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -225,7 +249,7 @@ fun ProfileScreenContent(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                            text = "Profiles",
+                            text = stringResource(id = R.string.profile_screen_title),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -236,7 +260,7 @@ fun ProfileScreenContent(
                         CompactExpressiveIconButton(
                             onClick = onImport,
                             icon = Icons.Outlined.FileDownload,
-                            contentDescription = "Import Profiles",
+                            contentDescription = stringResource(id = R.string.profile_import_profiles),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         
@@ -244,7 +268,7 @@ fun ProfileScreenContent(
                         CompactExpressiveIconButton(
                             onClick = onExport,
                             icon = Icons.Outlined.FileUpload,
-                            contentDescription = "Export Profiles",
+                            contentDescription = stringResource(id = R.string.profile_import_export),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -267,13 +291,13 @@ fun ProfileScreenContent(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                    text = "No profiles yet",
+                                    text = stringResource(id = R.string.profile_list_empty),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                    text = "Tap + to create your first profile",
+                                    text = stringResource(id = R.string.profile_create_new),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color =
                                             MaterialTheme.colorScheme.onSurfaceVariant.copy(
@@ -302,12 +326,14 @@ fun ProfileScreenContent(
             }
         }
 
+        }
+
         // Scroll-aware FAB - collapses on scroll, expands when at top
         ExtendedFloatingActionButton(
                 onClick = onCreateProfile,
                 expanded = expandedFab,
                 icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Profile") },
+                text = { Text(stringResource(id = R.string.profile_new)) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
@@ -328,14 +354,14 @@ fun CreateProfileDialog(
     AlertDialog(
             onDismissRequest = onDismiss,
             icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
-            title = { Text("Create Profile") },
+            title = { Text(stringResource(id = R.string.profile_create_new)) },
             text = {
                 Column {
                     val maxNameLength = 12
                     OutlinedTextField(
                             value = name,
                             onValueChange = { if (it.length <= maxNameLength) name = it },
-                            label = { Text("Profile Name") },
+                            label = { Text(stringResource(id = R.string.profile_name_hint)) },
                             placeholder = { Text("e.g., Samsung") },
                             singleLine = true,
                             supportingText = { Text("${name.length}/$maxNameLength") },
@@ -345,7 +371,7 @@ fun CreateProfileDialog(
                     OutlinedTextField(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text("Description (optional)") },
+                            label = { Text(stringResource(id = R.string.profile_description_hint)) },
                             placeholder = { Text("e.g., For banking apps") },
                             modifier = Modifier.fillMaxWidth(),
                     )
@@ -355,9 +381,9 @@ fun CreateProfileDialog(
                 TextButton(
                         onClick = { onCreate(name.trim(), description.trim()) },
                         enabled = isValid
-                ) { Text("Create") }
+                ) { Text(stringResource(id = R.string.action_create)) }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.action_cancel)) } },
     )
 }
 
@@ -375,13 +401,13 @@ fun EditProfileDialog(
     AlertDialog(
             onDismissRequest = onDismiss,
             icon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-            title = { Text("Edit Profile") },
+            title = { Text(stringResource(id = R.string.profile_edit_dialog_title)) },
             text = {
                 Column {
                     OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            label = { Text("Profile Name") },
+                            label = { Text(stringResource(id = R.string.profile_name_hint)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                     )
@@ -389,7 +415,7 @@ fun EditProfileDialog(
                     OutlinedTextField(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text("Description (optional)") },
+                            label = { Text(stringResource(id = R.string.profile_description_hint)) },
                             modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -398,9 +424,9 @@ fun EditProfileDialog(
                 TextButton(
                         onClick = { onSave(name.trim(), description.trim()) },
                         enabled = isValid
-                ) { Text("Save") }
+                ) { Text(stringResource(id = R.string.action_save)) }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.action_cancel)) } },
     )
 }
 
@@ -416,19 +442,19 @@ fun DeleteProfileDialog(profile: SpoofProfile, onDismiss: () -> Unit, onConfirm:
                         tint = MaterialTheme.colorScheme.error,
                 )
             },
-            title = { Text("Delete Profile?") },
+            title = { Text(stringResource(id = R.string.profile_delete_dialog_title)) },
             text = {
                 Text(
-                        "Are you sure you want to delete \"${profile.name}\"? " +
-                                "Apps using this profile will switch to the default profile."
+                        stringResource(id = R.string.profile_delete_confirm) + " " +
+                                stringResource(id = R.string.profile_delete_warning)
                 )
             },
             confirmButton = {
                 TextButton(onClick = onConfirm) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(id = R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.action_cancel)) } },
     )
 }
 
@@ -447,6 +473,8 @@ private fun ProfileScreenContentPreview() {
                                 SpoofProfile.createNew("Samsung Galaxy S24"),
                                 SpoofProfile.createNew("Pixel 9 Pro"),
                         ),
+                isRefreshing = false,
+                onRefresh = {},
                 onProfileClick = {},
                 onCreateProfile = {},
                 onEditProfile = {},
@@ -462,6 +490,8 @@ private fun ProfileScreenEmptyPreview() {
     DeviceMaskerTheme {
         ProfileScreenContent(
                 profiles = emptyList(),
+                isRefreshing = false,
+                onRefresh = {},
                 onProfileClick = {},
                 onCreateProfile = {},
                 onEditProfile = {},

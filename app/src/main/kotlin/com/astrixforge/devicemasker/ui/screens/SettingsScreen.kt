@@ -43,6 +43,8 @@ import androidx.compose.material3.RadioButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.astrixforge.devicemasker.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,10 +63,10 @@ import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 
 /** Theme mode options for the app. */
-enum class ThemeMode(val displayName: String) {
-        SYSTEM("System default"),
-        LIGHT("Light"),
-        DARK("Dark")
+enum class ThemeMode(val displayNameRes: Int) {
+        SYSTEM(R.string.settings_theme_system),
+        LIGHT(R.string.settings_theme_light),
+        DARK(R.string.settings_theme_dark)
 }
 
 /**
@@ -120,7 +122,7 @@ fun SettingsScreen(
                 // Header
                 item {
                         Text(
-                                text = "Settings",
+                                text = stringResource(id = R.string.settings_title),
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -130,7 +132,7 @@ fun SettingsScreen(
 
                 // Appearance Section
                 item {
-                        SettingsSection(title = "Appearance") {
+                        SettingsSection(title = stringResource(id = R.string.settings_appearance)) {
                                 // Theme Mode (opens dialog)
                                 SettingsClickableItemWithValue(
                                         icon =
@@ -138,10 +140,9 @@ fun SettingsScreen(
                                                         ThemeMode.DARK -> Icons.Outlined.DarkMode
                                                         ThemeMode.LIGHT -> Icons.Outlined.LightMode
                                                         ThemeMode.SYSTEM -> Icons.Outlined.Contrast
-                                                        else -> Icons.Outlined.Contrast
                                                 },
-                                        title = "Theme",
-                                        description = themeMode.displayName,
+                                        title = stringResource(id = R.string.settings_theme_mode),
+                                        description = stringResource(id = themeMode.displayNameRes),
                                         onClick = { showThemeModeDialog = true },
                                 )
 
@@ -155,9 +156,8 @@ fun SettingsScreen(
                                                 Spacer(modifier = Modifier.height(8.dp))
                                                 SettingsSwitchItem(
                                                         icon = Icons.Outlined.Contrast,
-                                                        title = "AMOLED Dark Mode",
-                                                        description =
-                                                                "Pure black background for OLED displays",
+                                                        title = stringResource(id = R.string.settings_amoled_mode),
+                                                        description = stringResource(id = R.string.settings_amoled_description),
                                                         checked = amoledDarkMode,
                                                         onCheckedChange = onAmoledDarkModeChange,
                                                 )
@@ -168,9 +168,8 @@ fun SettingsScreen(
                                         Spacer(modifier = Modifier.height(8.dp))
                                         SettingsSwitchItem(
                                                 icon = Icons.Outlined.Palette,
-                                                title = "Dynamic Colors",
-                                                description =
-                                                        "Use Material You colors from your wallpaper",
+                                                title = stringResource(id = R.string.settings_dynamic_colors),
+                                                description = stringResource(id = R.string.settings_dynamic_description),
                                                 checked = dynamicColors,
                                                 onCheckedChange = onDynamicColorChange,
                                         )
@@ -180,11 +179,11 @@ fun SettingsScreen(
 
                 // Advanced Section
                 item {
-                        SettingsSection(title = "Advanced") {
+                        SettingsSection(title = stringResource(id = R.string.settings_debug)) {
                                 SettingsSwitchItem(
                                         icon = Icons.Outlined.BugReport,
-                                        title = "Debug Logging",
-                                        description = "Enable verbose logging for troubleshooting",
+                                        title = stringResource(id = R.string.settings_debug_logging),
+                                        description = stringResource(id = R.string.settings_debug_description),
                                         checked = debugLogging,
                                         onCheckedChange = onDebugLogChange,
                                 )
@@ -193,9 +192,8 @@ fun SettingsScreen(
 
                                 SettingsClickableItem(
                                         icon = Icons.Outlined.Shield,
-                                        title = "Diagnostics",
-                                        description =
-                                                "Test spoofing effectiveness and anti-detection",
+                                        title = stringResource(id = R.string.settings_diagnostics),
+                                        description = stringResource(id = R.string.settings_diagnostics_description),
                                         onClick = onNavigateToDiagnostics,
                                 )
                         }
@@ -203,12 +201,11 @@ fun SettingsScreen(
 
                 // About Section
                 item {
-                        SettingsSection(title = "About") {
+                        SettingsSection(title = stringResource(id = R.string.settings_about)) {
                                 SettingsInfoItem(
                                         icon = Icons.Outlined.Info,
-                                        title = "Version",
-                                        value =
-                                                "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                                        title = stringResource(id = R.string.settings_version),
+                                        value = stringResource(id = R.string.settings_version_info, BuildConfig.VERSION_NAME),
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -258,7 +255,7 @@ private fun ThemeModeDialog(
                 onDismissRequest = onDismiss,
                 title = {
                         Text(
-                                text = "Theme",
+                                text = stringResource(id = R.string.settings_theme_mode),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.SemiBold,
                         )
@@ -288,7 +285,7 @@ private fun ThemeModeDialog(
                                                 Spacer(modifier = Modifier.width(12.dp))
                                                 Column {
                                                         Text(
-                                                                text = mode.displayName,
+                                                                text = stringResource(id = mode.displayNameRes),
                                                                 style =
                                                                         MaterialTheme.typography
                                                                                 .bodyLarge,
@@ -296,8 +293,7 @@ private fun ThemeModeDialog(
                                                         )
                                                         if (mode == ThemeMode.SYSTEM) {
                                                                 Text(
-                                                                        text =
-                                                                                "Follow system settings",
+                                                                        text = stringResource(id = R.string.settings_theme_follow_system),
                                                                         style =
                                                                                 MaterialTheme
                                                                                         .typography
@@ -313,7 +309,7 @@ private fun ThemeModeDialog(
                                 }
                         }
                 },
-                confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+                confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.action_cancel)) } },
         )
 }
 

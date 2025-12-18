@@ -20,6 +20,8 @@
 - ✅ Replaced all `Switch` components across codebase
 - ✅ Updated `ProfileDetailScreen` icons to use `CompactExpressiveIconButton`
 - ✅ Consistent spring-animated press feedback on all icon buttons
+- ✅ **FIXED**: Centered `AnimatedLoadingOverlay` with background dimming and touch blocking
+- ✅ **FIXED**: `AdvertisingHooker` inner class `$Info` syntax error
 
 ---
 
@@ -148,7 +150,7 @@
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| Debug APK | ✅ Success | Dec 18, 2025 20:45 IST |
+| Debug APK | ✅ Success | Dec 18, 2025 23:00 IST |
 | Release APK | ✅ Success | Dec 16, 2025 |
 | Device Test | ✅ Passing | Dec 17, 2025 |
 
@@ -162,6 +164,11 @@
 | UI Inconsistency Between Screens | ✅ FIXED |
 | Card Color Inconsistency | ✅ FIXED |
 | Switch not matching theme | ✅ FIXED (Dec 18) |
+| AdvertisingIdClient$Info syntax error | ✅ FIXED (Dec 18) |
+| ProfileDetailScreen Unresolved Ref | ✅ FIXED (Dec 18) |
+| ProfileScreen LaunchedEffect/delay | ✅ FIXED (Dec 18) |
+| Loading animation stuck in top-left | ✅ FIXED (Dec 18) |
+| Dialogs and Sections stuck (not closing) | ✅ FIXED (Dec 18) |
 
 ## Milestones
 
