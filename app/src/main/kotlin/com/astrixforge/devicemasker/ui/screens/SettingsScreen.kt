@@ -40,7 +40,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -382,7 +382,7 @@ private fun SettingsSwitchItem(
                         )
                 }
 
-                Switch(checked = checked, onCheckedChange = onCheckedChange)
+                ExpressiveSwitch(checked = checked, onCheckedChange = onCheckedChange)
         }
 }
 

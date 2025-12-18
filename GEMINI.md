@@ -94,3 +94,8 @@ Curated excerpts from official Android documentation for quick offline reference
 |------|-------------|
 | [KotlinJetpackCompose.md](developer-android-docs/KoylinJetpackCompose.md) | Kotlin for Jetpack Compose patterns and best practices |
 | [best-practices.md](developer-android-docs/best-practices.md) | Compose performance optimization (`remember`, `derivedStateOf`, lazy keys) |
+| [material3-expressive.md](material-ui/material3-expressive.md) | Material 3 Expressive rules: motion system, new components, theming |
+
+@/docs/developer-android-docs/KoylinJetpackCompose.md
+@/docs/developer-android-docs/best-practices.md
+@/docs/material-ui/material3-expressive.md

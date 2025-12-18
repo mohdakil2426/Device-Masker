@@ -7,7 +7,21 @@
 | **Project Phase** | Production Ready |
 | **Active Changes** | 0 |
 | **Archived Changes** | 5 |
-| **Last Major Update** | December 18, 2025 - M3 Expressive Complete |
+| **Last Major Update** | December 18, 2025 - Expressive Components Complete |
+
+## Latest Session: ExpressiveSwitch Integration
+
+**Status**: ✅ Complete
+**Date**: December 18, 2025
+
+### Features Implemented
+- ✅ Created `ExpressiveSwitch` component with spring-animated thumb
+- ✅ Theme integration with `MaterialTheme.colorScheme` (supports dynamic colors)
+- ✅ Replaced all `Switch` components across codebase
+- ✅ Updated `ProfileDetailScreen` icons to use `CompactExpressiveIconButton`
+- ✅ Consistent spring-animated press feedback on all icon buttons
+
+---
 
 ## Completed Change: Material 3 Expressive Features
 
@@ -21,6 +35,8 @@
 - ✅ ExpressiveLoadingIndicator.kt - M3 LoadingIndicator wrapper
 - ✅ QuickActionGroup.kt - M3 ButtonGroup wrapper
 - ✅ ExpressivePullToRefresh.kt - Reusable pull-to-refresh with morphing indicator
+- ✅ ExpressiveIconButton.kt - Icon button with spring scale animation
+- ✅ ExpressiveSwitch.kt - M3 Switch with spring thumb animation
 - ✅ HomeScreen QuickActionGroup integration
 - ✅ StatusCard expressive animations
 - ✅ ProfileScreen scroll-aware FAB
@@ -36,7 +52,7 @@
 **Summary**: Material 3 Expressive design system integration
 - Updated Material 3 to 1.5.0-alpha11
 - Added graphics-shapes library
-- Created 4 new expressive components
+- Created 10 new expressive components
 - Integrated spring physics throughout UI
 - Pull-to-refresh with morphing LoadingIndicator
 
@@ -101,19 +117,24 @@
 | MainActivity.kt | ✅ Done (3-tab navigation) |
 | HomeScreen.kt | ✅ Done (QuickActionGroup) |
 | ProfileScreen.kt | ✅ Done (scroll-aware FAB) |
-| ProfileDetailScreen.kt | ✅ Done |
-| SettingsScreen.kt | ✅ Done |
+| ProfileDetailScreen.kt | ✅ Done (ExpressiveIconButton) |
+| SettingsScreen.kt | ✅ Done (ExpressiveSwitch) |
 | DiagnosticsScreen.kt | ✅ Done (ExpressivePullToRefresh) |
 | BottomNavBar.kt | ✅ Done (expressive motion) |
 
-### ✅ Expressive Components - NEW
-| Component | File |
-|-----------|------|
-| AnimatedSection | ui/components/expressive/AnimatedSection.kt |
-| ExpressiveLoadingIndicator | ui/components/expressive/ExpressiveLoadingIndicator.kt |
-| ExpressivePullToRefresh | ui/components/expressive/ExpressivePullToRefresh.kt |
-| MorphingShape | ui/components/expressive/MorphingShape.kt |
-| QuickActionGroup | ui/components/expressive/QuickActionGroup.kt |
+### ✅ Expressive Components - Complete (10 Total)
+| Component | File | Purpose |
+|-----------|------|---------|
+| AnimatedSection | expressive/AnimatedSection.kt | Expand/collapse with animation |
+| ExpressiveCard | expressive/ExpressiveCard.kt | Card with press feedback |
+| ExpressiveIconButton | expressive/ExpressiveIconButton.kt | Spring-animated icon button |
+| ExpressiveLoadingIndicator | expressive/ExpressiveLoadingIndicator.kt | M3 LoadingIndicator |
+| ExpressivePullToRefresh | expressive/ExpressivePullToRefresh.kt | Pull-to-refresh |
+| **ExpressiveSwitch** | expressive/ExpressiveSwitch.kt | **Spring-animated switch (NEW)** |
+| MorphingShape | expressive/MorphingShape.kt | Corner radius animation |
+| QuickActionGroup | expressive/QuickActionGroup.kt | M3 ButtonGroup |
+| SectionHeader | expressive/SectionHeader.kt | Consistent headers |
+| StatusIndicator | expressive/StatusIndicator.kt | Status dots |
 
 ### ✅ Hook Layer - Complete
 - [x] HookDataProvider.kt - Profile resolution
@@ -127,7 +148,7 @@
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| Debug APK | ✅ Success | Dec 18, 2025 14:35 IST |
+| Debug APK | ✅ Success | Dec 18, 2025 20:45 IST |
 | Release APK | ✅ Success | Dec 16, 2025 |
 | Device Test | ✅ Passing | Dec 17, 2025 |
 
@@ -140,6 +161,7 @@
 | Dark Mode Content Invisible | ✅ FIXED |
 | UI Inconsistency Between Screens | ✅ FIXED |
 | Card Color Inconsistency | ✅ FIXED |
+| Switch not matching theme | ✅ FIXED (Dec 18) |
 
 ## Milestones
 
@@ -156,40 +178,39 @@
 | 🔄 Profile Workflow Redesign | Week 9 | ✅ Done |
 | 🔓 Independent Profiles | Week 10 | ✅ Done |
 | ✨ M3 Expressive Features | Week 11 | ✅ Done |
+| 🎚️ Expressive Components | Week 11 | ✅ Done |
 | ✅ v1.0 Release Ready | Week 11 | ✅ Done |
 
 ## Architecture Changes (Dec 18, 2025)
 
-### New: Expressive Animation System
-```
-Before (Legacy Springs):
-AppMotion.DefaultSpring  // Deprecated
-AppMotion.FastSpring     // Deprecated
-
-After (M3 Expressive):
-AppMotion.Spatial.Expressive  // Hero moments, button presses
-AppMotion.Spatial.Standard    // Navigation, list animations
-AppMotion.Effect.Color        // Color transitions
-AppMotion.Effect.Alpha        // Opacity transitions
-```
-
-### New: Reusable Pull-to-Refresh
+### New: ExpressiveSwitch Component
 ```kotlin
-ExpressivePullToRefresh(
-    isRefreshing = isRefreshing,
-    onRefresh = onRefresh,
-) {
-    LazyColumn { content() }
-}
+// Before (inconsistent)
+Switch(checked = checked, onCheckedChange = onChange)
+
+// After (consistent spring animation + theme)
+ExpressiveSwitch(checked = checked, onCheckedChange = onChange)
 ```
 
-### New: Scroll-Aware FAB
+### New: Unified Icon Button Animation
 ```kotlin
-val listState = rememberLazyListState()
-val expandedFab by remember {
-    derivedStateOf { listState.firstVisibleItemIndex == 0 }
-}
-ExtendedFloatingActionButton(expanded = expandedFab, ...)
+// Before (no animation)
+FilledTonalIconButton(onClick = onCopy) { Icon(...) }
+
+// After (spring press feedback)
+CompactExpressiveIconButton(onClick = onCopy, icon = Icons.Filled.ContentCopy)
 ```
 
-**Result**: Modern, expressive UI with physics-based animations.
+### Expressive Animation System
+```
+AppMotion.Spatial.*   // CAN overshoot
+  - Expressive        // Icon buttons, FABs (0.5 damping)
+  - Standard          // Navigation (0.75 damping)
+  - Snappy            // Switches, toggles (0.75 damping, high stiffness)
+
+AppMotion.Effect.*    // NO overshoot
+  - Color             // Track, thumb color transitions
+  - Alpha             // Fade effects
+```
+
+**Result**: All interactive elements now have consistent, physics-based animations.

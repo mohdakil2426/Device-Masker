@@ -38,8 +38,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -347,24 +346,9 @@ private fun StatusCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.width(16.dp))
-                        Switch(
+                        ExpressiveSwitch(
                             checked = isModuleEnabled,
                             onCheckedChange = onModuleEnabledChange,
-                            thumbContent = {
-                                Icon(
-                                    imageVector =
-                                        if (isModuleEnabled) Icons.Filled.Check
-                                        else Icons.Filled.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                )
-                            },
-                            colors =
-                                SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                                    checkedIconColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
                         )
                     }
                 }

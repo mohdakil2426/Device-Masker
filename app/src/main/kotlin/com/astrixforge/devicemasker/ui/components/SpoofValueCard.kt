@@ -17,7 +17,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -86,7 +86,7 @@ fun SpoofValueCard(
                     )
                 }
 
-                Switch(checked = identifier.isEnabled, onCheckedChange = onToggle)
+                ExpressiveSwitch(checked = identifier.isEnabled, onCheckedChange = onToggle)
             }
 
             Spacer(modifier = Modifier.height(12.dp))

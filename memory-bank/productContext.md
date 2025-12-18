@@ -113,7 +113,7 @@ This makes it ideal for privacy-focused modifications that need to work across m
 3. **Modern Feel**
    - Material 3 Expressive design language
    - Dynamic colors that adapt to wallpaper
-   - Smooth spring-based animations
+   - Smooth spring-based animations (10 expressive components)
    - AMOLED pure black for battery efficiency
 
 4. **Power User Options**

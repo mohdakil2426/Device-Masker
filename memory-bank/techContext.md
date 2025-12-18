@@ -114,7 +114,7 @@ cd Device Masker
 
 ### Performance Constraints
 
-- Hook methods must execute quickly (< 1ms overhead)
+- Hook methods must execute quickly (<1ms overhead)
 - DataStore reads should be cached in hooks
 - Anti-detection must run before spoofing hooks
 - UI must maintain 60fps animations
@@ -165,7 +165,7 @@ navigationCompose = "2.9.6"
 
 # Compose
 composeBom = "2025.12.00"
-material3 = "1.4.0"
+material3 = "1.5.0-alpha11"
 
 # YukiHookAPI
 material = "1.12.0"
@@ -295,16 +295,16 @@ object SpoofDataStore {
 
 Device Masker operates entirely offline. No network requests are made to external services. All data stays on device.
 
-## File Structure
+## File Structure (Updated Dec 18, 2025)
 
 ```
-Device Masker/
+devicemasker/
 ├── app/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── kotlin/com/astrixforge/devicemasker/
-│   │   │   │   ├── Device MaskerApp.kt          # Application class
-│   │   │   │   ├── hook/                        # YukiHookAPI layer
+│   │   │   │   ├── DeviceMaskerApp.kt             # Application class
+│   │   │   │   ├── hook/                           # YukiHookAPI layer
 │   │   │   │   │   ├── HookEntry.kt
 │   │   │   │   │   └── hooker/
 │   │   │   │   │       ├── DeviceHooker.kt
@@ -313,21 +313,46 @@ Device Masker/
 │   │   │   │   │       ├── SystemHooker.kt
 │   │   │   │   │       ├── LocationHooker.kt
 │   │   │   │   │       └── AntiDetectHooker.kt
-│   │   │   │   ├── data/                        # Data layer
+│   │   │   │   ├── data/                           # Data layer
 │   │   │   │   │   ├── SpoofDataStore.kt
 │   │   │   │   │   ├── ProfileManager.kt
 │   │   │   │   │   ├── AppScopeManager.kt
 │   │   │   │   │   ├── SpoofRepository.kt
 │   │   │   │   │   ├── models/
 │   │   │   │   │   └── generators/
-│   │   │   │   ├── ui/                          # UI layer
+│   │   │   │   ├── ui/                             # UI layer
 │   │   │   │   │   ├── MainActivity.kt
 │   │   │   │   │   ├── MainViewModel.kt
 │   │   │   │   │   ├── theme/
+│   │   │   │   │   │   ├── Color.kt
+│   │   │   │   │   │   ├── Theme.kt
+│   │   │   │   │   │   ├── Motion.kt               # AppMotion spring specs
+│   │   │   │   │   │   ├── Shapes.kt
+│   │   │   │   │   │   └── Type.kt
 │   │   │   │   │   ├── screens/
+│   │   │   │   │   │   ├── HomeScreen.kt
+│   │   │   │   │   │   ├── ProfileScreen.kt
+│   │   │   │   │   │   ├── ProfileDetailScreen.kt
+│   │   │   │   │   │   ├── SettingsScreen.kt
+│   │   │   │   │   │   └── DiagnosticsScreen.kt
 │   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── ProfileCard.kt
+│   │   │   │   │   │   ├── SpoofValueCard.kt
+│   │   │   │   │   │   ├── StatusIndicator.kt
+│   │   │   │   │   │   ├── ToggleButton.kt
+│   │   │   │   │   │   └── expressive/             # M3 Expressive components
+│   │   │   │   │   │       ├── AnimatedSection.kt
+│   │   │   │   │   │       ├── ExpressiveCard.kt
+│   │   │   │   │   │       ├── ExpressiveIconButton.kt
+│   │   │   │   │   │       ├── ExpressiveLoadingIndicator.kt
+│   │   │   │   │   │       ├── ExpressivePullToRefresh.kt
+│   │   │   │   │   │       ├── ExpressiveSwitch.kt
+│   │   │   │   │   │       ├── MorphingShape.kt
+│   │   │   │   │   │       ├── QuickActionGroup.kt
+│   │   │   │   │   │       ├── SectionHeader.kt
+│   │   │   │   │   │       └── StatusIndicator.kt
 │   │   │   │   │   └── navigation/
-│   │   │   │   └── utils/                       # Utilities
+│   │   │   │   └── utils/                          # Utilities
 │   │   │   ├── res/
 │   │   │   └── AndroidManifest.xml
 │   │   └── test/
@@ -336,7 +361,10 @@ Device Masker/
 ├── settings.gradle.kts
 ├── gradle/
 │   └── libs.versions.toml
-├── docs/prd/                                    # PRD documents
-├── openspec/                                    # OpenSpec specs
-└── memory-bank/                                 # Memory Bank
+├── docs/                                            # Documentation
+│   ├── rules/                                       # Development rules
+│   ├── developer-android-docs/                      # Android best practices
+│   └── material-ui/                                 # M3 Expressive rules
+├── openspec/                                        # OpenSpec specs
+└── memory-bank/                                     # Memory Bank
 ```

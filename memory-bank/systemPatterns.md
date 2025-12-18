@@ -240,29 +240,64 @@ data class SpoofProfile(
 **Motion Strategy (Spring-Based)**:
 ```kotlin
 // Spatial Springs - For position, size, scale (CAN overshoot)
-AppMotion.Spatial.Expressive  // Hero moments, prominent interactions
-AppMotion.Spatial.Standard    // Navigation, list animations
-AppMotion.Spatial.Snappy      // Toggle switches, quick feedback
+AppMotion.Spatial.Expressive  // Icon buttons, FABs (0.5 damping, low stiffness)
+AppMotion.Spatial.Standard    // Navigation, list animations (0.75 damping, medium stiffness)
+AppMotion.Spatial.Snappy      // Toggle switches, quick feedback (0.75 damping, high stiffness)
 
 // Effect Springs - For color, opacity (NO overshoot)
-AppMotion.Effect.Color        // Background, icon tint changes
+AppMotion.Effect.Color        // Background, track, thumb color changes
 AppMotion.Effect.Alpha        // Fade in/out, visibility
 AppMotion.Effect.Quick        // Immediate feedback
 ```
 
-**Expressive Components**:
-- `LoadingIndicator` - Morphing shapes (requires @OptIn ExperimentalMaterial3ExpressiveApi)
-- `ButtonGroup` - Connected button group
-- `PullToRefreshBox` - Pull-to-refresh container
-
-**Reusable Components Created**:
+**Expressive Components (10 Total)**:
 ```
 ui/components/expressive/
-├── AnimatedSection.kt          # Animated expand/collapse
-├── ExpressiveLoadingIndicator.kt # LoadingIndicator wrapper
-├── ExpressivePullToRefresh.kt  # Pull-to-refresh with morphing indicator
-├── MorphingShape.kt            # Animated corner radius
-└── QuickActionGroup.kt         # ButtonGroup wrapper
+├── AnimatedSection.kt           # Animated expand/collapse sections
+├── ExpressiveCard.kt            # Card with spring press feedback
+├── ExpressiveIconButton.kt      # Icon button with spring scale animation
+├── ExpressiveLoadingIndicator.kt # M3 LoadingIndicator wrapper
+├── ExpressivePullToRefresh.kt   # Pull-to-refresh with morphing indicator
+├── ExpressiveSwitch.kt          # M3 Switch with spring thumb animation
+├── MorphingShape.kt             # Animated corner radius utilities
+├── QuickActionGroup.kt          # M3 ButtonGroup wrapper
+├── SectionHeader.kt             # Consistent section headers
+└── StatusIndicator.kt           # Status dot indicators
+```
+
+**ExpressiveSwitch Usage**:
+```kotlin
+// Basic usage - uses MaterialTheme colors automatically
+ExpressiveSwitch(
+    checked = isEnabled,
+    onCheckedChange = { onEnableChange(it) }
+)
+
+// Without thumb icon
+ExpressiveSwitch(
+    checked = checked,
+    onCheckedChange = onCheckedChange,
+    showThumbIcon = false
+)
+```
+
+**ExpressiveIconButton Usage**:
+```kotlin
+// Standard size (40dp button, 24dp icon) - for prominent actions
+ExpressiveIconButton(
+    onClick = { onRefresh() },
+    icon = Icons.Filled.Refresh,
+    contentDescription = "Refresh",
+    tint = MaterialTheme.colorScheme.primary
+)
+
+// Compact size (36dp button, 20dp icon) - for action rows
+CompactExpressiveIconButton(
+    onClick = { onCopy() },
+    icon = Icons.Filled.ContentCopy,
+    contentDescription = "Copy",
+    tint = MaterialTheme.colorScheme.onSecondaryContainer
+)
 ```
 
 **Color Strategy**:
@@ -270,6 +305,7 @@ ui/components/expressive/
 - Custom Teal/Cyan accent as fallback
 - Pure black (#000000) background in dark mode
 - Secondary color for active navigation labels (M3 1.4.0+ spec)
+- ExpressiveSwitch uses `colorScheme.primary` for checked track (theme-aware)
 
 ## Design Patterns in Use
 

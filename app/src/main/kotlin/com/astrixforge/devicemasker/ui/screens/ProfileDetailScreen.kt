@@ -54,14 +54,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
+import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Switch
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -497,7 +497,7 @@ private fun ProfileSpoofItem(
                                                 fontWeight = FontWeight.Medium,
                                         )
                                 }
-                                Switch(checked = isEnabled, onCheckedChange = { onToggle(it) })
+                                ExpressiveSwitch(checked = isEnabled, onCheckedChange = { onToggle(it) })
                         }
 
                         // Value and actions
@@ -518,43 +518,18 @@ private fun ProfileSpoofItem(
                                         )
 
                                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                FilledTonalIconButton(
+                                                CompactExpressiveIconButton(
                                                         onClick = onCopy,
-                                                        modifier = Modifier.size(32.dp),
-                                                        colors =
-                                                                IconButtonDefaults
-                                                                        .filledTonalIconButtonColors(
-                                                                                containerColor =
-                                                                                        MaterialTheme
-                                                                                                .colorScheme
-                                                                                                .secondaryContainer
-                                                                        ),
-                                                ) {
-                                                        Icon(
-                                                                imageVector =
-                                                                        Icons.Filled.ContentCopy,
-                                                                contentDescription = "Copy",
-                                                                modifier = Modifier.size(16.dp),
-                                                        )
-                                                }
-                                                FilledTonalIconButton(
+                                                        icon = Icons.Filled.ContentCopy,
+                                                        contentDescription = "Copy",
+                                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                )
+                                                CompactExpressiveIconButton(
                                                         onClick = onRegenerate,
-                                                        modifier = Modifier.size(32.dp),
-                                                        colors =
-                                                                IconButtonDefaults
-                                                                        .filledTonalIconButtonColors(
-                                                                                containerColor =
-                                                                                        MaterialTheme
-                                                                                                .colorScheme
-                                                                                                .secondaryContainer
-                                                                        ),
-                                                ) {
-                                                        Icon(
-                                                                imageVector = Icons.Filled.Refresh,
-                                                                contentDescription = "Regenerate",
-                                                                modifier = Modifier.size(16.dp),
-                                                        )
-                                                }
+                                                        icon = Icons.Filled.Refresh,
+                                                        contentDescription = "Regenerate",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                )
                                         }
                                 }
                         }

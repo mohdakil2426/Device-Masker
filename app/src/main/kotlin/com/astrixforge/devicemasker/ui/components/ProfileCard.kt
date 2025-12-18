@@ -23,8 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -143,18 +142,9 @@ fun ProfileCard(
                 }
 
                 // Enable/Disable Switch
-                Switch(
+                ExpressiveSwitch(
                         checked = isEnabled,
                         onCheckedChange = onEnableChange,
-                        colors =
-                                SwitchDefaults.colors(
-                                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                        checkedTrackColor =
-                                                MaterialTheme.colorScheme.primaryContainer,
-                                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                        uncheckedTrackColor =
-                                                MaterialTheme.colorScheme.surfaceVariant,
-                                ),
                 )
             }
 
