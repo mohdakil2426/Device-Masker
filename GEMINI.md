@@ -21,4 +21,76 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 ### All about yuki hook api alwasy read this
 
- @/docs/rules/lsposed/YukiHookAPI_Reference.md
+@/docs/rules/lsposed/YukiHookAPI_Reference.md
+
+
+# Official Documentation & Resources
+
+> **Note:** Always use `context7` MCP and web search for the most up-to-date documentation.
+
+---
+
+## 📚 Online Resources
+
+### Jetpack Compose
+
+| Resource | Description |
+|----------|-------------|
+| [Compose Overview](https://developer.android.com/compose) | Getting started with Jetpack Compose |
+| [Kotlin for Compose](https://developer.android.com/develop/ui/compose/kotlin) | Kotlin language features for Compose |
+| [Compose Documentation](https://developer.android.com/develop/ui/compose/documentation) | Complete Compose documentation hub |
+| [Quick Guides](https://developer.android.com/develop/ui/compose/quick-guides) | Quick reference guides for common tasks |
+
+### Material 3 & Design Systems
+
+| Resource | Description |
+|----------|-------------|
+| [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3) | Implementing M3 design system |
+| [M2 to M3 Migration](https://developer.android.com/develop/ui/compose/designsystems/material2-material3) | Migration guide from Material 2 |
+| [M3 Release Notes](https://developer.android.com/jetpack/androidx/releases/compose-material3) | Latest Material 3 releases and changelogs |
+| [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary) | Complete API documentation |
+
+### Performance & Optimization
+
+| Resource | Description |
+|----------|-------------|
+| [Compose Best Practices](https://developer.android.com/develop/ui/compose/performance/bestpractices) | Performance optimization patterns |
+| [App Startup Analysis](https://developer.android.com/topic/performance/appstartup/analysis-optimization) | Startup performance optimization |
+| [Performance Overview](https://developer.android.com/topic/performance/improving-overview) | General Android performance guide |
+
+---
+
+## 🔗 GitHub Repositories
+
+### Official Android Samples
+
+| Repository | Description |
+|------------|-------------|
+| [compose-samples](https://github.com/android/compose-samples) | Official Compose sample apps |
+| [codelab-android-compose](https://github.com/android/codelab-android-compose) | Compose codelabs source code |
+| [nav3-recipes](https://github.com/android/nav3-recipes) | Navigation 3 recipes and patterns |
+| [performance-samples](https://github.com/android/performance-samples) | Performance optimization samples |
+
+### Source Code Reference
+
+| Repository | Description |
+|------------|-------------|
+| [M3 Samples (cs.android.com)](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:compose/material3/material3/samples/src/main/java/androidx/compose/material3/samples/) | Official Material 3 component samples |
+| [Kotlin Language](https://github.com/jetbrains/kotlin) | Kotlin compiler and stdlib |
+
+### Related Projects
+
+| Repository | Description |
+|------------|-------------|
+| [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix) | Play Integrity bypass module |
+
+---
+
+## 📁 Local Documentation
+
+Curated excerpts from official Android documentation for quick offline reference:
+
+| File | Description |
+|------|-------------|
+| [KotlinJetpackCompose.md](developer-android-docs/KoylinJetpackCompose.md) | Kotlin for Jetpack Compose patterns and best practices |
+| [best-practices.md](developer-android-docs/best-practices.md) | Compose performance optimization (`remember`, `derivedStateOf`, lazy keys) |
