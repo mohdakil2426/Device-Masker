@@ -2,9 +2,6 @@ package com.astrixforge.devicemasker.ui.screens
 
 import android.os.Build
 import android.provider.Settings
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,13 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +47,8 @@ import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.ui.components.expressive.AnimatedSection
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
@@ -149,19 +144,23 @@ fun DiagnosticsContent(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+    // Use the reusable ExpressivePullToRefresh component
+    ExpressivePullToRefresh(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier,
     ) {
-        // Header with back button and refresh - same style as Settings/Apps
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Header with back button - refresh is now pull-to-refresh
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -169,37 +168,34 @@ fun DiagnosticsContent(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Diagnostics",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                IconButton(onClick = onRefresh, enabled = !isRefreshing) {
-                    if (isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
+                    Column {
+                        Text(
+                            text = "Diagnostics",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
-                    } else {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh")
+                        Text(
+                            text = "Pull down to refresh",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
-        }
 
-        // Module Status Card
-        item { ModuleStatusCard(isXposedActive = isXposedActive) }
+            // Module Status Card
+            item { ModuleStatusCard(isXposedActive = isXposedActive) }
 
-        // Anti-Detection Section
-        item { AntiDetectionSection(tests = antiDetectionResults) }
+            // Anti-Detection Section
+            item { AntiDetectionSection(tests = antiDetectionResults) }
 
-        // Spoofing Results by Category
-        SpoofCategory.entries.forEach { category ->
-            val categoryResults = diagnosticResults.filter { it.type.category == category }
-            if (categoryResults.isNotEmpty()) {
-                item { CategoryDiagnosticSection(category = category, results = categoryResults) }
+            // Spoofing Results by Category
+            SpoofCategory.entries.forEach { category ->
+                val categoryResults = diagnosticResults.filter { it.type.category == category }
+                if (categoryResults.isNotEmpty()) {
+                    item { CategoryDiagnosticSection(category = category, results = categoryResults) }
+                }
             }
         }
     }
@@ -265,75 +261,27 @@ private fun ModuleStatusCard(isXposedActive: Boolean) {
 /** Anti-detection test result. */
 data class AntiDetectionTest(val name: String, val description: String, val isPassed: Boolean)
 
-/** Section showing anti-detection test results. */
+/**
+ * Section showing anti-detection test results.
+ * Uses AnimatedSection for spring-based expand/collapse animation.
+ */
 @Composable
 private fun AntiDetectionSection(tests: List<AntiDetectionTest>) {
     var isExpanded by remember { mutableStateOf(true) }
+    val passedCount = tests.count { it.isPassed }
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-        shape = MaterialTheme.shapes.large,
+    AnimatedSection(
+        title = "Anti-Detection",
+        icon = Icons.Outlined.Security,
+        count = "$passedCount/${tests.size} tests passed",
+        countColor = if (passedCount == tests.size) StatusActive else StatusWarning,
+        isExpanded = isExpanded,
+        onExpandChange = { isExpanded = it },
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.Security,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(text = "Anti-Detection", style = MaterialTheme.typography.titleMedium)
-                        val passedCount = tests.count { it.isPassed }
-                        Text(
-                            text = "$passedCount/${tests.size} tests passed",
-                            style = MaterialTheme.typography.bodySmall,
-                            color =
-                                if (passedCount == tests.size) {
-                                    StatusActive
-                                } else {
-                                    StatusWarning
-                                },
-                        )
-                    }
-                }
-
-                IconButton(onClick = { isExpanded = !isExpanded }) {
-                    Icon(
-                        imageVector =
-                            if (isExpanded) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
-                        contentDescription = null,
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                    tests.forEach { test ->
-                        AntiDetectionTestItem(test = test)
-                        if (test != tests.last()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                }
+        tests.forEach { test ->
+            AntiDetectionTestItem(test = test)
+            if (test != tests.last()) {
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -377,57 +325,24 @@ private fun AntiDetectionTestItem(test: AntiDetectionTest) {
     }
 }
 
-/** Section showing diagnostic results for a category. */
+/**
+ * Section showing diagnostic results for a category.
+ * Uses AnimatedSection for spring-based expand/collapse animation.
+ */
 @Composable
 private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<DiagnosticResult>) {
     var isExpanded by remember { mutableStateOf(true) }
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-        shape = MaterialTheme.shapes.large,
+    AnimatedSection(
+        title = category.displayName,
+        count = "${results.size} items",
+        isExpanded = isExpanded,
+        onExpandChange = { isExpanded = it },
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = category.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-
-                IconButton(onClick = { isExpanded = !isExpanded }) {
-                    Icon(
-                        imageVector =
-                            if (isExpanded) {
-                                Icons.Default.ExpandLess
-                            } else {
-                                Icons.Default.ExpandMore
-                            },
-                        contentDescription = null,
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                    results.forEach { result ->
-                        DiagnosticResultItem(result = result)
-                        if (result != results.last()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-                    }
-                }
+        results.forEach { result ->
+            DiagnosticResultItem(result = result)
+            if (result != results.last()) {
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }

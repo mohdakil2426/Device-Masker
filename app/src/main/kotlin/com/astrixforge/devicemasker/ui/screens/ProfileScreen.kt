@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -142,8 +144,15 @@ fun ProfileScreenContent(
         modifier: Modifier = Modifier,
         onEnableChange: (SpoofProfile, Boolean) -> Unit = { _, _ -> },
 ) {
+    // Track scroll position for FAB animation
+    val listState = rememberLazyListState()
+    val expandedFab by remember {
+        derivedStateOf { listState.firstVisibleItemIndex == 0 }
+    }
+    
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -210,9 +219,10 @@ fun ProfileScreenContent(
             }
         }
 
-        // FAB positioned at bottom end
+        // Scroll-aware FAB - collapses on scroll, expands when at top
         ExtendedFloatingActionButton(
                 onClick = onCreateProfile,
+                expanded = expandedFab,
                 icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
                 text = { Text("New Profile") },
                 containerColor = MaterialTheme.colorScheme.primary,

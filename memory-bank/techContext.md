@@ -6,7 +6,7 @@
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Kotlin** | 2.1.0 | Primary language |
+| **Kotlin** | 2.2.21 | Primary language |
 | **Android SDK** | API 36 (compileSdk) | Android 16 support |
 | **Min SDK** | API 26 (Android 8.0) | Broader device compatibility |
 | **Target SDK** | API 36 | Latest Android 16 |
@@ -17,9 +17,10 @@
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| **Compose BOM** | 2024.12.01 | December 2024 release |
+| **Compose BOM** | 2025.12.00 | December 2025 release |
 | **Compose UI** | BOM | Core UI toolkit |
-| **Material 3** | 1.12.0 | Material 3 Expressive |
+| **Material 3** | 1.5.0-alpha11 | Material 3 Expressive |
+| **Graphics Shapes** | 1.0.1 | Shape morphing support |
 | **Activity Compose** | 1.12.1 | Activity integration |
 | **Navigation Compose** | 2.9.6 | Navigation component |
 | **Lifecycle** | 2.10.0 | Lifecycle-aware components |

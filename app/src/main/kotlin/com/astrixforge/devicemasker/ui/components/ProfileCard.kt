@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -35,6 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.data.models.SpoofProfile
+import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import java.text.SimpleDateFormat
@@ -182,37 +183,31 @@ fun ProfileCard(
                     )
                 }
 
-                // Action Buttons
+                // Action Buttons with Expressive feedback
                 Row {
                     if (!profile.isDefault) {
-                        IconButton(onClick = onSetDefault, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Set as Default",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp),
+                        CompactExpressiveIconButton(
+                            onClick = onSetDefault,
+                            icon = Icons.Default.Star,
+                            contentDescription = "Set as Default",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
+                    CompactExpressiveIconButton(
+                        onClick = onEdit,
+                        icon = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     if (!profile.isDefault) {
-                        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp),
-                            )
-                        }
+                        CompactExpressiveIconButton(
+                            onClick = onDelete,
+                            icon = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
@@ -239,7 +234,10 @@ private fun DefaultBadge(modifier: Modifier = Modifier) {
     }
 }
 
-/** Compact profile card for selection lists. */
+/**
+ * Compact profile card for selection lists.
+ * Uses ExpressiveCard for spring-animated selection feedback.
+ */
 @Composable
 fun CompactProfileCard(
         profile: SpoofProfile,
@@ -247,20 +245,10 @@ fun CompactProfileCard(
         onClick: () -> Unit,
         modifier: Modifier = Modifier,
 ) {
-    ElevatedCard(
-            modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-            colors =
-                    CardDefaults.elevatedCardColors(
-                            containerColor =
-                                    if (isSelected) {
-                                        MaterialTheme.colorScheme.primaryContainer.copy(
-                                                alpha = 0.3f
-                                        )
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceContainerHigh
-                                    }
-                    ),
-            shape = MaterialTheme.shapes.medium,
+    ExpressiveCard(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        isSelected = isSelected,
     ) {
         Row(
                 modifier = Modifier.fillMaxWidth().padding(12.dp),

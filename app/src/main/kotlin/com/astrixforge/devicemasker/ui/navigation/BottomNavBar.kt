@@ -57,7 +57,7 @@ private fun RowScope.BottomNavItem(item: NavItem, isSelected: Boolean, onClick: 
     val scale by
         animateFloatAsState(
             targetValue = if (isSelected) 1.1f else 1.0f,
-            animationSpec = AppMotion.FastSpring,
+            animationSpec = AppMotion.Spatial.Standard,
             label = "iconScale_${item.route}",
         )
 
@@ -71,7 +71,7 @@ private fun RowScope.BottomNavItem(item: NavItem, isSelected: Boolean, onClick: 
         colors =
             NavigationBarItemDefaults.colors(
                 selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                selectedTextColor = MaterialTheme.colorScheme.secondary, // M3 1.4.0+ expressive nav
                 indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -90,7 +90,7 @@ private fun AnimatedNavIcon(item: NavItem, isSelected: Boolean, modifier: Modifi
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-            animationSpec = spring(),
+            animationSpec = AppMotion.Effect.Color,
             label = "iconColor",
         )
 

@@ -144,3 +144,58 @@ val AppTypography =
                 letterSpacing = 0.5.sp,
             ),
     )
+
+// ═══════════════════════════════════════════════════════════
+// Material 3 Expressive Typography Extensions
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Creates an emphasized version of this text style.
+ * 
+ * Material 3 Expressive uses heavier weights for visual hierarchy:
+ * - Normal → Medium
+ * - Medium → SemiBold
+ * - SemiBold → Bold
+ * - Bold → ExtraBold
+ *
+ * Usage:
+ * ```kotlin
+ * Text(
+ *     text = "Important Label",
+ *     style = MaterialTheme.typography.labelLarge.emphasized()
+ * )
+ * ```
+ */
+fun TextStyle.emphasized(): TextStyle = this.copy(
+    fontWeight = when (this.fontWeight) {
+        FontWeight.Thin -> FontWeight.Light
+        FontWeight.ExtraLight -> FontWeight.Normal
+        FontWeight.Light -> FontWeight.Normal
+        FontWeight.Normal -> FontWeight.Medium
+        FontWeight.Medium -> FontWeight.SemiBold
+        FontWeight.SemiBold -> FontWeight.Bold
+        FontWeight.Bold -> FontWeight.ExtraBold
+        FontWeight.ExtraBold -> FontWeight.Black
+        FontWeight.Black -> FontWeight.Black
+        else -> FontWeight.Medium
+    }
+)
+
+/**
+ * Creates a de-emphasized version of this text style.
+ * Useful for secondary text that should be less prominent.
+ */
+fun TextStyle.deemphasized(): TextStyle = this.copy(
+    fontWeight = when (this.fontWeight) {
+        FontWeight.Black -> FontWeight.ExtraBold
+        FontWeight.ExtraBold -> FontWeight.Bold
+        FontWeight.Bold -> FontWeight.SemiBold
+        FontWeight.SemiBold -> FontWeight.Medium
+        FontWeight.Medium -> FontWeight.Normal
+        FontWeight.Normal -> FontWeight.Light
+        FontWeight.Light -> FontWeight.ExtraLight
+        FontWeight.ExtraLight -> FontWeight.Thin
+        FontWeight.Thin -> FontWeight.Thin
+        else -> FontWeight.Normal
+    }
+)

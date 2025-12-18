@@ -6,59 +6,52 @@
 |--------|-------|
 | **Project Phase** | Production Ready |
 | **Active Changes** | 0 |
-| **Archived Changes** | 4 |
-| **Last Major Update** | December 17, 2025 - Independent Profiles Complete |
+| **Archived Changes** | 5 |
+| **Last Major Update** | December 18, 2025 - M3 Expressive Complete |
 
-## Completed Change: `refactor-independent-profiles`
+## Completed Change: Material 3 Expressive Features
 
-**Status**: ✅ Complete - Ready to Archive
+**Status**: ✅ Complete
+**Date**: December 18, 2025
 
-### All Phases Complete
-- ✅ Phase 1: Data Model Changes (isEnabled field added)
-- ✅ Phase 2: Remove GlobalSpoofConfig (BREAKING - fully removed)
-- ✅ Phase 3: Navigation Updates (3-tab layout)
-- ✅ Phase 4: ProfileScreen (enable switch, 12-char limit)
-- ✅ Phase 5: ProfileDetailScreen (collapse state, app filtering, real icons)
-- ✅ Phase 6: HomeScreen profile dropdown
-- ✅ Phase 7: Hook Layer Updates (all 5 hookers refactored)
-- ✅ Phase 8: Testing & Validation (build verified)
-- ✅ Phase 9: Cleanup (Spotless formatting configured)
-- ✅ Phase 10: Code Quality Refactor (Modernized Hooks & UI)
-
-### Key Changes Made (Dec 17, 2025)
-1. **Removed GlobalSpoofConfig entirely** - No more global enable/disable
-2. **Profiles are now independent** - Each has its own isEnabled flag
-3. **All 5 hookers refactored** - Removed `isTypeEnabledGlobally()` calls
-4. **HookDataProvider simplified** - Profile checks only
-5. **HomeScreen profile dropdown** - Select and manage active profile
-6. **Real app icons** - Using PackageManager for actual app icons
-- [x] Standardized all hookers to use non-nullable `getSpoofValueOrGenerate` pattern.
-- [x] Resolved structural syntax and bracing errors in `AdvertisingHooker` and `DeviceHooker`.
-- [x] Fixed all remaining compilation errors in hooker files, ensuring successful project build.
-- [x] Modernized hookers with multi-dollar string literals and KTX extensions.
-- [x] Consistent use of `runCatching` for hook stability across device versions.
-- [x] Modernized UI Code - Applied modifier order conventions app-wide.
-- [x] KTX Migration - Improved `MigrationManager` with Kotlin extensions.
-- [x] Hardware ID Privacy - Suppressed `ANDROID_ID` warnings in Diagnostics screen.
-- [x] AS Problem Analysis Resolution (Dec 18, 2025)
-  - [x] Fixed static context field leak in `SpoofRepository`
-  - [x] Implemented locale-independent GPS formatting (`Locale.US`)
-  - [x] Refactored `MigrationManager` to fix constant condition bug
-  - [x] Resolved "Modifier Black Hole" in HomeScreen and ProfileDetailScreen
-  - [x] Fixed Composable parameter ordering in ProfileScreen
-  - [x] Cleaned up unused string resources and imports
-  - [x] Removed empty/unused hook methods (`SystemHooker.hookBuildVersion`)
-  - [x] **Verified Fix**: Resolved build errors (unresolved references) and confirmed build success.
+### Features Implemented
+- ✅ Dependency Updates (Material 3 1.5.0-alpha11, graphics-shapes 1.0.1)
+- ✅ Motion System (AppMotion.Spatial.*, AppMotion.Effect.*)
+- ✅ MorphingShape.kt - Animated corner radius transitions
+- ✅ ExpressiveLoadingIndicator.kt - M3 LoadingIndicator wrapper
+- ✅ QuickActionGroup.kt - M3 ButtonGroup wrapper
+- ✅ ExpressivePullToRefresh.kt - Reusable pull-to-refresh with morphing indicator
+- ✅ HomeScreen QuickActionGroup integration
+- ✅ StatusCard expressive animations
+- ✅ ProfileScreen scroll-aware FAB
+- ✅ BottomNavBar M3 1.4.0+ label colors (secondary)
+- ✅ DiagnosticsScreen pull-to-refresh with ExpressivePullToRefresh
 
 ---
 
 ## Archived Changes
 
+### ✅ `add-m3-expressive-features` (Archived Dec 18, 2025)
+
+**Summary**: Material 3 Expressive design system integration
+- Updated Material 3 to 1.5.0-alpha11
+- Added graphics-shapes library
+- Created 4 new expressive components
+- Integrated spring physics throughout UI
+- Pull-to-refresh with morphing LoadingIndicator
+
+### ✅ `refactor-independent-profiles` (Archived Dec 17, 2025)
+
+**Summary**: Profile independence and GlobalSpoofConfig removal
+- Removed GlobalSpoofConfig entirely
+- Profiles now fully independent with isEnabled flag
+- Simplified hooker pattern
+- 3-tab navigation
+
 ### ✅ `refactor-profile-workflow` (Archived Dec 17, 2025)
 
 **Summary**: Profile-centric workflow redesign
 - Moved app assignment to `SpoofProfile.assignedApps`
-- Added `GlobalSpoofConfig` for master switches (now removed!)
 - 4-tab navigation (now 3-tab)
 - `ProfileDetailScreen` with tabbed interface
 - Data migration V1 → V2
@@ -68,7 +61,7 @@
 **Summary**: Complete LSPosed module implementation
 - Build configuration, Gradle setup
 - All device spoofing generators
-- Hook layer with 5+ hookers
+- Hook layer with 6 hookers
 - Full UI with Material 3
 - Anti-detection system
 
@@ -99,23 +92,33 @@
 - [x] SpoofDataStore.kt - Preference storage
 - [x] ProfileRepository.kt - Profile CRUD
 - [x] SpoofRepository.kt - Combined data layer
-- [x] MigrationManager.kt - V1→V2 migration (GlobalSpoofConfig removed)
+- [x] MigrationManager.kt - V1→V2 migration
 
-### ✅ User Interface - Complete
+### ✅ User Interface - Complete (M3 Expressive)
 | Component | Status |
 |-----------|--------|
-| Theme System | ✅ Done |
+| Theme System (Motion) | ✅ Done |
 | MainActivity.kt | ✅ Done (3-tab navigation) |
-| HomeScreen.kt | ✅ Done |
-| ProfileScreen.kt | ✅ Done |
-| ProfileDetailScreen.kt | ✅ Done (GlobalSpoofConfig removed) |
+| HomeScreen.kt | ✅ Done (QuickActionGroup) |
+| ProfileScreen.kt | ✅ Done (scroll-aware FAB) |
+| ProfileDetailScreen.kt | ✅ Done |
 | SettingsScreen.kt | ✅ Done |
-| DiagnosticsScreen.kt | ✅ Done |
+| DiagnosticsScreen.kt | ✅ Done (ExpressivePullToRefresh) |
+| BottomNavBar.kt | ✅ Done (expressive motion) |
 
-### ✅ Hook Layer - Complete (Refactored Dec 17)
-- [x] HookDataProvider.kt - Profile resolution (simplified)
+### ✅ Expressive Components - NEW
+| Component | File |
+|-----------|------|
+| AnimatedSection | ui/components/expressive/AnimatedSection.kt |
+| ExpressiveLoadingIndicator | ui/components/expressive/ExpressiveLoadingIndicator.kt |
+| ExpressivePullToRefresh | ui/components/expressive/ExpressivePullToRefresh.kt |
+| MorphingShape | ui/components/expressive/MorphingShape.kt |
+| QuickActionGroup | ui/components/expressive/QuickActionGroup.kt |
+
+### ✅ Hook Layer - Complete
+- [x] HookDataProvider.kt - Profile resolution
 - [x] All 5 hookers - Profile-based values only
-- [x] No more global config checks
+- [x] No global config checks
 - [x] Profile.isEnabled check in getSpoofValue()
 
 ---
@@ -124,7 +127,7 @@
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| Debug APK | ✅ Success | Dec 17, 2025 02:45 IST |
+| Debug APK | ✅ Success | Dec 18, 2025 14:35 IST |
 | Release APK | ✅ Success | Dec 16, 2025 |
 | Device Test | ✅ Passing | Dec 17, 2025 |
 
@@ -152,28 +155,41 @@
 | 📦 Release Build | Week 8 | ✅ Done |
 | 🔄 Profile Workflow Redesign | Week 9 | ✅ Done |
 | 🔓 Independent Profiles | Week 10 | ✅ Done |
-| ✅ v1.0 Release Ready | Week 10 | ✅ Done |
+| ✨ M3 Expressive Features | Week 11 | ✅ Done |
+| ✅ v1.0 Release Ready | Week 11 | ✅ Done |
 
-## Architecture Changes (Dec 17, 2025)
+## Architecture Changes (Dec 18, 2025)
 
-### Before (GlobalSpoofConfig)
+### New: Expressive Animation System
 ```
-Hooker → isTypeEnabledGlobally(type) → GlobalSpoofConfig
-                     ↓
-              If disabled globally → return null
-                     ↓
-        provider.getSpoofValue(type) → Profile
-```
+Before (Legacy Springs):
+AppMotion.DefaultSpring  // Deprecated
+AppMotion.FastSpring     // Deprecated
 
-### After (Independent Profiles)
-```
-Hooker → provider.getSpoofValue(type) → Profile
-                     ↓
-          Profile.isEnabled check
-                     ↓
-          Profile.isTypeEnabled(type) check
-                     ↓
-              Return value or null
+After (M3 Expressive):
+AppMotion.Spatial.Expressive  // Hero moments, button presses
+AppMotion.Spatial.Standard    // Navigation, list animations
+AppMotion.Effect.Color        // Color transitions
+AppMotion.Effect.Alpha        // Opacity transitions
 ```
 
-**Result**: Simpler, more predictable, profiles are truly independent.
+### New: Reusable Pull-to-Refresh
+```kotlin
+ExpressivePullToRefresh(
+    isRefreshing = isRefreshing,
+    onRefresh = onRefresh,
+) {
+    LazyColumn { content() }
+}
+```
+
+### New: Scroll-Aware FAB
+```kotlin
+val listState = rememberLazyListState()
+val expandedFab by remember {
+    derivedStateOf { listState.firstVisibleItemIndex == 0 }
+}
+ExtendedFloatingActionButton(expanded = expandedFab, ...)
+```
+
+**Result**: Modern, expressive UI with physics-based animations.

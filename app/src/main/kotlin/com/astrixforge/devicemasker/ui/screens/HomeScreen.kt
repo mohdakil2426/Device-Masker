@@ -66,6 +66,8 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
+import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
+import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
 import kotlinx.coroutines.launch
 
 /**
@@ -238,14 +240,14 @@ private fun StatusCard(
     val statusColor by
         animateColorAsState(
             targetValue = if (isXposedActive && isModuleEnabled) StatusActive else StatusInactive,
-            animationSpec = spring(),
+            animationSpec = AppMotion.Effect.Color,
             label = "statusColor",
         )
 
     val scale by
         animateFloatAsState(
             targetValue = if (isXposedActive && isModuleEnabled) 1f else 0.95f,
-            animationSpec = AppMotion.BouncySpring,
+            animationSpec = AppMotion.Spatial.Expressive,
             label = "cardScale",
         )
 
@@ -585,30 +587,21 @@ private fun QuickActionsSection(
             color = MaterialTheme.colorScheme.onSurface,
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            FilledTonalButton(onClick = onNavigateToSpoof, modifier = Modifier.weight(1f)) {
-                Icon(
-                    imageVector = Icons.Outlined.Fingerprint,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+        // Material 3 Expressive Button Group
+        QuickActionGroup(
+            actions = listOf(
+                QuickAction(
+                    label = "Configure",
+                    icon = Icons.Outlined.Fingerprint,
+                    onClick = onNavigateToSpoof
+                ),
+                QuickAction(
+                    label = "Regenerate",
+                    icon = Icons.Filled.Refresh,
+                    onClick = onRegenerateAll
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Configure")
-            }
-
-            FilledTonalButton(onClick = onRegenerateAll, modifier = Modifier.weight(1f)) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Regenerate All")
-            }
-        }
+            )
+        )
     }
 }
 

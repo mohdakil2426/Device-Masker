@@ -233,16 +233,43 @@ data class SpoofProfile(
 
 ### AD-7: Material 3 Expressive Design
 
-**Decision**: Material 3 with Expressive enhancements + AMOLED optimization
+**Decision**: Material 3 Expressive (1.5.0-alpha11) with physics-based animations
+
+**Version**: Material 3 `1.5.0-alpha11` with Graphics Shapes `1.0.1`
+
+**Motion Strategy (Spring-Based)**:
+```kotlin
+// Spatial Springs - For position, size, scale (CAN overshoot)
+AppMotion.Spatial.Expressive  // Hero moments, prominent interactions
+AppMotion.Spatial.Standard    // Navigation, list animations
+AppMotion.Spatial.Snappy      // Toggle switches, quick feedback
+
+// Effect Springs - For color, opacity (NO overshoot)
+AppMotion.Effect.Color        // Background, icon tint changes
+AppMotion.Effect.Alpha        // Fade in/out, visibility
+AppMotion.Effect.Quick        // Immediate feedback
+```
+
+**Expressive Components**:
+- `LoadingIndicator` - Morphing shapes (requires @OptIn ExperimentalMaterial3ExpressiveApi)
+- `ButtonGroup` - Connected button group
+- `PullToRefreshBox` - Pull-to-refresh container
+
+**Reusable Components Created**:
+```
+ui/components/expressive/
+├── AnimatedSection.kt          # Animated expand/collapse
+├── ExpressiveLoadingIndicator.kt # LoadingIndicator wrapper
+├── ExpressivePullToRefresh.kt  # Pull-to-refresh with morphing indicator
+├── MorphingShape.kt            # Animated corner radius
+└── QuickActionGroup.kt         # ButtonGroup wrapper
+```
 
 **Color Strategy**:
 - Dynamic colors on Android 12+ (Material You)
 - Custom Teal/Cyan accent as fallback
 - Pure black (#000000) background in dark mode
-
-**Motion Strategy**:
-- Spring-based animations (not duration-based)
-- `Spring.DampingRatioMediumBouncy` for transitions
+- Secondary color for active navigation labels (M3 1.4.0+ spec)
 
 ## Design Patterns in Use
 
