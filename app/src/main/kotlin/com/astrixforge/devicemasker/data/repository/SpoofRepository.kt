@@ -297,6 +297,20 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
         profileRepository.updateProfile(updatedProfile)
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // EXPORT / IMPORT
+    // ═══════════════════════════════════════════════════════════
+
+    /** Exports all profiles as JSON string. */
+    suspend fun exportProfiles(): String {
+        return profileRepository.exportProfiles()
+    }
+
+    /** Imports profiles from JSON string. Returns true on success. */
+    suspend fun importProfiles(jsonString: String): Boolean {
+        return profileRepository.importProfiles(jsonString)
+    }
+
     companion object {
         @SuppressLint("StaticFieldLeak")
         @Volatile private var INSTANCE: SpoofRepository? = null

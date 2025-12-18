@@ -1,21 +1,29 @@
 package com.astrixforge.devicemasker.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,14 +41,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.components.ProfileCard
+import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Screen for managing spoof profiles.
@@ -51,6 +66,7 @@ import kotlinx.coroutines.launch
  * - Edit profile details
  * - Delete profiles (except default)
  * - Set profile as default
+ * - Export/Import profiles as JSON
  *
  * @param repository The SpoofRepository for data access
  * @param onProfileClick Callback when a profile is clicked
@@ -63,11 +79,44 @@ fun ProfileScreen(
         modifier: Modifier = Modifier,
 ) {
     val profiles by repository.getAllProfiles().collectAsState(initial = emptyList())
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf<SpoofProfile?>(null) }
     var showDeleteDialog by remember { mutableStateOf<SpoofProfile?>(null) }
-    val scope = rememberCoroutineScope()
+
+    // Export launcher - creates a JSON file
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                val jsonData = repository.exportProfiles()
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(jsonData.toByteArray())
+                    }
+                }
+            }
+        }
+    }
+
+    // Import launcher - reads a JSON file
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        val jsonData = inputStream.bufferedReader().readText()
+                        repository.importProfiles(jsonData)
+                    }
+                }
+            }
+        }
+    }
 
     ProfileScreenContent(
             profiles = profiles,
@@ -80,6 +129,13 @@ fun ProfileScreen(
             },
             onEnableChange = { profile, enabled ->
                 scope.launch { repository.setProfileEnabled(profile.id, enabled) }
+            },
+            onExport = {
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                exportLauncher.launch("devicemasker_profiles_$timestamp.json")
+            },
+            onImport = {
+                importLauncher.launch("application/json")
             },
             modifier = modifier,
     )
@@ -143,6 +199,8 @@ fun ProfileScreenContent(
         onSetDefault: (SpoofProfile) -> Unit,
         modifier: Modifier = Modifier,
         onEnableChange: (SpoofProfile, Boolean) -> Unit = { _, _ -> },
+        onExport: () -> Unit = {},
+        onImport: () -> Unit = {},
 ) {
     // Track scroll position for FAB animation
     val listState = rememberLazyListState()
@@ -157,15 +215,40 @@ fun ProfileScreenContent(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Header - same style as Settings/Apps
+            // Header with title and export/import buttons
             item {
-                Text(
-                        text = "Profiles",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                            text = "Profiles",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        // Import button
+                        CompactExpressiveIconButton(
+                            onClick = onImport,
+                            icon = Icons.Outlined.FileDownload,
+                            contentDescription = "Import Profiles",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        
+                        // Export button
+                        CompactExpressiveIconButton(
+                            onClick = onExport,
+                            icon = Icons.Outlined.FileUpload,
+                            contentDescription = "Export Profiles",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
 
             if (profiles.isEmpty()) {
