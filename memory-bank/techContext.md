@@ -299,7 +299,7 @@ object SpoofDataStore {
 
 Device Masker operates entirely offline. No network requests are made to external services. All data stays on device.
 
-## File Structure (Updated Dec 18, 2025)
+## File Structure (Updated Dec 19, 2025)
 
 ```
 devicemasker/
@@ -344,6 +344,15 @@ devicemasker/
 │   │   │   │   │   │   ├── SpoofValueCard.kt
 │   │   │   │   │   │   ├── StatusIndicator.kt
 │   │   │   │   │   │   ├── ToggleButton.kt
+│   │   │   │   │   │   ├── IconCircle.kt           # Circular icon container
+│   │   │   │   │   │   ├── ScreenHeader.kt         # Consistent headers
+│   │   │   │   │   │   ├── SettingsItem.kt         # Settings row variants
+│   │   │   │   │   │   ├── EmptyState.kt           # Empty list placeholder
+│   │   │   │   │   │   ├── StatCard.kt             # Dashboard stat cards
+│   │   │   │   │   │   ├── ValueRow.kt             # Label + value pairs
+│   │   │   │   │   │   ├── AppListItem.kt          # App selection rows
+│   │   │   │   │   │   ├── dialog/                 # Dialog components
+│   │   │   │   │   │   │   └── StandardDialogs.kt  # Confirmation dialogs
 │   │   │   │   │   │   └── expressive/             # M3 Expressive components
 │   │   │   │   │   │       ├── AnimatedSection.kt
 │   │   │   │   │   │       ├── ExpressiveCard.kt
@@ -357,6 +366,8 @@ devicemasker/
 │   │   │   │   │   │       └── StatusIndicator.kt
 │   │   │   │   │   └── navigation/
 │   │   │   │   └── utils/                          # Utilities
+│   │   │   │       ├── Constants.kt
+│   │   │   │       └── ImageUtils.kt               # Drawable→Bitmap conversion
 │   │   │   ├── res/
 │   │   │   └── AndroidManifest.xml
 │   │   └── test/
@@ -372,3 +383,4 @@ devicemasker/
 ├── openspec/                                        # OpenSpec specs
 └── memory-bank/                                     # Memory Bank
 ```
+

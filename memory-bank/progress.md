@@ -7,26 +7,27 @@
 | **Project Phase** | Production Ready |
 | **Active Changes** | 0 |
 | **Archived Changes** | 5 |
-| **Last Major Update** | December 18, 2025 - Expressive Components Complete |
+| **Last Major Update** | December 19, 2025 - Reusable Component Extraction |
 
-## Latest Session: ExpressiveSwitch Integration
+## Latest Session: Reusable UI Components
+
+**Status**: ✅ Complete
+**Date**: December 19, 2025
+
+### Features Implemented
+- ✅ Created 9 reusable UI components in `ui/components/`
+- ✅ Extracted utility functions to `utils/ImageUtils.kt`
+- ✅ Refactored HomeScreen, ProfileScreen, SettingsScreen, ProfileDetailScreen
+- ✅ **FIXED**: Theme mode dialog dismiss callback restored
+- ✅ Reduced total lines of duplicated code by ~275+ lines
+- ✅ ProfileDetailScreen reduced from 860 → 667 lines
+
+---
+
+## Previous Session: ExpressiveSwitch Integration
 
 **Status**: ✅ Complete
 **Date**: December 18, 2025
-
-### Features Implemented
-- ✅ Created `ExpressiveSwitch` component with spring-animated thumb
-- ✅ Theme integration with `MaterialTheme.colorScheme` (supports dynamic colors)
-- ✅ Replaced all `Switch` components across codebase
-- ✅ Updated `ProfileDetailScreen` icons to use `CompactExpressiveIconButton`
-- ✅ Consistent spring-animated press feedback on all icon buttons
-- ✅ **FIXED**: Centered `AnimatedLoadingOverlay` with background dimming and touch blocking
-- ✅ **FIXED**: `AdvertisingHooker` inner class `$Info` syntax error
-- ✅ **Code Hygiene**: Removed unused code, unified DataStore naming, and refactored strings to plurals
-- ✅ **Build Optimization**: Fixed KDocs, removed unused imports, and applied constant optimizations
-- ✅ **Data Consistency**: Integrated hook cache invalidation on profile updates
-
----
 
 ## Completed Change: Material 3 Expressive Features
 

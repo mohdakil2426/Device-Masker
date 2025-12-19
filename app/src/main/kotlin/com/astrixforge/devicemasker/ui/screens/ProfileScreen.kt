@@ -48,7 +48,9 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.ProfileCard
+import com.astrixforge.devicemasker.ui.components.ScreenHeader
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
@@ -236,21 +238,9 @@ fun ProfileScreenContent(
         ) {
             // Header with title and export/import buttons
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                            text = stringResource(id = R.string.profile_screen_title),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                ScreenHeader(
+                    title = stringResource(id = R.string.profile_screen_title),
+                    actions = {
                         // Import button
                         CompactExpressiveIconButton(
                             onClick = onImport,
@@ -267,40 +257,17 @@ fun ProfileScreenContent(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
+                )
             }
 
             if (profiles.isEmpty()) {
                 // Empty State
                 item {
-                    Box(
-                            modifier = Modifier.fillMaxWidth().height(300.dp),
-                            contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                    text = stringResource(id = R.string.profile_list_empty),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                    text = stringResource(id = R.string.profile_create_new),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color =
-                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                    alpha = 0.7f
-                                            ),
-                            )
-                        }
-                    }
+                    EmptyState(
+                        icon = Icons.Default.Person,
+                        title = stringResource(id = R.string.profile_list_empty),
+                        subtitle = stringResource(id = R.string.profile_create_new),
+                    )
                 }
             } else {
                 // Profile List

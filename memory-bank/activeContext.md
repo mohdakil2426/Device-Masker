@@ -2,37 +2,42 @@
 
 ## Current Work Focus
 
-### ✅ Session Complete: Expressive UI Integration (The "Alive" Update)
+### ✅ Session Complete: Reusable UI Component Extraction
 
 **Status**: Complete
-**Date**: December 18, 2025
+**Date**: December 19, 2025
 
 #### Recent Changes
-- ✅ Integrated `animatedRoundedCornerShape` (Morphing Shapes) in `ProfileDetailScreen`, `ProfileCard`, and `HomeScreen`
-- ✅ Added `AnimatedLoadingOverlay` for seamless screen transitions in `ProfileDetailScreen` and `HomeScreen`
-- ✅ **FIXED**: Dialogs not closing in `ProfileScreen` and `SettingsScreen` - now properly updating state to close dialogs
-- ✅ **FIXED**: Expandable sections in `DiagnosticsScreen` not toggling - now properly updating expansion state
-- ✅ Replaced all standard `CircularProgressIndicator` with `ExpressiveLoadingIndicator` (Morphing Shapes)
-- ✅ Integrated `ExpressiveLoadingIndicatorWithLabel` for more informative loading states in list views
-- ✅ Integrated `CompactExpressiveIconButton` for all interactive actions in `ProfileScreen`
-- ✅ **Build & Code Hygiene**:
-    - Unified `DATASTORE_NAME` across `Constants.kt` and `SpoofDataStore.kt`
-    - Removed unused methods/keys from `SpoofDataStore.kt`, `FingerprintGenerator.kt`, and `HookDataProvider.kt`
-    - Refactored count-related strings to use Android `<plurals>` and `pluralStringResource`
-    - Removed 100+ unused import directives for cleaner compilation
-    - Fixed KDoc unresolved reference in `ExpressivePullToRefresh.kt`
-    - Applied `const val` optimizations in `MorphingShape.kt`
-    - Integrated hook cache invalidation in `ProfileRepository`
+- ✅ Created 9 reusable UI components for code consistency
+- ✅ Extracted utility functions to dedicated utils package
+- ✅ Refactored 4 screens to use new components
+- ✅ **FIXED**: Theme mode dialog not closing in SettingsScreen
+- ✅ Reduced ProfileDetailScreen from 860 → 667 lines (~23%)
+- ✅ Reduced code duplication across screens by ~275+ lines
+
+#### New Components Created
+| Component | File | Purpose |
+|-----------|------|---------|
+| `IconCircle` | `ui/components/IconCircle.kt` | Circular icon container |
+| `ScreenHeader` | `ui/components/ScreenHeader.kt` | Consistent screen headers |
+| `SettingsSection` | `ui/components/SettingsItem.kt` | Settings section wrapper |
+| `SettingsSwitchItem` | `ui/components/SettingsItem.kt` | Switch row pattern |
+| `SettingsClickableItem` | `ui/components/SettingsItem.kt` | Clickable row pattern |
+| `SettingsInfoItem` | `ui/components/SettingsItem.kt` | Info display row |
+| `EmptyState` | `ui/components/EmptyState.kt` | Empty list placeholder |
+| `StatCard` | `ui/components/StatCard.kt` | Dashboard stat cards |
+| `ValueRow` | `ui/components/ValueRow.kt` | Label + value pairs |
+| `StandardDialogs` | `ui/components/dialog/StandardDialogs.kt` | Confirmation/delete dialogs |
+| `AppListItem` | `ui/components/AppListItem.kt` | App selection rows |
+| `ImageUtils` | `utils/ImageUtils.kt` | Drawable to Bitmap conversion |
 
 #### Files Updated This Session
 | File | Changes |
 |------|---------|
-| `ExpressiveSwitch.kt` | Created - M3 switch with spring animations |
-| `SettingsScreen.kt` | Replaced `Switch` → `ExpressiveSwitch` |
-| `ProfileDetailScreen.kt` | Replaced `Switch` + `FilledTonalIconButton` → Expressive components |
-| `HomeScreen.kt` | Replaced `Switch` → `ExpressiveSwitch` |
-| `SpoofValueCard.kt` | Replaced `Switch` → `ExpressiveSwitch` |
-| `ProfileCard.kt` | Replaced `Switch` → `ExpressiveSwitch` |
+| `HomeScreen.kt` | Replaced private StatCard with reusable, use IconCircle |
+| `ProfileScreen.kt` | Use ScreenHeader, EmptyState |
+| `SettingsScreen.kt` | Full refactor with Settings* components, fix dialog dismiss |
+| `ProfileDetailScreen.kt` | Use IconCircle, EmptyState, AppListItem; remove 155 lines |
 
 ## Expressive Components Inventory
 

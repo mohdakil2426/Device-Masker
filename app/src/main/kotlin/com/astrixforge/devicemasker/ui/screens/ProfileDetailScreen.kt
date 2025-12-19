@@ -1,10 +1,5 @@
 package com.astrixforge.devicemasker.ui.screens
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.AdaptiveIconDrawable
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -13,8 +8,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,21 +19,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
@@ -51,7 +40,6 @@ import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,13 +61,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -87,7 +71,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.createBitmap
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
@@ -96,6 +79,9 @@ import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofProfile
 import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.ui.components.AppListItem
+import com.astrixforge.devicemasker.ui.components.EmptyState
+import com.astrixforge.devicemasker.ui.components.IconCircle
 import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
@@ -410,24 +396,12 @@ private fun ProfileCategorySection(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                        Box(
-                                                modifier =
-                                                        Modifier.size(40.dp)
-                                                                .clip(CircleShape)
-                                                                .background(
-                                                                        categoryColor.copy(
-                                                                                alpha = 0.15f
-                                                                        )
-                                                                ),
-                                                contentAlignment = Alignment.Center,
-                                        ) {
-                                                Icon(
-                                                        imageVector = categoryIcon,
-                                                        contentDescription = null,
-                                                        tint = categoryColor,
-                                                        modifier = Modifier.size(22.dp),
-                                                )
-                                        }
+                                        IconCircle(
+                                                icon = categoryIcon,
+                                                containerColor = categoryColor.copy(alpha = 0.15f),
+                                                iconColor = categoryColor,
+                                                iconSize = 22.dp,
+                                        )
                                         Text(
                                                 text = category.displayName,
                                                 style = MaterialTheme.typography.titleMedium,
@@ -645,36 +619,11 @@ private fun ProfileAppsContent(
                         }
                 } else if (filteredApps.isEmpty()) {
                         // Empty state for search results
-                        Box(
-                                modifier = Modifier.fillMaxSize().padding(32.dp),
-                                contentAlignment = Alignment.Center,
-                        ) {
-                                Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                        Icon(
-                                                imageVector = Icons.Filled.Search,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(48.dp),
-                                                tint =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                                                .copy(alpha = 0.5f),
-                                        )
-                                        Text(
-                                                text = stringResource(id = R.string.profile_detail_no_apps_found),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                                text = stringResource(id = R.string.profile_detail_adjust_search),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                                                .copy(alpha = 0.7f),
-                                        )
-                                }
-                        }
+                        EmptyState(
+                                icon = Icons.Filled.Search,
+                                title = stringResource(id = R.string.profile_detail_no_apps_found),
+                                subtitle = stringResource(id = R.string.profile_detail_adjust_search),
+                        )
                 } else {
                         LazyColumn(
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -701,159 +650,5 @@ private fun ProfileAppsContent(
                                 item { Spacer(modifier = Modifier.height(24.dp)) }
                         }
                 }
-        }
-}
-
-/** Individual app item in the apps list. */
-@Composable
-private fun AppListItem(
-        app: InstalledApp,
-        isAssigned: Boolean,
-        assignedToOtherProfileName: String?,
-        onToggle: (Boolean) -> Unit,
-        modifier: Modifier = Modifier,
-) {
-        val context = LocalContext.current
-        val isDisabled = assignedToOtherProfileName != null
-
-        // Load real app icon from PackageManager
-        val appIcon =
-                remember(app.packageName) {
-                        try {
-                                context.packageManager.getApplicationIcon(app.packageName)
-                        } catch (_: Exception) {
-                                null
-                        }
-                }
-
-        Card(
-                modifier = modifier.alpha(if (isDisabled) 0.6f else 1f),
-                colors =
-                        CardDefaults.cardColors(
-                                containerColor =
-                                        if (isAssigned)
-                                                MaterialTheme.colorScheme.primaryContainer.copy(
-                                                        alpha = 0.3f
-                                                )
-                                        else MaterialTheme.colorScheme.surface
-                        ),
-                shape = MaterialTheme.shapes.small,
-        ) {
-                Row(
-                        modifier =
-                                Modifier.fillMaxWidth()
-                                        .clickable(enabled = !isDisabled) { onToggle(!isAssigned) }
-                                        .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                ) {
-                        // Real app icon or fallback
-                        if (appIcon != null) {
-                                val bitmap = remember(appIcon) { drawableToBitmap(appIcon) }
-                                if (bitmap != null) {
-                                        Image(
-                                                painter = BitmapPainter(bitmap.asImageBitmap()),
-                                                contentDescription = app.label,
-                                                modifier =
-                                                        Modifier.size(40.dp)
-                                                                .clip(RoundedCornerShape(8.dp)),
-                                        )
-                                } else {
-                                        AppIconFallback()
-                                }
-                        } else {
-                                AppIconFallback()
-                        }
-
-                        // App info
-                        Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                        text = app.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                        text =
-                                                if (isDisabled
-                                                )
-                                                        stringResource(id = R.string.profile_detail_assigned_to, assignedToOtherProfileName ?: "")
-                                                else app.packageName,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color =
-                                                if (isDisabled) MaterialTheme.colorScheme.error
-                                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                )
-                        }
-
-                        // Checkbox or badge
-                        if (isDisabled) {
-                                Icon(
-                                        imageVector = Icons.Filled.Lock,
-                                        contentDescription = stringResource(id = R.string.profile_detail_locked),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp),
-                                )
-                        } else {
-                                Checkbox(checked = isAssigned, onCheckedChange = onToggle)
-                        }
-                }
-        }
-}
-
-/** Fallback icon when app icon cannot be loaded. */
-@Composable
-private fun AppIconFallback() {
-        Box(
-                modifier =
-                        Modifier.size(40.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center,
-        ) {
-                Icon(
-                        imageVector = Icons.Filled.Android,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp),
-                )
-        }
-}
-
-/** Convert Drawable to Bitmap for Compose Image. */
-private fun drawableToBitmap(drawable: Drawable): Bitmap? {
-        return try {
-                when (drawable) {
-                        is BitmapDrawable -> drawable.bitmap
-                        is AdaptiveIconDrawable -> {
-                                val bitmap =
-                                        createBitmap(
-                                                drawable.intrinsicWidth,
-                                                drawable.intrinsicHeight,
-                                                Bitmap.Config.ARGB_8888,
-                                        )
-                                val canvas = Canvas(bitmap)
-                                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                                drawable.draw(canvas)
-                                bitmap
-                        }
-                        else -> {
-                                val bitmap =
-                                        createBitmap(
-                                                drawable.intrinsicWidth.coerceAtLeast(1),
-                                                drawable.intrinsicHeight.coerceAtLeast(1),
-                                                Bitmap.Config.ARGB_8888,
-                                        )
-                                val canvas = Canvas(bitmap)
-                                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                                drawable.draw(canvas)
-                                bitmap
-                        }
-                }
-        } catch (_: Exception) {
-                null
         }
 }

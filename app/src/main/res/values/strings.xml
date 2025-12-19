@@ -129,8 +129,14 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
     <string name="action_create">Create</string>
+    <string name="action_confirm">Confirm</string>
     <string name="action_expand">Expand</string>
     <string name="action_collapse">Collapse</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_delete_title">Delete Item</string>
+    <string name="dialog_delete_message">Are you sure you want to delete \"%s\"? This action cannot
+        be undone.</string>
 
     <!-- Validation -->
 
