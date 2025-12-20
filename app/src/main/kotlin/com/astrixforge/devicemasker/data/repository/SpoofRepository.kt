@@ -2,14 +2,14 @@ package com.astrixforge.devicemasker.data.repository
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.astrixforge.devicemasker.data.SpoofDataStore
+import com.astrixforge.devicemasker.common.SpoofProfile
+import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.generators.FingerprintGenerator
 import com.astrixforge.devicemasker.data.generators.IMEIGenerator
 import com.astrixforge.devicemasker.data.generators.MACGenerator
 import com.astrixforge.devicemasker.data.generators.SerialGenerator
 import com.astrixforge.devicemasker.data.generators.UUIDGenerator
-import com.astrixforge.devicemasker.data.models.SpoofProfile
-import com.astrixforge.devicemasker.data.models.SpoofType
+import com.astrixforge.devicemasker.service.ConfigManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -19,17 +19,14 @@ import kotlinx.coroutines.runBlocking
 /**
  * Main repository combining all spoof-related data operations.
  *
- * This is the primary data access layer for the UI, combining:
- * - Profile management (ProfileRepository)
- * - App scope management (AppScopeRepository)
- * - Direct DataStore access (SpoofDataStore)
- * - Value generation (Generators)
+ * HMA-OSS Architecture: This repository now wraps ConfigManager and provides
+ * the same API to the UI while using JsonConfig as the backing store.
  *
- * @param context Application context
- * @param dataStore The SpoofDataStore instance
+ * @param context Application context (for legacy compatibility)
  */
-class SpoofRepository(private val context: Context, private val dataStore: SpoofDataStore) {
-    val profileRepository: ProfileRepository = ProfileRepository(dataStore)
+class SpoofRepository(private val context: Context) {
+
+    /** Repository for installed apps access. */
     val appScopeRepository: AppScopeRepository = AppScopeRepository(context)
 
     // ═══════════════════════════════════════════════════════════
@@ -37,13 +34,13 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     // ═══════════════════════════════════════════════════════════
 
     /** Flow of module enabled state. */
-    val moduleEnabled: Flow<Boolean> = dataStore.moduleEnabled
+    val moduleEnabled: Flow<Boolean> = ConfigManager.config.map { it.isModuleEnabled }
 
     /** Flow of all profiles. */
-    val profiles: Flow<List<SpoofProfile>> = profileRepository.profiles
+    val profiles: Flow<List<SpoofProfile>> = ConfigManager.config.map { it.getAllProfiles() }
 
-    /** Flow of the active profile. */
-    val activeProfile: Flow<SpoofProfile?> = profileRepository.activeProfile
+    /** Flow of the active profile (default profile). */
+    val activeProfile: Flow<SpoofProfile?> = ConfigManager.config.map { it.getDefaultProfile() }
 
     /** Flow of enabled app count. */
     val enabledAppCount: Flow<Int> =
@@ -78,12 +75,22 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
     /** Enables or disables the module globally. */
     suspend fun setModuleEnabled(enabled: Boolean) {
-        dataStore.setModuleEnabled(enabled)
+        ConfigManager.setModuleEnabled(enabled)
     }
 
-    /** Sets the active profile by ID. */
+    /** Sets the active profile by ID (makes it default). */
     suspend fun setActiveProfile(profileId: String) {
-        dataStore.setActiveProfileId(profileId)
+        val profile = ConfigManager.getProfile(profileId) ?: return
+        // Set this profile as default
+        val updatedProfile = profile.copy(isDefault = true)
+        ConfigManager.updateProfile(updatedProfile)
+        
+        // Unset other profiles as default
+        ConfigManager.getAllProfiles().forEach { other ->
+            if (other.id != profileId && other.isDefault) {
+                ConfigManager.updateProfile(other.copy(isDefault = false))
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -169,16 +176,8 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
     }
 
     // ═══════════════════════════════════════════════════════════
-
-    // ═══════════════════════════════════════════════════════════
-    // APP MANAGEMENT DELEGATES
-    // ═══════════════════════════════════════════════════════════
-
-
-    // ═══════════════════════════════════════════════════════════
     // BLOCKING FUNCTIONS (For Hook Context)
     // ═══════════════════════════════════════════════════════════
-
 
     /** Gets the active profile (blocking). */
     fun getActiveProfileBlocking(): SpoofProfile? {
@@ -194,39 +193,56 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
     /** Creates a new profile with generated spoof values. */
     suspend fun createProfile(name: String, description: String = "") {
-        // Create the profile first
-        val newProfile = profileRepository.createProfile(name)
-
-        // Initialize with generated values for all spoof types
+        // Create the profile with generated values
+        var newProfile = ConfigManager.createProfile(name)
+        
+        // Add description and initialize with generated values
         var updatedProfile = newProfile.copy(description = description)
         SpoofType.entries.forEach { type ->
             val value = generateValue(type)
             updatedProfile = updatedProfile.withValue(type, value)
         }
-        profileRepository.updateProfile(updatedProfile)
+        ConfigManager.updateProfile(updatedProfile)
     }
 
     /** Updates an existing profile. */
     suspend fun updateProfile(profile: SpoofProfile) {
-        profileRepository.updateProfile(profile)
+        ConfigManager.updateProfile(profile)
     }
 
     /** Deletes a profile by ID. */
     suspend fun deleteProfile(profileId: String) {
-        profileRepository.deleteProfile(profileId)
+        ConfigManager.deleteProfile(profileId)
     }
 
     /** Sets a profile as the default. */
     suspend fun setDefaultProfile(profileId: String) {
-        profileRepository.setAsDefault(profileId)
-        dataStore.setActiveProfileId(profileId)
+        setActiveProfile(profileId)
     }
 
     /** Sets whether a profile is enabled (master switch for all its apps). */
     suspend fun setProfileEnabled(profileId: String, enabled: Boolean) {
-        val profile = profileRepository.getProfileById(profileId) ?: return
+        val profile = ConfigManager.getProfile(profileId) ?: return
         val updatedProfile = profile.withEnabled(enabled)
-        profileRepository.updateProfile(updatedProfile)
+        ConfigManager.updateProfile(updatedProfile)
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // APP ASSIGNMENT (For ProfileDetailScreen)
+    // ═══════════════════════════════════════════════════════════
+
+    /** Adds an app to a profile. */
+    suspend fun addAppToProfile(profileId: String, packageName: String) {
+        val profile = ConfigManager.getProfile(profileId) ?: return
+        val updatedProfile = profile.addApp(packageName)
+        ConfigManager.updateProfile(updatedProfile)
+    }
+
+    /** Removes an app from a profile. */
+    suspend fun removeAppFromProfile(profileId: String, packageName: String) {
+        val profile = ConfigManager.getProfile(profileId) ?: return
+        val updatedProfile = profile.removeApp(packageName)
+        ConfigManager.updateProfile(updatedProfile)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -235,12 +251,24 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
 
     /** Exports all profiles as JSON string. */
     suspend fun exportProfiles(): String {
-        return profileRepository.exportProfiles()
+        return ConfigManager.config.first().toJsonString()
     }
 
     /** Imports profiles from JSON string. Returns true on success. */
     suspend fun importProfiles(jsonString: String): Boolean {
-        return profileRepository.importProfiles(jsonString)
+        return try {
+            val config = com.astrixforge.devicemasker.common.JsonConfig.parse(jsonString)
+            if (config != null) {
+                config.getAllProfiles().forEach { profile ->
+                    ConfigManager.updateProfile(profile)
+                }
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     companion object {
@@ -253,10 +281,7 @@ class SpoofRepository(private val context: Context, private val dataStore: Spoof
             return INSTANCE
                 ?: synchronized(this) {
                     INSTANCE
-                        ?: SpoofRepository(
-                            context.applicationContext,
-                            SpoofDataStore(context.applicationContext),
-                        )
+                        ?: SpoofRepository(context.applicationContext)
                             .also { INSTANCE = it }
                 }
         }

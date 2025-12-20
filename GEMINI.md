@@ -40,14 +40,13 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 | [Compose Overview](https://developer.android.com/compose) | Getting started with Jetpack Compose |
 | [Kotlin for Compose](https://developer.android.com/develop/ui/compose/kotlin) | Kotlin language features for Compose |
 | [Compose Documentation](https://developer.android.com/develop/ui/compose/documentation) | Complete Compose documentation hub |
-| [Quick Guides](https://developer.android.com/develop/ui/compose/quick-guides) | Quick reference guides for common tasks |
 
 ### Material 3 & Design Systems
 
 | Resource | Description |
 |----------|-------------|
 | [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3) | Implementing M3 design system |
-| [M2 to M3 Migration](https://developer.android.com/develop/ui/compose/designsystems/material2-material3) | Migration guide from Material 2 |
+
 | [M3 Release Notes](https://developer.android.com/jetpack/androidx/releases/compose-material3) | Latest Material 3 releases and changelogs |
 | [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary) | Complete API documentation |
 
@@ -83,8 +82,8 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 | Repository | Description |
 |------------|-------------|
-| [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix) | Play Integrity bypass module |
-
+| [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix) | Play Integrity bypass module Refrences for Spoof device idendity like samsung to oneplus |
+| [HMA-OSS](https://github.com/frknkrc44/HMA-OSS) | HMA-OSS |
 ---
 
 ## 📁 Local Documentation

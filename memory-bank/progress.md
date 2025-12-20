@@ -4,88 +4,104 @@
 
 | Metric | Value |
 |--------|-------|
-| **Project Phase** | Production Ready |
-| **Active Changes** | 0 |
+| **Project Phase** | HMA-OSS Architecture Migration |
+| **Active Changes** | 1 (adopt-hma-architecture) |
 | **Archived Changes** | 5 |
-| **Last Major Update** | December 19, 2025 - Reusable Component Extraction |
-
-## Latest Session: Reusable UI Components
-
-**Status**: ✅ Complete
-**Date**: December 19, 2025
-
-### Features Implemented
-- ✅ Created 9 reusable UI components in `ui/components/`
-- ✅ Extracted utility functions to `utils/ImageUtils.kt`
-- ✅ Refactored HomeScreen, ProfileScreen, SettingsScreen, ProfileDetailScreen
-- ✅ **FIXED**: Theme mode dialog dismiss callback restored
-- ✅ Reduced total lines of duplicated code by ~275+ lines
-- ✅ ProfileDetailScreen reduced from 860 → 667 lines
+| **Last Major Update** | December 20, 2025 - Device Testing + Bug Fixes |
 
 ---
 
-## Previous Session: ExpressiveSwitch Integration
+## ✅ Complete: HMA-OSS Architecture Migration
 
-**Status**: ✅ Complete
-**Date**: December 18, 2025
+**OpenSpec Change**: `adopt-hma-architecture`
+**Status**: Complete (Device Testing Done, Fixes Applied)
+**Started**: December 20, 2025
 
-## Completed Change: Material 3 Expressive Features
+### Phase Progress
 
-**Status**: ✅ Complete
-**Date**: December 18, 2025
+| Phase | Status | Description | Date |
+|-------|--------|-------------|------|
+| Phase 1 | ✅ Complete | Multi-Module Gradle Structure | Dec 20, 2025 |
+| Phase 2 | ✅ Complete | :common Module (AIDL + Models) | Dec 20, 2025 |
+| Phase 3 | ✅ Complete | :xposed Module (Hooks + Service) | Dec 20, 2025 |
+| Phase 4 | ✅ Complete | :app Refactor | Dec 20, 2025 |
+| Phase 5 | ✅ Complete | Data Migration | Dec 20, 2025 |
+| Phase 6 | ✅ Complete | Build Verification | Dec 20, 2025 |
+| Phase 7 | ✅ Complete | Cleanup & Documentation | Dec 20, 2025 |
 
-### Features Implemented
-- ✅ Dependency Updates (Material 3 1.5.0-alpha11, graphics-shapes 1.0.1)
-- ✅ Motion System (AppMotion.Spatial.*, AppMotion.Effect.*)
-- ✅ MorphingShape.kt - Animated corner radius transitions
-- ✅ ExpressiveLoadingIndicator.kt - M3 LoadingIndicator wrapper
-- ✅ QuickActionGroup.kt - M3 ButtonGroup wrapper
-- ✅ ExpressivePullToRefresh.kt - Reusable pull-to-refresh with morphing indicator
-- ✅ ExpressiveIconButton.kt - Icon button with spring scale animation
-- ✅ ExpressiveSwitch.kt - M3 Switch with spring thumb animation
-- ✅ HomeScreen QuickActionGroup integration
-- ✅ StatusCard expressive animations
-- ✅ ProfileScreen scroll-aware FAB
-- ✅ BottomNavBar M3 1.4.0+ label colors (secondary)
-- ✅ DiagnosticsScreen pull-to-refresh with ExpressivePullToRefresh
+### Phase 4 Complete: :app Module Refactor
+- ✅ ServiceClient.kt - AIDL proxy for UI communication
+- ✅ ServiceProvider.kt - ContentProvider for binder delivery
+- ✅ ConfigManager.kt - Central config manager with StateFlow
+- ✅ HookEntry.kt - Delegates to XposedHookLoader
+- ✅ SpoofRepository.kt - Bridge pattern to ConfigManager
+- ✅ SettingsDataStore.kt - UI settings (theme, AMOLED)
+- ✅ TypeAliases.kt - Backward compat for old model imports
+- ✅ Old model files deleted
+- ✅ Old hookers deleted (moved to :xposed)
+
+### Phase 5: N/A (App Not Released)
+- ℹ️ Migration code removed - app is in testing phase
+- ℹ️ No existing users to migrate from old DataStore format
+- ✅ Fresh config.json created on first run by ConfigManager
+
+### Phase 6 Complete: Build Verification + Device Testing
+- ✅ Full APK builds successfully (24.82 MB)
+- ✅ All 3 modules compile without errors
+- ✅ First device test completed (Dec 20, 2025)
+- ✅ LSPosed module recognized and activated
+- ✅ No bootloop, no system crashes
+
+### 🔧 Bug Fixes from Device Testing (Dec 20, 2025)
+
+| Issue | File | Root Cause | Fix |
+|-------|------|------------|-----|
+| Config save failed | `DeviceMaskerService.kt` | Directory not created | Added `mkdirs()` before write |
+| Target app crash | `AntiDetectHooker.kt` | Class.forName too broad | Changed to strict prefix matching |
+| Misleading logs | `XposedEntry.kt` | Wrong process name | Added actual process to log |
+
+### Phase 7 Complete: Cleanup & Documentation
+- ✅ No TODO comments remaining
+- ✅ Memory bank updated
+- ✅ tasks.md fully updated
 
 ---
 
-## Archived Changes
+## Architecture Summary (HMA-OSS)
 
-### ✅ `add-m3-expressive-features` (Archived Dec 18, 2025)
-
-**Summary**: Material 3 Expressive design system integration
-- Updated Material 3 to 1.5.0-alpha11
-- Added graphics-shapes library
-- Created 10 new expressive components
-- Integrated spring physics throughout UI
-- Pull-to-refresh with morphing LoadingIndicator
-
-### ✅ `refactor-independent-profiles` (Archived Dec 17, 2025)
-
-**Summary**: Profile independence and GlobalSpoofConfig removal
-- Removed GlobalSpoofConfig entirely
-- Profiles now fully independent with isEnabled flag
-- Simplified hooker pattern
-- 3-tab navigation
-
-### ✅ `refactor-profile-workflow` (Archived Dec 17, 2025)
-
-**Summary**: Profile-centric workflow redesign
-- Moved app assignment to `SpoofProfile.assignedApps`
-- 4-tab navigation (now 3-tab)
-- `ProfileDetailScreen` with tabbed interface
-- Data migration V1 → V2
-
-### ✅ `implement-privacy-shield-module` (Archived Dec 16, 2025)
-
-**Summary**: Complete LSPosed module implementation
-- Build configuration, Gradle setup
-- All device spoofing generators
-- Hook layer with 6 hookers
-- Full UI with Material 3
-- Anti-detection system
+```
+┌────────────────────────────────────────────────────────────────┐
+│                         :app Module                            │
+│  ┌──────────────┐  ┌─────────────────────────────────────────┐│
+│  │  HookEntry   │  │           Service Layer                 ││
+│  │  (KSP entry) │  │  ServiceClient│ConfigManager│Provider   ││
+│  │      ↓       │  └─────────────────────────────────────────┘│
+│  │  Delegates   │                                             │
+│  │  to :xposed  │  ┌─────────────────────────────────────────┐│
+│  └──────────────┘  │             Data Layer                  ││
+│                    │  SpoofRepository → ConfigManager         ││
+│                    │  SettingsDataStore (UI only)             ││
+│                    └─────────────────────────────────────────┘│
+│                                                                │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │                      UI Screens                          │  │
+│  │  HomeScreen │ ProfileScreen │ SettingsScreen │ etc.      │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────┘
+                              ↓
+┌────────────────────────────────────────────────────────────────┐
+│                        :xposed Module                          │
+│  XposedHookLoader → DeviceMaskerService → All Hookers          │
+│  - AntiDetectHooker (first)                                    │
+│  - DeviceHooker, NetworkHooker, AdvertisingHooker              │
+│  - SystemHooker, LocationHooker                                │
+└────────────────────────────────────────────────────────────────┘
+                              ↓
+┌────────────────────────────────────────────────────────────────┐
+│                        :common Module                          │
+│  IDeviceMaskerService.aidl │ JsonConfig │ SpoofProfile │ etc.  │
+└────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -94,59 +110,39 @@
 ### ✅ Core Infrastructure - Complete
 - [x] libs.versions.toml - Full dependency catalog
 - [x] Build configuration - Gradle 9.1.0/Java 25
-- [x] AndroidManifest.xml - LSPosed metadata
-- [x] DeviceMaskerApp.kt - ModuleApplication
-- [x] HookEntry.kt - @InjectYukiHookWithXposed
+- [x] AndroidManifest.xml - LSPosed metadata + ServiceProvider
+- [x] 3-module Gradle structure (:app, :common, :xposed)
 
-### ✅ Device Spoofing - Complete
-- [x] 5 Value Generators (IMEI, Serial, MAC, UUID, Fingerprint)
-- [x] 24+ SpoofTypes in 5 categories
-- [x] SpoofProfile with assignedApps + isEnabled
-- [x] 6 Hookers (Device, Network, Advertising, System, Location, AntiDetect)
+### ✅ :common Module - Complete
+- [x] IDeviceMaskerService.aidl - AIDL interface (10 methods)
+- [x] SpoofType, SpoofCategory - Spoofing enums (24 types)
+- [x] SpoofProfile, DeviceIdentifier, AppConfig - Data models
+- [x] JsonConfig - Root configuration container
+- [x] Constants, Utils - Shared utilities
 
-### ✅ Anti-Detection - Complete & Device Tested
-- [x] Xposed/LSPosed/YukiHookAPI pattern hiding
-- [x] Class loading blocking
-- [x] /proc/maps filtering
-- [x] Package manager hiding
+### ✅ :xposed Module - Complete
+- [x] DeviceMaskerService - AIDL implementation
+- [x] XposedHookLoader - Hooker loading
+- [x] 6 Hookers - HMA-OSS pattern
+- [x] In-memory config access
 
-### ✅ Data Management - Complete
-- [x] SpoofDataStore.kt - Preference storage
-- [x] ProfileRepository.kt - Profile CRUD
-- [x] SpoofRepository.kt - Combined data layer
-- [x] MigrationManager.kt - V1→V2 migration
+### ✅ :app Module - Complete (Refactored)
+- [x] ServiceClient - AIDL proxy
+- [x] ServiceProvider - Binder delivery
+- [x] ConfigManager - StateFlow config management
+- [x] SpoofRepository - Bridge to ConfigManager
+- [x] SettingsDataStore - UI settings (theme, etc.)
 
 ### ✅ User Interface - Complete (M3 Expressive)
 | Component | Status |
 |-----------|--------|
 | Theme System (Motion) | ✅ Done |
 | MainActivity.kt | ✅ Done (3-tab navigation) |
-| HomeScreen.kt | ✅ Done (QuickActionGroup) |
-| ProfileScreen.kt | ✅ Done (scroll-aware FAB) |
-| ProfileDetailScreen.kt | ✅ Done (ExpressiveIconButton) |
-| SettingsScreen.kt | ✅ Done (ExpressiveSwitch) |
-| DiagnosticsScreen.kt | ✅ Done (ExpressivePullToRefresh) |
-| BottomNavBar.kt | ✅ Done (expressive motion) |
-
-### ✅ Expressive Components - Complete (10 Total)
-| Component | File | Purpose |
-|-----------|------|---------|
-| AnimatedSection | expressive/AnimatedSection.kt | Expand/collapse with animation |
-| ExpressiveCard | expressive/ExpressiveCard.kt | Card with press feedback |
-| ExpressiveIconButton | expressive/ExpressiveIconButton.kt | Spring-animated icon button |
-| ExpressiveLoadingIndicator | expressive/ExpressiveLoadingIndicator.kt | M3 LoadingIndicator |
-| ExpressivePullToRefresh | expressive/ExpressivePullToRefresh.kt | Pull-to-refresh |
-| **ExpressiveSwitch** | expressive/ExpressiveSwitch.kt | **Spring-animated switch (NEW)** |
-| MorphingShape | expressive/MorphingShape.kt | Corner radius animation |
-| QuickActionGroup | expressive/QuickActionGroup.kt | M3 ButtonGroup |
-| SectionHeader | expressive/SectionHeader.kt | Consistent headers |
-| StatusIndicator | expressive/StatusIndicator.kt | Status dots |
-
-### ✅ Hook Layer - Complete
-- [x] HookDataProvider.kt - Profile resolution
-- [x] All 5 hookers - Profile-based values only
-- [x] No global config checks
-- [x] Profile.isEnabled check in getSpoofValue()
+| HomeScreen.kt | ✅ Done |
+| ProfileScreen.kt | ✅ Done |
+| ProfileDetailScreen.kt | ✅ Done |
+| SettingsScreen.kt | ✅ Done |
+| DiagnosticsScreen.kt | ✅ Done |
 
 ---
 
@@ -154,29 +150,37 @@
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| Debug APK | ✅ Success | Dec 18, 2025 23:00 IST |
-| Release APK | ✅ Success | Dec 16, 2025 |
-| Device Test | ✅ Passing | Dec 17, 2025 |
+| :common:assembleDebug | ✅ Success | Dec 20, 2025 |
+| :xposed:assembleDebug | ✅ Success | Dec 20, 2025 |
+| :app:assembleDebug | ✅ Success | Dec 20, 2025 |
+| Full APK Build | ✅ Success (24.82 MB) | Dec 20, 2025 |
 
-## Known Issues - All Resolved
+---
 
-| Issue | Status |
-|-------|--------|
-| App Crash After LSPosed Enable | ✅ FIXED |
-| NavDestination NPE on Android 16 | ✅ FIXED |
-| Dark Mode Content Invisible | ✅ FIXED |
-| UI Inconsistency Between Screens | ✅ FIXED |
-| Card Color Inconsistency | ✅ FIXED |
-| Switch not matching theme | ✅ FIXED (Dec 18) |
-| AdvertisingIdClient$Info syntax error | ✅ FIXED (Dec 18) |
-| ProfileDetailScreen Unresolved Ref | ✅ FIXED (Dec 18) |
-| ProfileScreen LaunchedEffect/delay | ✅ FIXED (Dec 18) |
-| Loading animation stuck in top-left | ✅ FIXED (Dec 18) |
-| Dialogs and Sections stuck (not closing) | ✅ FIXED (Dec 18) |
-| Hook Data Staleness in Cache | ✅ FIXED (Dec 18) |
-| Unused Imports and Dead Code | ✅ FIXED (Dec 18) |
-| Inconsistent DataStore Naming | ✅ FIXED (Dec 18) |
-| Misused Plurals in Labels | ✅ FIXED (Dec 18) |
+## Device Testing Required
+
+The following require testing on a rooted device with LSPosed:
+
+1. [ ] Install APK on device
+2. [ ] Enable in LSPosed Manager
+3. [ ] Verify service starts (check logcat)
+4. [ ] Verify UI connects to service
+5. [ ] Verify config sync works
+6. [ ] Verify hooks work (IMEI checker app)
+7. [ ] Verify anti-detection works
+
+---
+
+## Archived Changes
+
+| Change | Date | Summary |
+|--------|------|---------|
+| `add-m3-expressive-features` | Dec 18, 2025 | Material 3 Expressive design system |
+| `refactor-independent-profiles` | Dec 17, 2025 | Profile independence |
+| `refactor-profile-workflow` | Dec 17, 2025 | Profile-centric workflow |
+| `implement-privacy-shield-module` | Dec 16, 2025 | Complete LSPosed module |
+
+---
 
 ## Milestones
 
@@ -193,39 +197,5 @@
 | 🔄 Profile Workflow Redesign | Week 9 | ✅ Done |
 | 🔓 Independent Profiles | Week 10 | ✅ Done |
 | ✨ M3 Expressive Features | Week 11 | ✅ Done |
-| 🎚️ Expressive Components | Week 11 | ✅ Done |
-| ✅ v1.0 Release Ready | Week 11 | ✅ Done |
-
-## Architecture Changes (Dec 18, 2025)
-
-### New: ExpressiveSwitch Component
-```kotlin
-// Before (inconsistent)
-Switch(checked = checked, onCheckedChange = onChange)
-
-// After (consistent spring animation + theme)
-ExpressiveSwitch(checked = checked, onCheckedChange = onChange)
-```
-
-### New: Unified Icon Button Animation
-```kotlin
-// Before (no animation)
-FilledTonalIconButton(onClick = onCopy) { Icon(...) }
-
-// After (spring press feedback)
-CompactExpressiveIconButton(onClick = onCopy, icon = Icons.Filled.ContentCopy)
-```
-
-### Expressive Animation System
-```
-AppMotion.Spatial.*   // CAN overshoot
-  - Expressive        // Icon buttons, FABs (0.5 damping)
-  - Standard          // Navigation (0.75 damping)
-  - Snappy            // Switches, toggles (0.75 damping, high stiffness)
-
-AppMotion.Effect.*    // NO overshoot
-  - Color             // Track, thumb color transitions
-  - Alpha             // Fade effects
-```
-
-**Result**: All interactive elements now have consistent, physics-based animations.
+| 🏗️ HMA-OSS Migration | Week 12 | ✅ Done |
+| ✅ v1.0 Release Ready | Week 12 | ⏳ Device Testing |

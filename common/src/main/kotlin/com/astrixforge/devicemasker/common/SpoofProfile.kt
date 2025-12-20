@@ -1,4 +1,4 @@
-package com.astrixforge.devicemasker.data.models
+package com.astrixforge.devicemasker.common
 
 import java.util.UUID
 import kotlinx.serialization.Serializable
@@ -6,9 +6,9 @@ import kotlinx.serialization.Serializable
 /**
  * A named collection of spoofed device identifiers.
  *
- * Profiles allow users to save and switch between different device identities. Each profile
- * contains values for all supported spoof types and can be assigned to specific apps or set as the
- * default.
+ * Profiles allow users to save and switch between different device identities.
+ * Each profile contains values for all supported spoof types and can be assigned
+ * to specific apps or set as the default.
  *
  * @property id Unique identifier for this profile
  * @property name User-defined profile name
@@ -79,6 +79,9 @@ data class SpoofProfile(
         return copy(identifiers = newIdentifiers, updatedAt = System.currentTimeMillis())
     }
 
+    /** Alias for withIdentifier - sets an identifier. */
+    fun setIdentifier(identifier: DeviceIdentifier): SpoofProfile = withIdentifier(identifier)
+
     /** Creates a copy with an updated value for a specific type. */
     fun withValue(type: SpoofType, value: String?): SpoofProfile {
         val existing = identifiers[type] ?: DeviceIdentifier.createDefault(type)
@@ -89,6 +92,20 @@ data class SpoofProfile(
     fun withEnabled(enabled: Boolean): SpoofProfile {
         return copy(isEnabled = enabled, updatedAt = System.currentTimeMillis())
     }
+
+    /** Regenerates all identifier values. */
+    fun regenerateAll(): SpoofProfile {
+        val regeneratedIdentifiers = identifiers.mapValues { (_, identifier) ->
+            identifier.withValue(null) // Trigger regeneration
+        }
+        return copy(
+            identifiers = regeneratedIdentifiers,
+            updatedAt = System.currentTimeMillis()
+        )
+    }
+
+    /** Gets last modification timestamp (alias for updatedAt). */
+    val lastModified: Long get() = updatedAt
 
     // ═══════════════════════════════════════════════════════════
     // ASSIGNED APPS MANAGEMENT

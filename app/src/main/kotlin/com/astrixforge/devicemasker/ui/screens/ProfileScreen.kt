@@ -19,12 +19,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -159,6 +163,7 @@ fun ProfileScreen(
     // Create Profile Dialog
     if (showCreateDialog) {
         CreateProfileDialog(
+                existingNames = profiles.map { it.name },
                 onDismiss = { showCreateDialog = false },
                 onCreate = { name, description ->
                     scope.launch {
@@ -236,26 +241,54 @@ fun ProfileScreenContent(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Header with title and export/import buttons
+            // Header with title and overflow menu
             item {
+                var showMenu by remember { mutableStateOf(false) }
+                
                 ScreenHeader(
                     title = stringResource(id = R.string.profile_screen_title),
                     actions = {
-                        // Import button
-                        CompactExpressiveIconButton(
-                            onClick = onImport,
-                            icon = Icons.Outlined.FileDownload,
-                            contentDescription = stringResource(id = R.string.profile_import_profiles),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        
-                        // Export button
-                        CompactExpressiveIconButton(
-                            onClick = onExport,
-                            icon = Icons.Outlined.FileUpload,
-                            contentDescription = stringResource(id = R.string.profile_import_export),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = stringResource(id = R.string.action_more_options),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(id = R.string.profile_import_profiles)) },
+                                    onClick = {
+                                        showMenu = false
+                                        onImport()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Outlined.FileDownload,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(id = R.string.profile_export_profiles)) },
+                                    onClick = {
+                                        showMenu = false
+                                        onExport()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Outlined.FileUpload,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                 )
             }
@@ -306,12 +339,14 @@ fun ProfileScreenContent(
 /** Dialog for creating a new profile. */
 @Composable
 fun CreateProfileDialog(
+        existingNames: List<String> = emptyList(),
         onDismiss: () -> Unit,
         onCreate: (name: String, description: String) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    val isValid = name.isNotBlank()
+    val nameExists = existingNames.any { it.equals(name.trim(), ignoreCase = true) }
+    val isValid = name.isNotBlank() && !nameExists
 
     AlertDialog(
             onDismissRequest = onDismiss,
@@ -326,7 +361,17 @@ fun CreateProfileDialog(
                             label = { Text(stringResource(id = R.string.profile_name_hint)) },
                             placeholder = { Text("e.g., Samsung") },
                             singleLine = true,
-                            supportingText = { Text("${name.length}/$maxNameLength") },
+                            isError = nameExists,
+                            supportingText = {
+                                if (nameExists) {
+                                    Text(
+                                        text = stringResource(id = R.string.profile_name_exists),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                } else {
+                                    Text("${name.length}/$maxNameLength")
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(12.dp))

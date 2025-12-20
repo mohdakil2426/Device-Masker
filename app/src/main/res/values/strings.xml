@@ -41,12 +41,17 @@
     <string name="profile_create_new">Create New Profile</string>
     <string name="profile_edit_dialog_title">Edit Profile</string>
     <string name="profile_name_hint">Profile name</string>
+    <string name="profile_name_exists">A profile with this name already exists</string>
     <string name="profile_description_hint">Description (optional)</string>
     <string name="profile_delete_dialog_title">Delete Profile</string>
     <string name="profile_delete_confirm">Delete this profile?</string>
     <string name="profile_delete_warning">This action cannot be undone. All assigned apps will use
         their default settings.</string>
     <string name="profile_import_profiles">Import Profiles</string>
+    <string name="profile_export_profiles">Export Profiles</string>
+
+    <!-- Actions -->
+    <string name="action_more_options">More options</string>
 
     <!-- Settings Screen -->
     <string name="settings_title">Settings</string>

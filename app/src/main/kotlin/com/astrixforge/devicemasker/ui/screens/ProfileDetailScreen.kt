@@ -91,6 +91,24 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
 import kotlinx.coroutines.launch
 
 /**
+ * Session-scoped state holder for category expansion.
+ * Persists across navigation but resets when app is killed.
+ */
+private object CategoryExpansionState {
+    private val expandedCategories = mutableSetOf<String>()
+    
+    fun isExpanded(categoryName: String): Boolean = categoryName in expandedCategories
+    
+    fun toggle(categoryName: String) {
+        if (categoryName in expandedCategories) {
+            expandedCategories.remove(categoryName)
+        } else {
+            expandedCategories.add(categoryName)
+        }
+    }
+}
+
+/**
  * Profile Detail Screen with tabbed interface.
  *
  * Shows profile-specific spoof values and assigned apps in a two-tab layout:
@@ -237,14 +255,12 @@ fun ProfileDetailScreen(
                                                                         scope.launch {
                                                                                 if (checked) {
                                                                                         repository
-                                                                                                .profileRepository
                                                                                                 .addAppToProfile(
                                                                                                         p.id,
                                                                                                         app.packageName,
                                                                                                 )
                                                                                 } else {
                                                                                         repository
-                                                                                                .profileRepository
                                                                                                 .removeAppFromProfile(
                                                                                                         p.id,
                                                                                                         app.packageName,
@@ -275,6 +291,9 @@ private fun ProfileSpoofContent(
         modifier: Modifier = Modifier,
 ) {
         val clipboardManager = LocalClipboardManager.current
+        
+        // Use session-scoped state holder - triggers recomposition on change
+        var refreshTrigger by remember { mutableStateOf(0) }
 
         LazyColumn(
                 modifier = modifier.fillMaxSize(),
@@ -315,9 +334,19 @@ private fun ProfileSpoofContent(
                 // Categories
                 SpoofCategory.entries.forEach { category ->
                         item(key = "spoof_${category.name}") {
+                                // Read from session state (refreshTrigger forces recomposition)
+                                val isExpanded = CategoryExpansionState.isExpanded(category.name)
+                                @Suppress("UNUSED_EXPRESSION")
+                                refreshTrigger // Use to trigger recomposition
+                                
                                 ProfileCategorySection(
                                         category = category,
                                         profile = profile,
+                                        isExpanded = isExpanded,
+                                        onToggleExpand = {
+                                                CategoryExpansionState.toggle(category.name)
+                                                refreshTrigger++ // Trigger recomposition
+                                        },
                                         onRegenerate = onRegenerate,
                                         onToggle = onToggle,
                                         onCopy = { value ->
@@ -337,12 +366,13 @@ private fun ProfileSpoofContent(
 private fun ProfileCategorySection(
         category: SpoofCategory,
         profile: SpoofProfile?,
+        isExpanded: Boolean,
+        onToggleExpand: () -> Unit,
         onRegenerate: (SpoofType) -> Unit,
         onToggle: (SpoofType, Boolean) -> Unit,
         onCopy: (String) -> Unit,
         modifier: Modifier = Modifier,
 ) {
-        var isExpanded by remember { mutableStateOf(false) }
         val rotationAngle by
                 animateFloatAsState(
                         targetValue = if (isExpanded) 0f else 180f,
@@ -387,7 +417,7 @@ private fun ProfileCategorySection(
                         Row(
                                 modifier =
                                         Modifier.fillMaxWidth()
-                                                .clickable { isExpanded = !isExpanded }
+                                                .clickable { onToggleExpand() }
                                                 .padding(16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,

@@ -216,7 +216,7 @@ dependencyResolutionManagement {
 ### YukiHookAPI Patterns
 
 ```kotlin
-// Entry point annotation
+// Entry point annotation (in :app module only)
 @InjectYukiHookWithXposed
 object HookEntry : IYukiHookXposedInit {
     override fun onInit() = configs {
@@ -224,21 +224,63 @@ object HookEntry : IYukiHookXposedInit {
     }
     
     override fun onHook() = encase {
-        loadHooker(AntiDetectHooker)  // First!
-        loadHooker(DeviceHooker)
-        loadHooker(NetworkHooker)
+        // Load XposedHookLoader from :xposed module
+        loadHooker(XposedHookLoader)
     }
 }
 
-// Hooker class pattern
+// Hooker class pattern (in :xposed module)
 object DeviceHooker : YukiBaseHooker() {
     override fun onHook() {
         "android.telephony.TelephonyManager".toClass().apply {
             method { name = "getImei" }.hook {
-                after { result = SpoofDataStore.getSpoofedIMEI() }
+                after { 
+                    result = getSpoofValue(SpoofType.IMEI) { fallbackImei }
+                }
             }
         }
     }
+    
+    private fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
+        val service = DeviceMaskerService.instance ?: return fallback()
+        val profile = service.config.getProfileForApp(packageName) ?: return fallback()
+        return profile.getValue(type) ?: fallback()
+    }
+}
+```
+
+### HMA-OSS Architecture Pattern
+
+```kotlin
+// AIDL Service (in :xposed module, runs in system_server)
+class DeviceMaskerService : IDeviceMaskerService.Stub() {
+    companion object {
+        @Volatile var instance: DeviceMaskerService? = null
+        
+        fun init() {
+            instance = DeviceMaskerService().apply {
+                loadConfig()
+            }
+        }
+    }
+    
+    var config: JsonConfig = JsonConfig.createDefault()
+        private set
+    
+    override fun readConfig(): String = config.toJsonString()
+    override fun writeConfig(json: String) {
+        config = JsonConfig.parse(json)
+        saveConfigInternal(config)
+    }
+}
+
+// ServiceClient (in :app module, for UI communication)
+class ServiceClient(private val binder: IBinder) {
+    private val service: IDeviceMaskerService = 
+        IDeviceMaskerService.Stub.asInterface(binder)
+    
+    fun readConfig(): JsonConfig = JsonConfig.parse(service.readConfig())
+    fun writeConfig(config: JsonConfig) = service.writeConfig(config.toJsonString())
 }
 ```
 
@@ -267,23 +309,6 @@ data class SpoofUiState(
 )
 ```
 
-### DataStore Pattern
-
-```kotlin
-object SpoofDataStore {
-    private object Keys {
-        val IMEI = stringPreferencesKey("spoofed_imei")
-    }
-    
-    suspend fun getSpoofedIMEI(): String {
-        return dataStore.data.first()[Keys.IMEI] ?: IMEIGenerator.generate()
-    }
-    
-    // Blocking for hook context
-    fun getSpoofedIMEIBlocking(): String = runBlocking { getSpoofedIMEI() }
-}
-```
-
 ## External Services & Dependencies
 
 ### External Modules (User Installed)
@@ -299,88 +324,100 @@ object SpoofDataStore {
 
 Device Masker operates entirely offline. No network requests are made to external services. All data stays on device.
 
-## File Structure (Updated Dec 19, 2025)
+## File Structure (Updated Dec 20, 2025 - HMA-OSS Architecture Complete)
 
 ```
 devicemasker/
-├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── kotlin/com/astrixforge/devicemasker/
-│   │   │   │   ├── DeviceMaskerApp.kt             # Application class
-│   │   │   │   ├── hook/                           # YukiHookAPI layer
-│   │   │   │   │   ├── HookEntry.kt
-│   │   │   │   │   └── hooker/
-│   │   │   │   │       ├── DeviceHooker.kt
-│   │   │   │   │       ├── NetworkHooker.kt
-│   │   │   │   │       ├── AdvertisingHooker.kt
-│   │   │   │   │       ├── SystemHooker.kt
-│   │   │   │   │       ├── LocationHooker.kt
-│   │   │   │   │       └── AntiDetectHooker.kt
-│   │   │   │   ├── data/                           # Data layer
-│   │   │   │   │   ├── SpoofDataStore.kt
-│   │   │   │   │   ├── ProfileManager.kt
-│   │   │   │   │   ├── AppScopeManager.kt
-│   │   │   │   │   ├── SpoofRepository.kt
-│   │   │   │   │   ├── models/
-│   │   │   │   │   └── generators/
-│   │   │   │   ├── ui/                             # UI layer
-│   │   │   │   │   ├── MainActivity.kt
-│   │   │   │   │   ├── MainViewModel.kt
-│   │   │   │   │   ├── theme/
-│   │   │   │   │   │   ├── Color.kt
-│   │   │   │   │   │   ├── Theme.kt
-│   │   │   │   │   │   ├── Motion.kt               # AppMotion spring specs
-│   │   │   │   │   │   ├── Shapes.kt
-│   │   │   │   │   │   └── Type.kt
-│   │   │   │   │   ├── screens/
-│   │   │   │   │   │   ├── HomeScreen.kt
-│   │   │   │   │   │   ├── ProfileScreen.kt
-│   │   │   │   │   │   ├── ProfileDetailScreen.kt
-│   │   │   │   │   │   ├── SettingsScreen.kt
-│   │   │   │   │   │   └── DiagnosticsScreen.kt
-│   │   │   │   │   ├── components/
-│   │   │   │   │   │   ├── ProfileCard.kt
-│   │   │   │   │   │   ├── SpoofValueCard.kt
-│   │   │   │   │   │   ├── StatusIndicator.kt
-│   │   │   │   │   │   ├── ToggleButton.kt
-│   │   │   │   │   │   ├── IconCircle.kt           # Circular icon container
-│   │   │   │   │   │   ├── ScreenHeader.kt         # Consistent headers
-│   │   │   │   │   │   ├── SettingsItem.kt         # Settings row variants
-│   │   │   │   │   │   ├── EmptyState.kt           # Empty list placeholder
-│   │   │   │   │   │   ├── StatCard.kt             # Dashboard stat cards
-│   │   │   │   │   │   ├── ValueRow.kt             # Label + value pairs
-│   │   │   │   │   │   ├── AppListItem.kt          # App selection rows
-│   │   │   │   │   │   ├── dialog/                 # Dialog components
-│   │   │   │   │   │   │   └── StandardDialogs.kt  # Confirmation dialogs
-│   │   │   │   │   │   └── expressive/             # M3 Expressive components
-│   │   │   │   │   │       ├── AnimatedSection.kt
-│   │   │   │   │   │       ├── ExpressiveCard.kt
-│   │   │   │   │   │       ├── ExpressiveIconButton.kt
-│   │   │   │   │   │       ├── ExpressiveLoadingIndicator.kt
-│   │   │   │   │   │       ├── ExpressivePullToRefresh.kt
-│   │   │   │   │   │       ├── ExpressiveSwitch.kt
-│   │   │   │   │   │       ├── MorphingShape.kt
-│   │   │   │   │   │       ├── QuickActionGroup.kt
-│   │   │   │   │   │       ├── SectionHeader.kt
-│   │   │   │   │   │       └── StatusIndicator.kt
-│   │   │   │   │   └── navigation/
-│   │   │   │   └── utils/                          # Utilities
-│   │   │   │       ├── Constants.kt
-│   │   │   │       └── ImageUtils.kt               # Drawable→Bitmap conversion
-│   │   │   ├── res/
-│   │   │   └── AndroidManifest.xml
-│   │   └── test/
-│   └── build.gradle.kts
-├── build.gradle.kts
-├── settings.gradle.kts
+├── app/                                    # Main application (UI + Entry)
+│   ├── src/main/kotlin/com/astrixforge/devicemasker/
+│   │   ├── DeviceMaskerApp.kt             # Application class (initializes ConfigManager)
+│   │   ├── hook/
+│   │   │   └── HookEntry.kt               # @InjectYukiHookWithXposed (delegates to :xposed)
+│   │   ├── service/                        # HMA-OSS Service Layer ✅
+│   │   │   ├── ServiceClient.kt           # AIDL proxy for UI communication
+│   │   │   ├── ServiceProvider.kt         # ContentProvider for binder delivery
+│   │   │   └── ConfigManager.kt           # StateFlow config manager + JSON storage
+│   │   ├── data/
+│   │   │   ├── SettingsDataStore.kt       # UI settings only (theme, AMOLED)
+│   │   │   ├── models/
+│   │   │   │   ├── TypeAliases.kt         # Backward compat for old imports
+│   │   │   │   └── InstalledApp.kt        # App model for UI
+│   │   │   ├── generators/                # Value generators (IMEI, MAC, etc.)
+│   │   │   └── repository/
+│   │   │       ├── SpoofRepository.kt     # Bridge to ConfigManager
+│   │   │       └── AppScopeRepository.kt  # Installed apps access
+│   │   ├── ui/                             # UI layer (M3 Expressive)
+│   │   │   ├── MainActivity.kt
+│   │   │   ├── theme/                     # Motion, Colors, Shapes
+│   │   │   ├── screens/                   # All screens
+│   │   │   ├── components/                # Reusable + Expressive
+│   │   │   └── navigation/                # Nav routes
+│   │   └── utils/
+│   ├── src/main/AndroidManifest.xml        # ServiceProvider + LSPosed metadata
+│   └── build.gradle.kts                    # YukiHookAPI KSP enabled
+│
+├── common/                                 # Shared models & AIDL
+│   ├── src/main/aidl/com/astrixforge/devicemasker/common/
+│   │   └── IDeviceMaskerService.aidl      # AIDL interface (10 methods)
+│   ├── src/main/kotlin/com/astrixforge/devicemasker/common/
+│   │   ├── SpoofType.kt                   # @Serializable enum (24 types)
+│   │   ├── SpoofCategory.kt               # Categories
+│   │   ├── DeviceIdentifier.kt            # @Serializable data class
+│   │   ├── SpoofProfile.kt                # @Serializable data class
+│   │   ├── AppConfig.kt                   # @Serializable data class
+│   │   ├── JsonConfig.kt                  # Root config container
+│   │   ├── Constants.kt                   # Shared constants
+│   │   └── Utils.kt                       # Validation utilities
+│   └── build.gradle.kts                   # android-library
+│
+├── xposed/                                 # Xposed module logic
+│   ├── src/main/kotlin/com/astrixforge/devicemasker/xposed/
+│   │   ├── XposedHookLoader.kt            # YukiBaseHooker (loaded by app)
+│   │   ├── DeviceMaskerService.kt         # AIDL implementation
+│   │   ├── ServiceHelper.kt               # Binder access
+│   │   ├── Logcat.kt                      # Safe logging
+│   │   └── hooker/
+│   │       ├── AntiDetectHooker.kt        # Xposed hiding (FIRST)
+│   │       ├── DeviceHooker.kt            # IMEI, Serial, Android ID
+│   │       ├── NetworkHooker.kt           # WiFi/Bluetooth MAC
+│   │       ├── AdvertisingHooker.kt       # GSF ID, Ad ID
+│   │       ├── SystemHooker.kt            # Build.*, SystemProperties
+│   │       └── LocationHooker.kt          # GPS, Timezone, Locale
+│   └── build.gradle.kts                   # android-library (no KSP)
+│
+├── build.gradle.kts                        # Root build script
+├── settings.gradle.kts                     # Includes :app, :common, :xposed
 ├── gradle/
-│   └── libs.versions.toml
-├── docs/                                            # Documentation
-│   ├── rules/                                       # Development rules
-│   ├── developer-android-docs/                      # Android best practices
-│   └── material-ui/                                 # M3 Expressive rules
-├── openspec/                                        # OpenSpec specs
-└── memory-bank/                                     # Memory Bank
+│   └── libs.versions.toml                  # Dependency catalog
+├── docs/                                   # Documentation
+├── openspec/                               # OpenSpec specs
+│   └── changes/adopt-hma-architecture/     # Active change
+└── memory-bank/                            # Memory Bank
 ```
+
+## Module Dependencies
+
+```kotlin
+// settings.gradle.kts
+include(":app", ":common", ":xposed")
+
+// app/build.gradle.kts
+dependencies {
+    implementation(project(":common"))
+    implementation(project(":xposed"))
+    ksp(libs.yukihookapi.ksp.xposed)  // KSP only in app
+}
+
+// xposed/build.gradle.kts
+dependencies {
+    implementation(project(":common"))
+    implementation(libs.yukihookapi.api)  // API only, no KSP
+}
+
+// common/build.gradle.kts
+dependencies {
+    implementation(libs.kotlinx.serialization.json)
+}
+```
+
 
