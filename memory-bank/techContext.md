@@ -342,7 +342,6 @@ devicemasker/
 │   │   │   ├── models/
 │   │   │   │   ├── TypeAliases.kt         # Backward compat for old imports
 │   │   │   │   └── InstalledApp.kt        # App model for UI
-│   │   │   ├── generators/                # Value generators (IMEI, MAC, etc.)
 │   │   │   └── repository/
 │   │   │       ├── SpoofRepository.kt     # Bridge to ConfigManager
 │   │   │       └── AppScopeRepository.kt  # Installed apps access
@@ -360,14 +359,23 @@ devicemasker/
 │   ├── src/main/aidl/com/astrixforge/devicemasker/common/
 │   │   └── IDeviceMaskerService.aidl      # AIDL interface (10 methods)
 │   ├── src/main/kotlin/com/astrixforge/devicemasker/common/
-│   │   ├── SpoofType.kt                   # @Serializable enum (24 types)
+│   │   ├── SpoofType.kt                   # @Serializable enum (17 types, was 24)
 │   │   ├── SpoofCategory.kt               # Categories
 │   │   ├── DeviceIdentifier.kt            # @Serializable data class
 │   │   ├── SpoofProfile.kt                # @Serializable data class
+│   │   ├── DeviceProfilePreset.kt         # 10 predefined device profiles (NEW)
 │   │   ├── AppConfig.kt                   # @Serializable data class
 │   │   ├── JsonConfig.kt                  # Root config container
 │   │   ├── Constants.kt                   # Shared constants
-│   │   └── Utils.kt                       # Validation utilities
+│   │   ├── Utils.kt                       # Validation utilities
+│   │   └── generators/                    # ⭐ Value Generators (NEW - Dec 20, 2025)
+│   │       ├── IMEIGenerator.kt           # IMEI with Luhn checksum
+│   │       ├── SerialGenerator.kt         # Manufacturer patterns
+│   │       ├── MACGenerator.kt            # WiFi/Bluetooth MAC
+│   │       ├── UUIDGenerator.kt           # Android ID, GSF ID, Advertising ID
+│   │       ├── IMSIGenerator.kt           # MCC/MNC combinations
+│   │       ├── ICCIDGenerator.kt          # SIM card ID with Luhn
+│   │       └── FingerprintGenerator.kt    # Build fingerprints
 │   └── build.gradle.kts                   # android-library
 │
 ├── xposed/                                 # Xposed module logic

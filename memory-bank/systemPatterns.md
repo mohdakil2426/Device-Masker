@@ -827,3 +827,51 @@ colors = CardDefaults.elevatedCardColors(
 - `surfaceContainerLow` (use `surfaceContainerHigh`)
 - Missing `colors` parameter (always specify explicitly)
 - Missing `shape` parameter (always specify explicitly)
+
+### TP-5: Device Profile Presets (System Spoofing)
+
+**Pattern**: Use unified device profiles instead of individual Build.* fields to ensure consistency.
+
+**Rationale**: Apps detect spoofing by checking if Build.* values are consistent (e.g., fingerprint matches model, brand, device). Spoofing these individually leads to detection failures.
+
+**Implementation**:
+```kotlin
+// DeviceProfilePreset.kt - Predefined consistent profiles
+data class DeviceProfilePreset(
+    val id: String,           // e.g., "pixel_8_pro"
+    val name: String,         // e.g., "Google Pixel 8 Pro"
+    val brand: String,
+    val manufacturer: String,
+    val model: String,
+    val device: String,
+    val product: String,
+    val board: String,
+    val fingerprint: String,  // Consistent with all above
+    val securityPatch: String,
+)
+
+// 10 presets available: Pixel, Samsung, OnePlus, Xiaomi, Sony, Nothing
+```
+
+**UI Pattern**:
+- Single toggle for entire device profile
+- Display preset name (not ID)
+- Regenerate randomly picks from 10 presets
+- Same pattern as all other spoof items (toggle, copy, regenerate)
+
+**Hook Pattern**:
+```kotlin
+// SystemHooker.kt - Apply all Build.* from preset
+val preset = DeviceProfilePreset.findById(profileId)
+if (preset != null) {
+    hookBuildField("MODEL", preset.model)
+    hookBuildField("MANUFACTURER", preset.manufacturer)
+    hookBuildField("FINGERPRINT", preset.fingerprint)
+    // ... all other fields
+}
+```
+
+**SpoofType Change**: 
+- Removed: `BUILD_FINGERPRINT`, `BUILD_MODEL`, `BUILD_MANUFACTURER`, `BUILD_BRAND`, `BUILD_DEVICE`, `BUILD_PRODUCT`, `BUILD_BOARD`
+- Added: `DEVICE_PROFILE` (value = preset ID)
+

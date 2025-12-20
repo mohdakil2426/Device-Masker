@@ -4,10 +4,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Project Phase** | HMA-OSS Architecture Migration |
-| **Active Changes** | 1 (adopt-hma-architecture) |
+| **Project Phase** | Value Generator Quality Complete |
+| **Active Changes** | 0 (all completed) |
 | **Archived Changes** | 5 |
-| **Last Major Update** | December 20, 2025 - Device Testing + Bug Fixes |
+| **Last Major Update** | December 20, 2025 - Generator Migration to :common |
 
 ---
 
@@ -65,6 +65,59 @@
 - ✅ Memory bank updated
 - ✅ tasks.md fully updated
 
+### ✅ Complete: System Spoofing UI Refactoring (Dec 20, 2025)
+
+Refactored System category from 7 separate Build.* fields to unified Device Profile:
+
+| Change | Description |
+|--------|-------------|
+| `DeviceProfilePreset.kt` | NEW - 10 predefined device profiles |
+| `SpoofType.kt` | 7 `BUILD_*` types → 1 `DEVICE_PROFILE` type |
+| `SystemHooker.kt` | Uses presets for consistent Build.* spoofing |
+| `ProfileDetailScreen.kt` | Standard item pattern (toggle, copy, regenerate) |
+| `SpoofRepository.kt` | Random preset ID generation |
+| `DiagnosticsScreen.kt` | Updated to DEVICE_PROFILE type |
+
+### ✅ Complete: Spoofing Values Quality Fixes (Dec 20, 2025)
+
+Fixed ALL issues from `SPOOFING_VALUES_ANALYSIS.md` for 100% realistic spoofing values:
+
+| Priority | Issue | Solution | Status |
+|----------|-------|----------|--------|
+| 🔴 P0 | IMEI TAC digits | ✅ Already correct - uses 8-digit TACs | ✅ Done |
+| 🔴 P0 | Device Profile Presets | ✅ Already done - 10 profiles | ✅ Done |
+| 🟡 P1 | Serial Number Format | ✅ Added manufacturer patterns | ✅ Done |
+| 🟡 P1 | IMSI Format | ✅ Created IMSIGenerator with 60+ MCC/MNC | ✅ Done |
+| 🟡 P1 | ICCID Format | ✅ Created ICCIDGenerator with Luhn | ✅ Done |
+| 🟢 P2 | SecureRandom Usage | ✅ All generators upgraded | ✅ Done |
+
+#### Generators Summary
+
+| Generator | Status | Features |
+|-----------|--------|----------|
+| IMEIGenerator.kt | ✅ Already Good | 8-digit TACs, Luhn checksum, 27+ prefixes |
+| SerialGenerator.kt | ✅ Fixed | Manufacturer patterns (Samsung, Pixel, Xiaomi, Generic) |
+| MACGenerator.kt | ✅ Fixed | SecureRandom, real OUIs, locally admin bit |
+| UUIDGenerator.kt | ✅ Fixed | SecureRandom, byte arrays for efficiency |
+| IMSIGenerator.kt | ✅ NEW | 60+ MCC/MNC from10 countries |
+| ICCIDGenerator.kt | ✅ NEW | 19 digits with Luhn checksum |
+| FingerprintGenerator.kt | ✅ No Changes | Already uses DeviceProfilePreset |
+
+### ✅ Complete: Generator Migration to :common (Dec 20, 2025)
+
+Moved all 7 value generators from `:app` to `:common` for better architecture:
+
+| Benefit | Description |
+|---------|-------------|
+| **Shared across modules** | Both `:app` and `:xposed` can use generators |
+| **Better architecture** | Domain logic in domain layer (:common) |
+| **Future-proof** | Hooks can generate fallback values if needed |
+| **Clean separation** | UI in `:app`, logic in `:common`, hooks in `:xposed` |
+
+**Files Moved**: IMEIGenerator, SerialGenerator, MACGenerator, UUIDGenerator, IMSIGenerator, ICCIDGenerator, FingerprintGenerator
+
+**Changes**: Package declarations updated, imports fixed in SpoofRepository.kt, old files deleted, build verified
+
 ---
 
 ## Architecture Summary (HMA-OSS)
@@ -115,10 +168,12 @@
 
 ### ✅ :common Module - Complete
 - [x] IDeviceMaskerService.aidl - AIDL interface (10 methods)
-- [x] SpoofType, SpoofCategory - Spoofing enums (24 types)
+- [x] SpoofType, SpoofCategory - Spoofing enums (17 types, was 24)
+- [x] DeviceProfilePreset - 10 predefined device profiles
 - [x] SpoofProfile, DeviceIdentifier, AppConfig - Data models
 - [x] JsonConfig - Root configuration container
 - [x] Constants, Utils - Shared utilities
+- [x] generators/ - 7 value generators (⭐ NEW)
 
 ### ✅ :xposed Module - Complete
 - [x] DeviceMaskerService - AIDL implementation
@@ -198,4 +253,7 @@ The following require testing on a rooted device with LSPosed:
 | 🔓 Independent Profiles | Week 10 | ✅ Done |
 | ✨ M3 Expressive Features | Week 11 | ✅ Done |
 | 🏗️ HMA-OSS Migration | Week 12 | ✅ Done |
+| 📱 Device Profile UI | Week 12 | ✅ Done |
+| 🔒 Value Generator Quality | Week 12 | ✅ Done |
+| 📦 Generator Migration to :common | Week 12 | ✅ Done |
 | ✅ v1.0 Release Ready | Week 12 | ⏳ Device Testing |

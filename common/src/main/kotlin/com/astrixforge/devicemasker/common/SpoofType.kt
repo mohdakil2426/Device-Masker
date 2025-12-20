@@ -98,29 +98,26 @@ enum class SpoofType(
     MEDIA_DRM_ID(displayName = "Media DRM ID", category = SpoofCategory.ADVERTISING),
 
     // ═══════════════════════════════════════════════════════════
-    // SYSTEM PROPERTIES
+    // SYSTEM / DEVICE PROFILE
     // ═══════════════════════════════════════════════════════════
 
-    /** Build.FINGERPRINT - Device/build identification. */
-    BUILD_FINGERPRINT(displayName = "Fingerprint", category = SpoofCategory.SYSTEM),
-
-    /** Build.MODEL - Device model name. */
-    BUILD_MODEL(displayName = "Model", category = SpoofCategory.SYSTEM),
-
-    /** Build.MANUFACTURER - Device manufacturer. */
-    BUILD_MANUFACTURER(displayName = "Manufacturer", category = SpoofCategory.SYSTEM),
-
-    /** Build.BRAND - Device brand. */
-    BUILD_BRAND(displayName = "Brand", category = SpoofCategory.SYSTEM),
-
-    /** Build.DEVICE - Device code name. */
-    BUILD_DEVICE(displayName = "Device", category = SpoofCategory.SYSTEM),
-
-    /** Build.PRODUCT - Product code name. */
-    BUILD_PRODUCT(displayName = "Product", category = SpoofCategory.SYSTEM),
-
-    /** Build.BOARD - Board/hardware name. */
-    BUILD_BOARD(displayName = "Board", category = SpoofCategory.SYSTEM),
+    /**
+     * Unified device profile - Sets all Build.* properties consistently.
+     * 
+     * Instead of spoofing individual Build fields (which can cause detection),
+     * this applies a complete device profile with matching:
+     * - Build.FINGERPRINT
+     * - Build.MODEL
+     * - Build.MANUFACTURER
+     * - Build.BRAND
+     * - Build.DEVICE
+     * - Build.PRODUCT
+     * - Build.BOARD
+     * 
+     * Value format: DeviceProfilePreset ID (e.g., "pixel_8_pro", "samsung_s24_ultra")
+     * @see DeviceProfilePreset for available presets
+     */
+    DEVICE_PROFILE(displayName = "Device Profile", category = SpoofCategory.SYSTEM),
 
     // ═══════════════════════════════════════════════════════════
     // LOCATION IDENTIFIERS

@@ -2,6 +2,96 @@
 
 ## Current Work Focus
 
+### ✅ Complete: System Spoofing UI Refactoring
+
+**Status**: Complete
+**Date**: December 20, 2025
+
+Refactored the System category UI to use a unified Device Profile instead of 7 separate Build.* fields.
+
+#### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| `DeviceProfilePreset.kt` | New file with 10 predefined device profiles |
+| `SpoofType.kt` | Replaced 7 `BUILD_*` types with single `DEVICE_PROFILE` |
+| `SystemHooker.kt` | Uses DeviceProfilePreset for consistent Build.* spoofing |
+| `ProfileDetailScreen.kt` | Removed dropdown, uses standard item pattern |
+| `SpoofRepository.kt` | Generates random preset ID |
+| `DiagnosticsScreen.kt` | Updated to use DEVICE_PROFILE type |
+
+#### Device Profile Presets Available
+- Google Pixel 8 Pro, Pixel 7
+- Samsung Galaxy S24 Ultra, S23
+- OnePlus 12, 11
+- Xiaomi 14 Pro, POCO F6 Pro
+- Sony Xperia 1 VI
+- Nothing Phone (2)
+
+---
+
+### ✅ Complete: Spoofing Values Quality Fixes
+
+**Status**: Complete
+**Date**: December 20, 2025
+
+Fixed all issues identified in `SPOOFING_VALUES_ANALYSIS.md` to ensure 100% realistic spoofing values.
+
+#### Generators Fixed/Created
+
+| Generator | Status | Changes |
+|-----------|--------|----------|
+| **IMEIGenerator.kt** | ✅ Already Correct | 8-digit TACs, Luhn validation |
+| **SerialGenerator.kt** | ✅ Fixed | Added manufacturer patterns (Samsung, Pixel, Xiaomi, Generic) |
+| **MACGenerator.kt** | ✅ Fixed | Upgraded to SecureRandom |
+| **UUIDGenerator.kt** | ✅ Fixed | Upgraded to SecureRandom with byte arrays |
+| **IMSIGenerator.kt** | ✅ NEW | 60+ MCC/MNC combinations from major carriers |
+| **ICCIDGenerator.kt** | ✅ NEW | 19-digit with Luhn checksum |
+| **FingerprintGenerator.kt** | ✅ No Changes | Already uses DeviceProfilePreset |
+
+#### Security Improvements
+- ✅ All generators now use `java.security.SecureRandom` instead of `kotlin.random.Random`
+- ✅ Cryptographically secure randomness for all spoofed values
+
+#### Value Quality
+- ✅ **IMEI**: Valid 15-digit with Luhn checksum, realistic TAC prefixes
+- ✅ **Serial**: Manufacturer-specific patterns (Samsung: R58M12345678, Pixel: FA6AB0301534ABCD)
+- ✅ **MAC**: Locally administered bit set, real OUI prefixes available
+- ✅ **IMSI**: Realistic MCC/MNC from T-Mobile, Verizon, Vodafone, etc.
+- ✅ **ICCID**: Proper 19-digit format with Luhn validation
+
+---
+
+### ✅ Complete: Generator Migration to :common
+
+**Status**: Complete
+**Date**: December 20, 2025
+
+Moved all 7 value generators from `:app/data/generators/` to `:common/generators/` for better architecture.
+
+#### Why :common?
+- ✅ **Shared Logic**: Both `:app` and `:xposed` can now use generators
+- ✅ **Better Architecture**: Domain logic belongs in domain layer (:common)
+- ✅ **Future-Proof**: Hooks can generate fallback values if config unavailable
+- ✅ **Clean Separation**: UI in `:app`, logic in `:common`, hooks in `:xposed`
+
+#### Files Migrated
+1. IMEIGenerator.kt
+2. Serial Generator.kt
+3. MACGenerator.kt
+4. UUIDGenerator.kt
+5. IMSIGenerator.kt
+6. ICCIDGenerator.kt
+7. FingerprintGenerator.kt
+
+#### Changes Made
+- ✅ Updated package declarations from `data.generators` to `common.generators`
+- ✅ Updated imports in `SpoofRepository.kt`
+- ✅ Deleted old generators from `:app` module
+- ✅ Build verified - all modules compile successfully
+
+---
+
 ### ✅ Complete: HMA-OSS Architecture Migration
 
 **Status**: Complete (Device Testing Done, Fixes Applied)
@@ -89,7 +179,6 @@ devicemasker/
 │       ├── data/
 │       │   ├── SettingsDataStore.kt        # UI settings only
 │       │   ├── models/TypeAliases.kt       # Backward compat
-│       │   ├── generators/                 # Value generators
 │       │   └── repository/
 │       │       ├── SpoofRepository.kt      # Bridge to ConfigManager
 │       │       └── AppScopeRepository.kt   # Installed apps
@@ -99,14 +188,23 @@ devicemasker/
 │   ├── src/main/aidl/.../
 │   │   └── IDeviceMaskerService.aidl       # 10-method interface
 │   └── src/main/kotlin/.../
-│       ├── SpoofType.kt                    # 24 spoof types
+│       ├── SpoofType.kt                    # 17 spoof types (was 24)
 │       ├── SpoofCategory.kt                # Categories
 │       ├── DeviceIdentifier.kt             # Identifier model
 │       ├── SpoofProfile.kt                 # Profile model
+│       ├── DeviceProfilePreset.kt          # 10 device presets (NEW)
 │       ├── AppConfig.kt                    # App config model
 │       ├── JsonConfig.kt                   # Root config container
 │       ├── Constants.kt                    # Shared constants
-│       └── Utils.kt                        # Validation utilities
+│       ├── Utils.kt                        # Validation utilities
+│       └── generators/                     # ⭐ Value Generators (NEW)
+│           ├── IMEIGenerator.kt            # IMEI with Luhn
+│           ├── SerialGenerator.kt          # Manufacturer patterns
+│           ├── MACGenerator.kt             # WiFi/Bluetooth MAC
+│           ├── UUIDGenerator.kt            # Android ID, GSF ID, Advertising ID
+│           ├── IMSIGenerator.kt            # MCC/MNC combinations
+│           ├── ICCIDGenerator.kt           # SIM card ID with Luhn
+│           └── FingerprintGenerator.kt     # Build fingerprints
 │
 └── xposed/                                 # Xposed module logic
     └── src/main/kotlin/.../

@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.data.models.SpoofCategory
@@ -463,20 +464,28 @@ private fun ProfileCategorySection(
                                                 ),
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
+                                        // All categories use the same spoof item pattern
                                         typesInCategory.forEach { type ->
                                                 val isProfileEnabled =
                                                         profile?.isTypeEnabled(type) ?: false
-                                                val value = profile?.getValue(type) ?: ""
+                                                val rawValue = profile?.getValue(type) ?: ""
+                                                
+                                                // For DEVICE_PROFILE, show the preset name instead of ID
+                                                val displayValue = if (type == SpoofType.DEVICE_PROFILE) {
+                                                        DeviceProfilePreset.findById(rawValue)?.name ?: rawValue
+                                                } else {
+                                                        rawValue
+                                                }
 
                                                 ProfileSpoofItem(
                                                         type = type,
-                                                        value = value,
+                                                        value = displayValue,
                                                         isEnabled = isProfileEnabled,
                                                         onToggle = { enabled ->
                                                                 onToggle(type, enabled)
                                                         },
                                                         onRegenerate = { onRegenerate(type) },
-                                                        onCopy = { onCopy(value) },
+                                                        onCopy = { onCopy(displayValue) },
                                                         modifier = Modifier.fillMaxWidth()
                                                 )
                                         }

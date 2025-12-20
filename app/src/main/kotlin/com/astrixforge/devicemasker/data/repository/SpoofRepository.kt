@@ -4,11 +4,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.astrixforge.devicemasker.common.SpoofProfile
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.data.generators.FingerprintGenerator
-import com.astrixforge.devicemasker.data.generators.IMEIGenerator
-import com.astrixforge.devicemasker.data.generators.MACGenerator
-import com.astrixforge.devicemasker.data.generators.SerialGenerator
-import com.astrixforge.devicemasker.data.generators.UUIDGenerator
+import com.astrixforge.devicemasker.common.generators.FingerprintGenerator
+import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
+import com.astrixforge.devicemasker.common.generators.IMEIGenerator
+import com.astrixforge.devicemasker.common.generators.IMSIGenerator
+import com.astrixforge.devicemasker.common.generators.MACGenerator
+import com.astrixforge.devicemasker.common.generators.SerialGenerator
+import com.astrixforge.devicemasker.common.generators.UUIDGenerator
 import com.astrixforge.devicemasker.service.ConfigManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -103,9 +105,9 @@ class SpoofRepository(private val context: Context) {
             // Device
             SpoofType.IMEI -> IMEIGenerator.generate()
             SpoofType.MEID -> IMEIGenerator.generate()
-            SpoofType.IMSI -> generateImsi()
+            SpoofType.IMSI -> IMSIGenerator.generate()
             SpoofType.SERIAL -> SerialGenerator.generate()
-            SpoofType.ICCID -> generateIccid()
+            SpoofType.ICCID -> ICCIDGenerator.generate()
             SpoofType.PHONE_NUMBER -> generatePhoneNumber()
 
             // Network
@@ -122,25 +124,9 @@ class SpoofRepository(private val context: Context) {
             SpoofType.ADVERTISING_ID -> UUIDGenerator.generateAdvertisingId()
             SpoofType.MEDIA_DRM_ID -> UUIDGenerator.generateMediaDrmId()
 
-            // System
-            SpoofType.BUILD_FINGERPRINT -> FingerprintGenerator.generate()
-            SpoofType.BUILD_MODEL ->
-                FingerprintGenerator.generateBuildProperties()["MODEL"] ?: "Pixel 8"
-
-            SpoofType.BUILD_MANUFACTURER ->
-                FingerprintGenerator.generateBuildProperties()["MANUFACTURER"] ?: "Google"
-
-            SpoofType.BUILD_BRAND ->
-                FingerprintGenerator.generateBuildProperties()["BRAND"] ?: "google"
-
-            SpoofType.BUILD_DEVICE ->
-                FingerprintGenerator.generateBuildProperties()["DEVICE"] ?: "shiba"
-
-            SpoofType.BUILD_PRODUCT ->
-                FingerprintGenerator.generateBuildProperties()["PRODUCT"] ?: "shiba"
-
-            SpoofType.BUILD_BOARD ->
-                FingerprintGenerator.generateBuildProperties()["BOARD"] ?: "shiba"
+            // System - Device Profile (returns a random preset ID)
+            SpoofType.DEVICE_PROFILE -> 
+                com.astrixforge.devicemasker.common.DeviceProfilePreset.PRESETS.random().id
 
             // Location
             SpoofType.LOCATION_LATITUDE -> String.format(java.util.Locale.US, "%.6f", (-90.0..90.0).random())
@@ -157,14 +143,6 @@ class SpoofRepository(private val context: Context) {
 
             SpoofType.LOCALE -> listOf("en_US", "en_GB", "ja_JP", "de_DE", "fr_FR").random()
         }
-    }
-
-    private fun generateImsi(): String {
-        return "310" + (100..999).random().toString() + (100000000L..999999999L).random().toString()
-    }
-
-    private fun generateIccid(): String {
-        return "8901" + List(16) { (0..9).random() }.joinToString("")
     }
 
     private fun generatePhoneNumber(): String {

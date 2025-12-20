@@ -1,4 +1,4 @@
-package com.astrixforge.devicemasker.data.generators
+package com.astrixforge.devicemasker.common.generators
 
 import kotlin.random.Random
 

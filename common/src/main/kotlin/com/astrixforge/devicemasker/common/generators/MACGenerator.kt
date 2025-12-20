@@ -1,6 +1,6 @@
-package com.astrixforge.devicemasker.data.generators
+package com.astrixforge.devicemasker.common.generators
 
-import kotlin.random.Random
+import java.security.SecureRandom
 
 /**
  * MAC Address Generator for network spoofing.
@@ -68,13 +68,18 @@ object MACGenerator {
         )
 
     /**
+     * Secure random instance for cryptographic-quality randomness.
+     */
+    private val secureRandom = SecureRandom()
+
+    /**
      * Generates a random valid unicast MAC address. Uses locally administered bit for maximum
      * compatibility.
      *
      * @return A MAC address in XX:XX:XX:XX:XX:XX format
      */
     fun generate(): String {
-        val octets = ByteArray(6).apply { Random.nextBytes(this) }
+        val octets = ByteArray(6).apply { secureRandom.nextBytes(this) }
 
         // Ensure unicast (clear bit 0) and locally administered (set bit 1)
         octets[0] = (octets[0].toInt() and 0xFC or 0x02).toByte()
@@ -96,7 +101,7 @@ object MACGenerator {
                 ?: return generate()
 
         // Generate the last 3 octets randomly
-        val nicBytes = ByteArray(3).apply { Random.nextBytes(this) }
+        val nicBytes = ByteArray(3).apply { secureRandom.nextBytes(this) }
 
         val nicPart = nicBytes.joinToString(":") { "%02X".format(it) }
 

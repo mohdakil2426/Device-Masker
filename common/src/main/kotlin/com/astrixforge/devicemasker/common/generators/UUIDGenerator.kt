@@ -1,5 +1,6 @@
-package com.astrixforge.devicemasker.data.generators
+package com.astrixforge.devicemasker.common.generators
 
+import java.security.SecureRandom
 import java.util.UUID
 
 /**
@@ -11,8 +12,15 @@ import java.util.UUID
  * - GSF ID (Google Services Framework ID - 16 hex characters)
  * - Media DRM ID (Widevine device ID)
  * - GUID (Generic UUID v4)
+ *
+ * All generators use SecureRandom for cryptographic-quality randomness.
  */
 object UUIDGenerator {
+
+    /**
+     * Secure random instance for cryptographic-quality randomness.
+     */
+    private val secureRandom = SecureRandom()
 
     /** Hex characters for ID generation. */
     private const val HEX_CHARS = "0123456789abcdef"
@@ -24,7 +32,9 @@ object UUIDGenerator {
      * @return A 16-character lowercase hex string
      */
     fun generateAndroidId(): String {
-        return buildString { repeat(16) { append(HEX_CHARS.random()) } }
+        val bytes = ByteArray(8)
+        secureRandom.nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     /**
@@ -47,7 +57,9 @@ object UUIDGenerator {
      */
     fun generateGSFId(): String {
         // GSF ID is essentially the same format as Android ID
-        return buildString { repeat(16) { append(HEX_CHARS.random()) } }
+        val bytes = ByteArray(8)
+        secureRandom.nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     /**
@@ -57,7 +69,9 @@ object UUIDGenerator {
      * @return A 64-character hex string representing a device DRM ID
      */
     fun generateMediaDrmId(): String {
-        return buildString { repeat(64) { append(HEX_CHARS.random()) } }
+        val bytes = ByteArray(32)
+        secureRandom.nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     /**
@@ -68,6 +82,8 @@ object UUIDGenerator {
      */
     fun generateInstanceId(): String {
         val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"
-        return buildString { repeat(22) { append(chars.random()) } }
+        return buildString {
+            repeat(22) { append(chars[secureRandom.nextInt(chars.length)]) }
+        }
     }
 }
