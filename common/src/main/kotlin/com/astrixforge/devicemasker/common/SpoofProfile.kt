@@ -19,6 +19,7 @@ import kotlinx.serialization.Serializable
  * @property updatedAt Timestamp of last modification (epoch millis)
  * @property identifiers Map of SpoofType to DeviceIdentifier values
  * @property assignedApps Set of assigned app package names
+ * @property selectedCarrierMccMnc MCC/MNC of selected carrier for SIM spoofing (e.g., "40410")
  */
 @Serializable
 data class SpoofProfile(
@@ -31,6 +32,7 @@ data class SpoofProfile(
     val updatedAt: Long = System.currentTimeMillis(),
     val identifiers: Map<SpoofType, DeviceIdentifier> = emptyMap(),
     val assignedApps: Set<String> = emptySet(),
+    val selectedCarrierMccMnc: String? = null,  // Selected carrier for SIM spoofing
 ) {
     /**
      * Gets a specific identifier value from this profile.

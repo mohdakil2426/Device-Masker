@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
+import com.astrixforge.devicemasker.common.models.Carrier
 import java.security.SecureRandom
 
 /**
@@ -11,6 +12,7 @@ import java.security.SecureRandom
  * - MSIN (Mobile Subscription Identification Number): 9-10 digits
  *
  * This generator uses realistic MCC/MNC combinations from major carriers worldwide.
+ * Can auto-select MCC/MNC based on system timezone/locale for increased realism.
  */
 object IMSIGenerator {
 
@@ -75,13 +77,59 @@ object IMSIGenerator {
     )
 
     /**
+     * Maps timezone to regional MCC/MNC lists for location-aware generation.
+     */
+    private val REGION_MCC_MNC = mapOf(
+        // North America
+        "America/New_York" to listOf("310260", "311480", "310410", "310120", "310004", "310028"),
+        "America/Chicago" to listOf("310260", "311480", "310410", "310120", "310004", "310028"),
+        "America/Denver" to listOf("310260", "311480", "310410", "310120", "310004", "310028"),
+        "America/Los_Angeles" to listOf("310260", "311480", "310410", "310120", "310004", "310028"),
+        "America/Toronto" to listOf("302720", "302220", "302610"),
+        
+        // Europe
+        "Europe/London" to listOf("234150", "234100", "234200", "234303"),
+        "Europe/Berlin" to listOf("262010", "262020", "262030"),
+        "Europe/Paris" to listOf("208010", "208200", "208030"),
+        
+        // Asia
+        "Asia/Kolkata" to listOf("404450", "404400", "404900"),
+        "Asia/Shanghai" to listOf("460000", "460010", "460030"),
+        "Asia/Tokyo" to listOf("440100", "440200", "440300"),
+        
+        // Oceania
+        "Australia/Sydney" to listOf("505010", "505020", "505030"),
+        "Australia/Melbourne" to listOf("505010", "505020", "505030"),
+    )
+
+    /**
+     * Maps locale country codes to regional MCC/MNC lists.
+     */
+    private val LOCALE_MCC_MNC = mapOf(
+        "US" to listOf("310260", "311480", "310410", "310120"),
+        "CA" to listOf("302720", "302220", "302610"),
+        "GB" to listOf("234150", "234100", "234200", "234303"),
+        "DE" to listOf("262010", "262020", "262030"),
+        "FR" to listOf("208010", "208200", "208030"),
+        "IN" to listOf("404450", "404400", "404900"),
+        "CN" to listOf("460000", "460010", "460030"),
+        "JP" to listOf("440100", "440200", "440300"),
+        "AU" to listOf("505010", "505020", "505030"),
+    )
+
+    /**
      * Generates a valid 15-digit IMSI number with realistic MCC/MNC.
      *
+     * @param preferLocalRegion If true, attempts to select MCC/MNC based on system timezone/locale
      * @return A valid IMSI string (15 digits)
      */
-    fun generate(): String {
-        // Select a random valid MCC+MNC
-        val mccMnc = VALID_MCC_MNC[secureRandom.nextInt(VALID_MCC_MNC.size)]
+    fun generate(preferLocalRegion: Boolean = false): String {
+        // Select MCC+MNC (location-aware if requested, random otherwise)
+        val mccMnc = if (preferLocalRegion) {
+            selectLocationAwareMccMnc() ?: selectRandomMccMnc()
+        } else {
+            selectRandomMccMnc()
+        }
         
         // Calculate MSIN length to complete 15 digits
         val msinLength = 15 - mccMnc.length
@@ -94,5 +142,56 @@ object IMSIGenerator {
         }
         
         return mccMnc + msin
+    }
+
+    /**
+     * Generates a valid 15-digit IMSI for a specific carrier.
+     * 
+     * This ensures the IMSI matches the carrier's MCC/MNC, which is critical
+     * for correlation with ICCID, carrier name, and phone number.
+     * 
+     * @param carrier The carrier to generate IMSI for
+     * @return 15-digit IMSI starting with carrier's MCC/MNC
+     */
+    fun generate(carrier: Carrier): String {
+        val mccMnc = carrier.mccMnc
+        val msinLength = 15 - mccMnc.length
+        
+        // Generate random MSIN (Mobile Subscription Identification Number)
+        val msin = buildString {
+            repeat(msinLength) {
+                append(secureRandom.nextInt(10))
+            }
+        }
+        
+        return mccMnc + msin
+    }
+
+    /**
+     * Selects a random MCC/MNC from all available carriers.
+     */
+    private fun selectRandomMccMnc(): String {
+        return VALID_MCC_MNC[secureRandom.nextInt(VALID_MCC_MNC.size)]
+    }
+
+    /**
+     * Attempts to select MCC/MNC based on system timezone or locale.
+     * Returns null if no match found (caller should fall back to random).
+     */
+    private fun selectLocationAwareMccMnc(): String? {
+        // Try timezone-based selection first
+        val timeZone = java.util.TimeZone.getDefault().id
+        REGION_MCC_MNC[timeZone]?.let { regionalList ->
+            return regionalList[secureRandom.nextInt(regionalList.size)]
+        }
+
+        // Fall back to locale-based selection
+        val locale = java.util.Locale.getDefault()
+        LOCALE_MCC_MNC[locale.country]?.let { regionalList ->
+            return regionalList[secureRandom.nextInt(regionalList.size)]
+        }
+
+        // No match found
+        return null
     }
 }

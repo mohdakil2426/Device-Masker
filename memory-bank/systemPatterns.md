@@ -875,3 +875,246 @@ if (preset != null) {
 - Removed: `BUILD_FINGERPRINT`, `BUILD_MODEL`, `BUILD_MANUFACTURER`, `BUILD_BRAND`, `BUILD_DEVICE`, `BUILD_PRODUCT`, `BUILD_BOARD`
 - Added: `DEVICE_PROFILE` (value = preset ID)
 
+---
+
+## Spoof Value Correlation UI Patterns
+
+> **Updated Dec 20, 2025**: Simplified patterns after fixing regeneration bugs
+
+### Category Types
+
+| Category | Type | UI Pattern | Regeneration Behavior |
+|----------|------|------------|----------------------|
+| **SIM Card** | Correlated | Single switch + regenerate at category top | All values regenerate together |
+| **Device Hardware** | Independent | All 3 use `IndependentSpoofItem` | Each regenerates independently |
+| **Location** | Hybrid | Timezone+Locale combined card, Lat/Long independent | TZ regenerate updates both TZ+Locale |
+| **Network** | Independent | Each item has own switch + regenerate | Individual regeneration |
+| **Advertising** | Independent | Each item has own switch + regenerate | Individual regeneration |
+
+### UI Component Hierarchy
+
+```
+ProfileDetailScreen
+├── ProfileSpoofContent
+│   └── ProfileCategorySection (for each UIDisplayCategory)
+│       ├── Category Header (icon + title + expand arrow)
+│       └── AnimatedVisibility (expanded content)
+│           ├── If SIM_CARD (Correlated):
+│           │   ├── Switch + Regenerate row
+│           │   └── CorrelatedSpoofItem[] (display-only)
+│           ├── If DEVICE_HARDWARE:
+│           │   └── DeviceHardwareCategoryContent
+│           │       └── 3x IndependentSpoofItem (Profile, IMEI, Serial)
+│           ├── If LOCATION:
+│           │   └── LocationCategoryContent
+│           │       ├── Timezone+Locale card (combined, single switch)
+│           │       └── 2x IndependentSpoofItem (Lat, Long)
+│           └── If Network/Advertising (Independent):
+│               └── IndependentSpoofItem[] (each has switch + regenerate)
+```
+
+### Copy & Regenerate UX
+
+| Interaction | Pattern |
+|-------------|---------|
+| **Copy value** | Long-press on value text |
+| **Regenerate icon** | IconButton (standard size) |
+| **Category header** | Icon + title only (clean) |
+
+### Key Composables
+
+| Composable | Purpose | Used For |
+|------------|---------|----------|
+| `CorrelatedSpoofItem` | Display-only item (long-press to copy) | SIM Card category items |
+| `IndependentSpoofItem` | Item with switch + regenerate | Network, Advertising, Device Hardware items, Lat/Long |
+| `LocationCategoryContent` | Timezone+Locale combined card + Lat/Long independent | Location category |
+| `DeviceHardwareCategoryContent` | 3x IndependentSpoofItem (all independent) | Device Hardware category |
+
+### Implementation Notes
+
+1. **Location Regeneration** (Fixed):
+   ```kotlin
+   // Regenerate button calls BOTH individually to avoid cache issues
+   IconButton(onClick = {
+       onRegenerate(SpoofType.TIMEZONE)
+       onRegenerate(SpoofType.LOCALE)
+   }) { ... }
+   ```
+
+2. **Device Hardware Simplified**:
+   ```kotlin
+   // All 3 items now use standard IndependentSpoofItem
+   IndependentSpoofItem(
+       type = SpoofType.DEVICE_PROFILE,
+       value = deviceProfileDisplayValue,  // Shows preset name, not ID
+       ...
+   )
+   ```
+
+3. **Long-press to Copy**:
+   ```kotlin
+   @OptIn(ExperimentalFoundationApi::class)
+   Text(
+       text = value,
+       modifier = Modifier.combinedClickable(
+           onClick = { },
+           onLongClick = { onCopy(value) }
+       )
+   )
+   ```
+
+4. **UIDisplayCategory enum** uses `isCorrelated = false` for Location and Device Hardware to enable custom rendering logic via dedicated composables.
+
+## Value Generation & Correlation Patterns (Dec 21, 2025)
+
+### Correlation Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   CORRELATION GROUPS                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  SIM_CARD (Primary)           SIM_CARD_2 (Dual-SIM)         │
+│  ├── IMSI                     ├── IMSI_2                    │
+│  ├── ICCID                    ├── ICCID_2                   │
+│  ├── PHONE_NUMBER             ├── PHONE_NUMBER_2            │
+│  ├── CARRIER_NAME             ├── CARRIER_NAME_2            │
+│  └── CARRIER_MCC_MNC          └── CARRIER_MCC_MNC_2         │
+│                                                              │
+│  LOCATION (Country-Based)     DEVICE_HARDWARE               │
+│  ├── TIMEZONE                 ├── IMEI                      │
+│  ├── LOCALE                   ├── SERIAL                    │
+│  ├── LOCATION_LATITUDE        └── (Device Profile)          │
+│  └── LOCATION_LONGITUDE                                     │
+│                                                              │
+│  NONE (Independent)                                          │
+│  ├── WIFI_SSID, WIFI_BSSID, WIFI_MAC                        │
+│  ├── BLUETOOTH_MAC, ANDROID_ID                              │
+│  └── GSF_ID, ADVERTISING_ID                                 │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Carrier → Location Sync Flow
+
+```
+User selects Carrier (e.g., T-Mobile US)
+         │
+         ▼
+┌─────────────────────────────────────────┐
+│     SpoofRepository.updateProfileWithCarrier()     │
+├─────────────────────────────────────────┤
+│  1. Generate SIMProfile for carrier                │
+│  2. Generate LocationProfile for carrier's country │
+│  3. Update profile with:                           │
+│     - All SIM values (IMSI, ICCID, Phone, etc.)   │
+│     - Timezone (country-appropriate)              │
+│     - Locale (country-appropriate)                │
+│     - GPS coordinates (city-level bounds)         │
+└─────────────────────────────────────────┘
+```
+
+### GPS Correlation Implementation
+
+```kotlin
+// LocationProfile now includes GPS coordinates
+data class LocationProfile(
+    val country: String,      // ISO code
+    val timezone: String,     // TZ database name
+    val locale: String,       // Language_Country
+    val latitude: Double,     // Within country bounds
+    val longitude: Double     // Within country bounds
+)
+
+// GPS bounds per country (major cities)
+private val COUNTRY_GPS_BOUNDS = mapOf(
+    "US" to listOf(
+        GPSBounds(40.4774, 40.9176, -74.2591, -73.7004),   // NYC
+        GPSBounds(33.7037, 34.3373, -118.6682, -117.6462), // LA
+        // ... more cities
+    ),
+    "IN" to listOf(
+        GPSBounds(18.8928, 19.2705, 72.7758, 72.9866),     // Mumbai
+        GPSBounds(28.4041, 28.8835, 76.8380, 77.3419),     // Delhi
+        // ... more cities
+    ),
+    // 16 countries total, 42 city bounds
+)
+```
+
+### Dual-SIM Generation
+
+```kotlin
+// SIM 2 has its own cache and generates independently
+private var cachedSIM2Profile: SIMProfile? = null
+
+private fun generateSIM2Value(type: SpoofType): String {
+    if (cachedSIM2Profile == null) {
+        cachedSIM2Profile = SIMProfileGenerator.generate()  // Different carrier
+    }
+    return when (type) {
+        SpoofType.IMSI_2 -> cachedSIM2Profile!!.imsi
+        SpoofType.ICCID_2 -> cachedSIM2Profile!!.iccid
+        // ... etc
+    }
+}
+```
+
+### Country Data Coverage
+
+| Country | ISO | Carriers | GPS Cities | Timezones | Locales |
+|---------|-----|----------|------------|-----------|---------|
+| 🇺🇸 USA | US | 45+ | 6 | 7 | en_US, es_US |
+| 🇮🇳 India | IN | 5 | 6 | 1 | en_IN, hi_IN |
+| 🇬🇧 UK | GB | 4 | 3 | 1 | en_GB |
+| 🇩🇪 Germany | DE | 3 | 3 | 1 | de_DE |
+| 🇫🇷 France | FR | 3 | 3 | 1 | fr_FR |
+| 🇯🇵 Japan | JP | 3 | 3 | 1 | ja_JP |
+| 🇨🇳 China | CN | 3 | 3 | 2 | zh_CN |
+| 🇦🇺 Australia | AU | 3 | 4 | 5 | en_AU |
+| 🇨🇦 Canada | CA | 3 | 3 | 5 | en_CA, fr_CA |
+| 🇰🇷 South Korea | KR | 3 | 3 | 1 | ko_KR |
+| 🇧🇷 Brazil | BR | 4 | 3 | 3 | pt_BR |
+| 🇷🇺 Russia | RU | 4 | 3 | 3 | ru_RU |
+| 🇲🇽 Mexico | MX | 3 | 3 | 3 | es_MX |
+| 🇮🇩 Indonesia | ID | 4 | 3 | 3 | id_ID |
+| 🇸🇦 Saudi Arabia | SA | 3 | 3 | 1 | ar_SA |
+| 🇦🇪 UAE | AE | 2 | 3 | 1 | ar_AE, en_AE |
+
+### Phone Number Generation
+
+```kotlin
+// Area codes by US state for realism
+private val US_AREA_CODES = listOf(
+    // Northeast
+    212, 347, 718, 917, 646,  // New York
+    201, 551, 609, 732, 856,  // New Jersey
+    // ... 100+ total
+)
+
+// NANP-compliant generation
+fun generateUSPhoneNumber(): String {
+    val areaCode = US_AREA_CODES.random()
+    val exchange = "${(2..9).random()}${secureRandom.nextInt(10)}${secureRandom.nextInt(10)}"
+    val subscriber = buildString { repeat(4) { append(secureRandom.nextInt(10)) } }
+    return "+1$areaCode$exchange$subscriber"
+}
+```
+
+### WiFi SSID Patterns
+
+```kotlin
+private fun generateRealisticSSID(): String {
+    val patterns = listOf(
+        "NETGEAR${secureRandom.nextInt(100).toString().padStart(2, '0')}",
+        "TP-LINK_${generateHexSuffix(4)}",
+        "ASUS_RT-${listOf("AC68U", "AX88U", "N66U").random()}",
+        "ATT${generateHexSuffix(6)}",
+        "xfinitywifi",
+        "Linksys${secureRandom.nextInt(10000).toString().padStart(5, '0')}",
+        "${listOf("Home", "Guest", "MyNetwork").random()}_${generateHexSuffix(4)}",
+    )
+    return patterns.random()
+}
+```
+

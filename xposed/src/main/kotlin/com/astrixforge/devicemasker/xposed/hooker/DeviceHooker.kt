@@ -12,9 +12,12 @@ import com.highcapable.yukihookapi.hook.type.java.StringClass
  * Device Identifier Hooker - Spoofs hardware and device identifiers.
  *
  * Hooks TelephonyManager, Build class, and Settings.Secure to spoof:
- * - IMEI, MEID, IMSI, ICCID
+ * - IMEI, IMSI, ICCID (device & SIM identifiers)
  * - Serial number
  * - Android ID
+ *
+ * Note: MEID hooks have been removed as CDMA networks were deprecated in 2022.
+ * All modern devices use IMEI only.
  *
  * Uses DeviceMaskerService.instance?.config for values (HMA-OSS architecture).
  */
@@ -22,7 +25,6 @@ object DeviceHooker : YukiBaseHooker() {
 
     // Fallback values generated lazily
     private val fallbackImei by lazy { generateImei() }
-    private val fallbackMeid by lazy { generateImei() }
     private val fallbackSerial by lazy { generateSerial() }
     private val fallbackAndroidId by lazy { generateAndroidId() }
 
@@ -44,6 +46,7 @@ object DeviceHooker : YukiBaseHooker() {
         YLog.debug("DeviceHooker: Starting hooks for: $packageName")
 
         hookTelephonyManager()
+        hookSubscriptionInfo()  // NEW: Dual-SIM support
         hookBuildClass()
         hookSettingsSecure()
 
@@ -91,28 +94,7 @@ object DeviceHooker : YukiBaseHooker() {
                     }
                 }
 
-                // getMeid()
-                runCatching {
-                    method {
-                        name = "getMeid"
-                        emptyParam()
-                    }.hook {
-                        after {
-                            result = getSpoofValue(SpoofType.MEID) { fallbackMeid }
-                        }
-                    }
-                }
-
-                runCatching {
-                    method {
-                        name = "getMeid"
-                        param(IntType)
-                    }.hook {
-                        after {
-                            result = getSpoofValue(SpoofType.MEID) { fallbackMeid }
-                        }
-                    }
-                }
+                // Note: getMeid() hooks removed - CDMA/MEID deprecated since 2022
 
                 // getSubscriberId() - IMSI
                 method {
@@ -155,7 +137,243 @@ object DeviceHooker : YukiBaseHooker() {
                         }
                     }
                 }
+
+                // ═══════════════════════════════════════════════════════════
+                // NEW: Additional SIM hooks for comprehensive spoofing
+                // ═══════════════════════════════════════════════════════════
+
+                // getSimCountryIso() - SIM country code (e.g., "in" for India)
+                method {
+                    name = "getSimCountryIso"
+                    emptyParam()
+                }.hook {
+                    after {
+                        result = getSpoofValue(SpoofType.SIM_COUNTRY_ISO) { "us" }
+                    }
+                }
+
+                runCatching {
+                    method {
+                        name = "getSimCountryIso"
+                        param(IntType)
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.SIM_COUNTRY_ISO) { "us" }
+                        }
+                    }
+                }
+
+                // getNetworkCountryIso() - Network country code
+                method {
+                    name = "getNetworkCountryIso"
+                    emptyParam()
+                }.hook {
+                    after {
+                        result = getSpoofValue(SpoofType.NETWORK_COUNTRY_ISO) { "us" }
+                    }
+                }
+
+                runCatching {
+                    method {
+                        name = "getNetworkCountryIso"
+                        param(IntType)
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.NETWORK_COUNTRY_ISO) { "us" }
+                        }
+                    }
+                }
+
+                // getSimOperatorName() - SIM carrier name
+                method {
+                    name = "getSimOperatorName"
+                    emptyParam()
+                }.hook {
+                    after {
+                        result = getSpoofValue(SpoofType.SIM_OPERATOR_NAME) { "Carrier" }
+                    }
+                }
+
+                runCatching {
+                    method {
+                        name = "getSimOperatorName"
+                        param(IntType)
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.SIM_OPERATOR_NAME) { "Carrier" }
+                        }
+                    }
+                }
+
+                // getNetworkOperator() - Network operator MCC+MNC (e.g., "310260")
+                method {
+                    name = "getNetworkOperator"
+                    emptyParam()
+                }.hook {
+                    after {
+                        result = getSpoofValue(SpoofType.NETWORK_OPERATOR) { "310260" }
+                    }
+                }
+
+                runCatching {
+                    method {
+                        name = "getNetworkOperator"
+                        param(IntType)
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.NETWORK_OPERATOR) { "310260" }
+                        }
+                    }
+                }
+
+                // getSimOperator() - SIM operator MCC+MNC (same as CARRIER_MCC_MNC)
+                method {
+                    name = "getSimOperator"
+                    emptyParam()
+                }.hook {
+                    after {
+                        result = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
+                    }
+                }
+
+                runCatching {
+                    method {
+                        name = "getSimOperator"
+                        param(IntType)
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    /**
+     * Hooks SubscriptionInfo for dual-SIM support.
+     * 
+     * Some apps query SubscriptionInfo directly instead of TelephonyManager.
+     * We need to hook these to ensure consistent spoof values across all APIs.
+     */
+    private fun hookSubscriptionInfo() {
+        runCatching {
+            "android.telephony.SubscriptionInfo".toClass().apply {
+                
+                // getCountryIso() - Returns SIM country code
+                method {
+                    name = "getCountryIso"
+                    emptyParam()
+                }.hook {
+                    after {
+                        result = getSpoofValue(SpoofType.SIM_COUNTRY_ISO) { "us" }
+                    }
+                }
+
+                // getCarrierName() - Returns carrier display name
+                method {
+                    name = "getCarrierName"
+                    emptyParam()
+                }.hook {
+                    after {
+                        val spoofedName = getSpoofValue(SpoofType.CARRIER_NAME) { "Carrier" }
+                        // SubscriptionInfo.getCarrierName() returns CharSequence
+                        result = spoofedName as CharSequence
+                    }
+                }
+
+                // getDisplayName() - User-visible subscription name
+                method {
+                    name = "getDisplayName"
+                    emptyParam()
+                }.hook {
+                    after {
+                        val spoofedName = getSpoofValue(SpoofType.CARRIER_NAME) { "Carrier" }
+                        result = spoofedName as CharSequence
+                    }
+                }
+
+                // getMcc() - Mobile Country Code (returns int)
+                runCatching {
+                    method {
+                        name = "getMcc"
+                        emptyParam()
+                    }.hook {
+                        after {
+                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
+                            // MCC is first 3 digits
+                            result = mccMnc.take(3).toIntOrNull() ?: 310
+                        }
+                    }
+                }
+
+                // getMnc() - Mobile Network Code (returns int)
+                runCatching {
+                    method {
+                        name = "getMnc"
+                        emptyParam()
+                    }.hook {
+                        after {
+                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
+                            // MNC is digits after first 3
+                            result = mccMnc.drop(3).toIntOrNull() ?: 260
+                        }
+                    }
+                }
+
+                // getMccString() - MCC as string (API 29+)
+                runCatching {
+                    method {
+                        name = "getMccString"
+                        emptyParam()
+                    }.hook {
+                        after {
+                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
+                            result = mccMnc.take(3)
+                        }
+                    }
+                }
+
+                // getMncString() - MNC as string (API 29+)
+                runCatching {
+                    method {
+                        name = "getMncString"
+                        emptyParam()
+                    }.hook {
+                        after {
+                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
+                            result = mccMnc.drop(3)
+                        }
+                    }
+                }
+
+                // getIccId() - ICCID for this subscription
+                runCatching {
+                    method {
+                        name = "getIccId"
+                        emptyParam()
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.ICCID) { generateSimSerial() }
+                        }
+                    }
+                }
+
+                // getNumber() - Phone number for this subscription  
+                runCatching {
+                    method {
+                        name = "getNumber"
+                        emptyParam()
+                    }.hook {
+                        after {
+                            result = getSpoofValue(SpoofType.PHONE_NUMBER) { "+1234567890" }
+                        }
+                    }
+                }
+            }
+        }.onFailure {
+            // SubscriptionInfo may not be available on all devices/API levels
+            YLog.debug("SubscriptionInfo hooks skipped: ${it.message}")
         }
     }
 

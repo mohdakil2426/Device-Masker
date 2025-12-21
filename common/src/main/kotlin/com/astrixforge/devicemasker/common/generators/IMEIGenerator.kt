@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
-import kotlin.random.Random
+import java.security.SecureRandom
 
 /**
  * IMEI Generator with Luhn checksum validation.
@@ -16,6 +16,11 @@ import kotlin.random.Random
 object IMEIGenerator {
 
     /**
+     * Secure random instance for cryptographic-quality randomness.
+     */
+    private val secureRandom = SecureRandom()
+
+    /**
      * Realistic TAC prefixes from major manufacturers. These are 8-digit prefixes that identify the
      * device type.
      *
@@ -23,44 +28,68 @@ object IMEIGenerator {
      */
     private val TAC_PREFIXES =
         listOf(
-            // Samsung Galaxy series
-            "35332509",
-            "35391810",
-            "35405607",
-            "35421910",
-            // Apple iPhone series
-            "35332410",
-            "35391105",
-            "35420108",
-            "35925006",
-            // Google Pixel series
-            "35826010",
-            "35331510",
-            "35380110",
-            // Xiaomi/Redmi
-            "86783403",
-            "86076203",
-            "86893003",
-            // OnePlus
-            "86831803",
-            "86809403",
-            "86468503",
+            // ═══════════════════════════════════════════════════════════
+            // Samsung Galaxy (S23, S24, S25, A series, Z Fold/Flip)
+            // ═══════════════════════════════════════════════════════════
+            "35332509", "35391810", "35405607", "35421910",
+            "35512025", "35640125", "35478525", // S24/S25 Ultra
+            "35692024", "35703024", // Galaxy Z Fold/Flip 6
+            "35284110", "35357615", // Galaxy A series
+            
+            // ═══════════════════════════════════════════════════════════
+            // Apple iPhone (14, 15, 16 series)
+            // ═══════════════════════════════════════════════════════════
+            "35332410", "35391105", "35420108", "35925006",
+            "35393024", "35484916", "35548516", // iPhone 15
+            "35769024", "35821024", "35892025", // iPhone 16/16 Pro
+            
+            // ═══════════════════════════════════════════════════════════
+            // Google Pixel (7, 8, 9 series)
+            // ═══════════════════════════════════════════════════════════
+            "35826010", "35331510", "35380110",
+            "35888110", "35123410", "35923011", // Pixel 8/8 Pro
+            "35945024", "35967024", "35989025", // Pixel 9/9 Pro
+            
+            // ═══════════════════════════════════════════════════════════
+            // Xiaomi/Redmi (14, 15 series)
+            // ═══════════════════════════════════════════════════════════
+            "86783403", "86076203", "86893003",
+            "86945024", "86967024", // Xiaomi 14/15 Ultra
+            "86912024", "86934024", // Redmi Note 13/14
+            
+            // ═══════════════════════════════════════════════════════════
+            // OnePlus (12, 13)
+            // ═══════════════════════════════════════════════════════════
+            "86831803", "86809403", "86468503",
+            "86899603", "86912503", // OnePlus 12/13
+            
+            // ═══════════════════════════════════════════════════════════
+            // Nothing Phone (2, 2a, 3)
+            // ═══════════════════════════════════════════════════════════
+            "86454403", "86389203",
+            "86923024", "86945024", // Nothing Phone 2a/3
+            
+            // ═══════════════════════════════════════════════════════════
+            // Other brands (Huawei, Oppo, Vivo, Realme, Motorola, Sony)
+            // ═══════════════════════════════════════════════════════════
             // Huawei
-            "86156403",
-            "86180603",
-            "86445403",
+            "86156403", "86180603", "86445403",
             // Oppo
-            "86768803",
-            "86429203",
-            "86720203",
-            // Vivo
-            "86566203",
-            "86780203",
-            "86608003",
-            // Generic TACs (various manufacturers)
-            "01234567",
-            "45123478",
-            "35000000",
+            "86768803", "86429203", "86720203",
+            // Vivo / iQOO
+            "86566203", "86780203", "86608003",
+            "86934024", "86956024", // iQOO 12/13
+            // Realme
+            "86725403", "86892103", "86934124", // Realme 12/13
+            // Motorola
+            "35154711", "35185108", "35186609",
+            // Sony Xperia
+            "35618715", "35846806", "35874108",
+            
+            // ═══════════════════════════════════════════════════════════
+            // Generic TACs (fallback)
+            // ═══════════════════════════════════════════════════════════
+            "01234567", "45123478", "35000000",
         )
 
     /**
@@ -70,10 +99,10 @@ object IMEIGenerator {
      */
     fun generate(): String {
         // Select a random TAC prefix
-        val tac = TAC_PREFIXES.random()
+        val tac = TAC_PREFIXES[secureRandom.nextInt(TAC_PREFIXES.size)]
 
         // Generate 6 random digits for the serial number
-        val serial = buildString { repeat(6) { append(Random.nextInt(0, 10)) } }
+        val serial = buildString { repeat(6) { append(secureRandom.nextInt(10)) } }
 
         // Combine TAC and serial (14 digits without check digit)
         val imeiWithoutCheck = tac + serial

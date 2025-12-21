@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
+import com.astrixforge.devicemasker.common.models.Carrier
 import java.security.SecureRandom
 
 /**
@@ -45,6 +46,65 @@ object ICCIDGenerator {
         }
         
         // Base ICCID without check digit (18 digits)
+        val base = mii + countryCode + issuer + account
+        
+        // Calculate and append Luhn check digit
+        val checkDigit = calculateLuhnCheckDigit(base)
+        
+        return base + checkDigit
+    }
+
+    /**
+     * Country code mapping for ICCID generation.
+     * Maps ISO 3166-1 alpha-2 country codes to ICCID country codes.
+     */
+    private val COUNTRY_TO_ICCID_CODE = mapOf(
+        "US" to "01",  // United States
+        "CA" to "01",  // Canada (same as US for telecom)
+        "GB" to "44",  // United Kingdom
+        "DE" to "49",  // Germany
+        "FR" to "33",  // France
+        "IN" to "91",  // India
+        "CN" to "86",  // China
+        "JP" to "81",  // Japan
+        "AU" to "61"   // Australia
+    )
+
+    /**
+     * Generates a valid ICCID for a specific carrier.
+     * 
+     * The ICCID format is: 89 + country_code + issuer_code + serial + luhn_checksum
+     * 
+     * This uses carrier-specific data for maximum realism:
+     * - Country code from carrier's country ISO
+     * - Issuer code from carrier's iccidIssuerCode field
+     * 
+     * @param carrier The carrier to generate ICCID for
+     * @return A valid ICCID string (19 digits) with matching country/issuer codes
+     */
+    fun generate(carrier: Carrier): String {
+        // Major Industry Identifier for telecom (always 89)
+        val mii = "89"
+        
+        // Country code matching carrier's country (e.g., "91" for India)
+        val countryCode = COUNTRY_TO_ICCID_CODE[carrier.countryIso] 
+            ?: carrier.countryCode.padStart(2, '0')  // Fallback to phone country code
+        
+        // Carrier-specific issuer code (from carrier data, not random!)
+        val issuer = carrier.iccidIssuerCode.padStart(2, '0')
+        
+        // Calculate remaining digits needed for 18 total (before check digit)
+        // ICCID = MII(2) + CC(2-3) + Issuer(2-4) + Serial(variable) + Check(1) = 19-20 digits
+        val accountLength = 18 - mii.length - countryCode.length - issuer.length
+        require(accountLength > 0) { "Invalid ICCID component lengths" }
+        
+        val account = buildString {
+            repeat(accountLength) {
+                append(secureRandom.nextInt(10))
+            }
+        }
+        
+        // Base ICCID without check digit
         val base = mii + countryCode + issuer + account
         
         // Calculate and append Luhn check digit

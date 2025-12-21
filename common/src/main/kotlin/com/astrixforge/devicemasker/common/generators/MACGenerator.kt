@@ -114,9 +114,27 @@ object MACGenerator {
      * @return A MAC address typical for WiFi interfaces
      */
     fun generateWiFiMAC(): String {
-        val wifiManufacturers =
-            listOf("samsung", "apple", "google", "xiaomi", "qualcomm", "realtek")
-        return generateForManufacturer(wifiManufacturers.random())
+        return generate()
+    }
+
+    /**
+     * Generates a WiFi MAC address with optional manufacturer correlation.
+     * 
+     * 50% chance of using manufacturer's OUI, 50% locally-administered.
+     * This creates realistic variation (some devices use manufacturer OUI,
+     * others use locally-administered MACs).
+     * 
+     * @param manufacturer Device manufacturer (optional)
+     * @return A MAC address for WiFi interface
+     */
+    fun generateWiFiMAC(manufacturer: String?): String {
+        return if (manufacturer != null && secureRandom.nextBoolean()) {
+            // 50% chance: Use manufacturer OUI
+            generateForManufacturer(manufacturer)
+        } else {
+            // 50% chance: Use locally-administered
+            generate()
+        }
     }
 
     /**

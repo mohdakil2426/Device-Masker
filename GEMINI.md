@@ -23,7 +23,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 ## YukiHookAPI
 
-### All about yuki hook api alwasy read this
+### All about yuki hook api alwasy read this. Note - This only for refernce thats not 100% accurate.
 
 @/docs/lsposed/YukiHookAPI_Reference.md
 
@@ -34,6 +34,8 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 @/docs/material-ui/material3-expressive.md
 
 > **Note:** Always use `context7` MCP and web search for the most up-to-date documentation.
+
+- When searching on web you must inclaude `latest 2025-2026 year` in your search to get the most up-to-date documentation.
 
 ---
 

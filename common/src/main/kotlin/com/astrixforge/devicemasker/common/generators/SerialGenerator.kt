@@ -46,6 +46,23 @@ object SerialGenerator {
     }
 
     /**
+     * Generates a realistic serial number for a specific manufacturer.
+     * 
+     * @param manufacturer The device manufacturer (e.g., "Samsung", "Google", "Xiaomi")
+     * @return A serial number matching the manufacturer's pattern
+     */
+    fun generate(manufacturer: String): String {
+        return when (manufacturer.lowercase()) {
+            "samsung" -> generateSamsungSerial()
+            "google" -> generatePixelSerial()
+            "xiaomi", "redmi", "poco", "mi" -> generateXiaomiSerial()
+            "oneplus" -> generateGenericSerial()  // Can add OnePlus pattern later
+            "oppo", "vivo", "realme" -> generateGenericSerial()
+            else -> generateGenericSerial()
+        }
+    }
+
+    /**
      * Generates a Samsung-style serial number.
      * Format: R + 2 digits + year letter + 8 digits
      * Example: "R58M12345678"
