@@ -113,6 +113,7 @@
     <string name="profile_detail_not_set">Not set</string>
     <string name="profile_detail_search_hint">Search apps…</string>
     <string name="profile_detail_loading_apps">Loading apps…</string>
+    <string name="profile_detail_loading">Loading profile…</string>
     <string name="profile_detail_no_apps_found">No apps found</string>
     <string name="profile_detail_adjust_search">Try adjusting your search or filter</string>
     <string name="profile_detail_assigned_to">Assigned to: %s</string>
