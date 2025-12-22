@@ -166,5 +166,6 @@ This makes it ideal for privacy-focused modifications that need to work across m
 4. **Beautiful UI**: Modern design, not utilitarian
 5. **Focused Scope**: Does spoofing well, doesn't try to do everything
 6. **Active Development**: December 2025 tech stack
-7. **HMA-OSS Architecture**: 3-module structure with AIDL-based IPC for stability (Dec 2025)
+7. **Clean Architecture**: 3-module AIDL structure + Pure MVVM UI layer (Dec 2025)
+
 

@@ -2,103 +2,100 @@
 
 ## Current Work Focus
 
-### ✅ Complete: Value Generation Improvements (Dec 21, 2025)
+### ✅ Complete: MVVM Architecture Refactor (Dec 22, 2025)
 
-**Status**: Complete
-**Date**: December 21, 2025
+**Status**: All phases complete - Tested and Archived!
+**OpenSpec Change**: `refactor-mvvm-architecture` (archived as `2025-12-22-refactor-mvvm-architecture`)
 
-Implemented comprehensive value generation improvements for maximum realism and data correlation.
+#### Objective
+Migrated Device Masker `:app` module from Repository-Direct pattern to Pure MVVM architecture.
 
-#### Key Improvements Implemented
+#### Progress
 
-| # | Improvement | Status | Details |
-|---|-------------|--------|---------|
-| 1 | Canada to Country.ALL | ✅ Done | Added `Country("CA", "Canada", "🇨🇦", "1")` |
-| 2 | Dual-SIM support | ✅ Done | `SIM_CARD_2` group + 5 new SpoofTypes |
-| 3 | SIM-Location correlation | ✅ Done | Carrier change → auto-syncs timezone/locale/GPS |
-| 4 | More countries/carriers | ✅ Done | 16 countries, 75+ carriers total |
-| 5 | GPS correlation | ✅ Done | GPS coordinates tied to carrier country (city-level) |
-| 6 | Device-Hardware sync | ✅ Done | Device Profile → syncs hardware identifiers |
-| 7 | WiFi SSID patterns | ✅ Done | NETGEAR, TP-LINK, ASUS, ATT, Linksys patterns |
-| 12 | TAC database expansion | ✅ Done | iPhone 16, Pixel 9, S25, Nothing Phone TACs |
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ Complete | Created feature package structure |
+| Phase 2 | ✅ Complete | HomeScreen refactored to MVVM |
+| Phase 3 | ✅ Complete | ViewModels/States for all screens |
+| Phase 4 | ✅ Complete | All 5 screens migrated to MVVM |
+| Phase 5 | ✅ Complete | HMA-OSS references removed |
+| Phase 6 | ✅ Complete | Manual testing on device |
 
-#### Data Expansion Summary
+#### All Screens Migrated to MVVM
 
-| Category | Before | After |
-|----------|--------|-------|
-| Countries | 9 | **16** (+7 new) |
-| US Carriers | 6 | **45+** |
-| Total Carriers | ~30 | **75+** |
-| US Timezones | 4 | **7** |
-| US Area Codes | 0 | **100+** |
-| TAC Prefixes | 30 | **65+** |
-| GPS Bounds | 0 | **42 cities** |
-| Dual-SIM Types | 0 | **5** |
+**Home Screen (`ui/screens/home/`):**
+- `HomeState.kt` - UI state
+- `HomeViewModel.kt` - Module status, profiles, active profile
+- `HomeScreen.kt` - Uses ViewModel
 
-#### New Countries Added
+**Settings Screen (`ui/screens/settings/`):**
+- `SettingsState.kt` - UI state
+- `SettingsViewModel.kt` - Settings management via SettingsDataStore
+- `SettingsScreen.kt` - Uses ViewModel
 
-| Country | ISO | Carriers | GPS Cities |
-|---------|-----|----------|------------|
-| South Korea 🇰🇷 | KR | SK Telecom, KT, LG U+ | Seoul, Busan, Daegu |
-| Brazil 🇧🇷 | BR | Vivo, Claro, Tim, Oi | São Paulo, Rio, Brasília |
-| Russia 🇷🇺 | RU | MTS, Beeline, MegaFon, Tele2 | Moscow, St. Petersburg |
-| Mexico 🇲🇽 | MX | Telcel, AT&T MX, Movistar | Mexico City, Monterrey |
-| Indonesia 🇮🇩 | ID | Telkomsel, Indosat, XL, Tri | Jakarta, Surabaya |
-| Saudi Arabia 🇸🇦 | SA | STC, Mobily, Zain | Riyadh, Jeddah, Mecca |
-| UAE 🇦🇪 | AE | Etisalat, Du | Dubai, Abu Dhabi, Sharjah |
+**Profile Screen (`ui/screens/profile/`):**
+- `ProfileState.kt` - UI state
+- `ProfileViewModel.kt` - CRUD operations
+- `ProfileScreen.kt` - Uses ViewModel
 
-#### Files Modified
+**Profile Detail Screen (`ui/screens/profiledetail/`):**
+- `ProfileDetailState.kt` - UI state
+- `ProfileDetailViewModel.kt` - Spoof value operations
+- `ProfileDetailScreen.kt` - Uses ViewModel
 
-| File | Changes |
-|------|---------|
-| `Country.kt` | Added 7 new countries (KR, BR, RU, MX, ID, SA, AE) |
-| `Carrier.kt` | Added 22+ carriers for new countries, expanded US to 45+ |
-| `LocationProfile.kt` | Added GPS bounds, latitude/longitude fields, 7 new country data |
-| `PhoneNumberGenerator.kt` | 100+ US area codes, Canadian area codes |
-| `IMEIGenerator.kt` | 2024-2025 TAC prefixes (iPhone 16, Pixel 9, S25) |
-| `SpoofType.kt` | Added `SIM_CARD_2` group + 5 SIM 2 types |
-| `SpoofRepository.kt` | Dual-SIM generation, GPS sync on carrier change |
-| `ExpressiveCard.kt` | Added `ExpressiveOutlinedCard` and `containerColor` support |
+**Diagnostics Screen (`ui/screens/diagnostics/`):**
+- `DiagnosticsState.kt` - UI state + DiagnosticResult models
+- `DiagnosticsViewModel.kt` - Diagnostic tests
+- `DiagnosticsScreen.kt` - Uses ViewModel
+
+#### Phase 5 Completed Work
+
+Removed 12 HMA-OSS references from active code:
+- `xposed/` module: 4 files
+- `app/` module: 8 files
+- All now reference "Multi-Module AIDL architecture"
 
 ---
 
-## Recent Changes (Dec 21, 2025)
+## Recent Changes (Dec 22, 2025)
 
-### 🔧 Dual-SIM Support Added
+### 🏗️ MVVM Migration Complete
 
-- **New Correlation Group**: `CorrelationGroup.SIM_CARD_2`
-- **New SpoofTypes**: IMSI_2, ICCID_2, PHONE_NUMBER_2, CARRIER_NAME_2, CARRIER_MCC_MNC_2
-- **Repository Cache**: `cachedSIM2Profile` with independent generation
-- **Reset Methods**: Updated `resetCorrelations()` and `resetCorrelationGroup()`
+**All 5 Screens Now Use ViewModels:**
+- HomeScreen → HomeViewModel ✅
+- SettingsScreen → SettingsViewModel ✅
+- ProfileScreen → ProfileViewModel ✅
+- ProfileDetailScreen → ProfileDetailViewModel ✅
+- DiagnosticsScreen → DiagnosticsViewModel ✅
 
-### 🌍 GPS Correlation Complete
+**Key Architectural Changes:**
+- All screens now use `collectAsStateWithLifecycle()` for state collection
+- No repository dependencies in Composable functions
+- ViewModels handle all async operations via `viewModelScope`
+- Manual ViewModel instantiation using `viewModel { }` factory
 
-- `LocationProfile` now has `latitude` and `longitude` fields
-- GPS bounds defined for 42 major cities across 16 countries
-- When carrier changes, GPS auto-updates to that country's city coordinates
-- Prevents SIM/GPS country mismatch detection
+**MainActivity Updated:**
+- All screens receive ViewModels instead of Repository
+- Clean separation between UI and business logic
 
-### 📊 Carrier Database Expanded
+### 🧹 HMA-OSS References Cleaned (Phase 5)
 
-- USA: 45+ carriers (T-Mobile variations, Verizon, AT&T, MVNOs, regionals)
-- Added carriers for KR, BR, RU, MX, ID, SA, AE
-- Total: 75+ carriers worldwide
+Changed "HMA-OSS" to "Multi-Module AIDL" in 12 files.
 
 ---
 
-## ✨ Expressive UI Overhaul (Dec 22, 2025)
+## ✅ Complete: Expressive UI Overhaul (Dec 22, 2025)
 
-### 🎨 App-wide Expressive Cards
-- **Global Replacement**: Systematic migration of all `ElevatedCard`, `Card`, and `OutlinedCard` usages to `ExpressiveCard`.
-- **Bouncy Touch Feedback**: Every interactive section (Home profile, Stats, Spoof Items, Settings, App List) now features a spring-animated scale-down on press.
-- **Component Addition**: Introduced `ExpressiveOutlinedCard` to support outlined styles with expressive feedback.
-- **Improved Interaction**: Shifted click logic from inner layouts to the `ExpressiveCard` itself for more robust visual feedback.
+- Global Expressive Cards migration
+- Bouncy touch feedback throughout app
+- ExpressiveOutlinedCard component added
 
-### 🧩 Components Updated
-- `ProfileCard`, `StatCard`, `SpoofValueCard`, `AppListItem`, `SettingsSection`
-- `ProfileSelectorCard` (Home Screen)
-- `ModuleStatusCard` (Diagnostics Screen)
-- All Category and Item sections in `ProfileDetailScreen`
+## ✅ Complete: Value Generation Improvements (Dec 21, 2025)
+
+- 16 countries, 75+ carriers
+- GPS correlation with carrier country
+- Dual-SIM backend support
+- US carrier expansion (45+ carriers)
 
 ---
 
@@ -115,20 +112,17 @@ Implemented comprehensive value generation improvements for maximum realism and 
 
 ## Next Steps
 
-### Remaining Improvements (Optional)
+### No Active Development Work
 
-1. **Carrier in Profile Creation** - Add carrier picker to profile creation dialog
-2. **Dynamic Fingerprints** - Generate Build fingerprints dynamically
-3. **Validation Warnings** - Show UI warnings for location mismatches
-4. **Cell Info Hooks** - Add CellInfo/CellLocation Xposed hooks
-5. **Dual-SIM UI** - Add SIM 2 section to ProfileDetailScreen
+All major refactoring and improvements are complete! The project is in a stable state.
 
-### Device Testing
+### Future Enhancements (Optional)
 
-- [ ] Test new countries on device
-- [ ] Verify GPS coordinates work correctly
-- [ ] Test dual-SIM generation (when UI is added)
-- [ ] Verify carrier selection correlation
+- Add Dual-SIM UI section
+- Dynamic fingerprint generation
+- Cell Info Xposed hooks
+- Carrier picker in profile creation
+- More device presets
 
 ---
 
@@ -136,10 +130,12 @@ Implemented comprehensive value generation improvements for maximum realism and 
 
 | File | Purpose |
 |------|---------|
-| `common/.../models/Country.kt` | Country database (16 countries) |
-| `common/.../models/Carrier.kt` | Carrier database (75+ carriers) |
-| `common/.../models/LocationProfile.kt` | Location + GPS generation |
-| `common/.../generators/PhoneNumberGenerator.kt` | Phone number generation |
-| `common/.../generators/IMEIGenerator.kt` | IMEI generation with TACs |
-| `common/.../SpoofType.kt` | Spoof types including dual-SIM |
-| `app/.../repository/SpoofRepository.kt` | Value generation + correlation |
+| `ui/screens/home/HomeViewModel.kt` | Home screen state management |
+| `ui/screens/settings/SettingsViewModel.kt` | Settings screen state management |
+| `ui/screens/profile/ProfileViewModel.kt` | Profile screen state management |
+| `ui/screens/profiledetail/ProfileDetailViewModel.kt` | Profile detail state management |
+| `ui/screens/diagnostics/DiagnosticsViewModel.kt` | Diagnostics screen state management |
+| `ui/MainActivity.kt` | Navigation + ViewModel instantiation |
+| `openspec/changes/archive/2025-12-22-refactor-mvvm-architecture/` | Archived MVVM refactor documentation |
+
+

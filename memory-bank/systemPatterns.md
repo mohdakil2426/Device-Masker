@@ -2,9 +2,9 @@
 
 ## System Architecture
 
-### High-Level Architecture (HMA-OSS)
+### High-Level Architecture (Multi-Module)
 
-> **Updated Dec 20, 2025**: Adopted HMA-OSS architecture with 3-module structure
+> **Updated Dec 22, 2025**: 3-module structure with MVVM in UI layer
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -21,7 +21,10 @@
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │                        :app MODULE                                │   │
 │  │  HookEntry.kt (@InjectYukiHookWithXposed)                         │   │
-│  │  UI Layer (Material 3 Expressive + Jetpack Compose)               │   │
+│  │  UI Layer (MVVM + Material 3 Expressive + Jetpack Compose)        │   │
+│  │  ├── screens/[feature]/ViewModel.kt (State management)            │   │
+│  │  ├── screens/[feature]/State.kt (Immutable UI state)              │   │
+│  │  └── screens/[feature]/Screen.kt (Composable UI)                  │   │
 │  │  ServiceClient + ConfigManager (AIDL consumer) ✅                 │   │
 │  └────────────────────────────────┬─────────────────────────────────┘   │
 │                                   │                                      │
@@ -58,7 +61,33 @@
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow (HMA-OSS)
+### MVVM UI Architecture (Dec 22, 2025)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      PRESENTATION LAYER                          │
+│                                                                  │
+│  ┌─────────────────┐         ┌─────────────────────────────┐    │
+│  │  HomeScreen.kt  │◄────────│  HomeViewModel              │    │
+│  │  (Composable)   │  state  │  ├─ _state: MutableStateFlow│    │
+│  │                 │         │  ├─ state: StateFlow        │    │
+│  │  - Observes     │────────►│  └─ fun onAction(...)       │    │
+│  │    state        │  events │                             │    │
+│  │  - Renders UI   │         └───────────┬─────────────────┘    │
+│  │  - Sends events │                     │                      │
+│  └─────────────────┘                     │                      │
+│                                          ▼                      │
+│                              ┌───────────────────────┐          │
+│                              │   SpoofRepository     │          │
+│                              │   (Singleton)         │          │
+│                              │   ├─ flows            │          │
+│                              │   └─ suspend funs     │          │
+│                              └───────────────────────┘          │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow (AIDL-based IPC)
 
 ```
 ┌─────────────┐     AIDL      ┌──────────────────────┐
@@ -550,19 +579,27 @@ SpoofRepository
               └──▶ SpoofDataStore (app config storage)
 ```
 
-### UI Layer Dependencies
+### UI Layer Dependencies (MVVM - Dec 22, 2025)
 
 ```
 MainActivity
     │
-    └──▶ NavHost
+    └──▶ NavHost (with viewModel { } factory for each screen)
               │
-              ├──▶ HomeScreen ──▶ MainViewModel ──▶ SpoofRepository
-              ├──▶ AppSelectionScreen ──▶ AppsViewModel ──▶ AppScopeManager
-              ├──▶ SpoofSettingsScreen ──▶ SpoofViewModel ──▶ SpoofRepository
-              ├──▶ ProfileScreen ──▶ ProfileViewModel ──▶ ProfileManager
-              ├──▶ DiagnosticsScreen ──▶ DiagnosticsViewModel
-              └──▶ SettingsScreen ──▶ SettingsViewModel
+              ├──▶ HomeScreen ──▶ HomeViewModel ──▶ SpoofRepository
+              │         └─ collectAsStateWithLifecycle(HomeState)
+              │
+              ├──▶ SettingsScreen ──▶ SettingsViewModel ──▶ SettingsDataStore
+              │         └─ collectAsStateWithLifecycle(SettingsState)
+              │
+              ├──▶ ProfileScreen ──▶ ProfileViewModel ──▶ SpoofRepository
+              │         └─ collectAsStateWithLifecycle(ProfileState)
+              │
+              ├──▶ ProfileDetailScreen ──▶ ProfileDetailViewModel ──▶ SpoofRepository
+              │         └─ collectAsStateWithLifecycle(ProfileDetailState)
+              │
+              └──▶ DiagnosticsScreen ──▶ DiagnosticsViewModel ──▶ SpoofRepository
+                        └─ collectAsStateWithLifecycle(DiagnosticsState)
 ```
 
 ## Critical Implementation Paths

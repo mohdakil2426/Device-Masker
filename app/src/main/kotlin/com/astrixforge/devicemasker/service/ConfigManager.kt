@@ -19,7 +19,7 @@ import timber.log.Timber
 import java.io.File
 
 /**
- * Config Manager - Manages application configuration in HMA-OSS architecture.
+ * Config Manager - Manages application configuration in Multi-Module AIDL architecture.
  *
  * Responsibilities:
  * 1. Load/save configuration from/to local JSON file

@@ -19,7 +19,7 @@ import com.highcapable.yukihookapi.hook.type.java.StringClass
  * Note: MEID hooks have been removed as CDMA networks were deprecated in 2022.
  * All modern devices use IMEI only.
  *
- * Uses DeviceMaskerService.instance?.config for values (HMA-OSS architecture).
+ * Uses DeviceMaskerService.instance?.config for values (Multi-Module architecture).
  */
 object DeviceHooker : YukiBaseHooker() {
 

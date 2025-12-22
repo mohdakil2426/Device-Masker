@@ -1,9 +1,8 @@
-package com.astrixforge.devicemasker.ui.screens
+package com.astrixforge.devicemasker.ui.screens.home
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,17 +30,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,16 +47,14 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.astrixforge.devicemasker.DeviceMaskerApp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofProfile
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.components.IconCircle
 import com.astrixforge.devicemasker.ui.components.StatCard
 import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
@@ -75,10 +69,11 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
-import kotlinx.coroutines.launch
 
 /**
  * Home screen displaying module status and quick stats.
+ *
+ * Uses MVVM pattern with HomeViewModel for state management.
  *
  * Shows:
  * - Module active/inactive status with animated indicator
@@ -87,60 +82,38 @@ import kotlinx.coroutines.launch
  * - Quick stats (protected apps, masked identifiers)
  * - Quick actions
  *
- * @param repository The SpoofRepository for data access
+ * @param viewModel The HomeViewModel for state and actions
+ * @param onNavigateToSpoof Callback to navigate to spoof screen
+ * @param onRegenerateAll Callback to regenerate all values
  * @param onNavigateToProfile Callback to navigate to profile detail screen with selected profile ID
  * @param modifier Optional modifier
  */
 @Composable
 fun HomeScreen(
-    repository: SpoofRepository,
+    viewModel: HomeViewModel,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToProfile: ((String) -> Unit)? = null,
 ) {
-    val profiles by repository.profiles.collectAsState(initial = emptyList())
-    val dashboardState by
-        repository.dashboardState.collectAsState(
-            initial =
-                SpoofRepository.DashboardState(
-                    isModuleEnabled = false,
-                    activeProfile = null,
-                    enabledAppCount = 0,
-                    profileCount = 0,
-                )
-        )
-    val scope = rememberCoroutineScope()
-
-    // Track selected profile for the dropdown
-    var selectedProfileId by
-        remember(dashboardState.activeProfile) { mutableStateOf(dashboardState.activeProfile?.id) }
-    val selectedProfile =
-        profiles.find { it.id == selectedProfileId } ?: dashboardState.activeProfile
-
-    // Calculate protected apps count based on selected profile
-    val protectedAppsCount =
-        if (selectedProfile?.isEnabled == true) {
-            selectedProfile.assignedAppCount()
-        } else {
-            0
-        }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     HomeScreenContent(
-        isXposedActive = DeviceMaskerApp.isXposedModuleActive,
-        isModuleEnabled = dashboardState.isModuleEnabled,
-        profiles = profiles,
-        selectedProfile = selectedProfile,
+        isXposedActive = state.isXposedActive,
+        isModuleEnabled = state.isModuleEnabled,
+        profiles = state.profiles,
+        selectedProfile = state.selectedProfile,
         onProfileSelected = { profile ->
-            scope.launch { repository.setActiveProfile(profile.id) }
+            viewModel.selectProfile(profile.id)
         },
-        enabledAppsCount = protectedAppsCount,
-        maskedIdentifiersCount = selectedProfile?.enabledCount() ?: 0,
+        enabledAppsCount = state.enabledAppsCount,
+        maskedIdentifiersCount = state.maskedIdentifiersCount,
         onModuleEnabledChange = { enabled ->
-            scope.launch { repository.setModuleEnabled(enabled) }
+            viewModel.setModuleEnabled(enabled)
         },
         onNavigateToSpoof = {
             // Navigate to the selected profile's detail screen
+            val selectedProfile = state.selectedProfile
             if (onNavigateToProfile != null && selectedProfile != null) {
                 onNavigateToProfile(selectedProfile.id)
             } else {
@@ -148,13 +121,11 @@ fun HomeScreen(
             }
         },
         onRegenerateAll = {
-            // Regenerate values for selected profile only
-            scope.launch {
-                selectedProfile?.let { profile -> repository.setActiveProfile(profile.id) }
-                // Then regenerate using existing method
+            viewModel.regenerateAll {
                 onRegenerateAll()
             }
         },
+        isLoading = state.isLoading,
         modifier = modifier,
     )
 }
@@ -172,6 +143,7 @@ fun HomeScreenContent(
     onModuleEnabledChange: (Boolean) -> Unit,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
+    isLoading: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -181,7 +153,7 @@ fun HomeScreenContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                .alpha(if (profiles.isEmpty() && selectedProfile == null) 0f else 1f),
+                .alpha(if (isLoading) 0f else 1f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
         // Status Card - Hero Section
@@ -236,7 +208,7 @@ fun HomeScreenContent(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
-    AnimatedLoadingOverlay(isLoading = profiles.isEmpty() && selectedProfile == null) {
+    AnimatedLoadingOverlay(isLoading = isLoading) {
         ExpressiveLoadingIndicatorWithLabel(label = "Loading Dashboard...")
     }
 }
@@ -375,8 +347,6 @@ private fun StatusCard(
         }
     }
 }
-
-// StatCard moved to ui/components/StatCard.kt
 
 /** Profile selector card with dropdown menu. */
 @Composable

@@ -324,7 +324,7 @@ data class SpoofUiState(
 
 Device Masker operates entirely offline. No network requests are made to external services. All data stays on device.
 
-## File Structure (Updated Dec 20, 2025 - HMA-OSS Architecture Complete)
+## File Structure (Updated Dec 22, 2025 - MVVM Architecture Complete)
 
 ```
 devicemasker/
@@ -345,10 +345,30 @@ devicemasker/
 │   │   │   └── repository/
 │   │   │       ├── SpoofRepository.kt     # Bridge to ConfigManager
 │   │   │       └── AppScopeRepository.kt  # Installed apps access
-│   │   ├── ui/                             # UI layer (M3 Expressive)
+│   │   ├── ui/                             # UI layer (M3 Expressive + MVVM)
 │   │   │   ├── MainActivity.kt
 │   │   │   ├── theme/                     # Motion, Colors, Shapes
-│   │   │   ├── screens/                   # All screens
+│   │   │   ├── screens/                   # Feature-based MVVM screens
+│   │   │   │   ├── home/                  # Home (dashboard)
+│   │   │   │   │   ├── HomeScreen.kt
+│   │   │   │   │   ├── HomeState.kt
+│   │   │   │   │   └── HomeViewModel.kt
+│   │   │   │   ├── settings/              # App settings
+│   │   │   │   │   ├── SettingsScreen.kt
+│   │   │   │   │   ├── SettingsState.kt
+│   │   │   │   │   └── SettingsViewModel.kt
+│   │   │   │   ├── profile/               # Profile list/CRUD
+│   │   │   │   │   ├── ProfileScreen.kt
+│   │   │   │   │   ├── ProfileState.kt
+│   │   │   │   │   └── ProfileViewModel.kt
+│   │   │   │   ├── profiledetail/         # Profile spoof values
+│   │   │   │   │   ├── ProfileDetailScreen.kt
+│   │   │   │   │   ├── ProfileDetailState.kt
+│   │   │   │   │   └── ProfileDetailViewModel.kt
+│   │   │   │   └── diagnostics/           # Diagnostics/testing
+│   │   │   │       ├── DiagnosticsScreen.kt
+│   │   │   │       ├── DiagnosticsState.kt
+│   │   │   │       └── DiagnosticsViewModel.kt
 │   │   │   ├── components/                # Reusable + Expressive
 │   │   │   └── navigation/                # Nav routes
 │   │   └── utils/
@@ -399,7 +419,8 @@ devicemasker/
 │   └── libs.versions.toml                  # Dependency catalog
 ├── docs/                                   # Documentation
 ├── openspec/                               # OpenSpec specs
-│   └── changes/adopt-hma-architecture/     # Active change
+│   └── changes/archive/                    # Archived changes (8 total)
+│       └── 2025-12-22-refactor-mvvm-architecture/  # Latest
 └── memory-bank/                            # Memory Bank
 ```
 

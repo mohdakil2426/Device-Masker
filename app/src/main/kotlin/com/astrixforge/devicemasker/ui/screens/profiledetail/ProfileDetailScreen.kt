@@ -1,4 +1,4 @@
-package com.astrixforge.devicemasker.ui.screens
+package com.astrixforge.devicemasker.ui.screens.profiledetail
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -59,14 +59,13 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
@@ -82,15 +81,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofProfile
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.Country
-import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 import com.astrixforge.devicemasker.data.models.InstalledApp
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.IconCircle
@@ -103,7 +99,6 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveOutlinedCard
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.theme.AppMotion
-import kotlinx.coroutines.launch
 
 /**
  * Session-scoped state holder for category expansion.
@@ -223,27 +218,23 @@ private enum class UIDisplayCategory(
  * - Tab 0: Spoof Values - Configure per-profile spoof values
  * - Tab 1: Apps - Assign apps to this profile
  *
- * @param profileId The ID of the profile to display
- * @param repository The SpoofRepository for data access
+ * Uses MVVM architecture with ViewModel for state management.
+ *
+ * @param viewModel The ProfileDetailViewModel for state management
  * @param onNavigateBack Callback to navigate back
  * @param modifier Optional modifier
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileDetailScreen(
-        profileId: String,
-        repository: SpoofRepository,
+        viewModel: ProfileDetailViewModel,
         onNavigateBack: () -> Unit,
         modifier: Modifier = Modifier,
 ) {
-        val profiles by repository.profiles.collectAsState(initial = emptyList())
-        val profile = profiles.find { it.id == profileId }
-        val installedApps by
-                repository
-                        .appScopeRepository
-                        .getInstalledAppsFlow()
-                        .collectAsState(initial = emptyList())
-        val scope = rememberCoroutineScope()
+        val state by viewModel.state.collectAsStateWithLifecycle()
+        val profile = state.profile
+        val profiles = state.profiles
+        val installedApps = state.installedApps
 
         // Tab state
         var selectedTab by remember { mutableIntStateOf(0) }
@@ -311,85 +302,19 @@ fun ProfileDetailScreen(
                                                 ProfileSpoofContent(
                                                         profile = profile,
                                                         onRegenerate = { type ->
-                                                                profile?.let { p ->
-                                                                        scope.launch {
-                                                                                val correlationGroup = type.correlationGroup
-                                                                                
-                                                                                // For SIM values: use regenerateSIMValueOnly to keep same carrier
-                                                                                // This fixes the bug where phone number showed wrong country code
-                                                                                val newValue = when (correlationGroup) {
-                                                                                        CorrelationGroup.SIM_CARD -> 
-                                                                                                repository.regenerateSIMValueOnly(type)
-                                                                                        else -> {
-                                                                                                // For non-SIM correlated values, reset cache first
-                                                                                                if (correlationGroup != CorrelationGroup.NONE) {
-                                                                                                        repository.resetCorrelationGroup(correlationGroup)
-                                                                                                }
-                                                                                                repository.generateValue(type)
-                                                                                        }
-                                                                                }
-                                                                                
-                                                                                val updated = p.withValue(type, newValue)
-                                                                                repository.updateProfile(updated)
-                                                                        }
-                                                                }
+                                                                viewModel.regenerateValue(type)
                                                         },
                                                         onRegenerateCategory = { category ->
-                                                                profile?.let { p ->
-                                                                        scope.launch {
-                                                                                // Reset the cache for this correlation group first
-                                                                                if (category.isCorrelated) {
-                                                                                        val correlationGroup = category.types.firstOrNull()?.correlationGroup
-                                                                                        if (correlationGroup != null) {
-                                                                                                repository.resetCorrelationGroup(correlationGroup)
-                                                                                        }
-                                                                                }
-                                                                                
-                                                                                // Now regenerate all types in this category
-                                                                                var updatedProfile = p
-                                                                                category.types.forEach { type ->
-                                                                                        val newValue = repository.generateValue(type)
-                                                                                        updatedProfile = updatedProfile.withValue(type, newValue)
-                                                                                }
-                                                                                repository.updateProfile(updatedProfile)
-                                                                        }
-                                                                }
+                                                                viewModel.regenerateCategory(category.types, category.isCorrelated)
                                                         },
                                                         onToggle = { type, enabled ->
-                                                                profile?.let { p ->
-                                                                        scope.launch {
-                                                                                val identifier =
-                                                                                        p.getIdentifier(
-                                                                                                type
-                                                                                        ) ?: DeviceIdentifier.createDefault(type)
-                                                                                val updated =
-                                                                                        p.withIdentifier(
-                                                                                                identifier
-                                                                                                        .copy(
-                                                                                                                isEnabled =
-                                                                                                                        enabled
-                                                                                                        )
-                                                                                        )
-                                                                                repository
-                                                                                        .updateProfile(
-                                                                                                updated
-                                                                                        )
-                                                                        }
-                                                                }
+                                                                viewModel.toggleSpoofType(type, enabled)
                                                         },
                                                         onRegenerateLocation = {
-                                                                profile?.let { p ->
-                                                                        scope.launch {
-                                                                                repository.regenerateLocationValues(p.id)
-                                                                        }
-                                                                }
+                                                                viewModel.regenerateLocation()
                                                         },
                                                         onCarrierChange = { carrier ->
-                                                                profile?.let { p ->
-                                                                        scope.launch {
-                                                                                repository.updateProfileWithCarrier(p.id, carrier)
-                                                                        }
-                                                                }
+                                                                viewModel.updateCarrier(carrier)
                                                         },
                                                 )
                                         1 ->
@@ -398,22 +323,10 @@ fun ProfileDetailScreen(
                                                         allProfiles = profiles,
                                                         installedApps = installedApps,
                                                         onAppToggle = { app, checked ->
-                                                                profile?.let { p ->
-                                                                        scope.launch {
-                                                                                if (checked) {
-                                                                                        repository
-                                                                                                .addAppToProfile(
-                                                                                                        p.id,
-                                                                                                        app.packageName,
-                                                                                                )
-                                                                                } else {
-                                                                                        repository
-                                                                                                .removeAppFromProfile(
-                                                                                                        p.id,
-                                                                                                        app.packageName,
-                                                                                                )
-                                                                                }
-                                                                        }
+                                                                if (checked) {
+                                                                        viewModel.addAppToProfile(app.packageName)
+                                                                } else {
+                                                                        viewModel.removeAppFromProfile(app.packageName)
                                                                 }
                                                         },
                                                 )

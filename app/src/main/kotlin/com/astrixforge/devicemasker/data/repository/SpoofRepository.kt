@@ -29,7 +29,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * Main repository combining all spoof-related data operations.
  *
- * HMA-OSS Architecture: This repository now wraps ConfigManager and provides
+ * Multi-Module Architecture: This repository now wraps ConfigManager and provides
  * the same API to the UI while using JsonConfig as the backing store.
  *
  * @param context Application context (for legacy compatibility)

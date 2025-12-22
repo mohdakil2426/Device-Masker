@@ -4,10 +4,11 @@
 
 | Metric | Value |
 |--------|-------|
-| **Project Phase** | Value Generation Improvements Complete |
-| **Active Changes** | 0 (all completed) |
-| **Archived Changes** | 5 |
-| **Last Major Update** | December 22, 2025 - App-wide Expressive Cards |
+| **Project Phase** | MVVM Refactor Complete ✅ |
+| **Active Changes** | 0 |
+| **Archived Changes** | 8 |
+| **Last Major Update** | December 22, 2025 - MVVM Migration Complete |
+
 
 ---
 
@@ -45,25 +46,48 @@
 
 ---
 
-## ✅ Complete: HMA-OSS Architecture Migration
+## ✅ Complete: MVVM Architecture Refactor (Dec 22, 2025)
 
-**OpenSpec Change**: `adopt-hma-architecture`
-**Status**: Complete (Device Testing Done, Fixes Applied)
-**Started**: December 20, 2025
+**OpenSpec Change**: `refactor-mvvm-architecture`
+**Status**: All code changes complete
+**Completed**: December 22, 2025
 
 ### Phase Progress
 
-| Phase | Status | Description | Date |
-|-------|--------|-------------|------|
-| Phase 1 | ✅ Complete | Multi-Module Gradle Structure | Dec 20, 2025 |
-| Phase 2 | ✅ Complete | :common Module (AIDL + Models) | Dec 20, 2025 |
-| Phase 3 | ✅ Complete | :xposed Module (Hooks + Service) | Dec 20, 2025 |
-| Phase 4 | ✅ Complete | :app Refactor | Dec 20, 2025 |
-| Phase 5 | ✅ Complete | Data Migration | Dec 20, 2025 |
-| Phase 6 | ✅ Complete | Build Verification | Dec 20, 2025 |
-| Phase 7 | ✅ Complete | Cleanup & Documentation | Dec 20, 2025 |
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ Complete | Feature package structure created |
+| Phase 2 | ✅ Complete | HomeScreen migrated to MVVM |
+| Phase 3 | ✅ Complete | ViewModels/States for all 5 screens |
+| Phase 4 | ✅ Complete | All 5 screens migrated to MVVM |
+| Phase 5 | ✅ Complete | HMA-OSS references removed (12 files) |
+| Phase 6 | ✅ Complete | Manual device testing |
+
+### All Screens Migrated
+
+| Screen | ViewModel | State | Status |
+|--------|-----------|-------|--------|
+| HomeScreen | HomeViewModel | HomeState | ✅ Migrated |
+| SettingsScreen | SettingsViewModel | SettingsState | ✅ Migrated |
+| ProfileScreen | ProfileViewModel | ProfileState | ✅ Migrated |
+| ProfileDetailScreen | ProfileDetailViewModel | ProfileDetailState | ✅ Migrated |
+| DiagnosticsScreen | DiagnosticsViewModel | DiagnosticsState | ✅ Migrated |
+
+### Key Architectural Changes
+
+- All screens use `collectAsStateWithLifecycle()` for state collection
+- No repository dependencies in Composable functions
+- ViewModels handle all async operations via `viewModelScope`
+- Manual ViewModel instantiation using `viewModel { }` factory
+- Clean separation between UI and business logic
 
 ---
+
+## ✅ Complete: Multi-Module Architecture Migration
+
+**OpenSpec Change**: `adopt-hma-architecture` (archived)
+**Status**: Complete
+**Completed**: December 20, 2025
 
 ## ✅ Complete: Spoof Value Correlation (Dec 20, 2025)
 
@@ -77,7 +101,7 @@
 
 ---
 
-## Architecture Summary (HMA-OSS)
+## Architecture Summary (Multi-Module + MVVM)
 
 ```
 ┌────────────────────────────────────────────────────────────────┐

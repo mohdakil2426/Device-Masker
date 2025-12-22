@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 /**
  * Device Masker Service - AIDL implementation running in system_server.
  *
- * This service is the core of the HMA-OSS architecture:
+ * This service is the core of the Multi-Module AIDL architecture:
  * - Holds configuration in memory for instant access by hooks
  * - Persists configuration to /data/system/devicemasker/config.json
  * - Provides AIDL interface for UI app communication
