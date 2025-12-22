@@ -15,6 +15,7 @@ import com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
 import com.astrixforge.devicemasker.common.generators.SerialGenerator
 import com.astrixforge.devicemasker.common.generators.SIMProfileGenerator
 import com.astrixforge.devicemasker.common.generators.UUIDGenerator
+import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.DeviceHardwareProfile
 import com.astrixforge.devicemasker.common.models.LocationProfile
 import com.astrixforge.devicemasker.common.models.SIMProfile
@@ -49,7 +50,6 @@ class SpoofRepository(private val context: Context) {
      * the same underlying profile, preventing detection from mismatches.
      */
     private var cachedSIMProfile: SIMProfile? = null
-    private var cachedSIM2Profile: SIMProfile? = null  // Dual-SIM: second slot
     private var cachedLocationProfile: LocationProfile? = null
     private var cachedDeviceHardware: DeviceHardwareProfile? = null
 
@@ -130,7 +130,6 @@ class SpoofRepository(private val context: Context) {
     fun generateValue(type: SpoofType): String {
         return when (type.correlationGroup) {
             CorrelationGroup.SIM_CARD -> generateSIMValue(type)
-            CorrelationGroup.SIM_CARD_2 -> generateSIM2Value(type)  // Dual-SIM
             CorrelationGroup.LOCATION -> generateLocationValue(type)
             CorrelationGroup.DEVICE_HARDWARE -> generateDeviceHardwareValue(type)
             CorrelationGroup.NONE -> generateIndependentValue(type)
@@ -163,22 +162,32 @@ class SpoofRepository(private val context: Context) {
     }
 
     /**
-     * Generates correlated SIM 2 values (for dual-SIM devices).
-     * All SIM 2 values use the same carrier profile for consistency.
+     * Regenerates ONLY a specific SIM value while keeping the same carrier.
+     * 
+     * This is used when the user wants to regenerate just the phone number, IMSI, or ICCID
+     * without changing the carrier. This prevents the bug where regenerating phone number
+     * would show wrong country code.
+     * 
+     * @param type The specific SIM type to regenerate
+     * @return The new value, using the SAME carrier as currently cached
      */
-    private fun generateSIM2Value(type: SpoofType): String {
-        // Generate SIM 2 profile if not cached (different from SIM 1)
-        if (cachedSIM2Profile == null) {
-            cachedSIM2Profile = SIMProfileGenerator.generate()
-        }
-
+    fun regenerateSIMValueOnly(type: SpoofType): String {
+        // Get the current carrier from cache, or generate new profile if no cache
+        val currentCarrier = cachedSIMProfile?.carrier ?: Carrier.random()
+        
+        // Generate ONLY the specific value using the SAME carrier
         return when (type) {
-            SpoofType.IMSI_2 -> cachedSIM2Profile!!.imsi
-            SpoofType.ICCID_2 -> cachedSIM2Profile!!.iccid
-            SpoofType.PHONE_NUMBER_2 -> cachedSIM2Profile!!.phoneNumber
-            SpoofType.CARRIER_NAME_2 -> cachedSIM2Profile!!.carrierName
-            SpoofType.CARRIER_MCC_MNC_2 -> cachedSIM2Profile!!.mccMnc
-            else -> throw IllegalArgumentException("Not a SIM 2 value: $type")
+            SpoofType.PHONE_NUMBER -> PhoneNumberGenerator.generate(currentCarrier)
+            SpoofType.IMSI -> IMSIGenerator.generate(currentCarrier)
+            SpoofType.ICCID -> ICCIDGenerator.generate(currentCarrier)
+            // For carrier-derived values, always use the cached profile
+            SpoofType.CARRIER_NAME -> currentCarrier.name
+            SpoofType.CARRIER_MCC_MNC -> currentCarrier.mccMnc
+            SpoofType.SIM_COUNTRY_ISO -> currentCarrier.countryIsoLower
+            SpoofType.NETWORK_COUNTRY_ISO -> currentCarrier.countryIsoLower
+            SpoofType.SIM_OPERATOR_NAME -> currentCarrier.name
+            SpoofType.NETWORK_OPERATOR -> currentCarrier.mccMnc
+            else -> throw IllegalArgumentException("Not a SIM value: $type")
         }
     }
 
@@ -256,7 +265,6 @@ class SpoofRepository(private val context: Context) {
      */
     fun resetCorrelations() {
         cachedSIMProfile = null
-        cachedSIM2Profile = null
         cachedLocationProfile = null
         cachedDeviceHardware = null
     }
@@ -268,7 +276,6 @@ class SpoofRepository(private val context: Context) {
     fun resetCorrelationGroup(group: CorrelationGroup) {
         when (group) {
             CorrelationGroup.SIM_CARD -> cachedSIMProfile = null
-            CorrelationGroup.SIM_CARD_2 -> cachedSIM2Profile = null
             CorrelationGroup.LOCATION -> cachedLocationProfile = null
             CorrelationGroup.DEVICE_HARDWARE -> cachedDeviceHardware = null
             CorrelationGroup.NONE -> { /* No cache for independent values */ }

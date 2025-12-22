@@ -58,6 +58,7 @@ Implemented comprehensive value generation improvements for maximum realism and 
 | `IMEIGenerator.kt` | 2024-2025 TAC prefixes (iPhone 16, Pixel 9, S25) |
 | `SpoofType.kt` | Added `SIM_CARD_2` group + 5 SIM 2 types |
 | `SpoofRepository.kt` | Dual-SIM generation, GPS sync on carrier change |
+| `ExpressiveCard.kt` | Added `ExpressiveOutlinedCard` and `containerColor` support |
 
 ---
 
@@ -85,14 +86,30 @@ Implemented comprehensive value generation improvements for maximum realism and 
 
 ---
 
+## ✨ Expressive UI Overhaul (Dec 22, 2025)
+
+### 🎨 App-wide Expressive Cards
+- **Global Replacement**: Systematic migration of all `ElevatedCard`, `Card`, and `OutlinedCard` usages to `ExpressiveCard`.
+- **Bouncy Touch Feedback**: Every interactive section (Home profile, Stats, Spoof Items, Settings, App List) now features a spring-animated scale-down on press.
+- **Component Addition**: Introduced `ExpressiveOutlinedCard` to support outlined styles with expressive feedback.
+- **Improved Interaction**: Shifted click logic from inner layouts to the `ExpressiveCard` itself for more robust visual feedback.
+
+### 🧩 Components Updated
+- `ProfileCard`, `StatCard`, `SpoofValueCard`, `AppListItem`, `SettingsSection`
+- `ProfileSelectorCard` (Home Screen)
+- `ModuleStatusCard` (Diagnostics Screen)
+- All Category and Item sections in `ProfileDetailScreen`
+
+---
+
 ## Build Status
 
 | Module | Status | Last Build |
 |--------|--------|------------|
-| :common | ✅ SUCCESS | Dec 21, 2025 |
-| :xposed | ✅ SUCCESS | Dec 21, 2025 |
-| :app | ✅ SUCCESS | Dec 21, 2025 |
-| Full APK | ✅ SUCCESS | Dec 21, 2025 |
+| :common | ✅ SUCCESS | Dec 22, 2025 |
+| :xposed | ✅ SUCCESS | Dec 22, 2025 |
+| :app | ✅ SUCCESS | Dec 22, 2025 |
+| Full APK | ✅ SUCCESS | Dec 22, 2025 |
 
 ---
 

@@ -28,11 +28,8 @@ enum class CorrelationGroup {
     /** No correlation - value is fully independent */
     NONE,
     
-    /** SIM card identifiers (SIM 1) - IMSI, ICCID, CARRIER must all match */
+    /** SIM card identifiers - IMSI, ICCID, CARRIER must all match */
     SIM_CARD,
-    
-    /** SIM card identifiers (SIM 2) - For dual-SIM devices */
-    SIM_CARD_2,
     
     /** Location settings - TIMEZONE, LOCALE should correlate */
     LOCATION,
@@ -178,45 +175,6 @@ enum class SpoofType(
         displayName = "MCC/MNC",
         category = SpoofCategory.NETWORK,
         correlationGroup = CorrelationGroup.SIM_CARD
-    ),
-
-    // ═══════════════════════════════════════════════════════════
-    // SIM SLOT 2 IDENTIFIERS (Dual-SIM devices)
-    // ═══════════════════════════════════════════════════════════
-
-    /** IMSI for second SIM slot. */
-    IMSI_2(
-        displayName = "IMSI (SIM 2)",
-        category = SpoofCategory.DEVICE,
-        correlationGroup = CorrelationGroup.SIM_CARD_2
-    ),
-
-    /** ICCID for second SIM slot. */
-    ICCID_2(
-        displayName = "ICCID (SIM 2)",
-        category = SpoofCategory.DEVICE,
-        correlationGroup = CorrelationGroup.SIM_CARD_2
-    ),
-
-    /** Phone number for second SIM slot. */
-    PHONE_NUMBER_2(
-        displayName = "Phone (SIM 2)",
-        category = SpoofCategory.DEVICE,
-        correlationGroup = CorrelationGroup.SIM_CARD_2
-    ),
-
-    /** Carrier name for second SIM slot. */
-    CARRIER_NAME_2(
-        displayName = "Carrier (SIM 2)",
-        category = SpoofCategory.NETWORK,
-        correlationGroup = CorrelationGroup.SIM_CARD_2
-    ),
-
-    /** MCC/MNC for second SIM slot. */
-    CARRIER_MCC_MNC_2(
-        displayName = "MCC/MNC (SIM 2)",
-        category = SpoofCategory.NETWORK,
-        correlationGroup = CorrelationGroup.SIM_CARD_2
     ),
 
     // ═══════════════════════════════════════════════════════════

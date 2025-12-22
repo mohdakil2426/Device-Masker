@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -97,6 +99,8 @@ import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOver
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveOutlinedCard
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import kotlinx.coroutines.launch
@@ -309,26 +313,24 @@ fun ProfileDetailScreen(
                                                         onRegenerate = { type ->
                                                                 profile?.let { p ->
                                                                         scope.launch {
-                                                                                // FIXED: Reset cache for correlated types to get fresh values
                                                                                 val correlationGroup = type.correlationGroup
-                                                                                if (correlationGroup != CorrelationGroup.NONE) {
-                                                                                        repository.resetCorrelationGroup(correlationGroup)
+                                                                                
+                                                                                // For SIM values: use regenerateSIMValueOnly to keep same carrier
+                                                                                // This fixes the bug where phone number showed wrong country code
+                                                                                val newValue = when (correlationGroup) {
+                                                                                        CorrelationGroup.SIM_CARD -> 
+                                                                                                repository.regenerateSIMValueOnly(type)
+                                                                                        else -> {
+                                                                                                // For non-SIM correlated values, reset cache first
+                                                                                                if (correlationGroup != CorrelationGroup.NONE) {
+                                                                                                        repository.resetCorrelationGroup(correlationGroup)
+                                                                                                }
+                                                                                                repository.generateValue(type)
+                                                                                        }
                                                                                 }
                                                                                 
-                                                                                val newValue =
-                                                                                        repository
-                                                                                                .generateValue(
-                                                                                                        type
-                                                                                                )
-                                                                                val updated =
-                                                                                        p.withValue(
-                                                                                                type,
-                                                                                                newValue
-                                                                                        )
-                                                                                repository
-                                                                                        .updateProfile(
-                                                                                                updated
-                                                                                        )
+                                                                                val updated = p.withValue(type, newValue)
+                                                                                repository.updateProfile(updated)
                                                                         }
                                                                 }
                                                         },
@@ -448,6 +450,32 @@ private fun ProfileSpoofContent(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+                // Header info
+                item {
+                        if (profile != null) {
+                                ExpressiveCard(
+                                        onClick = { /* Header info click */ },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = MaterialTheme.shapes.medium,
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
+                                ) {
+                                        Row(
+                                                modifier = Modifier.padding(12.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                                Text(
+                                                        text =
+                                                                stringResource(id = R.string.profile_detail_spoof_desc),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                        }
+                                }
+                        }
+                }
+
                 // Categories - organized by correlation groups
                 UIDisplayCategory.entries.forEach { category ->
                         item(key = "spoof_${category.name}") {
@@ -514,21 +542,16 @@ private fun ProfileCategorySection(
                 false // Not used for independent categories
         }
 
-        ElevatedCard(
+        ExpressiveCard(
+                onClick = { onToggleExpand() },
                 modifier = modifier.animateContentSize(animationSpec = spring()),
-                colors =
-                        CardDefaults.elevatedCardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        ),
                 shape = categoryShape,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
                 Column {
                         // Header - simplified, only icon + title + expand arrow
                         Row(
-                                modifier =
-                                        Modifier.fillMaxWidth()
-                                                .clickable { onToggleExpand() }
-                                                .padding(16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -694,16 +717,13 @@ private fun CorrelatedSpoofItem(
         onCopy: () -> Unit,
         modifier: Modifier = Modifier,
 ) {
-        Card(
+        ExpressiveCard(
+                onClick = { /* Item click feedback */ },
+                onLongClick = onCopy,
                 modifier = modifier,
-                colors = CardDefaults.cardColors(
-                        containerColor = if (isEnabled) {
-                                MaterialTheme.colorScheme.surface
-                        } else {
-                                MaterialTheme.colorScheme.surfaceContainerLow
-                        }
-                ),
                 shape = MaterialTheme.shapes.medium,
+                containerColor = if (isEnabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow,
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
         ) {
                 Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -723,7 +743,7 @@ private fun CorrelatedSpoofItem(
                                 )
                                 if (isEnabled && value.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        // Value text - long press to copy
+                                        // Value text
                                         Text(
                                                 text = value,
                                                 style = MaterialTheme.typography.bodySmall,
@@ -731,10 +751,6 @@ private fun CorrelatedSpoofItem(
                                                 color = MaterialTheme.colorScheme.primary,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.combinedClickable(
-                                                        onClick = { },
-                                                        onLongClick = { onCopy() }
-                                                ),
                                         )
                                 }
                         }
@@ -759,11 +775,13 @@ private fun IndependentSpoofItem(
         onCopy: () -> Unit,
         modifier: Modifier = Modifier,
 ) {
-        Card(
+        ExpressiveCard(
+                onClick = { /* Item click feedback */ },
+                onLongClick = { if (isEnabled && value.isNotEmpty()) onCopy() },
                 modifier = modifier,
-                colors =
-                        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = MaterialTheme.shapes.medium,
+                containerColor = MaterialTheme.colorScheme.surface,
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
         ) {
                 Column(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -791,7 +809,7 @@ private fun IndependentSpoofItem(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                        // Value text - long press to copy
+                                        // Value text
                                         Text(
                                                 text = value.ifEmpty { stringResource(id = R.string.profile_detail_not_set) },
                                                 style = MaterialTheme.typography.bodySmall,
@@ -799,22 +817,16 @@ private fun IndependentSpoofItem(
                                                 color = MaterialTheme.colorScheme.primary,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier
-                                                        .weight(1f)
-                                                        .combinedClickable(
-                                                                onClick = { },
-                                                                onLongClick = { if (value.isNotEmpty()) onCopy() }
-                                                        ),
+                                                modifier = Modifier.weight(1f),
                                         )
 
-                                        // Regenerate button (standard size)
-                                        IconButton(onClick = onRegenerate) {
-                                                Icon(
-                                                        imageVector = Icons.Filled.Refresh,
-                                                        contentDescription = stringResource(id = R.string.action_regenerate),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                )
-                                        }
+                                        // Regenerate button (with expressive feedback)
+                                        CompactExpressiveIconButton(
+                                                onClick = onRegenerate,
+                                                icon = Icons.Filled.Refresh,
+                                                contentDescription = stringResource(id = R.string.action_regenerate),
+                                                tint = MaterialTheme.colorScheme.primary,
+                                        )
                                 }
                         }
                 }
@@ -895,22 +907,17 @@ private fun SIMCardCategoryContent(
         // ═══════════════════════════════════════════════════════════
         // 1. CARRIER SELECTION CARD
         // ═══════════════════════════════════════════════════════════
-        Card(
+        ExpressiveCard(
+                onClick = { /* Selection action feedback */ },
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                containerColor = MaterialTheme.colorScheme.surface, // Carrier Selection card
                 shape = MaterialTheme.shapes.medium,
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
         ) {
                 Column(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                        Text(
-                                text = "Carrier Selection",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                        )
-                        
                         // Country picker row
                         Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -922,25 +929,35 @@ private fun SIMCardCategoryContent(
                                         style = MaterialTheme.typography.bodyMedium,
                                 )
                                 
-                                // Country button - opens dialog
+                                // Country button - opens dialog (centered flag+name, right arrow)
                                 val selectedCountry = Country.getByIso(selectedCountryIso)
-                                OutlinedCard(
+                                ExpressiveOutlinedCard(
                                         onClick = { showCountryPicker = true },
                                         modifier = Modifier.width(200.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                 ) {
                                         Row(
-                                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                                Text(
-                                                        text = selectedCountry?.displayName ?: selectedCountryIso,
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                )
+                                                // Centered: Flag + Country name
+                                                Row(
+                                                        modifier = Modifier.weight(1f),
+                                                        horizontalArrangement = Arrangement.Center,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                        Text(
+                                                                text = "${selectedCountry?.emoji ?: "🌍"} ${selectedCountry?.name ?: selectedCountryIso}",
+                                                                style = MaterialTheme.typography.bodyMedium,
+                                                        )
+                                                }
+                                                // Right arrow indicator
                                                 Icon(
-                                                        imageVector = Icons.Filled.ExpandLess,
+                                                        imageVector = Icons.Filled.ChevronRight,
                                                         contentDescription = null,
-                                                        modifier = Modifier.rotate(180f),
+                                                        modifier = Modifier.size(20.dp),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 )
                                         }
                                 }
@@ -964,15 +981,26 @@ private fun SIMCardCategoryContent(
                                         onExpandedChange = { carrierDropdownExpanded = it },
                                         modifier = Modifier.width(200.dp),
                                 ) {
-                                        OutlinedTextField(
-                                                value = currentCarrier?.displayName ?: "Select carrier",
-                                                onValueChange = {},
-                                                readOnly = true,
-                                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = carrierDropdownExpanded) },
+                                        // Rounded container matching Country picker style
+                                        ExpressiveOutlinedCard(
+                                                onClick = { carrierDropdownExpanded = true },
                                                 modifier = Modifier.menuAnchor().fillMaxWidth(),
-                                                textStyle = MaterialTheme.typography.bodyMedium,
-                                                singleLine = true,
-                                        )
+                                                shape = RoundedCornerShape(12.dp),
+                                        ) {
+                                                Row(
+                                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                        Text(
+                                                                text = currentCarrier?.displayName ?: "Select carrier",
+                                                                style = MaterialTheme.typography.bodyMedium,
+                                                                modifier = Modifier.weight(1f),
+                                                        )
+                                                        // Keep dropdown indicator as is
+                                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = carrierDropdownExpanded)
+                                                }
+                                        }
                                         
                                         ExposedDropdownMenu(
                                                 expanded = carrierDropdownExpanded,
@@ -999,10 +1027,12 @@ private fun SIMCardCategoryContent(
         // ═══════════════════════════════════════════════════════════
         // 2. LOCKED VALUES (derived from carrier, no switch/regenerate)
         // ═══════════════════════════════════════════════════════════
-        Card(
+        ExpressiveCard(
+                onClick = { /* Info action feedback */ },
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                containerColor = MaterialTheme.colorScheme.surface, // Carrier Info card
                 shape = MaterialTheme.shapes.medium,
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
         ) {
                 Column(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -1159,10 +1189,12 @@ private fun LocationCategoryContent(
         val longValue = profile?.getValue(SpoofType.LOCATION_LONGITUDE) ?: ""
 
         // 1. Timezone + Locale combined card - one switch controls both
-        Card(
+        ExpressiveCard(
+                onClick = { /* Combined setting feedback */ },
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = MaterialTheme.shapes.medium,
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
         ) {
                 Column(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -1215,13 +1247,12 @@ private fun LocationCategoryContent(
                                         )
 
                                         // Regenerate Timezone + Locale together from same country
-                                        IconButton(onClick = onRegenerateLocation) {
-                                                Icon(
-                                                        imageVector = Icons.Filled.Refresh,
-                                                        contentDescription = stringResource(id = R.string.action_regenerate),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                )
-                                        }
+                                        CompactExpressiveIconButton(
+                                                onClick = onRegenerateLocation,
+                                                icon = Icons.Filled.Refresh,
+                                                contentDescription = stringResource(id = R.string.action_regenerate),
+                                                tint = MaterialTheme.colorScheme.primary,
+                                        )
                                 }
                                 
                                 // Locale section with its own header

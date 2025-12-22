@@ -7,7 +7,7 @@
 | **Project Phase** | Value Generation Improvements Complete |
 | **Active Changes** | 0 (all completed) |
 | **Archived Changes** | 5 |
-| **Last Major Update** | December 21, 2025 - Value Generation Improvements |
+| **Last Major Update** | December 22, 2025 - App-wide Expressive Cards |
 
 ---
 
@@ -192,4 +192,5 @@
 | 📦 Generator Migration to :common | Week 12 | ✅ Done |
 | 🔗 Spoof Value Correlation UI | Week 12 | ✅ Done |
 | 🌍 Value Generation Improvements | Week 13 | ✅ Done |
+| ✅ Expressive Cards App-wide | Week 13 | ✅ Done |
 | ✅ v1.0 Release Ready | Week 13 | ⏳ Final Testing |
