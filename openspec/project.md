@@ -30,24 +30,24 @@
 - Kotlin official style guide
 - 4-space indentation
 - 120-character line limit
-- Package names: `com.AstrixForge.Device Masker.*`
+- Package names: `com.astrixforge.devicemasker.*`
 - Use `@Serializable` for data classes that need persistence
 - Use `data class` for immutable state
 - Use `object` for singletons (Hookers, Managers)
 
 ### Architecture Patterns
-- **Hook Layer**: YukiBaseHooker classes, one per domain
-- **Data Layer**: Repository pattern with DataStore
-- **UI Layer**: MVVM with StateFlow, Unidirectional Data Flow
-- **State**: Immutable data classes, `.copy()` for updates
-- **Navigation**: Compose Navigation with sealed class destinations
+- **Hook Layer**: YukiBaseHooker objects, one per domain
+- **Data Layer**: Repository pattern with DataStore and ConfigManager
+- **UI Layer**: Repository-backed MVVM with StateFlow (Unidirectional Data Flow)
+- **State**: Immutable data classes with `.copy()`
+- **Navigation**: Compose Navigation with simple string routes (Group-centric workflow)
 
 ### Naming Conventions
 - Hookers: `*Hooker.kt` (e.g., `DeviceHooker.kt`)
-- Generators: `*Generator.kt` (e.g., `IMEIGenerator.kt`)
-- Screens: `*Screen.kt` (e.g., `HomeScreen.kt`)
-- Components: Descriptive names (e.g., `SpoofValueCard.kt`)
-- ViewModels: `*ViewModel.kt` (e.g., `SpoofViewModel.kt`)
+- Generators: `*Generator.kt` (e.g., `SIMGenerator.kt`)
+- Screens: `*Screen.kt` (e.g., `GroupsScreen.kt`)
+- Components: Descriptive names (e.g., `GroupCard.kt`)
+- ViewModels: `*ViewModel.kt` (e.g., `GroupsViewModel.kt`)
 
 ### Testing Strategy
 - Unit tests for generators and validators

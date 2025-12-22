@@ -53,7 +53,7 @@
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │                       :common MODULE                              │   │
 │  │                                                                   │   │
-│  │  IDeviceMaskerService.aidl  │  JsonConfig  │  SpoofProfile       │   │
+│  │  IDeviceMaskerService.aidl  │  JsonConfig  │  SpoofGroup         │   │
 │  │  SpoofType  │  DeviceIdentifier  │  AppConfig  │  Constants      │   │
 │  │  (All @Serializable for JSON persistence)                        │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
@@ -220,40 +220,40 @@ UI Events → ViewModel → Repository → DataStore
               UI (Compose)
 ```
 
-### AD-6: Profile-Based Configuration
+### AD-6: Group-Based Configuration
 
-**Decision**: Named profiles assignable per-app with independent enable/disable
+**Decision**: Named groups assignable per-app with independent enable/disable
 
 **Structure**:
-- `SpoofProfile`: Named collection of spoofed values with `isEnabled` flag
-- `assignedApps: Set<String>`: Apps assigned to this profile
-- Default profile for apps without explicit config
+- `SpoofGroup`: Named collection of spoofed values with `isEnabled` flag
+- `assignedApps: Set<String>`: Apps assigned to this group
+- Default group for apps without explicit config
 
-### AD-6b: Independent Profiles (No Global Config)
+### AD-6b: Independent Groups (No Global Config)
 
-**Decision**: Remove GlobalSpoofConfig entirely, profiles are fully independent
+**Decision**: Remove GlobalSpoofConfig entirely, groups are fully independent
 
 **Why Global Config Was Removed** (Dec 17, 2025):
-- **Simpler Mental Model**: Each profile controls its own behavior
-- **No Conflicts**: No confusing interaction between global and profile settings
-- **Cleaner Code**: Hookers only check profile settings, not two layers
+- **Simpler Mental Model**: Each group controls its own behavior
+- **No Conflicts**: No confusing interaction between global and group settings
+- **Cleaner Code**: Hookers only check group settings, not two layers
 
 **New Data Flow**:
 ```
-App Launch → HookDataProvider.getProfileForPackage()
+App Launch → HookDataProvider.getGroupForPackage()
                       ↓
-           Profile found? No → Return null (no spoofing)
+            Group found? No → Return null (no spoofing)
                       ↓ Yes
-           Profile.isEnabled? No → Return null (no spoofing)
+            Group.isEnabled? No → Return null (no spoofing)
                       ↓ Yes
-           Type enabled in profile? No → Return null
+            Type enabled in group? No → Return null
                       ↓ Yes
-           Return spoofed value
+            Return spoofed value
 ```
 
 **Old Flow (Removed)**:
 ```
-❌ GlobalSpoofConfig.isTypeEnabled() → Profile.isTypeEnabled()
+❌ ConfigManager.isTypeEnabled() -> Group.isTypeEnabled()
 ```
 
 **Hooker Pattern (Simplified)**:
@@ -269,26 +269,26 @@ private fun getSpoofValueOrGenerate(
     }
     
     // getSpoofValue handles ALL checks:
-    // 1. Profile exists for this app
-    // 2. Profile.isEnabled == true
-    // 3. Profile.isTypeEnabled(type) == true
+    // 1. Group exists for this app
+    // 2. Group.isEnabled == true
+    // 3. Group.isTypeEnabled(type) == true
     return provider.getSpoofValue(type) ?: generator()
 }
 ```
 
-**Profile Model**:
+**Group Model**:
 ```kotlin
-data class SpoofProfile(
+data class SpoofGroup(
     val id: String,
     val name: String,
-    val isEnabled: Boolean = true,  // Master switch per profile
+    val isEnabled: Boolean = true,  // Master switch per group
     val isDefault: Boolean = false,
     val assignedApps: Set<String> = emptySet(),
     val identifiers: List<DeviceIdentifier> = emptyList()
 ) {
     fun isTypeEnabled(type: SpoofType): Boolean
     fun getValue(type: SpoofType): String?
-    fun withEnabled(enabled: Boolean): SpoofProfile
+    fun withEnabled(enabled: Boolean): SpoofGroup
 }
 ```
 
@@ -406,10 +406,10 @@ Abstracts data access from ViewModels:
 ```kotlin
 class SpoofRepository(
     private val dataStore: SpoofDataStore,
-    private val profileManager: ProfileManager
+    private val configManager: ConfigManager
 ) {
-    fun getSpoofedValues(): Flow<SpoofProfile>
-    suspend fun setIMEI(imei: String)
+    fun getGroups(): Flow<List<SpoofGroup>>
+    suspend fun saveGroup(group: SpoofGroup)
     suspend fun regenerateAll()
 }
 ```
@@ -474,7 +474,7 @@ with string constants avoids this initialization timing issue.
 Use **inline headers** inside LazyColumn with `headlineMedium` typography:
 
 ```kotlin
-// ✅ CORRECT for main nav destinations (Home, Apps, Spoof, Profiles, Settings)
+// ✅ CORRECT for main nav destinations (Home, Apps, Spoof, Groups, Settings)
 LazyColumn(
     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 ) {
@@ -501,7 +501,7 @@ LazyColumn(
 Use **TopAppBar** with Scaffold for screens navigated TO (not in bottom nav):
 
 ```kotlin
-// ✅ CORRECT for sub-screens (Diagnostics, Profile Details, etc.)
+// ✅ CORRECT for sub-screens (Diagnostics, Group Spoofing, etc.)
 Scaffold(
     topBar = {
         TopAppBar(
@@ -516,8 +516,8 @@ Scaffold(
 
 | Screen Type | Header Style | Example Screens |
 |-------------|--------------|-----------------|
-| Main Nav Destination | Inline `headlineMedium` | Home, Apps, Spoof, Profiles, Settings |
-| Sub-screen/Detail | TopAppBar in Scaffold | Diagnostics, Profile Edit |
+| Main Nav Destination | Inline `headlineMedium` | Home, Apps, Spoof, Groups, Settings |
+| Sub-screen/Detail | TopAppBar in Scaffold | Diagnostics, Group Spoofing |
 
 ### 6. Value Generator Pattern
 
@@ -572,11 +572,11 @@ SpoofRepository
     │
     ├──▶ SpoofDataStore (DataStore Preferences)
     │
-    ├──▶ ProfileManager
-    │         └──▶ SpoofDataStore (profile storage)
+    ├──▶ ConfigManager
+    │         └──▶ JsonConfig (group storage)
     │
-    └──▶ AppScopeManager
-              └──▶ SpoofDataStore (app config storage)
+    └──▶ AppScopeRepository
+              └──▶ JsonConfig (app config storage)
 ```
 
 ### UI Layer Dependencies (MVVM - Dec 22, 2025)
@@ -592,11 +592,11 @@ MainActivity
               ├──▶ SettingsScreen ──▶ SettingsViewModel ──▶ SettingsDataStore
               │         └─ collectAsStateWithLifecycle(SettingsState)
               │
-              ├──▶ ProfileScreen ──▶ ProfileViewModel ──▶ SpoofRepository
-              │         └─ collectAsStateWithLifecycle(ProfileState)
+              ├──▶ GroupsScreen ──▶ GroupsViewModel ──▶ SpoofRepository
+              │         └─ collectAsStateWithLifecycle(GroupsState)
               │
-              ├──▶ ProfileDetailScreen ──▶ ProfileDetailViewModel ──▶ SpoofRepository
-              │         └─ collectAsStateWithLifecycle(ProfileDetailState)
+              ├──▶ GroupSpoofingScreen ──▶ GroupSpoofingViewModel ──▶ SpoofRepository
+              │         └─ collectAsStateWithLifecycle(GroupSpoofingState)
               │
               └──▶ DiagnosticsScreen ──▶ DiagnosticsViewModel ──▶ SpoofRepository
                         └─ collectAsStateWithLifecycle(DiagnosticsState)
@@ -633,15 +633,15 @@ MainActivity
 5. App sees no Xposed evidence
 ```
 
-### Path 3: Profile Switch Flow
+### Path 3: Group Switch Flow
 
 ```
-1. User creates new profile in ProfileScreen
-2. ProfileManager generates default values
-3. User edits values in SpoofSettingsScreen
-4. User assigns profile to app in AppSelectionScreen
-5. AppScopeManager saves profileId to app config
-6. Next app launch uses new profile values
+1. User creates new group in GroupsScreen
+2. ConfigManager/Generators generate default values
+3. User edits values in GroupSpoofingScreen
+4. User assigns group to app in AppsTabContent
+5. ConfigManager saves groupId to app config
+6. Next app launch uses new group values
 ```
 
 ## Anti-Patterns to Avoid
@@ -650,13 +650,13 @@ MainActivity
 
 ```kotlin
 // BAD
-fun loadProfiles(): List<Profile> {
-    return runBlocking { dataStore.data.first() }  // ❌ Blocks UI
+fun loadGroups(): List<SpoofGroup> {
+    return runBlocking { dataStore.data.first().groups }  // ❌ Blocks UI
 }
 
 // GOOD
-fun loadProfiles(): Flow<List<Profile>> {
-    return dataStore.data.map { it.profiles }  // ✅ Reactive
+fun loadGroups(): Flow<List<SpoofGroup>> {
+    return dataStore.data.map { it.groups }  // ✅ Reactive
 }
 ```
 
@@ -806,7 +806,7 @@ DisposableEffect(darkTheme) {
 **Pattern**: Main navigation screens use LazyColumn with inline headers. Sub-screens can use TopAppBar.
 
 ```kotlin
-// Main Nav Screens (Home, Apps, Spoof, Profiles, Settings)
+// Main Nav Screens (Home, Apps, Spoof, Groups, Settings)
 LazyColumn(
     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -865,9 +865,9 @@ colors = CardDefaults.elevatedCardColors(
 - Missing `colors` parameter (always specify explicitly)
 - Missing `shape` parameter (always specify explicitly)
 
-### TP-5: Device Profile Presets (System Spoofing)
+### TP-5: Device Group Presets (System Spoofing)
 
-**Pattern**: Use unified device profiles instead of individual Build.* fields to ensure consistency.
+**Pattern**: Use unified device groups instead of individual Build.* fields to ensure consistency.
 
 **Rationale**: Apps detect spoofing by checking if Build.* values are consistent (e.g., fingerprint matches model, brand, device). Spoofing these individually leads to detection failures.
 
@@ -891,7 +891,7 @@ data class DeviceProfilePreset(
 ```
 
 **UI Pattern**:
-- Single toggle for entire device profile
+- Single toggle for entire device group
 - Display preset name (not ID)
 - Regenerate randomly picks from 10 presets
 - Same pattern as all other spoof items (toggle, copy, regenerate)
@@ -899,7 +899,7 @@ data class DeviceProfilePreset(
 **Hook Pattern**:
 ```kotlin
 // SystemHooker.kt - Apply all Build.* from preset
-val preset = DeviceProfilePreset.findById(profileId)
+val preset = DeviceProfilePreset.findById(groupId)
 if (preset != null) {
     hookBuildField("MODEL", preset.model)
     hookBuildField("MANUFACTURER", preset.manufacturer)
@@ -931,19 +931,19 @@ if (preset != null) {
 ### UI Component Hierarchy
 
 ```
-ProfileDetailScreen
-├── ProfileSpoofContent
-│   └── ProfileCategorySection (for each UIDisplayCategory)
+GroupSpoofingScreen
+├── GroupSpoofingContent
+│   └── CategorySection (for each UIDisplayCategory)
 │       ├── Category Header (icon + title + expand arrow)
 │       └── AnimatedVisibility (expanded content)
 │           ├── If SIM_CARD (Correlated):
 │           │   ├── Switch + Regenerate row
 │           │   └── CorrelatedSpoofItem[] (display-only)
 │           ├── If DEVICE_HARDWARE:
-│           │   └── DeviceHardwareCategoryContent
-│           │       └── 3x IndependentSpoofItem (Profile, IMEI, Serial)
+│           │   └── DeviceHardwareContent
+│           │       └── 3x IndependentSpoofItem (Group, IMEI, Serial)
 │           ├── If LOCATION:
-│           │   └── LocationCategoryContent
+│           │   └── LocationContent
 │           │       ├── Timezone+Locale card (combined, single switch)
 │           │       └── 2x IndependentSpoofItem (Lat, Long)
 │           └── If Network/Advertising (Independent):
@@ -1021,7 +1021,7 @@ ProfileDetailScreen
 │  LOCATION (Country-Based)     DEVICE_HARDWARE               │
 │  ├── TIMEZONE                 ├── IMEI                      │
 │  ├── LOCALE                   ├── SERIAL                    │
-│  ├── LOCATION_LATITUDE        └── (Device Profile)          │
+│  ├── LOCATION_LATITUDE        └── (Device Group)          │
 │  └── LOCATION_LONGITUDE                                     │
 │                                                              │
 │  NONE (Independent)                                          │
@@ -1039,11 +1039,11 @@ User selects Carrier (e.g., T-Mobile US)
          │
          ▼
 ┌─────────────────────────────────────────┐
-│     SpoofRepository.updateProfileWithCarrier()     │
+│     SpoofRepository.updateGroupWithCarrier()       │
 ├─────────────────────────────────────────┤
-│  1. Generate SIMProfile for carrier                │
-│  2. Generate LocationProfile for carrier's country │
-│  3. Update profile with:                           │
+│  1. Generate SIMConfig for carrier                 │
+│  2. Generate LocationConfig for carrier's country  │
+│  3. Update group with:                             │
 │     - All SIM values (IMSI, ICCID, Phone, etc.)   │
 │     - Timezone (country-appropriate)              │
 │     - Locale (country-appropriate)                │
@@ -1054,8 +1054,8 @@ User selects Carrier (e.g., T-Mobile US)
 ### GPS Correlation Implementation
 
 ```kotlin
-// LocationProfile now includes GPS coordinates
-data class LocationProfile(
+// LocationConfig now includes GPS coordinates
+data class LocationConfig(
     val country: String,      // ISO code
     val timezone: String,     // TZ database name
     val locale: String,       // Language_Country
@@ -1079,23 +1079,7 @@ private val COUNTRY_GPS_BOUNDS = mapOf(
 )
 ```
 
-### Dual-SIM Generation
 
-```kotlin
-// SIM 2 has its own cache and generates independently
-private var cachedSIM2Profile: SIMProfile? = null
-
-private fun generateSIM2Value(type: SpoofType): String {
-    if (cachedSIM2Profile == null) {
-        cachedSIM2Profile = SIMProfileGenerator.generate()  // Different carrier
-    }
-    return when (type) {
-        SpoofType.IMSI_2 -> cachedSIM2Profile!!.imsi
-        SpoofType.ICCID_2 -> cachedSIM2Profile!!.iccid
-        // ... etc
-    }
-}
-```
 
 ### Country Data Coverage
 

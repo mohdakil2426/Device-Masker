@@ -146,8 +146,8 @@ Each screen in the application SHALL have a dedicated ViewModel that:
 Each screen feature SHALL be organized in its own package under `ui/screens/`:
 
 - `ui/screens/home/` - Home screen feature
-- `ui/screens/profile/` - Profile list feature
-- `ui/screens/profiledetail/` - Profile detail/edit feature
+- `ui/screens/groups/` - Groups list feature
+- `ui/screens/groupspoofing/` - Group spoofing/edit feature
 - `ui/screens/settings/` - Settings feature
 - `ui/screens/diagnostics/` - Diagnostics feature
 

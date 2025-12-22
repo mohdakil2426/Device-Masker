@@ -10,7 +10,7 @@ The module SHALL intercept IMEI retrieval and return spoofed values that pass Lu
 #### Scenario: TelephonyManager.getImei() Hook
 
 - **WHEN** a target app calls `TelephonyManager.getImei()`
-- **THEN** the spoofed IMEI from the configured profile is returned
+- **THEN** the spoofed IMEI from the configured group is returned
 - **AND** the value is a 15-digit string passing Luhn validation
 
 #### Scenario: Legacy getDeviceId() Hook

@@ -29,20 +29,20 @@ class HomeViewModel(
         // Set initial Xposed status
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
 
-        // Collect profiles
+        // Collect groups
         viewModelScope.launch {
-            repository.profiles.collect { profiles ->
+            repository.groups.collect { groups ->
                 _state.update { currentState ->
-                    val selectedProfile = currentState.selectedProfile
-                        ?: profiles.find { it.isDefault }
-                        ?: profiles.firstOrNull()
+                    val selectedGroup = currentState.selectedGroup
+                        ?: groups.find { it.isDefault }
+                        ?: groups.firstOrNull()
                     
                     currentState.copy(
-                        profiles = profiles,
-                        selectedProfile = selectedProfile,
-                        maskedIdentifiersCount = selectedProfile?.enabledCount() ?: 0,
-                        enabledAppsCount = if (selectedProfile?.isEnabled == true) {
-                            selectedProfile.assignedAppCount()
+                        groups = groups,
+                        selectedGroup = selectedGroup,
+                        maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
+                        enabledAppsCount = if (selectedGroup?.isEnabled == true) {
+                            selectedGroup.assignedAppCount()
                         } else 0,
                         isLoading = false
                     )
@@ -54,17 +54,17 @@ class HomeViewModel(
         viewModelScope.launch {
             repository.dashboardState.collect { dashboard ->
                 _state.update { currentState ->
-                    // If we have an active profile from dashboard and no selection yet, use it
-                    val selectedProfile = currentState.selectedProfile
-                        ?: dashboard.activeProfile
+                    // If we have an active group from dashboard and no selection yet, use it
+                    val selectedGroup = currentState.selectedGroup
+                        ?: dashboard.activeGroup
                     
                     currentState.copy(
                         isModuleEnabled = dashboard.isModuleEnabled,
-                        selectedProfile = selectedProfile,
-                        enabledAppsCount = if (selectedProfile?.isEnabled == true) {
-                            selectedProfile.assignedAppCount()
+                        selectedGroup = selectedGroup,
+                        enabledAppsCount = if (selectedGroup?.isEnabled == true) {
+                            selectedGroup.assignedAppCount()
                         } else 0,
-                        maskedIdentifiersCount = selectedProfile?.enabledCount() ?: 0
+                        maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0
                     )
                 }
             }
@@ -81,34 +81,34 @@ class HomeViewModel(
     }
 
     /**
-     * Select a profile from the dropdown.
+     * Select a group from the dropdown.
      */
-    fun selectProfile(profileId: String) {
+    fun selectGroup(groupId: String) {
         viewModelScope.launch {
-            repository.setActiveProfile(profileId)
+            repository.setActiveGroup(groupId)
             // Update local state immediately for responsiveness
             _state.update { currentState ->
-                val profile = currentState.profiles.find { it.id == profileId }
+                val group = currentState.groups.find { it.id == groupId }
                 currentState.copy(
-                    selectedProfile = profile,
-                    enabledAppsCount = if (profile?.isEnabled == true) {
-                        profile.assignedAppCount()
+                    selectedGroup = group,
+                    enabledAppsCount = if (group?.isEnabled == true) {
+                        group.assignedAppCount()
                     } else 0,
-                    maskedIdentifiersCount = profile?.enabledCount() ?: 0
+                    maskedIdentifiersCount = group?.enabledCount() ?: 0
                 )
             }
         }
     }
 
     /**
-     * Regenerate all values for the selected profile.
+     * Regenerate all values for the selected group.
      * 
      * @param onComplete Callback invoked after regeneration starts
      */
     fun regenerateAll(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            state.value.selectedProfile?.let { profile ->
-                repository.setActiveProfile(profile.id)
+            state.value.selectedGroup?.let { group ->
+                repository.setActiveGroup(group.id)
             }
             onComplete()
         }

@@ -36,13 +36,13 @@ import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
 import com.astrixforge.devicemasker.ui.navigation.NavRoutes
 import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsScreen
 import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModel
-import com.astrixforge.devicemasker.ui.screens.profiledetail.ProfileDetailScreen
-import com.astrixforge.devicemasker.ui.screens.profiledetail.ProfileDetailViewModel
+import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingScreen
+import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModel
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
 import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
-import com.astrixforge.devicemasker.ui.screens.profile.ProfileScreen
-import com.astrixforge.devicemasker.ui.screens.profile.ProfileViewModel
+import com.astrixforge.devicemasker.ui.screens.groups.GroupsScreen
+import com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModel
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsScreen
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 import com.astrixforge.devicemasker.ui.theme.AppMotion
@@ -146,8 +146,8 @@ fun DeviceMaskerMainApp(
     val currentRoute = navBackStackEntry?.destination?.route ?: NavRoutes.HOME
     val context = LocalContext.current
 
-    // Hide bottom nav on profile detail and diagnostics screens for a cleaner focused experience
-    val showBottomBar = !currentRoute.startsWith(NavRoutes.PROFILE_DETAIL) && 
+    // Hide bottom nav on group spoofing and diagnostics screens for a cleaner focused experience
+    val showBottomBar = !currentRoute.startsWith(NavRoutes.GROUP_SPOOFING) && 
                         currentRoute != NavRoutes.DIAGNOSTICS
 
     Scaffold(
@@ -178,7 +178,7 @@ fun DeviceMaskerMainApp(
                 enterTransition = {
                     fadeIn(animationSpec = spring()) +
                             slideIntoContainer(
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                     towards = AnimatedContentTransitionScope.SlideDirection.Start,
                                     animationSpec = AppMotion.DefaultSpringOffset,
                             )
                 },
@@ -210,12 +210,12 @@ fun DeviceMaskerMainApp(
                 }
                 HomeScreen(
                         viewModel = homeViewModel,
-                        onNavigateToSpoof = { navController.navigate(NavRoutes.PROFILES) },
+                        onNavigateToSpoof = { navController.navigate(NavRoutes.GROUPS) },
                         onRegenerateAll = {
                             Timber.d("Regenerate all values requested")
                         },
-                        onNavigateToProfile = { profileId ->
-                            navController.navigate(NavRoutes.profileDetailRoute(profileId))
+                        onNavigateToGroup = { groupId ->
+                            navController.navigate(NavRoutes.groupSpoofingRoute(groupId))
                         },
                 )
             }
@@ -249,30 +249,30 @@ fun DeviceMaskerMainApp(
                 )
             }
 
-            // Profile Detail Screen - Per-profile spoof values and app assignment
+            // Group Spoofing Screen - Per-group spoof values and app assignment
             composable(
-                    route = NavRoutes.PROFILE_DETAIL_PATTERN,
-                    arguments = listOf(navArgument("profileId") { type = NavType.StringType }),
+                    route = NavRoutes.GROUP_SPOOFING_PATTERN,
+                    arguments = listOf(navArgument("groupId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val profileId =
-                        backStackEntry.arguments?.getString("profileId") ?: return@composable
-                val profileDetailViewModel = viewModel {
-                    ProfileDetailViewModel(repository, profileId)
+                val groupId =
+                        backStackEntry.arguments?.getString("groupId") ?: return@composable
+                val groupSpoofingViewModel = viewModel {
+                    GroupSpoofingViewModel(repository, groupId)
                 }
-                ProfileDetailScreen(
-                        viewModel = profileDetailViewModel,
+                GroupSpoofingScreen(
+                        viewModel = groupSpoofingViewModel,
                         onNavigateBack = { navController.popBackStack() },
                 )
             }
 
-            composable(NavRoutes.PROFILES) {
-                val profileViewModel = viewModel {
-                    ProfileViewModel(repository)
+            composable(NavRoutes.GROUPS) {
+                val groupsViewModel = viewModel {
+                    GroupsViewModel(repository)
                 }
-                ProfileScreen(
-                        viewModel = profileViewModel,
-                        onProfileClick = { profile ->
-                            navController.navigate(NavRoutes.profileDetailRoute(profile.id))
+                GroupsScreen(
+                        viewModel = groupsViewModel,
+                        onGroupClick = { group ->
+                            navController.navigate(NavRoutes.groupSpoofingRoute(group.id))
                         },
                 )
             }

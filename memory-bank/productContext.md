@@ -5,7 +5,7 @@
 ### The Problem
 
 Modern Android applications extensively collect device identifiers for:
-- **User Tracking**: Building profiles across apps and sessions
+- **User Tracking**: Building groups across apps and sessions
 - **Device Fingerprinting**: Creating unique identifiers even without explicit permissions
 - **Multi-Account Detection**: Preventing users from having multiple accounts
 - **Ban Evasion Detection**: Tracking devices across account changes
@@ -35,7 +35,7 @@ This makes it ideal for privacy-focused modifications that need to work across m
 | Problem | Solution |
 |---------|----------|
 | Apps track device across reinstalls | Spoof Android ID, Advertising ID, GSF ID |
-| Apps detect multi-accounts by IMEI | Spoof IMEI per profile |
+| Apps detect multi-accounts by IMEI | Spoof IMEI per group |
 | Location-based fingerprinting | Spoof GPS, Timezone, Locale |
 | Hardware fingerprinting | Spoof Build properties, Serial |
 | Network fingerprinting | Spoof MAC Address, SSID, BSSID |
@@ -54,12 +54,12 @@ This makes it ideal for privacy-focused modifications that need to work across m
    - Open Device Masker app
    - Go to "Apps" screen
    - Select apps to protect (enable spoofing)
-   - Optionally assign specific profiles to apps
+   - Optionally assign specific groups to apps
 
-3. **Manage Profiles**
-   - Create named profiles with different identities
-   - Set one profile as default
-   - Assign profiles to specific apps if needed
+3. **Manage Groups**
+   - Create named groups with different identities
+   - Set one group as default
+   - Assign groups to specific apps if needed
 
 4. **Customize Values**
    - View/edit individual spoofed values
@@ -117,7 +117,7 @@ This makes it ideal for privacy-focused modifications that need to work across m
    - AMOLED pure black for battery efficiency
 
 4. **Power User Options**
-   - Per-app profile assignment
+   - Per-app group assignment
    - Selective spoof types per app
    - Custom value entry with validation
    - Detailed diagnostics
@@ -138,13 +138,13 @@ This makes it ideal for privacy-focused modifications that need to work across m
 - **Goal**: Protect device identity from apps
 - **Technical Level**: Basic to intermediate
 - **Usage**: Enable for social media, shopping apps
-- **Needs**: Simple setup, profile switching, clear status
+- **Needs**: Simple setup, group switching, clear status
 
 ### 2. Security Researcher
 - **Goal**: Test app behavior with different identities
 - **Technical Level**: Advanced
-- **Usage**: Multiple profiles, frequent regeneration
-- **Needs**: Valid value formats, quick profile switching
+- **Usage**: Multiple groups, frequent regeneration
+- **Needs**: Valid value formats, quick group switching
 
 ### 3. Developer/Learner
 - **Goal**: Understand Xposed hooking and Android security

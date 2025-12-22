@@ -60,11 +60,11 @@ class DiagnosticsViewModel(
     }
 
     private fun runDiagnosticTests(): List<DiagnosticResult> {
-        // Get current spoofed profile
-        val profile = repository.getActiveProfileBlocking()
+        // Get current spoofed group
+        val group = repository.getActiveGroupBlocking()
         
-        // Get device profile preset info if set
-        val presetId = profile?.getValue(SpoofType.DEVICE_PROFILE)
+        // Get device group preset info if set
+        val presetId = group?.getValue(SpoofType.DEVICE_PROFILE)
         val presetInfo = presetId?.let { 
             com.astrixforge.devicemasker.common.DeviceProfilePreset.findById(it)
         }
@@ -80,16 +80,16 @@ class DiagnosticsViewModel(
                     } catch (_: Exception) {
                         null
                     },
-                spoofedValue = profile?.getValue(SpoofType.ANDROID_ID),
-                isActive = profile?.isTypeEnabled(SpoofType.ANDROID_ID) == true,
-                isSpoofed = profile?.getValue(SpoofType.ANDROID_ID) != null,
+                spoofedValue = group?.getValue(SpoofType.ANDROID_ID),
+                isActive = group?.isTypeEnabled(SpoofType.ANDROID_ID) == true,
+                isSpoofed = group?.getValue(SpoofType.ANDROID_ID) != null,
             ),
             // Device Profile (unified Build.* spoofing)
             DiagnosticResult(
                 type = SpoofType.DEVICE_PROFILE,
                 realValue = "${Build.MANUFACTURER} ${Build.MODEL}",
                 spoofedValue = presetInfo?.let { "${it.manufacturer} ${it.model}" },
-                isActive = profile?.isTypeEnabled(SpoofType.DEVICE_PROFILE) == true,
+                isActive = group?.isTypeEnabled(SpoofType.DEVICE_PROFILE) == true,
                 isSpoofed = presetInfo != null,
             ),
         )

@@ -243,8 +243,8 @@ object DeviceHooker : YukiBaseHooker() {
     
     private fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
         val service = DeviceMaskerService.instance ?: return fallback()
-        val profile = service.config.getProfileForApp(packageName) ?: return fallback()
-        return profile.getValue(type) ?: fallback()
+        val group = service.config.getGroupForApp(packageName) ?: return fallback()
+        return group.getValue(type) ?: fallback()
     }
 }
 ```
@@ -357,14 +357,14 @@ devicemasker/
 │   │   │   │   │   ├── SettingsScreen.kt
 │   │   │   │   │   ├── SettingsState.kt
 │   │   │   │   │   └── SettingsViewModel.kt
-│   │   │   │   ├── profile/               # Profile list/CRUD
-│   │   │   │   │   ├── ProfileScreen.kt
-│   │   │   │   │   ├── ProfileState.kt
-│   │   │   │   │   └── ProfileViewModel.kt
-│   │   │   │   ├── profiledetail/         # Profile spoof values
-│   │   │   │   │   ├── ProfileDetailScreen.kt
-│   │   │   │   │   ├── ProfileDetailState.kt
-│   │   │   │   │   └── ProfileDetailViewModel.kt
+│   │   │   │   ├── groups/                # Group list/CRUD
+│   │   │   │   │   ├── GroupsScreen.kt
+│   │   │   │   │   ├── GroupsState.kt
+│   │   │   │   │   └── GroupsViewModel.kt
+│   │   │   │   ├── groupspoofing/         # Group spoof values
+│   │   │   │   │   ├── GroupSpoofingScreen.kt
+│   │   │   │   │   ├── GroupSpoofingState.kt
+│   │   │   │   │   └── GroupSpoofingViewModel.kt
 │   │   │   │   └── diagnostics/           # Diagnostics/testing
 │   │   │   │       ├── DiagnosticsScreen.kt
 │   │   │   │       ├── DiagnosticsState.kt
@@ -379,22 +379,29 @@ devicemasker/
 │   ├── src/main/aidl/com/astrixforge/devicemasker/common/
 │   │   └── IDeviceMaskerService.aidl      # AIDL interface (10 methods)
 │   ├── src/main/kotlin/com/astrixforge/devicemasker/common/
-│   │   ├── SpoofType.kt                   # @Serializable enum (17 types, was 24)
+│   │   ├── SpoofType.kt                   # @Serializable enum
 │   │   ├── SpoofCategory.kt               # Categories
 │   │   ├── DeviceIdentifier.kt            # @Serializable data class
-│   │   ├── SpoofProfile.kt                # @Serializable data class
-│   │   ├── DeviceProfilePreset.kt         # 10 predefined device profiles (NEW)
+│   │   ├── SpoofGroup.kt                  # @Serializable data class
+│   │   ├── DeviceProfilePreset.kt         # Predefined device profiles
 │   │   ├── AppConfig.kt                   # @Serializable data class
 │   │   ├── JsonConfig.kt                  # Root config container
 │   │   ├── Constants.kt                   # Shared constants
 │   │   ├── Utils.kt                       # Validation utilities
-│   │   └── generators/                    # ⭐ Value Generators (NEW - Dec 20, 2025)
+│   │   ├── models/                        # Internal Config models
+│   │   │   ├── SIMConfig.kt               # Correlated SIM values
+│   │   │   ├── LocationConfig.kt          # Correlated location values
+│   │   │   ├── DeviceHardwareConfig.kt    # Correlated hardware values
+│   │   │   └── Carrier.kt                 # Carrier database
+│   │   └── generators/                    # Value Generators
 │   │       ├── IMEIGenerator.kt           # IMEI with Luhn checksum
 │   │       ├── SerialGenerator.kt         # Manufacturer patterns
 │   │       ├── MACGenerator.kt            # WiFi/Bluetooth MAC
 │   │       ├── UUIDGenerator.kt           # Android ID, GSF ID, Advertising ID
 │   │       ├── IMSIGenerator.kt           # MCC/MNC combinations
 │   │       ├── ICCIDGenerator.kt          # SIM card ID with Luhn
+│   │       ├── SIMGenerator.kt            # Correlated SIM config
+│   │       ├── DeviceHardwareGenerator.kt # Correlated hardware config
 │   │       └── FingerprintGenerator.kt    # Build fingerprints
 │   └── build.gradle.kts                   # android-library
 │

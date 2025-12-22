@@ -3,35 +3,35 @@
 ## Purpose
 TBD - created by archiving change implement-privacy-shield-module. Update Purpose after archive.
 ## Requirements
-### Requirement: Spoof Profile Management
+### Requirement: Spoof Group Management
 
-The module SHALL support named profiles containing complete sets of spoofed values.
+The module SHALL support named groups containing complete sets of spoofed values.
 
-#### Scenario: Create Profile
+#### Scenario: Create Group
 
-- **WHEN** a user creates a new profile
-- **THEN** the profile is assigned a unique ID
+- **WHEN** a user creates a new group
+- **THEN** the group is assigned a unique ID
 - **AND** default generated values are populated
-- **AND** the profile is persisted to DataStore
+- **AND** the group is persisted to DataStore
 
-#### Scenario: Edit Profile
+#### Scenario: Edit Group
 
-- **WHEN** a user edits a profile value
+- **WHEN** a user edits a group value
 - **THEN** the change is validated for format correctness
-- **AND** the updated profile is persisted
+- **AND** the updated group is persisted
 - **AND** active hooks reflect the new value (on next app launch)
 
-#### Scenario: Delete Profile
+#### Scenario: Delete Group
 
-- **WHEN** a user deletes a profile
-- **THEN** the profile is removed from storage
-- **AND** apps using this profile fallback to the default profile
+- **WHEN** a user deletes a group
+- **THEN** the group is removed from storage
+- **AND** apps using this group fallback to the default group
 
-#### Scenario: Default Profile
+#### Scenario: Default Group
 
-- **WHEN** no specific profile is assigned to an app
-- **THEN** the default profile values are used
-- **AND** exactly one profile can be marked as default
+- **WHEN** no specific group is assigned to an app
+- **THEN** the default group values are used
+- **AND** exactly one group can be marked as default
 
 ---
 
@@ -51,11 +51,11 @@ The module SHALL support enabling/disabling spoofing on a per-app basis.
 - **THEN** no hooks run in that app's process
 - **AND** real device values are returned
 
-#### Scenario: Assign Profile to App
+#### Scenario: Assign Group to App
 
-- **WHEN** a user assigns a specific profile to an app
-- **THEN** that app uses the assigned profile's values
-- **AND** other apps continue using their respective profiles
+- **WHEN** a user assigns a specific group to an app
+- **THEN** that app uses the assigned group's values
+- **AND** other apps continue using their respective groups
 
 ---
 
@@ -87,7 +87,7 @@ The module SHALL persist all configuration and spoofed values across device rebo
 #### Scenario: DataStore Persistence
 
 - **WHEN** the device is rebooted
-- **THEN** all profiles and app configurations are restored
+- **THEN** all groups and app configurations are restored
 - **AND** hooks use the persisted values immediately
 
 #### Scenario: Cross-Process Access

@@ -18,8 +18,8 @@ typealias SpoofCategory = com.astrixforge.devicemasker.common.SpoofCategory
 // DeviceIdentifier - Same data class, now in common
 typealias DeviceIdentifier = com.astrixforge.devicemasker.common.DeviceIdentifier
 
-// SpoofProfile - Same data class, now in common
-typealias SpoofProfile = com.astrixforge.devicemasker.common.SpoofProfile
+// SpoofGroup - Same data class, now in common
+typealias SpoofGroup = com.astrixforge.devicemasker.common.SpoofGroup
 
 // AppConfig - Same data class, now in common
 typealias AppConfig = com.astrixforge.devicemasker.common.AppConfig

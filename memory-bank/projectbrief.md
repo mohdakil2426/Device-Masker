@@ -15,12 +15,12 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 ### Primary Goals
 1. **Comprehensive Device Spoofing**: Spoof 24+ device identifiers including IMEI, Serial, MAC, Android ID, GSF ID, Advertising ID, Build properties, and location data
 2. **Robust Anti-Detection**: Prevent target apps from detecting Xposed/LSPosed hooks through stack trace filtering, ClassLoader interception, and /proc/maps hiding
-3. **Per-App Configuration**: Allow users to enable/disable spoofing per app and assign different profiles to different apps
+3. **Per-App Configuration**: Allow users to enable/disable spoofing per app and assign different groups to different apps
 4. **Beautiful Modern UI**: Material 3 Expressive design with dynamic colors, AMOLED optimization, and spring animations
 5. **Valid Value Generation**: Generate spoofed values that pass validation (Luhn-valid IMEI, unicast MAC, realistic fingerprints)
 
 ### Secondary Goals
-1. Profile import/export for backup
+1. Group import/export for backup
 2. Diagnostics screen for verifying spoofing
 3. Detailed logging for troubleshooting
 
@@ -45,7 +45,7 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 - **Location Spoofing**: GPS Coordinates, Timezone, Language
 - **Anti-Detection**: Stack Trace Hiding, ClassLoader Hiding, /proc/maps Hiding
 - **UI/UX**: Material 3 Expressive, Dynamic Colors, AMOLED Theme
-- **Data Management**: Profile Management, Per-App Configuration
+- **Data Management**: Group Management, Per-App Configuration
 
 ### ❌ OUT OF SCOPE (External Modules)
 | Feature | Recommended Module |

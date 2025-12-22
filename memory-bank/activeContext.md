@@ -2,6 +2,22 @@
 
 ## Current Work Focus
 
+### ✅ Complete: Refactor Profile to Group (Dec 23, 2025)
+
+**Status**: Complete
+**Objective**: Rename all instances of "Profile" to "Group" to avoid terminology conflict with Android Work Profiles.
+
+#### Key Changes
+- Renamed `SpoofProfile` to `SpoofGroup` in `:common`
+- Renamed package `ui.screens.profile` to `ui.screens.groups`
+- Renamed package `ui.screens.profiledetail` to `ui.screens.groupspoofing`
+- All classes, ViewModels, and UI components updated with "Group" terminology
+- Navigation routes and string resources updated to use "group"
+- Updated `JsonConfig` to use `@SerialName("profiles")` for backward compatibility with existing JSON storage
+- Successfully resolved all compilation errors and verified full app functionality.
+
+---
+
 ### ✅ Complete: MVVM Architecture Refactor (Dec 22, 2025)
 
 **Status**: All phases complete - Tested and Archived!
@@ -25,7 +41,7 @@ Migrated Device Masker `:app` module from Repository-Direct pattern to Pure MVVM
 
 **Home Screen (`ui/screens/home/`):**
 - `HomeState.kt` - UI state
-- `HomeViewModel.kt` - Module status, profiles, active profile
+- `HomeViewModel.kt` - Module status, groups, active group
 - `HomeScreen.kt` - Uses ViewModel
 
 **Settings Screen (`ui/screens/settings/`):**
@@ -33,15 +49,15 @@ Migrated Device Masker `:app` module from Repository-Direct pattern to Pure MVVM
 - `SettingsViewModel.kt` - Settings management via SettingsDataStore
 - `SettingsScreen.kt` - Uses ViewModel
 
-**Profile Screen (`ui/screens/profile/`):**
-- `ProfileState.kt` - UI state
-- `ProfileViewModel.kt` - CRUD operations
-- `ProfileScreen.kt` - Uses ViewModel
+**Group Screen (`ui/screens/groups/`):**
+- `GroupsState.kt` - UI state
+- `GroupsViewModel.kt` - CRUD operations
+- `GroupsScreen.kt` - Uses ViewModel
 
-**Profile Detail Screen (`ui/screens/profiledetail/`):**
-- `ProfileDetailState.kt` - UI state
-- `ProfileDetailViewModel.kt` - Spoof value operations
-- `ProfileDetailScreen.kt` - Uses ViewModel
+**Group Spoofing Screen (`ui/screens/groupspoofing/`):**
+- `GroupSpoofingState.kt` - UI state
+- `GroupSpoofingViewModel.kt` - Spoof value operations
+- `GroupSpoofingScreen.kt` - Uses ViewModel
 
 **Diagnostics Screen (`ui/screens/diagnostics/`):**
 - `DiagnosticsState.kt` - UI state + DiagnosticResult models
@@ -64,8 +80,8 @@ Removed 12 HMA-OSS references from active code:
 **All 5 Screens Now Use ViewModels:**
 - HomeScreen → HomeViewModel ✅
 - SettingsScreen → SettingsViewModel ✅
-- ProfileScreen → ProfileViewModel ✅
-- ProfileDetailScreen → ProfileDetailViewModel ✅
+- GroupsScreen → GroupsViewModel ✅
+- GroupSpoofingScreen → GroupSpoofingViewModel ✅
 - DiagnosticsScreen → DiagnosticsViewModel ✅
 
 **Key Architectural Changes:**
@@ -103,10 +119,10 @@ Changed "HMA-OSS" to "Multi-Module AIDL" in 12 files.
 
 | Module | Status | Last Build |
 |--------|--------|------------|
-| :common | ✅ SUCCESS | Dec 22, 2025 |
-| :xposed | ✅ SUCCESS | Dec 22, 2025 |
-| :app | ✅ SUCCESS | Dec 22, 2025 |
-| Full APK | ✅ SUCCESS | Dec 22, 2025 |
+| :common | ✅ SUCCESS | Dec 23, 2025 |
+| :xposed | ✅ SUCCESS | Dec 23, 2025 |
+| :app | ✅ SUCCESS | Dec 23, 2025 |
+| Full APK | ✅ SUCCESS | Dec 23, 2025 |
 
 ---
 
@@ -121,7 +137,7 @@ All major refactoring and improvements are complete! The project is in a stable 
 - Add Dual-SIM UI section
 - Dynamic fingerprint generation
 - Cell Info Xposed hooks
-- Carrier picker in profile creation
+- Carrier picker in group creation
 - More device presets
 
 ---
@@ -132,8 +148,8 @@ All major refactoring and improvements are complete! The project is in a stable 
 |------|---------|
 | `ui/screens/home/HomeViewModel.kt` | Home screen state management |
 | `ui/screens/settings/SettingsViewModel.kt` | Settings screen state management |
-| `ui/screens/profile/ProfileViewModel.kt` | Profile screen state management |
-| `ui/screens/profiledetail/ProfileDetailViewModel.kt` | Profile detail state management |
+| `ui/screens/groups/GroupsViewModel.kt` | Groups screen state management |
+| `ui/screens/groupspoofing/GroupSpoofingViewModel.kt` | Group spoofing state management |
 | `ui/screens/diagnostics/DiagnosticsViewModel.kt` | Diagnostics screen state management |
 | `ui/MainActivity.kt` | Navigation + ViewModel instantiation |
 | `openspec/changes/archive/2025-12-22-refactor-mvvm-architecture/` | Archived MVVM refactor documentation |

@@ -7,7 +7,7 @@
 | **Project Phase** | MVVM Refactor Complete ✅ |
 | **Active Changes** | 0 |
 | **Archived Changes** | 8 |
-| **Last Major Update** | December 22, 2025 - MVVM Migration Complete |
+| **Last Major Update** | December 23, 2025 - Refactor Profile to Group Complete |
 
 
 ---
@@ -69,8 +69,8 @@
 |--------|-----------|-------|--------|
 | HomeScreen | HomeViewModel | HomeState | ✅ Migrated |
 | SettingsScreen | SettingsViewModel | SettingsState | ✅ Migrated |
-| ProfileScreen | ProfileViewModel | ProfileState | ✅ Migrated |
-| ProfileDetailScreen | ProfileDetailViewModel | ProfileDetailState | ✅ Migrated |
+| GroupsScreen | GroupsViewModel | GroupsState | ✅ Refactored |
+| GroupSpoofingScreen | GroupSpoofingViewModel | GroupSpoofingState | ✅ Refactored |
 | DiagnosticsScreen | DiagnosticsViewModel | DiagnosticsState | ✅ Migrated |
 
 ### Key Architectural Changes
@@ -119,7 +119,7 @@
 │                                                                │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │                      UI Screens                          │  │
-│  │  HomeScreen │ ProfileScreen │ SettingsScreen │ etc.      │  │
+│  │  HomeScreen │ GroupsScreen │ SettingsScreen │ etc.      │  │
 │  └─────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
                               ↓
@@ -133,8 +133,8 @@
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
 │                        :common Module                          │
-│  IDeviceMaskerService.aidl │ JsonConfig │ SpoofProfile │ etc.  │
-│  generators/ │ models/ (Country, Carrier, LocationProfile)     │
+│  IDeviceMaskerService.aidl │ JsonConfig │ SpoofGroup │ etc.  │
+│  generators/ │ models/ (Country, Carrier, SIMConfig, etc.)     │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -152,11 +152,11 @@
 - [x] IDeviceMaskerService.aidl - AIDL interface (10 methods)
 - [x] SpoofType, SpoofCategory - Spoofing enums (22 types with dual-SIM)
 - [x] DeviceProfilePreset - 10 predefined device profiles
-- [x] SpoofProfile, DeviceIdentifier, AppConfig - Data models
+- [x] SpoofGroup, DeviceIdentifier, AppConfig - Data models
 - [x] JsonConfig - Root configuration container
 - [x] Constants, Utils - Shared utilities
 - [x] generators/ - 7 value generators
-- [x] models/ - Country (16), Carrier (75+), LocationProfile (with GPS)
+- [x] models/ - Country (16), Carrier (75+), SIMConfig, LocationConfig, DeviceHardwareConfig
 
 ### ✅ :xposed Module - Complete
 - [x] DeviceMaskerService - AIDL implementation
@@ -177,8 +177,8 @@
 | Theme System (Motion) | ✅ Done |
 | MainActivity.kt | ✅ Done (3-tab navigation) |
 | HomeScreen.kt | ✅ Done |
-| ProfileScreen.kt | ✅ Done |
-| ProfileDetailScreen.kt | ✅ Done |
+| GroupsScreen.kt | ✅ Done |
+| GroupSpoofingScreen.kt | ✅ Done |
 | SettingsScreen.kt | ✅ Done |
 | DiagnosticsScreen.kt | ✅ Done |
 
@@ -207,8 +207,8 @@
 | 🎨 UI Complete | Week 7 | ✅ Done |
 | 📝 Documentation | Week 8 | ✅ Done |
 | 📦 Release Build | Week 8 | ✅ Done |
-| 🔄 Profile Workflow Redesign | Week 9 | ✅ Done |
-| 🔓 Independent Profiles | Week 10 | ✅ Done |
+| 🔄 Group Workflow Redesign | Week 9 | ✅ Done |
+| 🔓 Independent Groups | Week 10 | ✅ Done |
 | ✨ M3 Expressive Features | Week 11 | ✅ Done |
 | 🏗️ HMA-OSS Migration | Week 12 | ✅ Done |
 | 📱 Device Profile UI | Week 12 | ✅ Done |
@@ -217,4 +217,5 @@
 | 🔗 Spoof Value Correlation UI | Week 12 | ✅ Done |
 | 🌍 Value Generation Improvements | Week 13 | ✅ Done |
 | ✅ Expressive Cards App-wide | Week 13 | ✅ Done |
-| ✅ v1.0 Release Ready | Week 13 | ⏳ Final Testing |
+| 🔄 Refactor Profile to Group | Week 14 | ✅ Done |
+| ✅ v1.0 Release Ready | Week 14 | ⏳ Final Testing |
