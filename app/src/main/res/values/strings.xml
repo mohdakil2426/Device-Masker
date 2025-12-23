@@ -18,7 +18,7 @@
     <string name="home_module_enabled_label">Module Enabled</string>
     <string name="home_protected_apps_label">Protected Apps</string>
     <string name="home_masked_ids_label">Masked IDs</string>
-    <string name="home_active_group_label">Active Group</string>
+    <string name="home_active_group_label">Select Group</string>
     <string name="home_no_group">No Group</string>
     <string name="home_group_disabled_tag">(Disabled)</string>
     <plurals name="home_apps_assigned_count">
@@ -160,4 +160,5 @@
     <!-- Validation -->
 
     <!-- Misc -->
+    <string name="label_choose_sim">Choose Sim</string>
 </resources>

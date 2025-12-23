@@ -19,8 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Apps
@@ -378,7 +378,7 @@ private fun GroupSelectorCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconCircle(
-                    icon = Icons.Filled.Person,
+                    icon = Icons.Filled.Groups,
                     size = 48.dp,
                     iconSize = 24.dp,
                 )
@@ -405,15 +405,11 @@ private fun GroupSelectorCard(
                             )
                         }
                     }
-                    if (selectedGroup != null) {
-                        Text(
-                            text = pluralStringResource(id = R.plurals.home_apps_assigned_count, count = selectedGroup.assignedAppCount(), selectedGroup.assignedAppCount()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,
                         contentDescription = "Select Group",

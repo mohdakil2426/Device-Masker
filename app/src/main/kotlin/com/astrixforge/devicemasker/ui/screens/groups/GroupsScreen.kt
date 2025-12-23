@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.AlertDialog
@@ -283,7 +283,7 @@ fun GroupsScreenContent(
                     // Empty State
                     item {
                         EmptyState(
-                            icon = Icons.Default.Person,
+                            icon = Icons.Default.Groups,
                             title = stringResource(id = R.string.group_list_empty),
                             subtitle = stringResource(id = R.string.group_create_new),
                         )
@@ -392,7 +392,7 @@ fun EditGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+        icon = { Icon(imageVector = Icons.Default.Groups, contentDescription = null) },
         title = { Text(stringResource(id = R.string.group_edit_dialog_title)) },
         text = {
             Column {
@@ -429,7 +429,7 @@ fun DeleteGroupDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                imageVector = Icons.Default.Person,
+                imageVector = Icons.Default.Groups,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
             )
