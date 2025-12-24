@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.service
 
 import android.content.Context
 import com.astrixforge.devicemasker.common.AppConfig
-import com.astrixforge.devicemasker.common.Constants
 import com.astrixforge.devicemasker.common.DeviceIdentifier
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SpoofGroup

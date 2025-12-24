@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -316,12 +315,30 @@ fun SIMCardCategoryContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                ReadOnlyValueRow(label = "SIM Country", value = simCountryValue, onCopy = { onCopy(simCountryValue) })
-                ReadOnlyValueRow(label = "Network Country", value = networkCountryValue, onCopy = { onCopy(networkCountryValue) })
-                ReadOnlyValueRow(label = "MCC/MNC", value = mccMncValue, onCopy = { onCopy(mccMncValue) })
-                ReadOnlyValueRow(label = "Carrier Name", value = carrierNameValue, onCopy = { onCopy(carrierNameValue) })
-                ReadOnlyValueRow(label = "SIM Operator", value = simOperatorValue, onCopy = { onCopy(simOperatorValue) })
-                ReadOnlyValueRow(label = "Network Operator", value = networkOperatorValue, onCopy = { onCopy(networkOperatorValue) })
+                ReadOnlyValueRow(
+                    label = "SIM Country",
+                    value = simCountryValue,
+                    onCopy = { onCopy(simCountryValue) })
+                ReadOnlyValueRow(
+                    label = "Network Country",
+                    value = networkCountryValue,
+                    onCopy = { onCopy(networkCountryValue) })
+                ReadOnlyValueRow(
+                    label = "MCC/MNC",
+                    value = mccMncValue,
+                    onCopy = { onCopy(mccMncValue) })
+                ReadOnlyValueRow(
+                    label = "Carrier Name",
+                    value = carrierNameValue,
+                    onCopy = { onCopy(carrierNameValue) })
+                ReadOnlyValueRow(
+                    label = "SIM Operator",
+                    value = simOperatorValue,
+                    onCopy = { onCopy(simOperatorValue) })
+                ReadOnlyValueRow(
+                    label = "Network Operator",
+                    value = networkOperatorValue,
+                    onCopy = { onCopy(networkOperatorValue) })
             }
         }
     }
