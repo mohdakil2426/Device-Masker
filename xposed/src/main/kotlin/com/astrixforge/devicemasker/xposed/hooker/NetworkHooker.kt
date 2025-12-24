@@ -5,7 +5,6 @@ import com.astrixforge.devicemasker.xposed.PrefsHelper
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.astrixforge.devicemasker.xposed.DualLog
-import com.highcapable.yukihookapi.hook.type.java.StringClass
 
 /**
  * Network Identifier Hooker - Spoofs network-related identifiers.

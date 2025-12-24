@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.xposed
 
-import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
 
@@ -17,6 +16,7 @@ import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
  * IMPORTANT: Requires in AndroidManifest.xml:
  * <meta-data android:name="xposedsharedprefs" android:value="true" />
  */
+@Suppress("unused") // API keys for XSharedPreferences - used dynamically
 object PrefsKeys {
 
     // ═══════════════════════════════════════════════════════════
@@ -71,12 +71,4 @@ object PrefsKeys {
 
     /** Config version for migration. */
     val CONFIG_VERSION = PrefsData("config_version", 1)
-}
-
-/**
- * Helper to get device profile preset from prefs value.
- */
-fun getPresetFromId(presetId: String?): DeviceProfilePreset? {
-    if (presetId.isNullOrEmpty()) return null
-    return DeviceProfilePreset.findById(presetId)
 }

@@ -103,6 +103,7 @@ object LocationHooker : YukiBaseHooker() {
                     modifiers { isStatic }
                 }.hook {
                     after {
+                        @Suppress("UNUSED_VARIABLE") // Kept for potential future logging
                         val current = result as? java.util.TimeZone ?: return@after
                         val spoofedId = getSpoofValue(SpoofType.TIMEZONE) { "" }
 
@@ -117,6 +118,7 @@ object LocationHooker : YukiBaseHooker() {
                     emptyParam()
                 }.hook {
                     after {
+                        @Suppress("UNUSED_VARIABLE") // Kept for potential future logging
                         val current = result as? String ?: ""
                         val spoofed = getSpoofValue(SpoofType.TIMEZONE) { "" }
                         if (spoofed.isNotBlank()) {
@@ -160,6 +162,7 @@ object LocationHooker : YukiBaseHooker() {
                     emptyParam()
                 }.hook {
                     after {
+                        @Suppress("UNUSED_VARIABLE") // Kept for potential future logging
                         val current = result as? String ?: ""
                         val spoofed = getSpoofValue(SpoofType.LOCALE) { "" }
                         if (spoofed.isNotBlank()) {

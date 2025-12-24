@@ -20,6 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * DualLog.error("MyHooker", "Failed to hook", exception)
  * ```
  */
+@Suppress("unused") // Logging utility - all methods are API
 object DualLog {
     
     private const val MAX_LOGS = 1000

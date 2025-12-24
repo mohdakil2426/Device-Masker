@@ -22,6 +22,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
     companion object {
         private const val TAG = "DeviceMaskerService"
         private const val SERVICE_VERSION = 1
+        @Suppress("unused") // Reserved for future log buffer limit
         private const val MAX_LOGS = 1000
 
         @Volatile
@@ -302,6 +303,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
     /**
      * Increments hook count (called by hookers).
      */
+    @Suppress("unused") // API method for diagnostics
     fun incrementHookCount() {
         hookCount++
     }

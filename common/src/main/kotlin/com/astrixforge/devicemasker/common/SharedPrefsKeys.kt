@@ -12,6 +12,7 @@ package com.astrixforge.devicemasker.common
  *
  * Package names are sanitized by replacing '.' with '_' to avoid XML issues.
  */
+@Suppress("unused") // Used by XposedPrefs in :app module
 object SharedPrefsKeys {
 
     // ═══════════════════════════════════════════════════════════
