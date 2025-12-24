@@ -23,9 +23,9 @@
 │  │  HookEntry.kt (@InjectYukiHookWithXposed)                         │   │
 │  │  UI Layer (MVVM + Material 3 Expressive + Jetpack Compose)        │   │
 │  │  ├── screens/[feature]/ViewModel.kt (State management)            │   │
-│  │  ├── screens/[feature]/State.kt (Immutable UI state)              │   │
+│  │  │  screens/[feature]/State.kt (Immutable UI state)              │   │
 │  │  └── screens/[feature]/Screen.kt (Composable UI)                  │   │
-│  │  ServiceClient + ConfigManager (AIDL consumer) ✅                 │   │
+│  │  XposedPrefs + ConfigManager (XSharedPreferences) ✅              │   │
 │  └────────────────────────────────┬─────────────────────────────────┘   │
 │                                   │                                      │
 │                          loads XposedHookLoader                          │
@@ -34,17 +34,17 @@
 │  │                       :xposed MODULE                              │   │
 │  │                                                                   │   │
 │  │  ┌───────────────────────────┐  ┌───────────────────────────┐    │   │
-│  │  │  DeviceMaskerService      │  │  XposedHookLoader         │    │   │
-│  │  │  (IDeviceMaskerService)   │  │  (YukiBaseHooker)         │    │   │
-│  │  │  - In-memory config       │  │  - Loads all hookers      │    │   │
-│  │  │  - JSON persistence       │  │  - System init            │    │   │
+│  │  │   XposedEntry (prefs)     │  │  XposedHookLoader         │    │   │
+│  │  │   PrefsHelper/PrefsKeys   │  │  (YukiBaseHooker)         │    │   │
+│  │  │   XSharedPreferences      │  │  - Loads all hookers      │    │   │
+│  │  │   config access           │  │  - System init            │    │   │
 │  │  └───────────────────────────┘  └───────────────────────────┘    │   │
 │  │                                                                   │   │
 │  │  ┌─────────────────────────────────────────────────────────────┐ │   │
 │  │  │                       HOOKERS                                │ │   │
 │  │  │  AntiDetect │ Device │ Network │ Advertising │ System │ Loc │ │   │
 │  │  │  ─────────────────────────────────────────────────────────── │ │   │
-│  │  │  All read from DeviceMaskerService.instance?.config          │ │   │
+│  │  │  All use PrefsHelper.getSpoofValue(prefs, ...)               │ │   │
 │  │  └─────────────────────────────────────────────────────────────┘ │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 │                                   │                                      │
@@ -53,7 +53,7 @@
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │                       :common MODULE                              │   │
 │  │                                                                   │   │
-│  │  IDeviceMaskerService.aidl  │  JsonConfig  │  SpoofGroup         │   │
+│  │  SharedPrefsKeys  │  JsonConfig  │  SpoofGroup  │  generators/   │   │
 │  │  SpoofType  │  DeviceIdentifier  │  AppConfig  │  Constants      │   │
 │  │  (All @Serializable for JSON persistence)                        │   │
 │  └──────────────────────────────────────────────────────────────────┘   │

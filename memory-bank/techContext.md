@@ -258,46 +258,21 @@ object DeviceHooker : YukiBaseHooker() {
     }
     
     private fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
-        val service = DeviceMaskerService.instance ?: return fallback()
-        val group = service.config.getGroupForApp(packageName) ?: return fallback()
-        return group.getValue(type) ?: fallback()
+        return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
     }
 }
 ```
 
-### HMA-OSS Architecture Pattern
+### XSharedPreferences Pattern (Current Architecture)
 
 ```kotlin
-// AIDL Service (in :xposed module, runs in system_server)
-class DeviceMaskerService : IDeviceMaskerService.Stub() {
-    companion object {
-        @Volatile var instance: DeviceMaskerService? = null
-        
-        fun init() {
-            instance = DeviceMaskerService().apply {
-                loadConfig()
-            }
-        }
-    }
-    
-    var config: JsonConfig = JsonConfig.createDefault()
-        private set
-    
-    override fun readConfig(): String = config.toJsonString()
-    override fun writeConfig(json: String) {
-        config = JsonConfig.parse(json)
-        saveConfigInternal(config)
-    }
-}
+// App writes to SharedPreferences (MODE_WORLD_READABLE)
+XposedPrefs.putBoolean(context, "module_enabled", true)
+XposedPrefs.putString(context, "spoof_value_com.target_IMEI", "358673912845672")
 
-// ServiceClient (in :app module, for UI communication)
-class ServiceClient(private val binder: IBinder) {
-    private val service: IDeviceMaskerService = 
-        IDeviceMaskerService.Stub.asInterface(binder)
-    
-    fun readConfig(): JsonConfig = JsonConfig.parse(service.readConfig())
-    fun writeConfig(config: JsonConfig) = service.writeConfig(config.toJsonString())
-}
+// Hooks read via YukiHookAPI prefs property
+val isEnabled = prefs.get(PrefsKeys.moduleEnabled)
+val spoofValue = PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.IMEI) { "default" }
 ```
 
 ### Compose State Pattern
@@ -393,9 +368,7 @@ devicemasker/
 │   ├── src/main/AndroidManifest.xml        # ServiceProvider + LSPosed metadata + xposedsharedprefs
 │   └── build.gradle.kts                    # YukiHookAPI KSP enabled
 │
-├── common/                                 # Shared models & AIDL
-│   ├── src/main/aidl/com/astrixforge/devicemasker/common/
-│   │   └── IDeviceMaskerService.aidl      # AIDL interface (legacy)
+├── common/                                 # Shared models & generators
 │   ├── src/main/kotlin/com/astrixforge/devicemasker/common/
 │   │   ├── SpoofType.kt                   # @Serializable enum
 │   │   ├── SpoofCategory.kt               # Categories
@@ -430,8 +403,6 @@ devicemasker/
 │   │   ├── PrefsKeys.kt                   # ⭐ NEW: YukiHookAPI PrefsData definitions
 │   │   ├── PrefsReader.kt                 # ⭐ NEW: PrefsHelper object for hooks
 │   │   ├── XposedHookLoader.kt            # YukiBaseHooker (loaded by app)
-│   │   ├── DeviceMaskerService.kt         # AIDL implementation (legacy)
-│   │   ├── ServiceHelper.kt               # Binder access (legacy)
 │   │   ├── Logcat.kt                      # Safe logging
 │   │   └── hooker/
 │   │       ├── AntiDetectHooker.kt        # Xposed hiding (FIRST)

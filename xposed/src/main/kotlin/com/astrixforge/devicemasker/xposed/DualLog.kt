@@ -27,7 +27,7 @@ object DualLog {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     
     /**
-     * Internal log buffer. Accessed by DeviceMaskerService.getLogs().
+     * Internal log buffer for diagnostics.
      */
     val logBuffer: CopyOnWriteArrayList<String> = CopyOnWriteArrayList()
     

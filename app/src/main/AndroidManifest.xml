@@ -39,17 +39,8 @@
             android:name="xposedsharedprefs"
             android:value="true" />
 
-        <!-- ═══════════════════════════════════════════════════════════ -->
-        <!-- ServiceProvider for HMA-OSS AIDL binder delivery -->
-        <!-- The Xposed hook in system_server injects the binder here -->
-        <!-- ═══════════════════════════════════════════════════════════ -->
-        <provider
-            android:name=".service.ServiceProvider"
-            android:authorities="com.astrixforge.devicemasker.provider"
-            android:enabled="true"
-            android:exported="true"
-            tools:ignore="ExportedContentProvider" />
 
+        <!-- MainActivity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"

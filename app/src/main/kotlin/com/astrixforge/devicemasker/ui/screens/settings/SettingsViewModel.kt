@@ -5,7 +5,6 @@ import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.SettingsDataStore
-import com.astrixforge.devicemasker.service.ServiceClient
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,56 +100,12 @@ class SettingsViewModel(
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result = withContext(Dispatchers.IO) {
-                try {
-                    // Get logs from service
-                    val logs = ServiceClient.getLogs()
-
-                    if (logs.isEmpty()) {
-                        return@withContext ExportResult.NoLogs
-                    }
-
-                    // Create timestamp for filename
-                    val timestamp =
-                        SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-                    val fileName = "devicemasker_logs_$timestamp.txt"
-
-                    // Get Downloads directory
-                    val downloadsDir = Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_DOWNLOADS
-                    )
-                    val logFile = File(downloadsDir, fileName)
-
-                    // Build log content with header
-                    val content = buildString {
-                        appendLine("═══════════════════════════════════════════════════════════")
-                        appendLine("  Device Masker - Debug Logs")
-                        appendLine(
-                            "  Exported: ${
-                                SimpleDateFormat(
-                                    "yyyy-MM-dd HH:mm:ss",
-                                    Locale.US
-                                ).format(Date())
-                            }"
-                        )
-                        appendLine("  Total Entries: ${logs.size}")
-                        appendLine("═══════════════════════════════════════════════════════════")
-                        appendLine()
-                        logs.forEach { log ->
-                            appendLine(log)
-                        }
-                        appendLine()
-                        appendLine("═══════════════════════════════════════════════════════════")
-                        appendLine("  End of Log")
-                        appendLine("═══════════════════════════════════════════════════════════")
-                    }
-
-                    // Write to file
-                    logFile.writeText(content)
-
-                    ExportResult.Success(logFile.absolutePath, logs.size)
-                } catch (e: Exception) {
-                    ExportResult.Error(e.message ?: "Unknown error")
-                }
+                // Log collection via AIDL service is no longer available
+                // Suggest using adb logcat instead
+                ExportResult.Error(
+                    "Log collection via AIDL removed. " +
+                    "Use: adb logcat -s PrivacyShield DeviceHooker NetworkHooker"
+                )
             }
 
             _state.update { it.copy(isExportingLogs = false, exportResult = result) }

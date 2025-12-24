@@ -19,17 +19,17 @@ import timber.log.Timber
 import java.io.File
 
 /**
- * Config Manager - Manages application configuration in Multi-Module AIDL architecture.
+ * Config Manager - Manages application configuration.
  *
  * Responsibilities:
  * 1. Load/save configuration from/to local JSON file
- * 2. Sync configuration to DeviceMaskerService via AIDL
+ * 2. Sync configuration to XposedPrefs for cross-process access
  * 3. Provide StateFlow for UI reactivity
  * 4. CRUD operations for groups and app configs
  *
  * Data Flow:
  * - Read: Local file → ConfigManager → UI StateFlow
- * - Write: UI → ConfigManager → Local file + ServiceClient (if connected)
+ * - Write: UI → ConfigManager → Local file + XposedPrefs (for hooks)
  */
 object ConfigManager {
 
@@ -48,9 +48,7 @@ object ConfigManager {
     private val _isInitialized = MutableStateFlow(false)
     val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
 
-    // Service connection state
-    val isServiceConnected: Boolean
-        get() = ServiceClient.isServiceAvailable()
+
 
     /**
      * Initializes the ConfigManager with application context.
@@ -90,19 +88,7 @@ object ConfigManager {
                     }
                 }
 
-                // Try loading from service if connected
-                if (ServiceClient.isServiceAvailable()) {
-                    val serviceJson = ServiceClient.readConfig()
-                    if (serviceJson != null) {
-                        val serviceConfig = JsonConfig.parse(serviceJson)
-                        if (serviceConfig != null) {
-                            _config.value = serviceConfig
-                            saveConfigInternal(serviceConfig) // Cache locally
-                            Timber.tag(TAG).i("Config loaded from service")
-                            return@withContext
-                        }
-                    }
-                }
+
 
                 // Use default config
                 val defaultConfig = JsonConfig.createDefault()
@@ -138,14 +124,7 @@ object ConfigManager {
                 configFile.writeText(json)
                 Timber.tag(TAG).d("Config saved to local file")
 
-                // Sync to service if connected
-                if (ServiceClient.isServiceAvailable()) {
-                    if (ServiceClient.writeConfig(json)) {
-                        Timber.tag(TAG).d("Config synced to service")
-                    } else {
-                        Timber.tag(TAG).w("Failed to sync config to service")
-                    }
-                }
+
 
                 // CRITICAL: Sync to XposedPrefs for cross-process access
                 // This enables hooked apps to read the config via XSharedPreferences
@@ -326,40 +305,5 @@ object ConfigManager {
         updateConfig { it.setAppConfig(appConfig) }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // Service Sync
-    // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Forces a sync with the service.
-     */
-    fun syncWithService() {
-        scope.launch {
-            if (ServiceClient.isServiceAvailable()) {
-                saveConfigInternal(_config.value)
-                Timber.tag(TAG).i("Forced sync with service completed")
-            } else {
-                Timber.tag(TAG).w("Service not available for sync")
-            }
-        }
-    }
-
-    /**
-     * Pulls config from service (overwriting local).
-     */
-    fun pullFromService() {
-        scope.launch {
-            if (ServiceClient.isServiceAvailable()) {
-                val json = ServiceClient.readConfig()
-                if (json != null) {
-                    val serviceConfig = JsonConfig.parse(json)
-                    if (serviceConfig != null) {
-                        _config.value = serviceConfig
-                        saveConfigInternal(serviceConfig)
-                        Timber.tag(TAG).i("Pulled config from service")
-                    }
-                }
-            }
-        }
-    }
 }

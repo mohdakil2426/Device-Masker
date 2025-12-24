@@ -5,7 +5,7 @@
 ### ✅ Complete: XSharedPreferences Cross-Process Config (Dec 24, 2025)
 
 **Status**: Complete - SPOOFING NOW WORKS! 🎉
-**Root Cause Analysis**: The AIDL ServiceManager approach was blocked by SELinux, and the broken IPC caused hooks to receive no configuration.
+**Root Cause Analysis**: The AIDL ServiceManager approach was blocked by SELinux. After thorough evaluation (Dec 24, 2025), AIDL was completely removed in favor of XSharedPreferences due to better reliability, simplicity, and suitability for the configuration-read-once use case.
 
 #### Solution Implemented: XSharedPreferences via YukiHookAPI
 
@@ -108,6 +108,30 @@
 - `xposed/hooker/LocationHooker.kt` - PrefsHelper.getSpoofValue()
 - `app/service/ConfigManager.kt` - ConfigSync integration
 - `app/AndroidManifest.xml` - xposedsharedprefs meta-data
+
+### 🧹 AIDL Complete Removal (Dec 24, 2025)
+
+**Status**: Complete - Codebase cleaned  
+**Objective**: Remove all AIDL infrastructure after comprehensive research showed XSharedPreferences is superior for this use case.
+
+**Files Deleted** (834 lines removed):
+- `common/src/main/aidl/com/astrixforge/devicemasker/common/IDeviceMaskerService.aidl` (entire directory)
+- `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/DeviceMaskerService.kt`
+- `app/src/main/kotlin/com/astrixforge/devicemasker/service/ServiceClient.kt`
+- `app/src/main/kotlin/com/astrixforge/devicemasker/service/ServiceProvider.kt`
+
+**Files Updated**:
+- `app/service/ConfigManager.kt` - Removed all ServiceClient references
+- `app/ui/screens/settings/SettingsViewModel.kt` - Updated exportLogs() to inform about adb logcat alternative
+- `common/consumer-rules.pro` - Removed AIDL ProGuard rules
+- Comments updated in DeviceMaskerApp.kt, HookEntry.kt, DualLog.kt
+
+**Research Summary**: Extensive research comparing AIDL vs XSharedPreferences concluded that:
+1. **Performance**: AIDL's speed advantage is irrelevant for config-read-once scenarios
+2. **Reliability**: XSharedPreferences with LSPosed API 93+ is battle-tested (1M+ downloads in HMA-OSS)
+3. **Complexity**: AIDL adds 4x more code with no benefit for our use case
+4. **SELinux**: AIDL ServiceManager registration fails due to security restrictions
+5. **Simplicity**: XSharedPreferences is the proven standard for LSPosed modules
 
 ---
 

@@ -39,7 +39,7 @@ object HookEntry : IYukiHookXposedInit {
      *
      * Delegates all hook logic to XposedHookLoader in the :xposed module.
      * The XposedHookLoader handles:
-     * - system_server initialization (DeviceMaskerService)
+     * - system_server hooks (anti-detection and file-based config)
      * - Target app hook loading (AntiDetect, Device, Network, etc.)
      */
     override fun onHook() = encase {
