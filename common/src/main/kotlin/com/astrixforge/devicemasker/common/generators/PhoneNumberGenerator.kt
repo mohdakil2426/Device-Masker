@@ -100,19 +100,23 @@ object PhoneNumberGenerator {
     fun generate(carrier: Carrier): String {
         val countryCode = carrier.countryCode
         
-        return if (countryCode == "1" && carrier.countryIso == "US") {
-            // USA: Use realistic area code
-            generateUSPhoneNumber()
-        } else if (countryCode == "1" && carrier.countryIso == "CA") {
-            // Canada: Use Canadian area codes
-            generateCanadianPhoneNumber()
-        } else {
-            // Other countries: random digits
-            val digits = COUNTRY_PHONE_LENGTH[countryCode] ?: 10
-            val number = buildString {
-                repeat(digits) { append(secureRandom.nextInt(10)) }
+        return when {
+            countryCode == "1" && carrier.countryIso == "US" -> {
+                // USA: Use realistic area code
+                generateUSPhoneNumber()
             }
-            "+$countryCode$number"
+            countryCode == "1" && carrier.countryIso == "CA" -> {
+                // Canada: Use Canadian area codes
+                generateCanadianPhoneNumber()
+            }
+            else -> {
+                // Other countries: random digits
+                val digits = COUNTRY_PHONE_LENGTH[countryCode] ?: 10
+                val number = buildString {
+                    repeat(digits) { append(secureRandom.nextInt(10)) }
+                }
+                "+$countryCode$number"
+            }
         }
     }
     

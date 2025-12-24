@@ -115,7 +115,7 @@ object IMEIGenerator {
         }
 
         // Fallback to all TACs if filtered list is empty
-        val finalTacs = if (filteredTacs.isEmpty()) TAC_PREFIXES else filteredTacs
+        val finalTacs = filteredTacs.ifEmpty { TAC_PREFIXES }
         
         // Select a random TAC prefix from the eligible ones
         val tac = finalTacs[secureRandom.nextInt(finalTacs.size)]
