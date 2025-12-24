@@ -47,7 +47,8 @@
             android:name=".service.ServiceProvider"
             android:authorities="com.astrixforge.devicemasker.provider"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
 
         <activity
             android:name=".ui.MainActivity"

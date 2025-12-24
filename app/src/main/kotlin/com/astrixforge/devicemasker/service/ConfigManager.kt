@@ -31,7 +31,6 @@ import java.io.File
  * - Read: Local file → ConfigManager → UI StateFlow
  * - Write: UI → ConfigManager → Local file + ServiceClient (if connected)
  */
-@Suppress("PropertyName") // We use _config for backing property
 object ConfigManager {
 
     private const val TAG = "ConfigManager"
@@ -203,17 +202,13 @@ object ConfigManager {
      */
     fun createGroup(name: String, copyFromGroupId: String? = null): SpoofGroup {
         val baseGroup = copyFromGroupId?.let { getGroup(it) }
-        val newGroup = if (baseGroup != null) {
-            baseGroup.copy(
-                id = java.util.UUID.randomUUID().toString(),
-                name = name,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
-                assignedApps = emptySet() // Don't copy app assignments
-            )
-        } else {
-            SpoofGroup.createNew(name = name, isDefault = false)
-        }
+        val newGroup = baseGroup?.copy(
+            id = java.util.UUID.randomUUID().toString(),
+            name = name,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+            assignedApps = emptySet() // Don't copy app assignments
+        ) ?: SpoofGroup.createNew(name = name, isDefault = false)
 
         updateConfig { it.addOrUpdateGroup(newGroup) }
         return newGroup

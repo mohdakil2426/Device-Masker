@@ -192,6 +192,6 @@ class XposedPrefs(context: Context) {
      * Increments the version so apps know to reload.
      */
     fun notifyConfigChanged() {
-        configVersion = configVersion + 1
+        configVersion++
     }
 }

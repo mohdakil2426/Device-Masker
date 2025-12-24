@@ -30,6 +30,9 @@ import kotlinx.coroutines.flow.map
  *
  * @param context Application context (for legacy compatibility)
  */
+// Suppress: suspend modifiers are kept for API consistency and future-proofing.
+// ConfigManager may become async in the future (database, network sync).
+@Suppress("RedundantSuspendModifier")
 class SpoofRepository(private val context: Context) {
 
     /** Repository for installed apps access. */
@@ -464,7 +467,7 @@ class SpoofRepository(private val context: Context) {
     /** Creates a new group with generated spoof values. */
     suspend fun createGroup(name: String, description: String = "") {
         // Create the group with generated values
-        var newGroup = ConfigManager.createGroup(name)
+        val newGroup = ConfigManager.createGroup(name)
 
         // Add description and initialize with generated values
         var updatedGroup = newGroup.copy(description = description)

@@ -41,8 +41,8 @@ fun DeviceHardwareCategoryContent(
     group: SpoofGroup?,
     onToggle: (SpoofType, Boolean) -> Unit,
     onRegenerate: (SpoofType) -> Unit,
-    @Suppress("UNUSED_PARAMETER")
-    onRegenerateCategory: () -> Unit, // Not used - kept for interface compatibility
+    @Suppress("UNUSED_PARAMETER") // Parameter kept for interface compatibility
+    onRegenerateCategory: () -> Unit,
     onCopy: (String) -> Unit,
 ) {
     val deviceProfileEnabled = group?.isTypeEnabled(SpoofType.DEVICE_PROFILE) ?: false
