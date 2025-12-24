@@ -123,6 +123,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
             // Attempt to create the directory
             val created = dir.mkdirs()
             if (created) {
+                @Suppress("SetWorldReadable") // Required for Xposed hooks to access config
                 dir.setReadable(true, false)
                 dir.setWritable(true, true)
                 dir.setExecutable(true, false)

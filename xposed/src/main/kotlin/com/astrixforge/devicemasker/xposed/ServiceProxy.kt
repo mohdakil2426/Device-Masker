@@ -33,6 +33,7 @@ object ServiceProxy {
     private val serviceLock = Any()
 
     /** Cached ServiceManager class access via reflection. */
+    @Suppress("PrivateApi") // Intentional: Required for Xposed module IPC
     private val serviceManagerClass by lazy {
         runCatching { Class.forName("android.os.ServiceManager") }.getOrNull()
     }

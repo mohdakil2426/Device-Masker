@@ -1,8 +1,8 @@
 package com.astrixforge.devicemasker.ui.screens.settings
 
-import android.content.Context
+import android.app.Application
 import android.os.Environment
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.SettingsDataStore
 import com.astrixforge.devicemasker.service.ServiceClient
@@ -24,13 +24,13 @@ import java.util.Locale
  *
  * Manages theme and debug settings via SettingsDataStore.
  *
- * @param context Application context for file operations
+ * @param application Application for context access
  * @param settingsStore The SettingsDataStore for persistence
  */
 class SettingsViewModel(
-    private val context: Context,
+    application: Application,
     private val settingsStore: SettingsDataStore
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -87,14 +87,6 @@ class SettingsViewModel(
         viewModelScope.launch {
             settingsStore.setDebugLogging(enabled)
         }
-    }
-
-    fun showThemeModeDialog() {
-        _state.update { it.copy(showThemeModeDialog = true) }
-    }
-
-    fun hideThemeModeDialog() {
-        _state.update { it.copy(showThemeModeDialog = false) }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -158,19 +150,9 @@ class SettingsViewModel(
     }
 
     /**
-     * Clears all logs from the Xposed service.
-     */
-    fun clearLogs() {
-        viewModelScope.launch(Dispatchers.IO) {
-            ServiceClient.clearLogs()
-        }
-    }
-
-    /**
      * Clears the export result from state.
      */
     fun clearExportResult() {
         _state.update { it.copy(exportResult = null) }
     }
 }
-

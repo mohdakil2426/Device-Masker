@@ -21,10 +21,6 @@
     <string name="home_active_group_label">Select Group</string>
     <string name="home_no_group">No Group</string>
     <string name="home_group_disabled_tag">(Disabled)</string>
-    <plurals name="home_apps_assigned_count">
-        <item quantity="one">%d app assigned</item>
-        <item quantity="other">%d apps assigned</item>
-    </plurals>
     <plurals name="home_apps_count">
         <item quantity="one">%d app</item>
         <item quantity="other">%d apps</item>
@@ -37,7 +33,6 @@
     <string name="group_screen_title">Groups</string>
     <string name="group_list_empty">No groups found</string>
     <string name="group_new">New Group</string>
-    <string name="group_import_export">Import/Export</string>
     <string name="group_create_new">Create New Group</string>
     <string name="group_edit_dialog_title">Edit Group</string>
     <string name="group_name_hint">Group name</string>
@@ -138,7 +133,6 @@
     <!-- Actions -->
     <string name="action_regenerate">Regenerate</string>
     <string name="action_regenerate_all">Regenerate All</string>
-    <string name="action_copy">Copy</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>

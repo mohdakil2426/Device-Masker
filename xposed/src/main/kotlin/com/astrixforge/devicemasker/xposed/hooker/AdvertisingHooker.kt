@@ -69,10 +69,9 @@ object AdvertisingHooker : YukiBaseHooker() {
                     param("android.content.ContentResolver".toClass(), StringClass)
                 }.hook {
                     after {
+                        // Note: android_id is handled by DeviceHooker, intentionally no-op here
                         val key = args(1).string()
-                        if (key == "android_id") {
-                            // Already handled by DeviceHooker
-                        }
+                        if (key != "android_id") { /* Other keys not needed */ }
                     }
                 }
             }

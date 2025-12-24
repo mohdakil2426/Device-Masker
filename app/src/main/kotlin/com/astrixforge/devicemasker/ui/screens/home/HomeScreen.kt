@@ -143,8 +143,8 @@ fun HomeScreenContent(
     onModuleEnabledChange: (Boolean) -> Unit,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
-    isLoading: Boolean = false,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
 

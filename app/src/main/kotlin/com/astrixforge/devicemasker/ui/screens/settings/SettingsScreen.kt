@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
@@ -34,7 +33,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -44,11 +42,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -104,7 +100,9 @@ fun SettingsScreen(
     // Dialog state for theme mode selection
     var showThemeModeDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
+
+    // Pre-fetch string resources for use in LaunchedEffect (fixes LocalContext warning)
+    val exportNoLogsMessage = stringResource(R.string.settings_export_logs_no_logs)
 
     // Get actual system dark mode state
     val isSystemDark = isSystemInDarkTheme()
@@ -120,25 +118,17 @@ fun SettingsScreen(
     LaunchedEffect(exportResult) {
         when (exportResult) {
             is ExportResult.Success -> {
-                val message = context.getString(
-                    R.string.settings_export_logs_success,
-                    exportResult.logCount,
-                    exportResult.filePath
-                )
+                // Format message: "Logs exported successfully (X entries)\n\nSaved to: <path>"
+                val message = "Logs exported successfully (${exportResult.logCount} entries)\n\nSaved to: ${exportResult.filePath}"
                 snackbarHostState.showSnackbar(message)
                 onClearExportResult()
             }
             is ExportResult.NoLogs -> {
-                snackbarHostState.showSnackbar(
-                    context.getString(R.string.settings_export_logs_no_logs)
-                )
+                snackbarHostState.showSnackbar(exportNoLogsMessage)
                 onClearExportResult()
             }
             is ExportResult.Error -> {
-                val message = context.getString(
-                    R.string.settings_export_logs_error,
-                    exportResult.message
-                )
+                val message = "Failed to export logs: ${exportResult.message}"
                 snackbarHostState.showSnackbar(message)
                 onClearExportResult()
             }

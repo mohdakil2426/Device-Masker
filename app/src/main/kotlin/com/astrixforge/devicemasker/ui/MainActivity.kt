@@ -221,8 +221,9 @@ fun DeviceMaskerMainApp(
             }
 
             composable(NavRoutes.SETTINGS) {
+                val application = (context.applicationContext as android.app.Application)
                 val settingsViewModel = viewModel {
-                    SettingsViewModel(context.applicationContext, settingsStore)
+                    SettingsViewModel(application, settingsStore)
                 }
                 val settingsState by settingsViewModel.state.collectAsState()
 
@@ -287,8 +288,9 @@ fun DeviceMaskerMainApp(
             }
 
             composable(NavRoutes.DIAGNOSTICS) {
+                val application = (context.applicationContext as android.app.Application)
                 val diagnosticsViewModel = viewModel {
-                    DiagnosticsViewModel(repository, context.applicationContext)
+                    DiagnosticsViewModel(application, repository)
                 }
                 DiagnosticsScreen(
                         viewModel = diagnosticsViewModel,

@@ -6,13 +6,10 @@ import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.DeviceHardwareGenerator
-import com.astrixforge.devicemasker.common.generators.FingerprintGenerator
 import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
-import com.astrixforge.devicemasker.common.generators.IMEIGenerator
 import com.astrixforge.devicemasker.common.generators.IMSIGenerator
 import com.astrixforge.devicemasker.common.generators.MACGenerator
 import com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
-import com.astrixforge.devicemasker.common.generators.SerialGenerator
 import com.astrixforge.devicemasker.common.generators.SIMGenerator
 import com.astrixforge.devicemasker.common.generators.UUIDGenerator
 import com.astrixforge.devicemasker.common.models.Carrier
@@ -24,7 +21,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 
 /**
  * Main repository combining all spoof-related data operations.
@@ -436,15 +432,6 @@ class SpoofRepository(private val context: Context) {
 
     private fun ClosedFloatingPointRange<Double>.random(): Double {
         return start + (endInclusive - start) * kotlin.random.Random.nextDouble()
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // BLOCKING FUNCTIONS (For Hook Context)
-    // ═══════════════════════════════════════════════════════════
-
-    /** Gets the active group (blocking). */
-    fun getActiveGroupBlocking(): SpoofGroup? {
-        return runBlocking { activeGroup.first() }
     }
 
     // ═══════════════════════════════════════════════════════════

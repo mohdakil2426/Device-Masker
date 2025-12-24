@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.data
 
 import android.content.Context
-import android.util.Log
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SpoofType
+import timber.log.Timber
 
 /**
  * Syncs JsonConfig to XposedPrefs for cross-process access.
@@ -15,8 +15,6 @@ import com.astrixforge.devicemasker.common.SpoofType
  */
 object ConfigSync {
 
-    private const val TAG = "ConfigSync"
-
     /**
      * Syncs everything from JsonConfig to XposedPrefs.
      * This should be called after any config change in the UI.
@@ -24,7 +22,7 @@ object ConfigSync {
     fun syncFromConfig(context: Context, config: JsonConfig) {
         val xprefs = XposedPrefs(context)
         
-        Log.d(TAG, "Syncing config to XposedPrefs...")
+        Timber.d("Syncing config to XposedPrefs...")
         
         // Sync global settings
         xprefs.isModuleEnabled = config.isModuleEnabled
@@ -54,7 +52,7 @@ object ConfigSync {
         // Bump version to signal hooks to reload (if they support it)
         xprefs.notifyConfigChanged()
         
-        Log.d(TAG, "Config synced to XposedPrefs (version: ${xprefs.configVersion})")
+        Timber.d("Config synced to XposedPrefs (version: ${xprefs.configVersion})")
     }
 
     /**
