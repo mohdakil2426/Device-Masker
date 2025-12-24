@@ -47,7 +47,8 @@ fun DeviceHardwareCategoryContent(
 ) {
     val deviceProfileEnabled = group?.isTypeEnabled(SpoofType.DEVICE_PROFILE) ?: false
     val deviceProfileRawValue = group?.getValue(SpoofType.DEVICE_PROFILE) ?: ""
-    val deviceProfileDisplayValue = DeviceProfilePreset.findById(deviceProfileRawValue)?.name ?: deviceProfileRawValue
+    val deviceProfileDisplayValue =
+        DeviceProfilePreset.findById(deviceProfileRawValue)?.name ?: deviceProfileRawValue
     val imeiEnabled = group?.isTypeEnabled(SpoofType.IMEI) ?: false
     val imeiValue = group?.getValue(SpoofType.IMEI) ?: ""
     val serialEnabled = group?.isTypeEnabled(SpoofType.SERIAL) ?: false
@@ -94,15 +95,39 @@ fun DeviceHardwareCategoryContent(
                     )
 
                     currentPreset?.let { preset ->
-                        ReadOnlyValueRow(label = "Manufacturer", value = preset.manufacturer, onCopy = { onCopy(preset.manufacturer) })
-                        ReadOnlyValueRow(label = "Brand", value = preset.brand, onCopy = { onCopy(preset.brand) })
-                        ReadOnlyValueRow(label = "Model", value = preset.model, onCopy = { onCopy(preset.model) })
-                        ReadOnlyValueRow(label = "Device", value = preset.device, onCopy = { onCopy(preset.device) })
-                        ReadOnlyValueRow(label = "Product", value = preset.product, onCopy = { onCopy(preset.product) })
-                        ReadOnlyValueRow(label = "Board", value = preset.board, onCopy = { onCopy(preset.board) })
-                        ReadOnlyValueRow(label = "Fingerprint", value = preset.fingerprint, onCopy = { onCopy(preset.fingerprint) })
+                        ReadOnlyValueRow(
+                            label = "Manufacturer",
+                            value = preset.manufacturer,
+                            onCopy = { onCopy(preset.manufacturer) })
+                        ReadOnlyValueRow(
+                            label = "Brand",
+                            value = preset.brand,
+                            onCopy = { onCopy(preset.brand) })
+                        ReadOnlyValueRow(
+                            label = "Model",
+                            value = preset.model,
+                            onCopy = { onCopy(preset.model) })
+                        ReadOnlyValueRow(
+                            label = "Device",
+                            value = preset.device,
+                            onCopy = { onCopy(preset.device) })
+                        ReadOnlyValueRow(
+                            label = "Product",
+                            value = preset.product,
+                            onCopy = { onCopy(preset.product) })
+                        ReadOnlyValueRow(
+                            label = "Board",
+                            value = preset.board,
+                            onCopy = { onCopy(preset.board) })
+                        ReadOnlyValueRow(
+                            label = "Fingerprint",
+                            value = preset.fingerprint,
+                            onCopy = { onCopy(preset.fingerprint) })
                         if (preset.securityPatch.isNotBlank()) {
-                            ReadOnlyValueRow(label = "Security Patch", value = preset.securityPatch, onCopy = { onCopy(preset.securityPatch) })
+                            ReadOnlyValueRow(
+                                label = "Security Patch",
+                                value = preset.securityPatch,
+                                onCopy = { onCopy(preset.securityPatch) })
                         }
                     }
                 }

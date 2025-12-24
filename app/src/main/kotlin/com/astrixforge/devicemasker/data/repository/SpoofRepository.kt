@@ -41,7 +41,7 @@ class SpoofRepository(private val context: Context) {
 
     /**
      * Cached groups for correlated value generation.
-     * 
+     *
      * These ensure that values in the same correlation group always use
      * the same underlying group, preventing detection from mismatches.
      */
@@ -78,9 +78,9 @@ class SpoofRepository(private val context: Context) {
 
     val dashboardState: Flow<DashboardState> =
         combine(moduleEnabled, activeGroup, enabledAppCount, groups) { enabled,
-                                                                           group,
-                                                                           appCount,
-                                                                           groupList ->
+                                                                       group,
+                                                                       appCount,
+                                                                       groupList ->
             DashboardState(
                 isModuleEnabled = enabled,
                 activeGroup = group,
@@ -104,7 +104,7 @@ class SpoofRepository(private val context: Context) {
         // Set this group as default
         val updatedGroup = group.copy(isDefault = true)
         ConfigManager.updateGroup(updatedGroup)
-        
+
         // Unset other groups as default
         ConfigManager.getAllGroups().forEach { other ->
             if (other.id != groupId && other.isDefault) {
@@ -119,7 +119,7 @@ class SpoofRepository(private val context: Context) {
 
     /**
      * Generates a new random value for a spoof type.
-     * 
+     *
      * Values in the same correlation group will use the same underlying
      * profile to ensure consistency (e.g., IMSI and ICCID both use same carrier).
      */
@@ -159,18 +159,18 @@ class SpoofRepository(private val context: Context) {
 
     /**
      * Regenerates ONLY a specific SIM value while keeping the same carrier.
-     * 
+     *
      * This is used when the user wants to regenerate just the phone number, IMSI, or ICCID
      * without changing the carrier. This prevents the bug where regenerating phone number
      * would show wrong country code.
-     * 
+     *
      * @param type The specific SIM type to regenerate
      * @return The new value, using the SAME carrier as currently cached
      */
     fun regenerateSIMValueOnly(type: SpoofType): String {
         // Get the current carrier from cache, or generate new config if no cache
         val currentCarrier = cachedSIMConfig?.carrier ?: Carrier.random()
-        
+
         // Generate ONLY the specific value using the SAME carrier
         return when (type) {
             SpoofType.PHONE_NUMBER -> PhoneNumberGenerator.generate(currentCarrier)
@@ -208,7 +208,7 @@ class SpoofRepository(private val context: Context) {
     /**
      * Generates correlated device hardware values.
      * IMEI, Serial, WiFi MAC match the device profile.
-     * 
+     *
      * Note: MEID removed - CDMA deprecated since 2022.
      */
     private fun generateDeviceHardwareValue(type: SpoofType): String {
@@ -246,9 +246,10 @@ class SpoofRepository(private val context: Context) {
                 com.astrixforge.devicemasker.common.DeviceProfilePreset.PRESETS.random().id
 
             // Location (independent coordinates)
-            SpoofType.LOCATION_LATITUDE -> 
+            SpoofType.LOCATION_LATITUDE ->
                 String.format(java.util.Locale.US, "%.6f", (-90.0..90.0).random())
-            SpoofType.LOCATION_LONGITUDE -> 
+
+            SpoofType.LOCATION_LONGITUDE ->
                 String.format(java.util.Locale.US, "%.6f", (-180.0..180.0).random())
 
             else -> throw IllegalArgumentException("Unknown independent type: $type")
@@ -264,7 +265,7 @@ class SpoofRepository(private val context: Context) {
         cachedLocationConfig = null
         cachedDeviceHardwareConfig = null
     }
-    
+
     /**
      * Resets a specific correlation group's cache.
      * Call this before regenerating correlated values to get fresh values.
@@ -274,16 +275,17 @@ class SpoofRepository(private val context: Context) {
             CorrelationGroup.SIM_CARD -> cachedSIMConfig = null
             CorrelationGroup.LOCATION -> cachedLocationConfig = null
             CorrelationGroup.DEVICE_HARDWARE -> cachedDeviceHardwareConfig = null
-            CorrelationGroup.NONE -> { /* No cache for independent values */ }
+            CorrelationGroup.NONE -> { /* No cache for independent values */
+            }
         }
     }
-    
+
     /**
      * Regenerates both timezone and locale values together.
-     * 
+     *
      * This ensures both come from the SAME location config (same country),
      * avoiding mismatches like "Asia/Kolkata" with "en_US".
-     * 
+     *
      * @param groupId Group to update
      */
     suspend fun regenerateLocationValues(groupId: String) {
@@ -302,19 +304,23 @@ class SpoofRepository(private val context: Context) {
 
         ConfigManager.updateGroup(updatedGroup)
     }
+
     /**
      * Updates a group with SIM values from a specific carrier.
-     * 
-     * This generates all SIM-related values (IMSI, ICCID, Phone, etc.) 
+     *
+     * This generates all SIM-related values (IMSI, ICCID, Phone, etc.)
      * from the selected carrier and updates the group.
-     * 
+     *
      * ALSO syncs Location values (timezone/locale) to match carrier's country.
      * This prevents detection from SIM/Location country mismatches.
-     * 
+     *
      * @param groupId Group to update
      * @param carrier The carrier to use for generation
      */
-    suspend fun updateGroupWithCarrier(groupId: String, carrier: com.astrixforge.devicemasker.common.models.Carrier) {
+    suspend fun updateGroupWithCarrier(
+        groupId: String,
+        carrier: Carrier
+    ) {
         val group = ConfigManager.getGroup(groupId) ?: return
 
         // Generate SIM config from specific carrier
@@ -334,8 +340,10 @@ class SpoofRepository(private val context: Context) {
         updatedGroup = updatedGroup.withValue(SpoofType.CARRIER_NAME, simConfig.carrierName)
         updatedGroup = updatedGroup.withValue(SpoofType.CARRIER_MCC_MNC, simConfig.mccMnc)
         updatedGroup = updatedGroup.withValue(SpoofType.SIM_COUNTRY_ISO, simConfig.simCountryIso)
-        updatedGroup = updatedGroup.withValue(SpoofType.NETWORK_COUNTRY_ISO, simConfig.networkCountryIso)
-        updatedGroup = updatedGroup.withValue(SpoofType.SIM_OPERATOR_NAME, simConfig.simOperatorName)
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.NETWORK_COUNTRY_ISO, simConfig.networkCountryIso)
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.SIM_OPERATOR_NAME, simConfig.simOperatorName)
         updatedGroup = updatedGroup.withValue(SpoofType.NETWORK_OPERATOR, simConfig.networkOperator)
 
         // Sync Location to carrier country (prevents detection)
@@ -354,21 +362,22 @@ class SpoofRepository(private val context: Context) {
 
         ConfigManager.updateGroup(updatedGroup)
     }
-    
+
     /**
      * Updates a group with hardware values matching the device profile.
-     * 
+     *
      * When user selects a Device Profile (e.g., "Pixel 8 Pro"), this ensures:
      * - IMEI uses appropriate TAC prefix
      * - Serial matches manufacturer pattern (e.g., FA6AB for Google)
      * - WiFi MAC may use manufacturer OUI
-     * 
+     *
      * @param groupId Group to update
      * @param presetId The device preset ID to use
      */
     suspend fun updateGroupWithDeviceProfile(groupId: String, presetId: String) {
         val group = ConfigManager.getGroup(groupId) ?: return
-        val preset = com.astrixforge.devicemasker.common.DeviceProfilePreset.findById(presetId) ?: return
+        val preset =
+            com.astrixforge.devicemasker.common.DeviceProfilePreset.findById(presetId) ?: return
 
         // Generate hardware matching the device profile
         val hardwareConfig = DeviceHardwareGenerator.generate(preset)
@@ -381,7 +390,7 @@ class SpoofRepository(private val context: Context) {
 
         ConfigManager.updateGroup(updatedGroup)
     }
-    
+
     /**
      * Generates realistic WiFi SSID names.
      * Uses common router brands and patterns.
@@ -416,17 +425,28 @@ class SpoofRepository(private val context: Context) {
         )
         return patterns.random()()
     }
-    
+
     private fun randomHex(length: Int) = buildString {
         repeat(length) { append("0123456789ABCDEF".random()) }
     }
-    
+
     private fun randomDigits(length: Int) = buildString {
         repeat(length) { append((0..9).random()) }
     }
-    
+
     private fun randomFamilyName(): String {
-        val names = listOf("Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Moore", "Taylor")
+        val names = listOf(
+            "Smith",
+            "Johnson",
+            "Williams",
+            "Brown",
+            "Jones",
+            "Miller",
+            "Davis",
+            "Wilson",
+            "Moore",
+            "Taylor"
+        )
         return names.random()
     }
 
@@ -445,7 +465,7 @@ class SpoofRepository(private val context: Context) {
     suspend fun createGroup(name: String, description: String = "") {
         // Create the group with generated values
         var newGroup = ConfigManager.createGroup(name)
-        
+
         // Add description and initialize with generated values
         var updatedGroup = newGroup.copy(description = description)
         SpoofType.entries.forEach { type ->

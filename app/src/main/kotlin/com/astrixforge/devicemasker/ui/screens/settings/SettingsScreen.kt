@@ -119,20 +119,25 @@ fun SettingsScreen(
         when (exportResult) {
             is ExportResult.Success -> {
                 // Format message: "Logs exported successfully (X entries)\n\nSaved to: <path>"
-                val message = "Logs exported successfully (${exportResult.logCount} entries)\n\nSaved to: ${exportResult.filePath}"
+                val message =
+                    "Logs exported successfully (${exportResult.logCount} entries)\n\nSaved to: ${exportResult.filePath}"
                 snackbarHostState.showSnackbar(message)
                 onClearExportResult()
             }
+
             is ExportResult.NoLogs -> {
                 snackbarHostState.showSnackbar(exportNoLogsMessage)
                 onClearExportResult()
             }
+
             is ExportResult.Error -> {
                 val message = "Failed to export logs: ${exportResult.message}"
                 snackbarHostState.showSnackbar(message)
                 onClearExportResult()
             }
-            null -> { /* No result yet */ }
+
+            null -> { /* No result yet */
+            }
         }
     }
 
@@ -302,7 +307,10 @@ private fun SettingsScreenContent(
                 SettingsInfoItem(
                     icon = Icons.Outlined.Info,
                     title = stringResource(id = R.string.settings_version),
-                    value = stringResource(id = R.string.settings_version_info, BuildConfig.VERSION_NAME),
+                    value = stringResource(
+                        id = R.string.settings_version_info,
+                        BuildConfig.VERSION_NAME
+                    ),
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -350,7 +358,8 @@ private fun ThemeModeDialog(
                 ThemeMode.entries.forEach { mode ->
                     Row(
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .selectable(
                                     selected = mode == currentMode,
                                     onClick = { onModeSelected(mode) },

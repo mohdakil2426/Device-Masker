@@ -59,10 +59,8 @@ class GroupSpoofingViewModel(
     fun regenerateValue(type: SpoofType) {
         val group = state.value.group ?: return
         viewModelScope.launch {
-            val correlationGroup = type.correlationGroup
-
             // For SIM values: use regenerateSIMValueOnly to keep same carrier
-            val newValue = when (correlationGroup) {
+            val newValue = when (val correlationGroup = type.correlationGroup) {
                 CorrelationGroup.SIM_CARD -> repository.regenerateSIMValueOnly(type)
                 else -> {
                     // For non-SIM correlated values, reset cache first

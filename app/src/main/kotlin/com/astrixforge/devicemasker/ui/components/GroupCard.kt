@@ -82,7 +82,11 @@ fun GroupCard(
         shape = cardShape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
-        Column(modifier = Modifier.padding(16.dp).alpha(contentAlpha)) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .alpha(contentAlpha)
+        ) {
             // Group Info Row with Switch
             Row(
                 modifier = Modifier.fillMaxWidth(),

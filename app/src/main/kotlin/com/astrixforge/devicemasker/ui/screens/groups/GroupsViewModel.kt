@@ -33,10 +33,12 @@ class GroupsViewModel(
         // Collect groups
         viewModelScope.launch {
             repository.getAllGroups().collect { groups ->
-                _state.update { it.copy(
-                    groups = groups,
-                    isLoading = false
-                ) }
+                _state.update {
+                    it.copy(
+                        groups = groups,
+                        isLoading = false
+                    )
+                }
             }
         }
     }

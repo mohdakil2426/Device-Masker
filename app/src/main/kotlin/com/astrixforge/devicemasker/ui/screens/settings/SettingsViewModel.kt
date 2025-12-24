@@ -110,7 +110,8 @@ class SettingsViewModel(
                     }
 
                     // Create timestamp for filename
-                    val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
+                    val timestamp =
+                        SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
                     val fileName = "devicemasker_logs_$timestamp.txt"
 
                     // Get Downloads directory
@@ -123,7 +124,14 @@ class SettingsViewModel(
                     val content = buildString {
                         appendLine("═══════════════════════════════════════════════════════════")
                         appendLine("  Device Masker - Debug Logs")
-                        appendLine("  Exported: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
+                        appendLine(
+                            "  Exported: ${
+                                SimpleDateFormat(
+                                    "yyyy-MM-dd HH:mm:ss",
+                                    Locale.US
+                                ).format(Date())
+                            }"
+                        )
                         appendLine("  Total Entries: ${logs.size}")
                         appendLine("═══════════════════════════════════════════════════════════")
                         appendLine()

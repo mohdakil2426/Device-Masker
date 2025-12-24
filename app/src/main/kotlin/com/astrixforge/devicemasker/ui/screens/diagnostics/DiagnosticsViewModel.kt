@@ -50,22 +50,24 @@ class DiagnosticsViewModel(
         viewModelScope.launch {
             val diagnosticResults = runDiagnosticTests()
             val antiDetectionResults = runAntiDetectionTests()
-            
-            _state.update { it.copy(
-                diagnosticResults = diagnosticResults,
-                antiDetectionResults = antiDetectionResults,
-                isLoading = false
-            ) }
+
+            _state.update {
+                it.copy(
+                    diagnosticResults = diagnosticResults,
+                    antiDetectionResults = antiDetectionResults,
+                    isLoading = false
+                )
+            }
         }
     }
 
     private suspend fun runDiagnosticTests(): List<DiagnosticResult> {
         // Get current spoofed group using suspend function (avoids runBlocking)
         val group = repository.activeGroup.first()
-        
+
         // Get device group preset info if set
         val presetId = group?.getValue(SpoofType.DEVICE_PROFILE)
-        val presetInfo = presetId?.let { 
+        val presetInfo = presetId?.let {
             com.astrixforge.devicemasker.common.DeviceProfilePreset.findById(it)
         }
 
@@ -78,7 +80,10 @@ class DiagnosticsViewModel(
                 realValue =
                     try {
                         @Suppress("HardwareIds")
-                        Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+                        Settings.Secure.getString(
+                            context.contentResolver,
+                            Settings.Secure.ANDROID_ID
+                        )
                     } catch (_: Exception) {
                         null
                     },

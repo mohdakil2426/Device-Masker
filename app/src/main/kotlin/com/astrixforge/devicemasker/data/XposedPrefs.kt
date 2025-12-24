@@ -154,10 +154,10 @@ class XposedPrefs(context: Context) {
         spoofTypes: Map<SpoofType, String?>
     ) {
         val editor = prefs.edit()
-        
+
         // Set app enabled
         editor.putString(getAppEnabledKey(packageName), enabled.toString())
-        
+
         // Set each spoof type
         for ((type, value) in spoofTypes) {
             editor.putString(getSpoofEnabledKey(packageName, type), (value != null).toString())
@@ -167,7 +167,7 @@ class XposedPrefs(context: Context) {
                 editor.remove(getSpoofValueKey(packageName, type))
             }
         }
-        
+
         editor.apply()
     }
 
@@ -177,13 +177,13 @@ class XposedPrefs(context: Context) {
     fun clearAppSettings(packageName: String) {
         val editor = prefs.edit()
         val prefix = packageName.replace('.', '_')
-        
+
         // Get all keys and remove ones matching this package
         val allKeys = prefs.all.keys.filter { it.contains(prefix) }
         for (key in allKeys) {
             editor.remove(key)
         }
-        
+
         editor.apply()
     }
 
