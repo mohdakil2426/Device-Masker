@@ -4,66 +4,71 @@
 
 | Metric | Value |
 |--------|-------|
-| **Project Phase** | MVVM Refactor Complete ✅ |
+| **Project Phase** | PRODUCTION READY ✅ |
 | **Active Changes** | 0 |
 | **Archived Changes** | 8 |
-| **Last Major Update** | December 23, 2025 - Refactor Profile to Group Complete |
+| **Last Major Update** | December 24, 2025 - XSharedPreferences Config Sharing Complete |
 
 
 ---
 
-## ✅ Complete: Value Generation Improvements (Dec 21, 2025)
+## ✅ Complete: XSharedPreferences Cross-Process Config (Dec 24, 2025)
+
+**Status**: Complete - SPOOFING NOW WORKS! 🎉
+**Started**: December 23, 2025
+**Completed**: December 24, 2025
+
+### Problem Solved
+
+The AIDL ServiceManager approach for cross-process configuration sharing was blocked by:
+- SELinux restrictions preventing app UIDs from registering services
+- Android's security policies for ServiceManager
+- File permission issues with `/data/system/` directory
+
+### Solution: XSharedPreferences via YukiHookAPI
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| SharedPrefsKeys | `common/SharedPrefsKeys.kt` | Shared key generator |
+| XposedPrefs | `app/data/XposedPrefs.kt` | Write with MODE_WORLD_READABLE |
+| ConfigSync | `app/data/ConfigSync.kt` | Sync JsonConfig → per-app keys |
+| PrefsKeys | `xposed/PrefsKeys.kt` | YukiHookAPI PrefsData definitions |
+| PrefsReader | `xposed/PrefsReader.kt` | Helper functions for hooks |
+
+### Key Implementation Details
+
+1. **App writes config** using `MODE_WORLD_READABLE` SharedPreferences
+2. **ConfigSync flattens** group-based config to per-app keys
+3. **Hooks read via** YukiHookAPI's `prefs` property (XSharedPreferences)
+4. **AndroidManifest.xml** has `xposedsharedprefs=true` meta-data
+
+### Files Modified
+
+| Module | Files |
+|--------|-------|
+| :common | `SharedPrefsKeys.kt` (new) |
+| :app | `XposedPrefs.kt`, `ConfigSync.kt` (new), `ConfigManager.kt`, `AndroidManifest.xml` |
+| :xposed | `XposedEntry.kt`, `PrefsKeys.kt`, `PrefsReader.kt` (new), all 6 hookers |
+
+---
+
+## ✅ Complete: Critical Crash Fix (Dec 23, 2025)
 
 **Status**: Complete
-**Started**: December 21, 2025
+**Root Cause**: AntiDetectHooker blocking AndroidX class loading + directory creation failures
 
-### Improvements Summary
+---
 
-| # | Improvement | Status |
-|---|-------------|--------|
-| 1 | Canada to Country.ALL | ✅ Done |
-| 2 | Dual-SIM support (backend) | ✅ Done |
-| 3 | SIM-Location correlation | ✅ Done |
-| 4 | More countries/carriers | ✅ Done |
-| 5 | GPS correlation | ✅ Done |
-| 6 | Device-Hardware sync | ✅ Done |
-| 7 | WiFi SSID patterns | ✅ Done |
-| 8 | TAC database expansion | ✅ Done |
+## ✅ Complete: Profile to Group Refactor (Dec 23, 2025)
 
-### Data Expansion
-
-| Category | Before | After |
-|----------|--------|-------|
-| Countries | 9 | **16** |
-| US Carriers | 6 | **45+** |
-| Total Carriers | ~30 | **75+** |
-| GPS Cities | 0 | **42** |
-| Dual-SIM Types | 0 | **5** |
-
-### New Countries
-
-🇰🇷 South Korea, 🇧🇷 Brazil, 🇷🇺 Russia, 🇲🇽 Mexico, 🇮🇩 Indonesia, 🇸🇦 Saudi Arabia, 🇦🇪 UAE
+**Status**: Complete
+**Objective**: Renamed "Profile" → "Group" throughout codebase
 
 ---
 
 ## ✅ Complete: MVVM Architecture Refactor (Dec 22, 2025)
 
-**OpenSpec Change**: `refactor-mvvm-architecture`
-**Status**: All code changes complete
-**Completed**: December 22, 2025
-
-### Phase Progress
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| Phase 1 | ✅ Complete | Feature package structure created |
-| Phase 2 | ✅ Complete | HomeScreen migrated to MVVM |
-| Phase 3 | ✅ Complete | ViewModels/States for all 5 screens |
-| Phase 4 | ✅ Complete | All 5 screens migrated to MVVM |
-| Phase 5 | ✅ Complete | HMA-OSS references removed (12 files) |
-| Phase 6 | ✅ Complete | Manual device testing |
-
-### All Screens Migrated
+**Status**: All 5 screens migrated to pure MVVM
 
 | Screen | ViewModel | State | Status |
 |--------|-----------|-------|--------|
@@ -73,68 +78,47 @@
 | GroupSpoofingScreen | GroupSpoofingViewModel | GroupSpoofingState | ✅ Refactored |
 | DiagnosticsScreen | DiagnosticsViewModel | DiagnosticsState | ✅ Migrated |
 
-### Key Architectural Changes
+---
 
-- All screens use `collectAsStateWithLifecycle()` for state collection
-- No repository dependencies in Composable functions
-- ViewModels handle all async operations via `viewModelScope`
-- Manual ViewModel instantiation using `viewModel { }` factory
-- Clean separation between UI and business logic
+## ✅ Complete: Value Generation Improvements (Dec 21, 2025)
+
+| Category | Before | After |
+|----------|--------|-------|
+| Countries | 9 | **16** |
+| US Carriers | 6 | **45+** |
+| Total Carriers | ~30 | **75+** |
+| GPS Cities | 0 | **42** |
+| Dual-SIM Types | 0 | **5** |
 
 ---
 
-## ✅ Complete: Multi-Module Architecture Migration
-
-**OpenSpec Change**: `adopt-hma-architecture` (archived)
-**Status**: Complete
-**Completed**: December 20, 2025
-
-## ✅ Complete: Spoof Value Correlation (Dec 20, 2025)
-
-| Category | Type | UI Pattern |
-|----------|------|------------|
-| **SIM Card** | Correlated | Single switch + regenerate for all values |
-| **Device Hardware** | Independent | All 3 items fully independent (simplified) |
-| **Location** | Hybrid | Timezone+Locale combined, Lat/Long independent |
-| **Network** | Independent | Each item has its own switch + regenerate |
-| **Advertising** | Independent | Each item has its own switch + regenerate |
-
----
-
-## Architecture Summary (Multi-Module + MVVM)
+## Architecture Summary (Multi-Module + XSharedPreferences)
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │                         :app Module                            │
 │  ┌──────────────┐  ┌─────────────────────────────────────────┐│
 │  │  HookEntry   │  │           Service Layer                 ││
-│  │  (KSP entry) │  │  ServiceClient│ConfigManager│Provider   ││
+│  │  (KSP entry) │  │  ConfigManager → ConfigSync → XposedPrefs│
 │  │      ↓       │  └─────────────────────────────────────────┘│
 │  │  Delegates   │                                             │
 │  │  to :xposed  │  ┌─────────────────────────────────────────┐│
-│  └──────────────┘  │             Data Layer                  ││
-│                    │  SpoofRepository → ConfigManager         ││
-│                    │  SettingsDataStore (UI only)             ││
+│  └──────────────┘  │         SharedPreferences               ││
+│                    │  (MODE_WORLD_READABLE via LSPosed)       ││
 │                    └─────────────────────────────────────────┘│
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │                      UI Screens                          │  │
-│  │  HomeScreen │ GroupsScreen │ SettingsScreen │ etc.      │  │
-│  └─────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
-                              ↓
+                               ↓ XSharedPreferences
 ┌────────────────────────────────────────────────────────────────┐
 │                        :xposed Module                          │
-│  XposedHookLoader → DeviceMaskerService → All Hookers          │
+│  XposedEntry → prefs property → PrefsHelper → Hookers          │
 │  - AntiDetectHooker (first)                                    │
 │  - DeviceHooker, NetworkHooker, AdvertisingHooker              │
 │  - SystemHooker, LocationHooker                                │
 └────────────────────────────────────────────────────────────────┘
-                              ↓
+                               ↓
 ┌────────────────────────────────────────────────────────────────┐
 │                        :common Module                          │
-│  IDeviceMaskerService.aidl │ JsonConfig │ SpoofGroup │ etc.  │
-│  generators/ │ models/ (Country, Carrier, SIMConfig, etc.)     │
+│  SharedPrefsKeys │ JsonConfig │ SpoofGroup │ generators/       │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -145,31 +129,35 @@
 ### ✅ Core Infrastructure - Complete
 - [x] libs.versions.toml - Full dependency catalog
 - [x] Build configuration - Gradle 9.1.0/Java 25
-- [x] AndroidManifest.xml - LSPosed metadata + ServiceProvider
+- [x] AndroidManifest.xml - LSPosed metadata + xposedsharedprefs
 - [x] 3-module Gradle structure (:app, :common, :xposed)
 
+### ✅ Cross-Process Config - Complete (NEW!)
+- [x] XSharedPreferences via YukiHookAPI prefs property
+- [x] SharedPrefsKeys in :common for key consistency
+- [x] XposedPrefs with MODE_WORLD_READABLE
+- [x] ConfigSync to flatten groups to per-app keys
+- [x] PrefsHelper for easy access in hooks
+
 ### ✅ :common Module - Complete
-- [x] IDeviceMaskerService.aidl - AIDL interface (10 methods)
-- [x] SpoofType, SpoofCategory - Spoofing enums (22 types with dual-SIM)
+- [x] SpoofType, SpoofCategory - Spoofing enums (22 types)
 - [x] DeviceProfilePreset - 10 predefined device profiles
 - [x] SpoofGroup, DeviceIdentifier, AppConfig - Data models
 - [x] JsonConfig - Root configuration container
-- [x] Constants, Utils - Shared utilities
+- [x] SharedPrefsKeys - Cross-process key generator
 - [x] generators/ - 7 value generators
-- [x] models/ - Country (16), Carrier (75+), SIMConfig, LocationConfig, DeviceHardwareConfig
 
 ### ✅ :xposed Module - Complete
-- [x] DeviceMaskerService - AIDL implementation
-- [x] XposedHookLoader - Hooker loading
-- [x] 6 Hookers - HMA-OSS pattern
-- [x] In-memory config access
+- [x] XposedEntry - Uses prefs property for config
+- [x] PrefsKeys - YukiHookAPI PrefsData definitions
+- [x] PrefsReader - PrefsHelper for hooks
+- [x] 6 Hookers - All use PrefsHelper.getSpoofValue()
 
 ### ✅ :app Module - Complete (Refactored)
-- [x] ServiceClient - AIDL proxy
-- [x] ServiceProvider - Binder delivery
-- [x] ConfigManager - StateFlow config management
-- [x] SpoofRepository - Bridge to ConfigManager with correlation logic
-- [x] SettingsDataStore - UI settings (theme, etc.)
+- [x] XposedPrefs - MODE_WORLD_READABLE writer
+- [x] ConfigSync - JsonConfig → XposedPrefs sync
+- [x] ConfigManager - Integrated with ConfigSync
+- [x] SpoofRepository - Bridge to ConfigManager
 
 ### ✅ User Interface - Complete (M3 Expressive)
 | Component | Status |
@@ -188,10 +176,10 @@
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| :common:assembleDebug | ✅ Success | Dec 21, 2025 |
-| :xposed:assembleDebug | ✅ Success | Dec 21, 2025 |
-| :app:assembleDebug | ✅ Success | Dec 21, 2025 |
-| Full APK Build | ✅ Success | Dec 21, 2025 |
+| :common:assembleDebug | ✅ Success | Dec 24, 2025 |
+| :xposed:assembleDebug | ✅ Success | Dec 24, 2025 |
+| :app:assembleDebug | ✅ Success | Dec 24, 2025 |
+| Full APK Build | ✅ Success | Dec 24, 2025 |
 
 ---
 
@@ -210,7 +198,7 @@
 | 🔄 Group Workflow Redesign | Week 9 | ✅ Done |
 | 🔓 Independent Groups | Week 10 | ✅ Done |
 | ✨ M3 Expressive Features | Week 11 | ✅ Done |
-| 🏗️ HMA-OSS Migration | Week 12 | ✅ Done |
+| 🏗️ Multi-Module Migration | Week 12 | ✅ Done |
 | 📱 Device Profile UI | Week 12 | ✅ Done |
 | 🔒 Value Generator Quality | Week 12 | ✅ Done |
 | 📦 Generator Migration to :common | Week 12 | ✅ Done |
@@ -218,4 +206,5 @@
 | 🌍 Value Generation Improvements | Week 13 | ✅ Done |
 | ✅ Expressive Cards App-wide | Week 13 | ✅ Done |
 | 🔄 Refactor Profile to Group | Week 14 | ✅ Done |
-| ✅ v1.0 Release Ready | Week 14 | ⏳ Final Testing |
+| 🔧 XSharedPreferences Config | Week 14 | ✅ Done |
+| ✅ v1.0 Release Ready | Week 14 | ✅ COMPLETE! 🎉 |

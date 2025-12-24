@@ -87,12 +87,22 @@ This makes it ideal for privacy-focused modifications that need to work across m
 │   │                                                      │   │
 │   │   2. DeviceHooker                                    │   │
 │   │      └─→ Intercepts getImei()                        │   │
-│   │      └─→ Reads from SpoofDataStore                   │   │
+│   │      └─→ Reads from XSharedPreferences (prefs)       │   │
 │   │      └─→ Returns spoofed IMEI                        │   │
 │   └─────────────────────────────────────────────────────┘   │
 │                    │                                         │
 │                    ▼                                         │
 │   App receives "358673912845672" (spoofed)                  │
+└─────────────────────────────────────────────────────────────┘
+               ↑ XSharedPreferences reads config
+┌─────────────────────────────────────────────────────────────┐
+│                       APP UI PROCESS                         │
+│                                                              │
+│   User configures spoofing → ConfigManager.saveConfig()     │
+│                    ↓                                         │
+│   ConfigSync → XposedPrefs (MODE_WORLD_READABLE)            │
+│                                                              │
+│   Config changes require target app restart to take effect   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -166,6 +176,7 @@ This makes it ideal for privacy-focused modifications that need to work across m
 4. **Beautiful UI**: Modern design, not utilitarian
 5. **Focused Scope**: Does spoofing well, doesn't try to do everything
 6. **Active Development**: December 2025 tech stack
-7. **Clean Architecture**: 3-module AIDL structure + Pure MVVM UI layer (Dec 2025)
+7. **Clean Architecture**: 3-module structure + Pure MVVM UI layer
+8. **Reliable Config Sharing**: XSharedPreferences via YukiHookAPI (Dec 2025)
 
 

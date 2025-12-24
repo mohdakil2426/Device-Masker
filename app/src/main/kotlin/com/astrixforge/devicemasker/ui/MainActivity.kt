@@ -222,13 +222,17 @@ fun DeviceMaskerMainApp(
 
             composable(NavRoutes.SETTINGS) {
                 val settingsViewModel = viewModel {
-                    SettingsViewModel(settingsStore)
+                    SettingsViewModel(context.applicationContext, settingsStore)
                 }
+                val settingsState by settingsViewModel.state.collectAsState()
+
                 SettingsScreen(
                         themeMode = themeMode,
                         amoledDarkMode = amoledMode,
                         dynamicColors = dynamicColors,
                         debugLogging = debugLogging,
+                        isExportingLogs = settingsState.isExportingLogs,
+                        exportResult = settingsState.exportResult,
                         onThemeModeChange = { mode ->
                             Timber.d("Theme mode changed: $mode")
                             settingsViewModel.setThemeMode(mode)
@@ -245,6 +249,11 @@ fun DeviceMaskerMainApp(
                             Timber.d("Debug logging changed: $enabled")
                             settingsViewModel.setDebugLogging(enabled)
                         },
+                        onExportLogs = {
+                            Timber.d("Exporting logs")
+                            settingsViewModel.exportLogs()
+                        },
+                        onClearExportResult = { settingsViewModel.clearExportResult() },
                         onNavigateToDiagnostics = { navController.navigate(NavRoutes.DIAGNOSTICS) },
                 )
             }

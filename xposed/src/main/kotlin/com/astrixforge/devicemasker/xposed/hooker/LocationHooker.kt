@@ -1,11 +1,10 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.DeviceMaskerService
+import com.astrixforge.devicemasker.xposed.PrefsHelper
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.log.YLog
-import com.highcapable.yukihookapi.hook.type.java.DoubleType
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 
 /**
@@ -15,28 +14,25 @@ import com.highcapable.yukihookapi.hook.type.java.StringClass
  * - GPS coordinates (latitude, longitude)
  * - Timezone
  * - Locale
+ *
+ * Uses ServiceProxy for cross-process config access via Binder IPC.
  */
 object LocationHooker : YukiBaseHooker() {
 
+    private const val TAG = "LocationHooker"
+
     private fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
-        val service = DeviceMaskerService.instance ?: return fallback()
-        val config = service.config
-        val group = config.getGroupForApp(packageName) ?: return fallback()
-
-        if (!group.isEnabled) return fallback()
-        if (!group.isTypeEnabled(type)) return fallback()
-
-        return group.getValue(type) ?: fallback()
+        return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
     }
 
     override fun onHook() {
-        YLog.debug("LocationHooker: Starting hooks for: $packageName")
+        DualLog.debug(TAG, "Starting hooks for: $packageName")
 
         hookLocation()
         hookTimeZone()
         hookLocale()
 
-        DeviceMaskerService.instance?.incrementHookCount()
+        // Hook count tracking removed
     }
 
     private fun hookLocation() {

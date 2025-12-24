@@ -33,6 +33,10 @@
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposed_scope" />
+        <!-- CRITICAL: Required for XSharedPreferences cross-process access -->
+        <meta-data
+            android:name="xposedsharedprefs"
+            android:value="true" />
 
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- ServiceProvider for HMA-OSS AIDL binder delivery -->

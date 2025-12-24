@@ -2,116 +2,112 @@
 
 ## Current Work Focus
 
-### ✅ Complete: Refactor Profile to Group (Dec 23, 2025)
+### ✅ Complete: XSharedPreferences Cross-Process Config (Dec 24, 2025)
+
+**Status**: Complete - SPOOFING NOW WORKS! 🎉
+**Root Cause Analysis**: The AIDL ServiceManager approach was blocked by SELinux, and the broken IPC caused hooks to receive no configuration.
+
+#### Solution Implemented: XSharedPreferences via YukiHookAPI
+
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| **SharedPrefsKeys** | Shared key generator (app + xposed) | `common/SharedPrefsKeys.kt` |
+| **XposedPrefs** | Write prefs with MODE_WORLD_READABLE | `app/data/XposedPrefs.kt` |
+| **ConfigSync** | Sync JsonConfig → XposedPrefs | `app/data/ConfigSync.kt` |
+| **PrefsKeys** | YukiHookAPI PrefsData keys | `xposed/PrefsKeys.kt` |
+| **PrefsReader** | Helper to read prefs in hooks | `xposed/PrefsReader.kt` |
+| **XposedEntry** | Updated to use prefs property | `xposed/XposedEntry.kt` |
+
+#### Key Files Modified
+
+| File | Changes |
+|------|---------|
+| `xposed/XposedEntry.kt` | Uses `prefs` property and `PrefsHelper` for config |
+| `xposed/hooker/*.kt` | All 6 hookers use `PrefsHelper.getSpoofValue()` |
+| `app/service/ConfigManager.kt` | Calls `ConfigSync.syncFromConfig()` on save |
+| `app/AndroidManifest.xml` | Added `xposedsharedprefs=true` meta-data |
+
+#### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        APP UI PROCESS                        │
+├─────────────────────────────────────────────────────────────┤
+│  User saves config → ConfigManager.saveConfigInternal()     │
+│                           │                                  │
+│                           ▼                                  │
+│  ConfigSync.syncFromConfig() → XposedPrefs (MODE_WORLD_READABLE)
+│                                                              │
+│  Writes keys like:                                           │
+│  - module_enabled = true                                     │
+│  - app_enabled_com_target_app = true                        │
+│  - spoof_enabled_com_target_app_IMEI = true                 │
+│  - spoof_value_com_target_app_IMEI = "358673912845672"      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ XSharedPreferences reads file
+┌─────────────────────────────────────────────────────────────┐
+│                      TARGET APP PROCESS                      │
+├─────────────────────────────────────────────────────────────┤
+│  XposedEntry.onHook() → prefs.get(PrefsKeys.moduleEnabled)  │
+│                           │                                  │
+│                           ▼                                  │
+│  DeviceHooker.hook → PrefsHelper.getSpoofValue(prefs, ...)  │
+│                           │                                  │
+│                           ▼                                  │
+│  Returns spoofed "358673912845672" to app                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Critical Requirements for XSharedPreferences
+
+1. **AndroidManifest.xml** must have:
+   ```xml
+   <meta-data android:name="xposedsharedprefs" android:value="true" />
+   <meta-data android:name="xposedminversion" android:value="93" />
+   ```
+
+2. **SharedPreferences** must use `MODE_WORLD_READABLE`
+
+3. **Keys must match** between app (XposedPrefs) and module (PrefsKeys)
+
+4. **Config changes require app restart** - XSharedPreferences caches values
+
+---
+
+### ✅ Complete: Profile to Group Refactor (Dec 23, 2025)
 
 **Status**: Complete
-**Objective**: Rename all instances of "Profile" to "Group" to avoid terminology conflict with Android Work Profiles.
-
-#### Key Changes
-- Renamed `SpoofProfile` to `SpoofGroup` in `:common`
-- Renamed package `ui.screens.profile` to `ui.screens.groups`
-- Renamed package `ui.screens.profiledetail` to `ui.screens.groupspoofing`
-- All classes, ViewModels, and UI components updated with "Group" terminology
-- Navigation routes and string resources updated to use "group"
-- Updated `JsonConfig` to use `@SerialName("profiles")` for backward compatibility with existing JSON storage
-- Successfully resolved all compilation errors and verified full app functionality.
+**Objective**: Renamed all "Profile" references to "Group" to avoid Android Work Profile confusion.
 
 ---
 
-### ✅ Complete: MVVM Architecture Refactor (Dec 22, 2025)
+### ✅ Complete: MVVM Architecture (Dec 22, 2025)
 
-**Status**: All phases complete - Tested and Archived!
-**OpenSpec Change**: `refactor-mvvm-architecture` (archived as `2025-12-22-refactor-mvvm-architecture`)
-
-#### Objective
-Migrated Device Masker `:app` module from Repository-Direct pattern to Pure MVVM architecture.
-
-#### Progress
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| Phase 1 | ✅ Complete | Created feature package structure |
-| Phase 2 | ✅ Complete | HomeScreen refactored to MVVM |
-| Phase 3 | ✅ Complete | ViewModels/States for all screens |
-| Phase 4 | ✅ Complete | All 5 screens migrated to MVVM |
-| Phase 5 | ✅ Complete | HMA-OSS references removed |
-| Phase 6 | ✅ Complete | Manual testing on device |
-
-#### All Screens Migrated to MVVM
-
-**Home Screen (`ui/screens/home/`):**
-- `HomeState.kt` - UI state
-- `HomeViewModel.kt` - Module status, groups, active group
-- `HomeScreen.kt` - Uses ViewModel
-
-**Settings Screen (`ui/screens/settings/`):**
-- `SettingsState.kt` - UI state
-- `SettingsViewModel.kt` - Settings management via SettingsDataStore
-- `SettingsScreen.kt` - Uses ViewModel
-
-**Group Screen (`ui/screens/groups/`):**
-- `GroupsState.kt` - UI state
-- `GroupsViewModel.kt` - CRUD operations
-- `GroupsScreen.kt` - Uses ViewModel
-
-**Group Spoofing Screen (`ui/screens/groupspoofing/`):**
-- `GroupSpoofingState.kt` - UI state
-- `GroupSpoofingViewModel.kt` - Spoof value operations
-- `GroupSpoofingScreen.kt` - Uses ViewModel
-
-**Diagnostics Screen (`ui/screens/diagnostics/`):**
-- `DiagnosticsState.kt` - UI state + DiagnosticResult models
-- `DiagnosticsViewModel.kt` - Diagnostic tests
-- `DiagnosticsScreen.kt` - Uses ViewModel
-
-#### Phase 5 Completed Work
-
-Removed 12 HMA-OSS references from active code:
-- `xposed/` module: 4 files
-- `app/` module: 8 files
-- All now reference "Multi-Module AIDL architecture"
+**Status**: All 5 screens migrated to pure MVVM pattern.
 
 ---
 
-## Recent Changes (Dec 22, 2025)
+## Recent Changes (Dec 24, 2025)
 
-### 🏗️ MVVM Migration Complete
+### 🔧 XSharedPreferences Implementation
 
-**All 5 Screens Now Use ViewModels:**
-- HomeScreen → HomeViewModel ✅
-- SettingsScreen → SettingsViewModel ✅
-- GroupsScreen → GroupsViewModel ✅
-- GroupSpoofingScreen → GroupSpoofingViewModel ✅
-- DiagnosticsScreen → DiagnosticsViewModel ✅
+**New Files Created:**
+- `common/SharedPrefsKeys.kt` - Shared key constants
+- `app/data/XposedPrefs.kt` - SharedPreferences writer
+- `app/data/ConfigSync.kt` - JsonConfig → XposedPrefs sync
+- `xposed/PrefsKeys.kt` - YukiHookAPI PrefsData definitions
+- `xposed/PrefsReader.kt` - PrefsHelper object
 
-**Key Architectural Changes:**
-- All screens now use `collectAsStateWithLifecycle()` for state collection
-- No repository dependencies in Composable functions
-- ViewModels handle all async operations via `viewModelScope`
-- Manual ViewModel instantiation using `viewModel { }` factory
-
-**MainActivity Updated:**
-- All screens receive ViewModels instead of Repository
-- Clean separation between UI and business logic
-
-### 🧹 HMA-OSS References Cleaned (Phase 5)
-
-Changed "HMA-OSS" to "Multi-Module AIDL" in 12 files.
-
----
-
-## ✅ Complete: Expressive UI Overhaul (Dec 22, 2025)
-
-- Global Expressive Cards migration
-- Bouncy touch feedback throughout app
-- ExpressiveOutlinedCard component added
-
-## ✅ Complete: Value Generation Improvements (Dec 21, 2025)
-
-- 16 countries, 75+ carriers
-- GPS correlation with carrier country
-- Dual-SIM backend support
-- US carrier expansion (45+ carriers)
+**Modified Files:**
+- `xposed/XposedEntry.kt` - Uses prefs property
+- `xposed/hooker/DeviceHooker.kt` - PrefsHelper.getSpoofValue()
+- `xposed/hooker/NetworkHooker.kt` - PrefsHelper.getSpoofValue()
+- `xposed/hooker/AdvertisingHooker.kt` - PrefsHelper.getSpoofValue()
+- `xposed/hooker/SystemHooker.kt` - PrefsHelper.getSpoofValue()
+- `xposed/hooker/LocationHooker.kt` - PrefsHelper.getSpoofValue()
+- `app/service/ConfigManager.kt` - ConfigSync integration
+- `app/AndroidManifest.xml` - xposedsharedprefs meta-data
 
 ---
 
@@ -119,10 +115,10 @@ Changed "HMA-OSS" to "Multi-Module AIDL" in 12 files.
 
 | Module | Status | Last Build |
 |--------|--------|------------|
-| :common | ✅ SUCCESS | Dec 23, 2025 |
-| :xposed | ✅ SUCCESS | Dec 23, 2025 |
-| :app | ✅ SUCCESS | Dec 23, 2025 |
-| Full APK | ✅ SUCCESS | Dec 23, 2025 |
+| :common | ✅ SUCCESS | Dec 24, 2025 |
+| :xposed | ✅ SUCCESS | Dec 24, 2025 |
+| :app | ✅ SUCCESS | Dec 24, 2025 |
+| Full APK | ✅ SUCCESS | Dec 24, 2025 |
 
 ---
 
@@ -130,7 +126,7 @@ Changed "HMA-OSS" to "Multi-Module AIDL" in 12 files.
 
 ### No Active Development Work
 
-All major refactoring and improvements are complete! The project is in a stable state.
+The spoofing functionality is now **fully working**! 🎉
 
 ### Future Enhancements (Optional)
 
@@ -139,6 +135,7 @@ All major refactoring and improvements are complete! The project is in a stable 
 - Cell Info Xposed hooks
 - Carrier picker in group creation
 - More device presets
+- Real-time config updates (without app restart)
 
 ---
 
@@ -146,12 +143,12 @@ All major refactoring and improvements are complete! The project is in a stable 
 
 | File | Purpose |
 |------|---------|
-| `ui/screens/home/HomeViewModel.kt` | Home screen state management |
-| `ui/screens/settings/SettingsViewModel.kt` | Settings screen state management |
-| `ui/screens/groups/GroupsViewModel.kt` | Groups screen state management |
-| `ui/screens/groupspoofing/GroupSpoofingViewModel.kt` | Group spoofing state management |
-| `ui/screens/diagnostics/DiagnosticsViewModel.kt` | Diagnostics screen state management |
-| `ui/MainActivity.kt` | Navigation + ViewModel instantiation |
-| `openspec/changes/archive/2025-12-22-refactor-mvvm-architecture/` | Archived MVVM refactor documentation |
+| `xposed/XposedEntry.kt` | Hook entry point, uses prefs property |
+| `xposed/PrefsReader.kt` | PrefsHelper for reading config in hooks |
+| `xposed/PrefsKeys.kt` | PrefsData key definitions |
+| `app/data/XposedPrefs.kt` | SharedPreferences writer (MODE_WORLD_READABLE) |
+| `app/data/ConfigSync.kt` | Syncs UI config to XposedPrefs |
+| `common/SharedPrefsKeys.kt` | Shared key generator |
+| `app/service/ConfigManager.kt` | Config management + sync trigger |
 
 

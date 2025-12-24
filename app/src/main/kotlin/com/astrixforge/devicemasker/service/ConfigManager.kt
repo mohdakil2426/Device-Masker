@@ -7,6 +7,7 @@ import com.astrixforge.devicemasker.common.DeviceIdentifier
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.data.ConfigSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +39,7 @@ object ConfigManager {
     private const val CONFIG_FILE_NAME = "config.json"
 
     private lateinit var configFile: File
+    private lateinit var appContext: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // In-memory configuration
@@ -62,6 +64,7 @@ object ConfigManager {
             return
         }
 
+        appContext = context.applicationContext
         configFile = File(context.filesDir, CONFIG_FILE_NAME)
         Timber.tag(TAG).d("Config file: ${configFile.absolutePath}")
 
@@ -145,6 +148,11 @@ object ConfigManager {
                         Timber.tag(TAG).w("Failed to sync config to service")
                     }
                 }
+
+                // CRITICAL: Sync to XposedPrefs for cross-process access
+                // This enables hooked apps to read the config via XSharedPreferences
+                ConfigSync.syncFromConfig(appContext, config)
+                Timber.tag(TAG).d("Config synced to XposedPrefs")
 
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Failed to save config")

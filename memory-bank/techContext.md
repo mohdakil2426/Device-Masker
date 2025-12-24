@@ -110,9 +110,25 @@ cd Device Masker
 
 ### LSPosed Requirements
 
-- **Minimum Xposed Version**: 82
+- **Minimum Xposed Version**: 93 (required for XSharedPreferences)
 - **Module Scope**: User-selected apps (not system-wide)
-- **Cross-Process Data**: XSharedPreferences or YukiHookAPI DataChannel
+- **Cross-Process Data**: XSharedPreferences via YukiHookAPI `prefs` property
+
+**Required AndroidManifest.xml meta-data**:
+```xml
+<meta-data android:name="xposedmodule" android:value="true" />
+<meta-data android:name="xposedsharedprefs" android:value="true" />
+<meta-data android:name="xposedminversion" android:value="93" />
+```
+
+**XSharedPreferences Architecture** (Dec 24, 2025):
+| Component | Module | Purpose |
+|-----------|--------|---------|
+| `SharedPrefsKeys` | `:common` | Shared key generator for app ↔ hooks |
+| `XposedPrefs` | `:app` | Write with MODE_WORLD_READABLE |
+| `ConfigSync` | `:app` | Sync JsonConfig → per-app keys |
+| `PrefsKeys` | `:xposed` | YukiHookAPI PrefsData definitions |
+| `PrefsReader` | `:xposed` | PrefsHelper for hook access |
 
 ### Performance Constraints
 
@@ -324,7 +340,7 @@ data class SpoofUiState(
 
 Device Masker operates entirely offline. No network requests are made to external services. All data stays on device.
 
-## File Structure (Updated Dec 22, 2025 - MVVM Architecture Complete)
+## File Structure (Updated Dec 24, 2025 - XSharedPreferences Config Complete)
 
 ```
 devicemasker/
@@ -333,12 +349,14 @@ devicemasker/
 │   │   ├── DeviceMaskerApp.kt             # Application class (initializes ConfigManager)
 │   │   ├── hook/
 │   │   │   └── HookEntry.kt               # @InjectYukiHookWithXposed (delegates to :xposed)
-│   │   ├── service/                        # HMA-OSS Service Layer ✅
-│   │   │   ├── ServiceClient.kt           # AIDL proxy for UI communication
+│   │   ├── service/                        # Service Layer
+│   │   │   ├── ServiceClient.kt           # AIDL proxy (legacy, kept for compatibility)
 │   │   │   ├── ServiceProvider.kt         # ContentProvider for binder delivery
-│   │   │   └── ConfigManager.kt           # StateFlow config manager + JSON storage
+│   │   │   └── ConfigManager.kt           # StateFlow config manager + ConfigSync integration
 │   │   ├── data/
 │   │   │   ├── SettingsDataStore.kt       # UI settings only (theme, AMOLED)
+│   │   │   ├── XposedPrefs.kt             # ⭐ NEW: MODE_WORLD_READABLE SharedPreferences writer
+│   │   │   ├── ConfigSync.kt              # ⭐ NEW: Syncs JsonConfig → XposedPrefs per-app keys
 │   │   │   ├── models/
 │   │   │   │   ├── TypeAliases.kt         # Backward compat for old imports
 │   │   │   │   └── InstalledApp.kt        # App model for UI
@@ -372,12 +390,12 @@ devicemasker/
 │   │   │   ├── components/                # Reusable + Expressive
 │   │   │   └── navigation/                # Nav routes
 │   │   └── utils/
-│   ├── src/main/AndroidManifest.xml        # ServiceProvider + LSPosed metadata
+│   ├── src/main/AndroidManifest.xml        # ServiceProvider + LSPosed metadata + xposedsharedprefs
 │   └── build.gradle.kts                    # YukiHookAPI KSP enabled
 │
 ├── common/                                 # Shared models & AIDL
 │   ├── src/main/aidl/com/astrixforge/devicemasker/common/
-│   │   └── IDeviceMaskerService.aidl      # AIDL interface (10 methods)
+│   │   └── IDeviceMaskerService.aidl      # AIDL interface (legacy)
 │   ├── src/main/kotlin/com/astrixforge/devicemasker/common/
 │   │   ├── SpoofType.kt                   # @Serializable enum
 │   │   ├── SpoofCategory.kt               # Categories
@@ -386,6 +404,7 @@ devicemasker/
 │   │   ├── DeviceProfilePreset.kt         # Predefined device profiles
 │   │   ├── AppConfig.kt                   # @Serializable data class
 │   │   ├── JsonConfig.kt                  # Root config container
+│   │   ├── SharedPrefsKeys.kt             # ⭐ NEW: Shared key generator for XSharedPreferences
 │   │   ├── Constants.kt                   # Shared constants
 │   │   ├── Utils.kt                       # Validation utilities
 │   │   ├── models/                        # Internal Config models
@@ -407,17 +426,20 @@ devicemasker/
 │
 ├── xposed/                                 # Xposed module logic
 │   ├── src/main/kotlin/com/astrixforge/devicemasker/xposed/
+│   │   ├── XposedEntry.kt                 # ⭐ UPDATED: Uses prefs property for config
+│   │   ├── PrefsKeys.kt                   # ⭐ NEW: YukiHookAPI PrefsData definitions
+│   │   ├── PrefsReader.kt                 # ⭐ NEW: PrefsHelper object for hooks
 │   │   ├── XposedHookLoader.kt            # YukiBaseHooker (loaded by app)
-│   │   ├── DeviceMaskerService.kt         # AIDL implementation
-│   │   ├── ServiceHelper.kt               # Binder access
+│   │   ├── DeviceMaskerService.kt         # AIDL implementation (legacy)
+│   │   ├── ServiceHelper.kt               # Binder access (legacy)
 │   │   ├── Logcat.kt                      # Safe logging
 │   │   └── hooker/
 │   │       ├── AntiDetectHooker.kt        # Xposed hiding (FIRST)
-│   │       ├── DeviceHooker.kt            # IMEI, Serial, Android ID
-│   │       ├── NetworkHooker.kt           # WiFi/Bluetooth MAC
-│   │       ├── AdvertisingHooker.kt       # GSF ID, Ad ID
-│   │       ├── SystemHooker.kt            # Build.*, SystemProperties
-│   │       └── LocationHooker.kt          # GPS, Timezone, Locale
+│   │       ├── DeviceHooker.kt            # ⭐ UPDATED: Uses PrefsHelper
+│   │       ├── NetworkHooker.kt           # ⭐ UPDATED: Uses PrefsHelper
+│   │       ├── AdvertisingHooker.kt       # ⭐ UPDATED: Uses PrefsHelper
+│   │       ├── SystemHooker.kt            # ⭐ UPDATED: Uses PrefsHelper
+│   │       └── LocationHooker.kt          # ⭐ UPDATED: Uses PrefsHelper
 │   └── build.gradle.kts                   # android-library (no KSP)
 │
 ├── build.gradle.kts                        # Root build script

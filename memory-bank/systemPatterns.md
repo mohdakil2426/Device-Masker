@@ -87,25 +87,100 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow (AIDL-based IPC)
+### Data Flow (XSharedPreferences - Dec 24, 2025)
+
+> **Updated**: Migrated from AIDL ServiceManager to XSharedPreferences due to SELinux restrictions
 
 ```
-┌─────────────┐     AIDL      ┌──────────────────────┐
-│   App UI    │◄─────────────►│ DeviceMaskerService  │
-│ (Material3) │  readConfig() │   (system_server)    │
-│             │ writeConfig() │                      │
-└─────────────┘               └──────────┬───────────┘
-                                         │
-                              ┌──────────┴──────────┐
-                              │   JsonConfig (RAM)  │
-                              └──────────┬──────────┘
-                                         │ read by
-                              ┌──────────┴──────────┐
-                              ▼                     ▼
-                        ┌──────────┐          ┌──────────┐
-                        │DeviceHook│          │NetworkHok│
-                        └──────────┘          └──────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        APP UI PROCESS                        │
+├─────────────────────────────────────────────────────────────┤
+│  User saves config → ConfigManager.saveConfigInternal()     │
+│                           │                                  │
+│                           ▼                                  │
+│  ConfigSync.syncFromConfig() → XposedPrefs (MODE_WORLD_READABLE)
+│                                                              │
+│  Writes keys like:                                           │
+│  - module_enabled = true                                     │
+│  - app_enabled_com_target_app = true                        │
+│  - spoof_enabled_com_target_app_IMEI = true                 │
+│  - spoof_value_com_target_app_IMEI = "358673912845672"      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ XSharedPreferences reads file
+┌─────────────────────────────────────────────────────────────┐
+│                      TARGET APP PROCESS                      │
+├─────────────────────────────────────────────────────────────┤
+│  XposedEntry.onHook() → prefs.get(PrefsKeys.moduleEnabled)  │
+│                           │                                  │
+│                           ▼                                  │
+│  DeviceHooker.hook → PrefsHelper.getSpoofValue(prefs, ...)  │
+│                           │                                  │
+│                           ▼                                  │
+│  Returns spoofed "358673912845672" to app                    │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### AD-9: XSharedPreferences for Cross-Process Config (Dec 24, 2025)
+
+**Decision**: Use XSharedPreferences via YukiHookAPI's `prefs` property instead of AIDL ServiceManager
+
+**Why AIDL ServiceManager Failed**:
+1. SELinux blocks app UIDs from registering services in ServiceManager
+2. `/data/system/` directory not writable by app processes
+3. system_server detection logic was unreliable
+
+**Solution Architecture**:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `SharedPrefsKeys` | `:common` | Shared key generator for consistency |
+| `XposedPrefs` | `:app` | Write SharedPreferences with MODE_WORLD_READABLE |
+| `ConfigSync` | `:app` | Flatten JsonConfig groups to per-app keys |
+| `PrefsKeys` | `:xposed` | YukiHookAPI PrefsData definitions |
+| `PrefsReader` | `:xposed` | PrefsHelper object for hook access |
+
+**Key Format**:
+```kotlin
+// Global settings
+const val KEY_MODULE_ENABLED = "module_enabled"
+const val KEY_DEBUG_ENABLED = "debug_enabled"
+
+// Per-app settings (packageName sanitized: . → _)
+fun getAppEnabledKey(pkg: String) = "app_enabled_${sanitize(pkg)}"
+fun getSpoofEnabledKey(pkg: String, type: SpoofType) = "spoof_enabled_${sanitize(pkg)}_${type.name}"
+fun getSpoofValueKey(pkg: String, type: SpoofType) = "spoof_value_${sanitize(pkg)}_${type.name}"
+```
+
+**Critical AndroidManifest.xml Requirements**:
+```xml
+<meta-data android:name="xposedmodule" android:value="true" />
+<meta-data android:name="xposedsharedprefs" android:value="true" />
+<meta-data android:name="xposedminversion" android:value="93" />
+```
+
+**Usage in Hooks**:
+```kotlin
+// XposedEntry.kt
+override fun onHook() = encase {
+    val moduleEnabled = prefs.get(PrefsKeys.moduleEnabled)
+    if (!moduleEnabled) return@encase
+    loadHooker(DeviceHooker)
+}
+
+// DeviceHooker.kt
+method { name = "getImei" }.hook {
+    after {
+        result = PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.IMEI) {
+            IMEIGenerator.generate()
+        }
+    }
+}
+```
+
+**Limitations**:
+- XSharedPreferences caches values - config changes require target app restart
+- No real-time updates (acceptable trade-off for reliability)
 
 
 ## Key Technical Decisions

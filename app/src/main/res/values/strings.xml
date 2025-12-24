@@ -64,6 +64,13 @@
     <string name="settings_debug">Debug</string>
     <string name="settings_debug_logging">Debug logging</string>
     <string name="settings_debug_description">Enable verbose logging for debugging</string>
+    <string name="settings_export_logs">Export Logs</string>
+    <string name="settings_export_logs_description">Save debug logs to Downloads folder</string>
+    <string name="settings_export_logs_success">Logs exported successfully (%1$d entries)\n\nSaved
+        to: %2$s</string>
+    <string name="settings_export_logs_no_logs">No logs available to export</string>
+    <string name="settings_export_logs_error">Failed to export logs: %s</string>
+    <string name="settings_exporting">Exporting…</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_description">Check module health and hook status</string>
     <string name="settings_about">About</string>
