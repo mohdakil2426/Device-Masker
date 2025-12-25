@@ -86,7 +86,7 @@ fun CountryPickerDialog(
                         .heightIn(max = 300.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    items(filteredCountries) { country ->
+                    items(filteredCountries, key = { it.iso }) { country ->
                         val isSelected = country.iso == selectedCountryIso
 
                         Row(

@@ -138,22 +138,68 @@ fun DiagnosticsContent(
             }
 
             // Module Status Card
-            item { ModuleStatusCard(isXposedActive = isXposedActive) }
+            item(key = "module_status") { ModuleStatusCard(isXposedActive = isXposedActive) }
+
+            // Config Sync Info Card
+            item(key = "config_sync_info") { ConfigSyncInfoCard() }
 
             // Anti-Detection Section
-            item { AntiDetectionSection(tests = antiDetectionResults) }
+            item(key = "anti_detection") { AntiDetectionSection(tests = antiDetectionResults) }
 
             // Spoofing Results by Category
             SpoofCategory.entries.forEach { category ->
                 val categoryResults = diagnosticResults.filter { it.type.category == category }
                 if (categoryResults.isNotEmpty()) {
-                    item {
+                    item(key = "category_${category.name}") {
                         CategoryDiagnosticSection(
                             category = category,
                             results = categoryResults
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Info card explaining config sync behavior and restart requirements. */
+@Composable
+private fun ConfigSyncInfoCard() {
+    ExpressiveCard(
+        onClick = { /* Info card */ },
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Security,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(24.dp),
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(id = R.string.diagnostics_config_sync_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(id = R.string.diagnostics_config_sync_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                )
             }
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,27 +54,30 @@ fun AppsTabContent(
 
     // Filter apps - exclude system apps and own app
     // Sort with assigned apps first for better UX
-    val filteredApps = remember(installedApps, searchQuery, group) {
-        installedApps
-            .filter { app ->
-                // Always exclude our own app and system apps
-                if (app.packageName == BuildConfig.APPLICATION_ID) {
-                    return@filter false
+    // Using derivedStateOf for optimized recomposition during search typing
+    val filteredApps by remember(installedApps, group) {
+        derivedStateOf {
+            installedApps
+                .filter { app ->
+                    // Always exclude our own app and system apps
+                    if (app.packageName == BuildConfig.APPLICATION_ID) {
+                        return@filter false
+                    }
+                    if (app.isSystemApp) {
+                        return@filter false
+                    }
+                    // Match search query
+                    searchQuery.isEmpty() ||
+                            app.label.contains(searchQuery, ignoreCase = true) ||
+                            app.packageName.contains(searchQuery, ignoreCase = true)
                 }
-                if (app.isSystemApp) {
-                    return@filter false
-                }
-                // Match search query
-                searchQuery.isEmpty() ||
-                        app.label.contains(searchQuery, ignoreCase = true) ||
-                        app.packageName.contains(searchQuery, ignoreCase = true)
-            }
-            // Sort: assigned apps first, then alphabetically
-            .sortedWith(
-                compareByDescending<InstalledApp> {
-                    group?.isAppAssigned(it.packageName) == true
-                }.thenBy { it.label.lowercase() }
-            )
+                // Sort: assigned apps first, then alphabetically
+                .sortedWith(
+                    compareByDescending<InstalledApp> {
+                        group?.isAppAssigned(it.packageName) == true
+                    }.thenBy { it.label.lowercase() }
+                )
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {

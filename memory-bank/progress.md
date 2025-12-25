@@ -7,7 +7,77 @@
 | **Project Phase** | PRODUCTION READY ✅ |
 | **Active Changes** | 0 |
 | **Archived Changes** | 10 |
-| **Last Major Update** | December 25, 2025 - Code Quality & Sync Architecture Fixes |
+| **Last Major Update** | December 25, 2025 - Architecture Optimization (Phase 1 & 2) |
+
+---
+
+## ✅ Complete: Architecture Optimization - Phase 1 & 2 (Dec 25, 2025)
+
+**Status**: Phase 1 & 2 Complete ✅  
+**Impact**: Improved LazyColumn performance, UI responsiveness, ClassCache for Xposed hooks, better documentation
+
+### Phase 1: Quick Wins
+
+#### 1.1 Stable Keys for LazyColumns ✅
+- All LazyColumns already had stable keys (except 2 files enhanced)
+- Added key to `CountryPickerDialog.kt` and `DiagnosticsScreen.kt`
+
+#### 1.2 Config Sync Documentation ✅
+- Created `ConfigSyncInfoCard` in DiagnosticsScreen
+- Added explanation of restart requirement
+- Updated README.md with "Important Notes" section
+- Fixed outdated AIDL reference → now correctly says "XSharedPreferences"
+
+#### 1.3 Thread-Safe StateFlow Updates ✅
+- All ViewModels already used `_state.update {}` pattern ✅
+
+### Phase 2: Performance Optimizations
+
+#### 2.1 ClassCache Utility ✅
+Created `xposed/utils/ClassCache.kt`:
+- LRU cache with capacity 100 for Class<?> lookups
+- `getClass()`, `requireClass()`, `preload()`, `stats()`, `clear()`
+- Thread-safe via @Synchronized
+- `notFoundCache` to skip repeated failed lookups
+
+#### 2.2 derivedStateOf ✅
+- Applied to `AppsTabContent.kt` for app filtering (500+ apps)
+- HomeScreen and GroupsScreen already optimized
+
+### Phase 3: Testing Infrastructure ✅
+
+#### 3.1 Test Configuration ✅
+- Added test dependencies to `common/build.gradle.kts`
+- Created test directory structure
+
+#### 3.2 Generator Unit Tests ✅
+| Test Class | Tests | Status |
+|------------|-------|--------|
+| `IMEIGeneratorTest.kt` | 7 | ✅ All pass |
+| `MACGeneratorTest.kt` | 9 | ✅ All pass |
+| `SerialGeneratorTest.kt` | 9 | ✅ All pass |
+| `AndroidIdGeneratorTest.kt` | 4 | ✅ All pass |
+| **Total** | **29** | **0 failures** |
+
+Test coverage includes:
+- Format validation (length, characters, patterns)
+- Checksum validation (Luhn for IMEI)
+- Bit-level validation (unicast/locally administered for MAC)
+- Manufacturer-specific patterns
+- Uniqueness (1000 unique values per generator)
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `xposed/utils/ClassCache.kt` | **NEW** - LRU cache for class lookups |
+| `ui/screens/groupspoofing/tabs/AppsTabContent.kt` | derivedStateOf for filtering |
+| `ui/screens/diagnostics/DiagnosticsScreen.kt` | Added ConfigSyncInfoCard, stable keys |
+| `ui/components/dialog/CountryPickerDialog.kt` | Added stable key |
+| `app/res/values/strings.xml` | Added config sync strings |
+| `README.md` | Added Important Notes section |
+| `common/build.gradle.kts` | Added test dependencies |
+| `common/src/test/kotlin/.../generators/*.kt` | **NEW** - 4 test files (29 tests) |
+| `openspec/changes/optimize-architecture/tasks.md` | Updated status |
 
 
 ---

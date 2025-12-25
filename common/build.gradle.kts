@@ -46,4 +46,8 @@ dependencies {
 
     // Core Kotlin
     implementation(libs.kotlinx.coroutines.core)
+
+    // Testing
+    testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
 }
