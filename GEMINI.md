@@ -17,54 +17,64 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
-# Note befor making anychanges alway use web search and context7 MCP to get the most up-to-date documentation. and very with official resources docs bestpractices and guidelines. 
+# 📖 Official Documentation & Resources
 
-# Official Documentation & Resources
-
-## YukiHookAPI
-
-### All about yuki hook api alwasy read this. Note - This only for refernce thats not 100% accurate.
-
-@/docs/lsposed/YukiHookAPI_Reference.md
-
-## Others 
-
-@/docs/developer-android-docs/KoylinJetpackCompose.md
-@/docs/developer-android-docs/best-practices.md
-@/docs/material-ui/material3-expressive.md
-
-> **Note:** Always use `context7` MCP and web search for the most up-to-date documentation.
-
-- When searching on web you must inclaude `latest 2025-2026 year` in your search to get the most up-to-date documentation.
+> ⚠️ **IMPORTANT**: These are the **Source of Truth (SOT)** for quick references and best practices. **Never ignore these docs!**
 
 ---
 
-## 📚 Online Resources
+## 📂 Local Documentation References
+
+### 🪝 YukiHookAPI
+
+> **Note**: This is a quick reference only — not 100% accurate. Always verify with official docs.
+
+@/docs/lsposed/YukiHookAPI_Reference.md
+
+---
+
+### 🧑‍💻 Android Development Guides
+
+Always check these for best practices and guidelines.
+
+#### Kotlin 2.3.0 Guide
+
+@/docs/developer-android-docs/kotlin-2-3-0-guide.md
+
+#### Kotlin for Compose
+
+@/docs/developer-android-docs/KoylinJetpackCompose.md
+
+#### 🎨 Material 3 Expressive
+
+@/docs/material-ui/material3-guide.md
+
+---
+
+## 🌐 Online Resources
 
 ### Jetpack Compose
 
-| Resource | Description |
-|----------|-------------|
-| [Compose Overview](https://developer.android.com/compose) | Getting started with Jetpack Compose |
-| [Kotlin for Compose](https://developer.android.com/develop/ui/compose/kotlin) | Kotlin language features for Compose |
-| [Compose Documentation](https://developer.android.com/develop/ui/compose/documentation) | Complete Compose documentation hub |
+| Resource                                                                                        | Description                        |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------- |
+| [Kotlin for Compose](https://developer.android.com/develop/ui/compose/kotlin)                  | Kotlin language features for Compose |
+| [Compose Documentation](https://developer.android.com/develop/ui/compose/documentation)        | Complete Compose documentation hub   |
 
 ### Material 3 & Design Systems
 
-| Resource | Description |
-|----------|-------------|
-| [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3) | Implementing M3 design system |
-
-| [M3 Release Notes](https://developer.android.com/jetpack/androidx/releases/compose-material3) | Latest Material 3 releases and changelogs |
-| [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary) | Complete API documentation |
+| Resource                                                                                                          | Description                               |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)                | Implementing M3 design system             |
+| [M3 Release Notes](https://developer.android.com/jetpack/androidx/releases/compose-material3)                    | Latest Material 3 releases and changelogs |
+| [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary)    | Complete API documentation                |
 
 ### Performance & Optimization
 
-| Resource | Description |
-|----------|-------------|
-| [Compose Best Practices](https://developer.android.com/develop/ui/compose/performance/bestpractices) | Performance optimization patterns |
-| [App Startup Analysis](https://developer.android.com/topic/performance/appstartup/analysis-optimization) | Startup performance optimization |
-| [Performance Overview](https://developer.android.com/topic/performance/improving-overview) | General Android performance guide |
+| Resource                                                                                                        | Description                         |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| [Compose Best Practices](https://developer.android.com/develop/ui/compose/performance/bestpractices)           | Performance optimization patterns   |
+| [App Startup Analysis](https://developer.android.com/topic/performance/appstartup/analysis-optimization)       | Startup performance optimization    |
+| [Performance Overview](https://developer.android.com/topic/performance/improving-overview)                     | General Android performance guide   |
 
 ---
 
@@ -72,34 +82,23 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 ### Official Android Samples
 
-| Repository | Description |
-|------------|-------------|
-| [compose-samples](https://github.com/android/compose-samples) | Official Compose sample apps |
-| [codelab-android-compose](https://github.com/android/codelab-android-compose) | Compose codelabs source code |
-| [nav3-recipes](https://github.com/android/nav3-recipes) | Navigation 3 recipes and patterns |
-| [performance-samples](https://github.com/android/performance-samples) | Performance optimization samples |
+| Repository                                                                | Description                          |
+| ------------------------------------------------------------------------- | ------------------------------------ |
+| [compose-samples](https://github.com/android/compose-samples)             | Official Compose sample code         |
+| [codelab-android-compose](https://github.com/android/codelab-android-compose) | Compose codelabs source code     |
+| [nav3-recipes](https://github.com/android/nav3-recipes)                   | Navigation 3 recipes and patterns    |
+| [performance-samples](https://github.com/android/performance-samples)     | Performance optimization samples     |
 
 ### Source Code Reference
 
-| Repository | Description |
-|------------|-------------|
-| [M3 Samples (cs.android.com)](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:compose/material3/material3/samples/src/main/java/androidx/compose/material3/samples/) | Official Material 3 component samples |
-| [Kotlin Language](https://github.com/jetbrains/kotlin) | Kotlin compiler and stdlib |
+| Repository                                                                                                                                                              | Description                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| [M3 Samples](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:compose/material3/material3/samples/src/main/java/androidx/compose/material3/samples/) | Official Material 3 component samples |
+| [Kotlin Language](https://github.com/jetbrains/kotlin)                                                                                                                  | Kotlin compiler and stdlib         |
 
-### Related Projects
+### Related Projects (Spoof References)
 
-| Repository | Description |
-|------------|-------------|
-| [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix) | Play Integrity bypass module Refrences for Spoof device idendity like samsung to oneplus |
-| [HMA-OSS](https://github.com/frknkrc44/HMA-OSS) | HMA-OSS |
----
-
-## 📁 Local Documentation
-
-Curated excerpts from official Android documentation for quick offline reference:
-
-| File | Description |
-|------|-------------|
-| [KotlinJetpackCompose.md](developer-android-docs/KoylinJetpackCompose.md) | Kotlin for Jetpack Compose patterns and best practices |
-| [best-practices.md](developer-android-docs/best-practices.md) | Compose performance optimization (`remember`, `derivedStateOf`, lazy keys) |
-| [material3-expressive.md](material-ui/material3-expressive.md) | Material 3 Expressive rules: motion system, new components, theming |
+| Repository                                                          | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix)     | Play Integrity bypass — reference for device identity spoofing      |
+| [HMA-OSS](https://github.com/frknkrc44/HMA-OSS)                     | Hide My Applist (Open Source) — app hiding techniques               |

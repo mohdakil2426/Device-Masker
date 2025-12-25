@@ -75,7 +75,6 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsStore.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
             val amoledMode by settingsStore.amoledMode.collectAsState(initial = true)
             val dynamicColors by settingsStore.dynamicColors.collectAsState(initial = true)
-            val debugLogging by settingsStore.debugLogging.collectAsState(initial = false)
 
             // Determine actual dark state for edge-to-edge styling
             // isSystemInDarkTheme() is evaluated here in composition context
@@ -124,7 +123,6 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     amoledMode = amoledMode,
                     dynamicColors = dynamicColors,
-                    debugLogging = debugLogging,
                 )
             }
         }
@@ -139,7 +137,6 @@ fun DeviceMaskerMainApp(
     themeMode: ThemeMode,
     amoledMode: Boolean,
     dynamicColors: Boolean,
-    debugLogging: Boolean,
     navController: NavHostController = rememberNavController(),
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -231,7 +228,6 @@ fun DeviceMaskerMainApp(
                     themeMode = themeMode,
                     amoledDarkMode = amoledMode,
                     dynamicColors = dynamicColors,
-                    debugLogging = debugLogging,
                     isExportingLogs = settingsState.isExportingLogs,
                     exportResult = settingsState.exportResult,
                     onThemeModeChange = { mode ->
@@ -245,10 +241,6 @@ fun DeviceMaskerMainApp(
                     onDynamicColorChange = { enabled ->
                         Timber.d("Dynamic colors changed: $enabled")
                         settingsViewModel.setDynamicColors(enabled)
-                    },
-                    onDebugLogChange = { enabled ->
-                        Timber.d("Debug logging changed: $enabled")
-                        settingsViewModel.setDebugLogging(enabled)
                     },
                     onExportLogs = {
                         Timber.d("Exporting logs")

@@ -466,10 +466,8 @@ fun doSomething(): Unit { }  // Omit Unit
 
 ## Official Resources
 
+### Kotlin 2.3.0 Guide always read this first for targeted Quary
+
+@/docs/developer-android-docs/kotlin-2-3-0-guide.md
+
 - [Kotlin Documentation](https://kotlinlang.org/docs/)
-- [Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html)
-- [Idioms](https://kotlinlang.org/docs/idioms.html)
-- [Coroutines Guide](https://kotlinlang.org/docs/coroutines-guide.html)
-- [Kotlin Releases](https://kotlinlang.org/docs/releases.html)
-- [GitHub Releases](https://github.com/JetBrains/kotlin/releases)
-- [Kotlin Blog](https://blog.jetbrains.com/kotlin/)

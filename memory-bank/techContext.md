@@ -121,14 +121,27 @@ cd Device Masker
 <meta-data android:name="xposedminversion" android:value="93" />
 ```
 
-**XSharedPreferences Architecture** (Dec 24, 2025):
+**XSharedPreferences Architecture** (Updated Dec 25, 2025):
+
+```
+         SharedPrefsKeys.kt (common) ← SINGLE SOURCE OF TRUTH
+                  ↑
+    ┌─────────────┴─────────────┐
+    │                           │
+XposedPrefs.kt (app)    PrefsKeys.kt (xposed)
+  ↓ DELEGATES              ↓ DELEGATES
+SharedPrefsKeys         SharedPrefsKeys
+```
+
 | Component | Module | Purpose |
 |-----------|--------|---------|
-| `SharedPrefsKeys` | `:common` | Shared key generator for app ↔ hooks |
-| `XposedPrefs` | `:app` | Write with MODE_WORLD_READABLE |
+| `SharedPrefsKeys` | `:common` | **SINGLE SOURCE OF TRUTH** for key generation |
+| `XposedPrefs` | `:app` | Delegates to SharedPrefsKeys, writes MODE_WORLD_READABLE |
 | `ConfigSync` | `:app` | Sync JsonConfig → per-app keys |
-| `PrefsKeys` | `:xposed` | YukiHookAPI PrefsData definitions |
+| `PrefsKeys` | `:xposed` | Delegates to SharedPrefsKeys |
 | `PrefsReader` | `:xposed` | PrefsHelper for hook access |
+| `ValueGenerators` | `:xposed` | Centralized IMEI/MAC/Android ID generators (NEW) |
+| `BaseSpoofHooker` | `:xposed` | Abstract base class for all spoof hookers (NEW) |
 
 ### Performance Constraints
 

@@ -1,11 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.PrefsHelper
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
-import com.astrixforge.devicemasker.xposed.DualLog
 import com.highcapable.yukihookapi.hook.type.java.StringClass
+import java.util.UUID
 
 /**
  * Advertising Hooker - Spoofs advertising and tracking identifiers.
@@ -14,75 +12,42 @@ import com.highcapable.yukihookapi.hook.type.java.StringClass
  * - Google Advertising ID
  * - GSF ID (Google Services Framework)
  * - Media DRM ID
- *
- * Uses ServiceProxy for cross-process config access via Binder IPC.
  */
-object AdvertisingHooker : YukiBaseHooker() {
+object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
 
-    private const val TAG = "AdvertisingHooker"
-
-    private val fallbackAdvertisingId by lazy { java.util.UUID.randomUUID().toString() }
+    // Fallback values (thread-safe lazy)
+    private val fallbackAdvertisingId by lazy { UUID.randomUUID().toString() }
     private val fallbackGsfId by lazy { generateHexId(16) }
     private val fallbackMediaDrmId by lazy { generateHexId(64) }
 
-    private fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
-        return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
-    }
-
     override fun onHook() {
-        DualLog.debug(TAG, "Starting hooks for: $packageName")
-
+        logStart()
         hookAdvertisingIdClient()
         hookGooglePlayServices()
         hookMediaDrm()
-
-        // Hook count tracking removed
+        recordSuccess()
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // ADVERTISING ID HOOKS
+    // ═══════════════════════════════════════════════════════════
 
     private fun hookAdvertisingIdClient() {
-        // Hook AdvertisingIdClient.Info
-        runCatching {
-            "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info".toClass().apply {
-                method {
-                    name = "getId"
-                    emptyParam()
-                }.hook {
-                    after {
-                        result = getSpoofValue(SpoofType.ADVERTISING_ID) { fallbackAdvertisingId }
-                    }
-                }
+        "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info".toClassOrNull()?.apply {
+            method { name = "getId"; emptyParam() }.hook {
+                after { result = getSpoofValue(SpoofType.ADVERTISING_ID) { fallbackAdvertisingId } }
             }
-        }
-
-        // Alternative package
-        runCatching {
-            "com.google.android.gms.common.api.GoogleApiClient".toClass()
         }
     }
 
-    private fun hookGooglePlayServices() {
-        // Hook GSF ID from Settings.Secure
-        runCatching {
-            "android.provider.Settings\$Secure".toClass().apply {
-                method {
-                    name = "getString"
-                    param("android.content.ContentResolver".toClass(), StringClass)
-                }.hook {
-                    after {
-                        // Note: android_id is handled by DeviceHooker
-                        // Other Settings.Secure keys are not spoofed
-                    }
-                }
-            }
-        }
+    // ═══════════════════════════════════════════════════════════
+    // GOOGLE PLAY SERVICES HOOKS
+    // ═══════════════════════════════════════════════════════════
 
-        // Hook GServices directly
-        runCatching {
-            "com.google.android.gsf.Gservices".toClass().apply {
-                method {
-                    name = "getString"
-                    paramCount = 2
-                }.hook {
+    private fun hookGooglePlayServices() {
+        "com.google.android.gsf.Gservices".toClassOrNull()?.apply {
+            runCatching {
+                method { name = "getString"; paramCount = 2 }.hook {
                     after {
                         val key = args(1).string()
                         if (key == "android_id") {
@@ -90,20 +55,15 @@ object AdvertisingHooker : YukiBaseHooker() {
                         }
                     }
                 }
+            }
 
-                method {
-                    name = "getLong"
-                    paramCount = 3
-                }.hook {
+            runCatching {
+                method { name = "getLong"; paramCount = 3 }.hook {
                     after {
                         val key = args(1).string()
                         if (key == "android_id") {
                             val spoofed = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
-                            result = try {
-                                spoofed.toLong(16)
-                            } catch (e: Exception) {
-                                result
-                            }
+                            result = runCatching { spoofed.toLong(16) }.getOrElse { result }
                         }
                     }
                 }
@@ -111,13 +71,14 @@ object AdvertisingHooker : YukiBaseHooker() {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // MEDIA DRM HOOKS
+    // ═══════════════════════════════════════════════════════════
+
     private fun hookMediaDrm() {
-        runCatching {
-            "android.media.MediaDrm".toClass().apply {
-                method {
-                    name = "getPropertyByteArray"
-                    param(StringClass)
-                }.hook {
+        "android.media.MediaDrm".toClassOrNull()?.apply {
+            runCatching {
+                method { name = "getPropertyByteArray"; param(StringClass) }.hook {
                     after {
                         val property = args(0).string()
                         if (property == "deviceUniqueId") {
@@ -131,7 +92,7 @@ object AdvertisingHooker : YukiBaseHooker() {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // GENERATORS
+    // HELPERS
     // ═══════════════════════════════════════════════════════════
 
     private fun generateHexId(length: Int): String {
@@ -140,10 +101,8 @@ object AdvertisingHooker : YukiBaseHooker() {
     }
 
     private fun hexToBytes(hex: String): ByteArray {
-        return try {
+        return runCatching {
             hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-        } catch (e: Exception) {
-            ByteArray(32)
-        }
+        }.getOrElse { ByteArray(32) }
     }
 }

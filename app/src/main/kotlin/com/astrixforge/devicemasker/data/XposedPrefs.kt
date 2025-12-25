@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 
 /**
@@ -10,6 +11,9 @@ import com.astrixforge.devicemasker.common.SpoofType
  * This is the ONLY way to share configuration with Xposed/LSPosed modules:
  * - UI app writes with MODE_WORLD_READABLE
  * - Hooked apps read via XSharedPreferences (prefs() in YukiHookAPI)
+ *
+ * ⚠️ CRITICAL: All key generation DELEGATES to SharedPrefsKeys in :common module
+ * to ensure keys are IDENTICAL between app and xposed module.
  *
  * IMPORTANT: LSPosed automatically handles making these prefs readable
  * when xposedsharedprefs=true in AndroidManifest.xml.
@@ -20,39 +24,18 @@ import com.astrixforge.devicemasker.common.SpoofType
 class XposedPrefs(context: Context) {
 
     companion object {
-        // Note: Prefs file name is: {packageName}_preferences (set at runtime)
+        // ═══════════════════════════════════════════════════════════
+        // KEY GENERATORS - Delegate to SharedPrefsKeys
+        // ═══════════════════════════════════════════════════════════
 
-        // Keys for global settings
-        const val KEY_MODULE_ENABLED = "module_enabled"
-        const val KEY_DEBUG_ENABLED = "debug_enabled"
-        const val KEY_CONFIG_VERSION = "config_version"
-        const val KEY_ENABLED_APPS = "enabled_apps"
+        fun getAppEnabledKey(packageName: String): String =
+            SharedPrefsKeys.getAppEnabledKey(packageName)
 
-        // Key prefixes for per-app settings
-        private const val PREFIX_APP_ENABLED = "app_enabled_"
-        private const val PREFIX_SPOOF_ENABLED = "spoof_enabled_"
-        private const val PREFIX_SPOOF_VALUE = "spoof_"
+        fun getSpoofEnabledKey(packageName: String, type: SpoofType): String =
+            SharedPrefsKeys.getSpoofEnabledKey(packageName, type)
 
-        /**
-         * Gets the key for app enabled status.
-         */
-        fun getAppEnabledKey(packageName: String): String {
-            return "$PREFIX_APP_ENABLED${packageName.replace('.', '_')}"
-        }
-
-        /**
-         * Gets the key for spoof type enabled status.
-         */
-        fun getSpoofEnabledKey(packageName: String, type: SpoofType): String {
-            return "$PREFIX_SPOOF_ENABLED${packageName.replace('.', '_')}_${type.name}"
-        }
-
-        /**
-         * Gets the key for spoof value.
-         */
-        fun getSpoofValueKey(packageName: String, type: SpoofType): String {
-            return "$PREFIX_SPOOF_VALUE${packageName.replace('.', '_')}_${type.name}"
-        }
+        fun getSpoofValueKey(packageName: String, type: SpoofType): String =
+            SharedPrefsKeys.getSpoofValueKey(packageName, type)
     }
 
     /**
@@ -78,18 +61,18 @@ class XposedPrefs(context: Context) {
 
     /** Master switch for the module. */
     var isModuleEnabled: Boolean
-        get() = prefs.getBoolean(KEY_MODULE_ENABLED, true)
-        set(value) = prefs.edit().putBoolean(KEY_MODULE_ENABLED, value).apply()
+        get() = prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, value).apply()
 
     /** Debug logging enabled. */
     var isDebugEnabled: Boolean
-        get() = prefs.getBoolean(KEY_DEBUG_ENABLED, false)
-        set(value) = prefs.edit().putBoolean(KEY_DEBUG_ENABLED, value).apply()
+        get() = prefs.getBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, value).apply()
 
-    /** Config version. */
+    /** Config version - used for debugging, not for live reload (XSharedPreferences caches). */
     var configVersion: Int
-        get() = prefs.getInt(KEY_CONFIG_VERSION, 1)
-        set(value) = prefs.edit().putInt(KEY_CONFIG_VERSION, value).apply()
+        get() = prefs.getInt(SharedPrefsKeys.KEY_CONFIG_VERSION, 1)
+        set(value) = prefs.edit().putInt(SharedPrefsKeys.KEY_CONFIG_VERSION, value).apply()
 
     // ═══════════════════════════════════════════════════════════
     // PER-APP SETTINGS
@@ -176,7 +159,7 @@ class XposedPrefs(context: Context) {
      */
     fun clearAppSettings(packageName: String) {
         val editor = prefs.edit()
-        val prefix = packageName.replace('.', '_')
+        val prefix = SharedPrefsKeys.sanitize(packageName)
 
         // Get all keys and remove ones matching this package
         val allKeys = prefs.all.keys.filter { it.contains(prefix) }
@@ -188,8 +171,11 @@ class XposedPrefs(context: Context) {
     }
 
     /**
-     * Triggers a config update notification for hooked apps.
-     * Increments the version so apps know to reload.
+     * Increments config version.
+     * 
+     * NOTE: This does NOT cause hooked apps to reload config!
+     * XSharedPreferences caches values. Config changes require app restart.
+     * This version is only useful for debugging/logging purposes.
      */
     fun notifyConfigChanged() {
         configVersion++

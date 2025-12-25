@@ -55,13 +55,6 @@ class SettingsViewModel(
                 _state.update { it.copy(dynamicColors = enabled) }
             }
         }
-
-        // Collect debug logging
-        viewModelScope.launch {
-            settingsStore.debugLogging.collect { enabled ->
-                _state.update { it.copy(debugLogging = enabled) }
-            }
-        }
     }
 
     fun setThemeMode(mode: ThemeMode) {
@@ -82,30 +75,37 @@ class SettingsViewModel(
         }
     }
 
-    fun setDebugLogging(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsStore.setDebugLogging(enabled)
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════
     // LOG EXPORT FUNCTIONS
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Exports logs from the Xposed service to a file in Downloads folder.
+     * Exports logs to the Downloads folder.
+     * Uses MediaStore API for Android 10+ (Scoped Storage compliant).
      */
     fun exportLogs() {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result = withContext(Dispatchers.IO) {
-                // Log collection via AIDL service is no longer available
-                // Suggest using adb logcat instead
-                ExportResult.Error(
-                    "Log collection via AIDL removed. " +
-                    "Use: adb logcat -s PrivacyShield DeviceHooker NetworkHooker"
-                )
+                try {
+                    val logResult = com.astrixforge.devicemasker.service.LogManager.exportLogs(
+                        getApplication()
+                    )
+                    when (logResult) {
+                        is com.astrixforge.devicemasker.service.LogExportResult.Success -> {
+                            ExportResult.Success(
+                                logResult.filePath,
+                                logResult.lineCount
+                            )
+                        }
+                        is com.astrixforge.devicemasker.service.LogExportResult.Error -> {
+                            ExportResult.Error(logResult.message)
+                        }
+                    }
+                } catch (e: Exception) {
+                    ExportResult.Error("Export failed: ${e.message}")
+                }
             }
 
             _state.update { it.copy(isExportingLogs = false, exportResult = result) }

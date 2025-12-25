@@ -124,3 +124,50 @@ object DualLog {
         }
     }
 }
+
+/**
+ * Hook Metrics - Tracks hook registration success/failure rates.
+ * 
+ * Usage:
+ * ```kotlin
+ * method { name = "getImei" }.optional().hook {
+ *     after {
+ *         HookMetrics.recordSuccess("DeviceHooker", "getImei")
+ *         result = spoofedValue
+ *     }
+ * }
+ * ```
+ */
+object HookMetrics {
+    private val successCount = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val failureCount = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    
+    fun recordSuccess(hookerName: String, methodName: String) {
+        val key = "$hookerName.$methodName"
+        successCount[key] = successCount.getOrDefault(key, 0) + 1
+    }
+    
+    fun recordFailure(hookerName: String, methodName: String) {
+        val key = "$hookerName.$methodName"
+        failureCount[key] = failureCount.getOrDefault(key, 0) + 1
+    }
+    
+    fun getSuccessCount(): Int = successCount.values.sum()
+    fun getFailureCount(): Int = failureCount.values.sum()
+    
+    fun getSummary(): String = buildString {
+        appendLine("=== Hook Metrics ===")
+        appendLine("Success: ${getSuccessCount()} calls")
+        appendLine("Failures: ${getFailureCount()} calls")
+        if (failureCount.isNotEmpty()) {
+            appendLine("Failed methods:")
+            failureCount.forEach { (method, count) ->
+                appendLine("  - $method: $count")
+            }
+        }
+    }
+    
+    fun dumpToLog() {
+        DualLog.info("HookMetrics", getSummary())
+    }
+}

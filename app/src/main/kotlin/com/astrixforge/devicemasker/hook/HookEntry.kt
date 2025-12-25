@@ -28,6 +28,8 @@ object HookEntry : IYukiHookXposedInit {
             debugLog {
                 tag = "DeviceMasker"
                 isEnable = BuildConfig.DEBUG
+                // Enable log recording for export functionality
+                isRecord = true
             }
 
             // General debug mode

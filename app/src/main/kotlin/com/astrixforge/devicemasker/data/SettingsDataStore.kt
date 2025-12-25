@@ -30,7 +30,6 @@ class SettingsDataStore(private val context: Context) {
         val THEME_MODE = intPreferencesKey("theme_mode")
         val AMOLED_MODE = booleanPreferencesKey("amoled_mode")
         val DYNAMIC_COLORS = booleanPreferencesKey("dynamic_colors")
-        val DEBUG_LOGGING = booleanPreferencesKey("debug_logging")
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -81,16 +80,5 @@ class SettingsDataStore(private val context: Context) {
             prefs[Keys.DYNAMIC_COLORS] = enabled
         }
     }
-
-    /** Flow of debug logging preference. */
-    val debugLogging: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[Keys.DEBUG_LOGGING] ?: false
-    }
-
-    /** Sets debug logging. */
-    suspend fun setDebugLogging(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[Keys.DEBUG_LOGGING] = enabled
-        }
-    }
 }
+

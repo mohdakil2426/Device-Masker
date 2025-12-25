@@ -72,11 +72,9 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
  * @param themeMode Current theme mode (System, Light, Dark)
  * @param amoledDarkMode Whether AMOLED dark mode is enabled (pure black)
  * @param dynamicColors Whether dynamic colors are enabled
- * @param debugLogging Whether debug logging is enabled
  * @param onThemeModeChange Callback when theme mode preference changes
  * @param onAmoledDarkModeChange Callback when AMOLED dark mode preference changes
  * @param onDynamicColorChange Callback when dynamic color preference changes
- * @param onDebugLogChange Callback when debug logging preference changes
  * @param onNavigateToDiagnostics Callback to navigate to diagnostics screen
  * @param modifier Optional modifier
  */
@@ -86,13 +84,11 @@ fun SettingsScreen(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     amoledDarkMode: Boolean = true,
     dynamicColors: Boolean = true,
-    debugLogging: Boolean = false,
     isExportingLogs: Boolean = false,
     exportResult: ExportResult? = null,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAmoledDarkModeChange: (Boolean) -> Unit = {},
     onDynamicColorChange: (Boolean) -> Unit = {},
-    onDebugLogChange: (Boolean) -> Unit = {},
     onExportLogs: () -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
@@ -147,13 +143,11 @@ fun SettingsScreen(
             themeMode = themeMode,
             amoledDarkMode = amoledDarkMode,
             dynamicColors = dynamicColors,
-            debugLogging = debugLogging,
             isExportingLogs = isExportingLogs,
             isDarkModeActive = isDarkModeActive,
             onThemeModeClick = { showThemeModeDialog = true },
             onAmoledDarkModeChange = onAmoledDarkModeChange,
             onDynamicColorChange = onDynamicColorChange,
-            onDebugLogChange = onDebugLogChange,
             onExportLogs = onExportLogs,
             onNavigateToDiagnostics = onNavigateToDiagnostics,
         )
@@ -187,13 +181,11 @@ private fun SettingsScreenContent(
     themeMode: ThemeMode,
     amoledDarkMode: Boolean,
     dynamicColors: Boolean,
-    debugLogging: Boolean,
     isExportingLogs: Boolean,
     isDarkModeActive: Boolean,
     onThemeModeClick: () -> Unit,
     onAmoledDarkModeChange: (Boolean) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
-    onDebugLogChange: (Boolean) -> Unit,
     onExportLogs: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
 ) {
@@ -257,15 +249,6 @@ private fun SettingsScreenContent(
         // Advanced Section
         item {
             SettingsSection(title = stringResource(id = R.string.settings_debug)) {
-                SettingsSwitchItem(
-                    icon = Icons.Outlined.BugReport,
-                    title = stringResource(id = R.string.settings_debug_logging),
-                    description = stringResource(id = R.string.settings_debug_description),
-                    checked = debugLogging,
-                    onCheckedChange = onDebugLogChange,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 // Export Logs button
                 SettingsClickableItem(

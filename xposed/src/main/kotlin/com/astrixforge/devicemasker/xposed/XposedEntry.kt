@@ -5,7 +5,9 @@ import com.astrixforge.devicemasker.xposed.hooker.AntiDetectHooker
 import com.astrixforge.devicemasker.xposed.hooker.DeviceHooker
 import com.astrixforge.devicemasker.xposed.hooker.LocationHooker
 import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
+import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
+import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 
 /**
@@ -83,6 +85,12 @@ object XposedHookLoader : YukiBaseHooker() {
         loadHooker(AdvertisingHooker)
         loadHooker(SystemHooker)
         loadHooker(LocationHooker)
+        
+        // ═══════════════════════════════════════════════════════════
+        // Anti-Fingerprinting Hookers (New)
+        // ═══════════════════════════════════════════════════════════
+        loadHooker(SensorHooker)
+        loadHooker(WebViewHooker)
 
         DualLog.info(TAG, "Hooks registered for: $packageName")
     }

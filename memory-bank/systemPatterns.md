@@ -130,14 +130,24 @@
 2. `/data/system/` directory not writable by app processes
 3. system_server detection logic was unreliable
 
-**Solution Architecture**:
+**Solution Architecture (Updated Dec 25, 2025)**:
+
+```
+         SharedPrefsKeys.kt (common) ← SINGLE SOURCE OF TRUTH
+                  ↑
+    ┌─────────────┴─────────────┐
+    │                           │
+XposedPrefs.kt (app)    PrefsKeys.kt (xposed)
+  ↓ DELEGATES              ↓ DELEGATES
+SharedPrefsKeys         SharedPrefsKeys
+```
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| `SharedPrefsKeys` | `:common` | Shared key generator for consistency |
-| `XposedPrefs` | `:app` | Write SharedPreferences with MODE_WORLD_READABLE |
+| `SharedPrefsKeys` | `:common` | **SINGLE SOURCE OF TRUTH** for all key generation |
+| `XposedPrefs` | `:app` | Delegates to SharedPrefsKeys, writes with MODE_WORLD_READABLE |
 | `ConfigSync` | `:app` | Flatten JsonConfig groups to per-app keys |
-| `PrefsKeys` | `:xposed` | YukiHookAPI PrefsData definitions |
+| `PrefsKeys` | `:xposed` | Delegates to SharedPrefsKeys for key generation |
 | `PrefsReader` | `:xposed` | PrefsHelper object for hook access |
 
 **Key Format**:
