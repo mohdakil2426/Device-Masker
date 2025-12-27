@@ -8,6 +8,7 @@ import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
+import com.astrixforge.devicemasker.xposed.utils.ClassCache
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 
 /**
@@ -35,6 +36,30 @@ object XposedHookLoader : YukiBaseHooker() {
 
     private const val TAG = "DeviceMasker"
     private const val SELF_PACKAGE = "com.astrixforge.devicemasker"
+
+    /**
+     * Common classes used across multiple hookers.
+     * Pre-loading these into ClassCache improves hook performance.
+     */
+    private val COMMON_CLASSES = arrayOf(
+        // Used by DeviceHooker, NetworkHooker, SystemHooker
+        "android.telephony.TelephonyManager",
+        // Used by DeviceHooker, SystemHooker
+        "android.os.Build",
+        "android.os.SystemProperties",
+        // Used by DeviceHooker
+        "android.provider.Settings\$Secure",
+        "android.content.ContentResolver",
+        // Used by NetworkHooker
+        "android.net.wifi.WifiInfo",
+        "android.bluetooth.BluetoothAdapter",
+        // Used by LocationHooker
+        "java.util.TimeZone",
+        "java.util.Locale",
+        // Used by AntiDetectHooker
+        "java.lang.Thread",
+        "java.lang.Throwable",
+    )
 
     override fun onHook() {
         // Skip our own module
@@ -73,6 +98,12 @@ object XposedHookLoader : YukiBaseHooker() {
         DualLog.info(TAG, "Starting hooks for: $packageName (process: $processName)")
 
         // ═══════════════════════════════════════════════════════════
+        // Pre-load common classes into cache for better hook performance
+        // ═══════════════════════════════════════════════════════════
+        val preloadedCount = ClassCache.preload(appClassLoader, *COMMON_CLASSES)
+        DualLog.debug(TAG, "ClassCache preloaded $preloadedCount/${COMMON_CLASSES.size} classes")
+
+        // ═══════════════════════════════════════════════════════════
         // AntiDetectHooker must load FIRST to hide our presence
         // ═══════════════════════════════════════════════════════════
         loadHooker(AntiDetectHooker)
@@ -92,6 +123,10 @@ object XposedHookLoader : YukiBaseHooker() {
         loadHooker(SensorHooker)
         loadHooker(WebViewHooker)
 
+        // Log cache performance stats
+        val stats = ClassCache.stats()
+        DualLog.debug(TAG, "ClassCache stats: $stats")
+        
         DualLog.info(TAG, "Hooks registered for: $packageName")
     }
 }

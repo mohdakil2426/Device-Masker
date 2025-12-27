@@ -49,17 +49,22 @@
 
 ## Phase 2: Performance Optimizations ✅ COMPLETE
 
-### 2.1 Create ClassCache Utility ✅
-- [x] 2.1.1 Created `xposed/src/main/kotlin/.../xposed/utils/ClassCache.kt`
-- [x] 2.1.2 Implemented LruCache with capacity 100
-- [x] 2.1.3 Added `getClass(name, loader)` method with caching
-- [x] 2.1.4 Added `requireClass(name, loader)` for non-optional classes
-- [x] 2.1.5 Added `stats()` method for debugging
-- [x] 2.1.6 Added `clear()` method for cleanup
-- [x] 2.1.7 Documented usage patterns in KDoc
-- [x] 2.1.8 **Bonus**: Added `preload()` for cache warming, `notFoundCache` to skip known-missing classes
+### 2.1 ClassCache Utility - ⚠️ REVERTED
 
-**Status**: Full-featured ClassCache created with thread-safety
+**Original Plan**: Create global LRU cache for Class<?> lookups across hookers
+
+**Analysis Findings**:
+- Hookers already use `lazy { }` for per-hooker caching ✅
+- Only 3 classes loaded in multiple hookers (TelephonyManager, Build, SystemProperties)
+- Estimated performance gain: ~5ms per app launch (negligible)
+- Integration would break YukiHookAPI's DSL pattern
+- Complexity increase outweighs marginal performance benefit
+
+**Decision**: ❌ REVERTED - Not worth the integration cost
+- Existing `lazy { }` + YukiHookAPI DSL is the right pattern for our use case
+- ClassCache.kt removed from codebase
+
+**Lesson Learned**: The `lazy { }` pattern already provides effective caching at the hooker level
 
 ---
 

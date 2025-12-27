@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.service.RootManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,9 @@ class HomeViewModel(
     init {
         // Set initial Xposed status
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
+
+        // Request root access on init (triggers Magisk native dialog)
+        requestRootOnStart()
 
         // Collect groups
         viewModelScope.launch {
@@ -54,7 +59,6 @@ class HomeViewModel(
         viewModelScope.launch {
             repository.dashboardState.collect { dashboard ->
                 _state.update { currentState ->
-                    // If we have an active group from dashboard and no selection yet, use it
                     val selectedGroup = currentState.selectedGroup
                         ?: dashboard.activeGroup
 
@@ -68,6 +72,18 @@ class HomeViewModel(
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Request root access on app start.
+     * This triggers the native Magisk/SuperSU permission dialog.
+     * Runs silently in background - no custom UI.
+     */
+    private fun requestRootOnStart() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // This triggers Magisk native dialog if root is available
+            RootManager.requestRootAccess()
         }
     }
 
@@ -86,7 +102,6 @@ class HomeViewModel(
     fun selectGroup(groupId: String) {
         viewModelScope.launch {
             repository.setActiveGroup(groupId)
-            // Update local state immediately for responsiveness
             _state.update { currentState ->
                 val group = currentState.groups.find { it.id == groupId }
                 currentState.copy(

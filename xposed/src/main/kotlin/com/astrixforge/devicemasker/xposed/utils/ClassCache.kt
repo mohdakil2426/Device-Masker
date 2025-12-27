@@ -182,11 +182,11 @@ object ClassCache {
      *
      * @sample
      * ```kotlin
-     * ClassCache.preload(appClassLoader, listOf(
+     * ClassCache.preload(appClassLoader,
      *     "android.telephony.TelephonyManager",
      *     "android.os.Build",
      *     "android.provider.Settings\$Secure"
-     * ))
+     * )
      * ```
      */
     @Synchronized

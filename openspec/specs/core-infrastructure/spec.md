@@ -124,6 +124,7 @@ Each screen in the application SHALL have a dedicated ViewModel that:
 3. Uses `viewModelScope` for coroutine operations
 4. Provides action methods for UI events
 5. Collects Repository flows and transforms to UI state
+6. **Uses thread-safe `.update {}` pattern for StateFlow modifications**
 
 #### Scenario: ViewModel Lifecycle
 
@@ -135,9 +136,15 @@ Each screen in the application SHALL have a dedicated ViewModel that:
 #### Scenario: State Management
 
 - **WHEN** a ViewModel receives an action call
-- **THEN** it updates internal `MutableStateFlow`
+- **THEN** it updates internal `MutableStateFlow` using `.update {}` block
 - **AND** the UI recomposes with new state
 - **AND** no direct repository access occurs in Composable functions
+
+#### Scenario: Thread-Safe State Updates
+
+- **WHEN** multiple coroutines update state concurrently
+- **THEN** all updates are applied correctly without data loss
+- **AND** `_state.update { it.copy(...) }` is used instead of `_state.value = _state.value.copy(...)`
 
 ---
 
@@ -157,4 +164,20 @@ Each screen feature SHALL be organized in its own package under `ui/screens/`:
 - **THEN** all related files (Screen, ViewModel, State) are in one package
 - **AND** the package name clearly indicates the feature
 - **AND** no cross-feature dependencies exist between screen packages
+
+### Requirement: User Documentation for Config Behavior
+
+The application SHALL clearly document XSharedPreferences caching behavior to users.
+
+#### Scenario: In-App Documentation
+
+- **WHEN** the user views the Diagnostics screen
+- **THEN** an info card explains that config changes require app restart
+- **AND** the info uses clear, non-technical language
+
+#### Scenario: README Documentation
+
+- **WHEN** a user reads the README
+- **THEN** an "Important Notes" section explains the restart requirement
+- **AND** the documentation provides clear steps to apply config changes
 

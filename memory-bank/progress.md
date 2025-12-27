@@ -33,12 +33,11 @@
 
 ### Phase 2: Performance Optimizations
 
-#### 2.1 ClassCache Utility ✅
-Created `xposed/utils/ClassCache.kt`:
-- LRU cache with capacity 100 for Class<?> lookups
-- `getClass()`, `requireClass()`, `preload()`, `stats()`, `clear()`
-- Thread-safe via @Synchronized
-- `notFoundCache` to skip repeated failed lookups
+#### 2.1 ClassCache Utility - ⚠️ REVERTED
+**Initial implementation** created then reverted after cost-benefit analysis:
+- Hookers already use `lazy { }` for per-hooker caching
+- Only ~5ms/app launch gain not worth breaking YukiHookAPI DSL
+- Decision: Keep existing pattern, removed ClassCache.kt
 
 #### 2.2 derivedStateOf ✅
 - Applied to `AppsTabContent.kt` for app filtering (500+ apps)
@@ -69,7 +68,6 @@ Test coverage includes:
 ### Files Changed
 | File | Change |
 |------|--------|
-| `xposed/utils/ClassCache.kt` | **NEW** - LRU cache for class lookups |
 | `ui/screens/groupspoofing/tabs/AppsTabContent.kt` | derivedStateOf for filtering |
 | `ui/screens/diagnostics/DiagnosticsScreen.kt` | Added ConfigSyncInfoCard, stable keys |
 | `ui/components/dialog/CountryPickerDialog.kt` | Added stable key |

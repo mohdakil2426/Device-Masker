@@ -229,6 +229,8 @@ fun DeviceMaskerMainApp(
                     amoledDarkMode = amoledMode,
                     dynamicColors = dynamicColors,
                     isExportingLogs = settingsState.isExportingLogs,
+                    isCapturingLogcat = settingsState.isCapturingLogcat,
+                    hasRootAccess = settingsState.hasRootAccess,
                     exportResult = settingsState.exportResult,
                     onThemeModeChange = { mode ->
                         Timber.d("Theme mode changed: $mode")
@@ -243,11 +245,25 @@ fun DeviceMaskerMainApp(
                         settingsViewModel.setDynamicColors(enabled)
                     },
                     onExportLogs = {
-                        Timber.d("Exporting logs")
+                        Timber.d("Exporting logs to Downloads")
                         settingsViewModel.exportLogs()
+                    },
+                    onExportLogsToUri = { uri ->
+                        Timber.d("Exporting logs to: $uri")
+                        settingsViewModel.exportLogsToUri(uri)
+                    },
+                    onCaptureLogcat = {
+                        Timber.d("Capturing logcat to Downloads")
+                        settingsViewModel.captureLogcat()
+                    },
+                    onCaptureLogcatToUri = { uri ->
+                        Timber.d("Capturing logcat to: $uri")
+                        settingsViewModel.captureLogcatToUri(uri)
                     },
                     onClearExportResult = { settingsViewModel.clearExportResult() },
                     onNavigateToDiagnostics = { navController.navigate(NavRoutes.DIAGNOSTICS) },
+                    generateLogFileName = { settingsViewModel.generateLogFileName() },
+                    generateLogcatFileName = { settingsViewModel.generateLogcatFileName() },
                 )
             }
 
