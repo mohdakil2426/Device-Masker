@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
-import com.astrixforge.devicemasker.service.RootManager
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,9 +28,6 @@ class HomeViewModel(
     init {
         // Set initial Xposed status
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
-
-        // Request root access on init (triggers Magisk native dialog)
-        requestRootOnStart()
 
         // Collect groups
         viewModelScope.launch {
@@ -72,18 +67,6 @@ class HomeViewModel(
                     )
                 }
             }
-        }
-    }
-
-    /**
-     * Request root access on app start.
-     * This triggers the native Magisk/SuperSU permission dialog.
-     * Runs silently in background - no custom UI.
-     */
-    private fun requestRootOnStart() {
-        viewModelScope.launch(Dispatchers.IO) {
-            // This triggers Magisk native dialog if root is available
-            RootManager.requestRootAccess()
         }
     }
 

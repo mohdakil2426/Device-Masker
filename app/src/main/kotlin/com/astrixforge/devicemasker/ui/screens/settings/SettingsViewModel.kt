@@ -19,8 +19,7 @@ import kotlinx.coroutines.withContext
 /**
  * ViewModel for the Settings screen.
  *
- * Manages theme, debug settings, and log export functionality.
- * Beta mode: Both Export Logs and Capture Logcat are always enabled.
+ * Manages theme settings and log export functionality.
  *
  * @param application Application for context access
  * @param settingsStore The SettingsDataStore for persistence
@@ -54,9 +53,6 @@ class SettingsViewModel(
                 _state.update { it.copy(dynamicColors = enabled) }
             }
         }
-
-        // Check root access on init
-        checkRootAccess()
     }
 
     fun setThemeMode(mode: ThemeMode) {
@@ -82,21 +78,6 @@ class SettingsViewModel(
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Exports YLog in-memory data to the Downloads folder.
-     */
-    fun exportLogs() {
-        viewModelScope.launch {
-            _state.update { it.copy(isExportingLogs = true, exportResult = null) }
-
-            val result = withContext(Dispatchers.IO) {
-                LogManager.exportLogs(getApplication()).toExportResult()
-            }
-
-            _state.update { it.copy(isExportingLogs = false, exportResult = result) }
-        }
-    }
-
-    /**
      * Exports YLog in-memory data to a custom URI location (file picker).
      */
     fun exportLogsToUri(uri: Uri) {
@@ -112,49 +93,8 @@ class SettingsViewModel(
     }
 
     // ═══════════════════════════════════════════════════════════
-    // CAPTURE LOGCAT (System Logs from All Apps)
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Captures logcat output to the Downloads folder.
-     */
-    fun captureLogcat() {
-        viewModelScope.launch {
-            _state.update { it.copy(isCapturingLogcat = true, exportResult = null) }
-
-            val result = withContext(Dispatchers.IO) {
-                LogManager.captureLogcat(getApplication()).toExportResult()
-            }
-
-            _state.update { it.copy(isCapturingLogcat = false, exportResult = result) }
-        }
-    }
-
-    /**
-     * Captures logcat output to a custom URI location (file picker).
-     */
-    fun captureLogcatToUri(uri: Uri) {
-        viewModelScope.launch {
-            _state.update { it.copy(isCapturingLogcat = true, exportResult = null) }
-
-            val result = withContext(Dispatchers.IO) {
-                LogManager.captureLogcatToUri(getApplication(), uri).toExportResult()
-            }
-
-            _state.update { it.copy(isCapturingLogcat = false, exportResult = result) }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
     // UTILITY FUNCTIONS
     // ═══════════════════════════════════════════════════════════
-
-    private fun checkRootAccess() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val hasRoot = LogManager.hasRootAccess()
-            _state.update { it.copy(hasRootAccess = hasRoot) }
-        }
-    }
 
     fun clearExportResult() {
         _state.update { it.copy(exportResult = null) }
@@ -163,12 +103,9 @@ class SettingsViewModel(
     /** Generate filename for Export Logs file picker */
     fun generateLogFileName(): String = LogManager.generateLogFileName()
 
-    /** Generate filename for Capture Logcat file picker */
-    fun generateLogcatFileName(): String = LogManager.generateLogcatFileName()
-
     private fun LogExportResult.toExportResult(): ExportResult {
         return when (this) {
-            is LogExportResult.Success -> ExportResult.Success(filePath, lineCount, isLogcat)
+            is LogExportResult.Success -> ExportResult.Success(filePath, lineCount)
             is LogExportResult.Error -> ExportResult.Error(message)
         }
     }

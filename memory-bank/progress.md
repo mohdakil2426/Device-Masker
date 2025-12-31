@@ -4,10 +4,42 @@
 
 | Metric | Value |
 |--------|-------|
-| **Project Phase** | PRODUCTION READY ✅ |
+| **Project Phase** | PRODUCTION READY ✅ (Beta) |
 | **Active Changes** | 0 |
-| **Archived Changes** | 10 |
-| **Last Major Update** | December 25, 2025 - Architecture Optimization (Phase 1 & 2) |
+| **Archived Changes** | 11 |
+| **Last Major Update** | December 27, 2025 - Simplified Log Export |
+
+---
+
+## ✅ Complete: Simplified Log Export (Dec 27, 2025)
+
+**Status**: Complete ✅  
+**Impact**: Streamlined debugging with direct file picker export
+
+### Changes Made
+
+#### 1. Simplified Export Flow
+- **REMOVED:** Logcat capture feature (root-dependent, unreliable)
+- **REMOVED:** Root access request on app start
+- **REMOVED:** Save location dialog with Downloads/Custom options
+- **KEPT:** YLog in-memory export via native file picker
+
+#### 2. Direct File Picker
+- Click "Export Logs" → Opens native file picker immediately
+- No dialog asking for location choice
+- Cleaner, faster UX
+
+#### 3. Files Removed/Modified
+| File | Change |
+|------|--------|
+| **DELETED:** `service/RootManager.kt` | Root access utility removed |
+| `service/LogManager.kt` | Removed logcat capture, kept YLog export only |
+| `ui/screens/settings/SettingsScreen.kt` | Removed logcat button, removed SaveLocationDialog |
+| `ui/screens/settings/SettingsViewModel.kt` | Removed logcat methods, root checks |
+| `ui/screens/settings/SettingsState.kt` | Removed logcat state, hasRootAccess |
+| `ui/screens/home/HomeViewModel.kt` | Removed root request on init |
+| `MainActivity.kt` | Removed logcat callbacks |
+| `res/values/strings.xml` | Removed logcat and save location strings |
 
 ---
 
@@ -58,26 +90,6 @@
 | `AndroidIdGeneratorTest.kt` | 4 | ✅ All pass |
 | **Total** | **29** | **0 failures** |
 
-Test coverage includes:
-- Format validation (length, characters, patterns)
-- Checksum validation (Luhn for IMEI)
-- Bit-level validation (unicast/locally administered for MAC)
-- Manufacturer-specific patterns
-- Uniqueness (1000 unique values per generator)
-
-### Files Changed
-| File | Change |
-|------|--------|
-| `ui/screens/groupspoofing/tabs/AppsTabContent.kt` | derivedStateOf for filtering |
-| `ui/screens/diagnostics/DiagnosticsScreen.kt` | Added ConfigSyncInfoCard, stable keys |
-| `ui/components/dialog/CountryPickerDialog.kt` | Added stable key |
-| `app/res/values/strings.xml` | Added config sync strings |
-| `README.md` | Added Important Notes section |
-| `common/build.gradle.kts` | Added test dependencies |
-| `common/src/test/kotlin/.../generators/*.kt` | **NEW** - 4 test files (29 tests) |
-| `openspec/changes/optimize-architecture/tasks.md` | Updated status |
-
-
 ---
 
 ## ✅ Complete: Code Quality & Sync Architecture (Dec 25, 2025)
@@ -105,19 +117,12 @@ Test coverage includes:
 | AntiDetectHooker | 277 lines | 195 lines | -30% |
 | **Total** | ~1,700 lines | ~1,140 lines | **-33%** |
 
-#### Key Improvements
-1. **ValueGenerators** - All generators in one place with validation
-2. **BaseSpoofHooker** - 6 of 8 hookers extend this for shared logic
-3. **Consistent Logging** - All use `logDebug()`, `logStart()`, `recordSuccess()`
-4. **Cleaner Structure** - Organized into logical sections
-
 ### 2. Sync Architecture Fix
 
 **Problem**: 3 duplicate key generators risked drift between app and xposed.
 
 **Solution**: Single source of truth with delegation.
 
-#### New Architecture
 ```
          SharedPrefsKeys.kt (common)
                   ↑
@@ -127,15 +132,6 @@ XposedPrefs.kt (app)    PrefsKeys.kt (xposed)
   ↓ DELEGATES              ↓ DELEGATES
 SharedPrefsKeys         SharedPrefsKeys
 ```
-
-#### Files Modified
-| File | Change |
-|------|--------|
-| `common/SharedPrefsKeys.kt` | Enhanced as single source of truth, added validation |
-| `xposed/PrefsKeys.kt` | Now delegates to SharedPrefsKeys |
-| `app/XposedPrefs.kt` | Now delegates to SharedPrefsKeys |
-| `app/ConfigSync.kt` | Added caching behavior documentation |
-| `xposed/PrefsReader.kt` | Added sync architecture documentation |
 
 ---
 
@@ -152,20 +148,6 @@ SharedPrefsKeys         SharedPrefsKeys
 | **NetworkHooker** | 4 cached classes, 3 cached values, 3 hooks → `replaceAny` |
 | **SensorHooker** | 2 cached classes, cached preset |
 | **WebViewHooker** | 1 cached class, cached model |
-
-### New Files Created
-- `SensorHooker.kt` - Sensor metadata spoofing
-- `WebViewHooker.kt` - User-Agent spoofing
-- `HookMetrics` object in `DualLog.kt` - Hook success/failure tracking
-
-### Key Improvements
-1. **Class Caching** - Uses `lazy { "Class".toClass() }` instead of inline `toClass()` calls
-2. **Value Caching** - Spoof values cached at hook registration, not per-call
-3. **replaceAny** - Skips original method execution for simple return hooks
-4. **Safe Loading** - Uses `toClassOrNull()` for optional classes
-5. **Thread Safety** - `LazyThreadSafetyMode.SYNCHRONIZED` for fallback values
-6. **Anti-Detection** - `Thread.getAllStackTraces()` hook for complete stack filtering
-7. **Validation** - Build fingerprint format validation in SystemHooker
 
 ---
 
@@ -190,13 +172,6 @@ SharedPrefsKeys         SharedPrefsKeys
 
 ---
 
-## ✅ Complete: AIDL Cleanup (Dec 24, 2025)
-
-**Status**: Complete - 834 lines of dead code removed
-**Reason**: XSharedPreferences proved superior after research
-
----
-
 ## Architecture Summary (Multi-Module + XSharedPreferences)
 
 ```
@@ -205,10 +180,11 @@ SharedPrefsKeys         SharedPrefsKeys
 │  ┌──────────────┐  ┌─────────────────────────────────────────┐│
 │  │  HookEntry   │  │           Service Layer                 ││
 │  │  (KSP entry) │  │  ConfigManager → ConfigSync → XposedPrefs│
-│  │      ↓       │  └─────────────────────────────────────────┘│
-│  │  Delegates   │                                             │
-│  │  to :xposed  │  ┌─────────────────────────────────────────┐│
-│  └──────────────┘  │         SharedPreferences               ││
+│  │      ↓       │  │  LogManager → RootManager (NEW)         ││
+│  │  Delegates   │  └─────────────────────────────────────────┘│
+│  │  to :xposed  │                                             │
+│  └──────────────┘  ┌─────────────────────────────────────────┐│
+│                    │         SharedPreferences               ││
 │                    │  (MODE_WORLD_READABLE via LSPosed)       ││
 │                    └─────────────────────────────────────────┘│
 └────────────────────────────────────────────────────────────────┘
@@ -221,6 +197,7 @@ SharedPrefsKeys         SharedPrefsKeys
 │  - SystemHooker, LocationHooker, SensorHooker, WebViewHooker   │
 │                                                                │
 │  NEW: BaseSpoofHooker (base class), ValueGenerators (utils)    │
+│  DualLog → YLog + internal buffer for diagnostics              │
 └────────────────────────────────────────────────────────────────┘
                                ↓
 ┌────────────────────────────────────────────────────────────────┐
@@ -247,6 +224,11 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] ConfigSync to flatten groups to per-app keys
 - [x] PrefsHelper for easy access in hooks
 
+### ✅ Log Export System - Complete
+- [x] YLog in-memory export via native file picker
+- [x] Industry-standard formatted output
+- [x] Direct file picker (no dialog)
+
 ### ✅ :common Module - Complete
 - [x] SpoofType, SpoofCategory - Spoofing enums (22 types)
 - [x] DeviceProfilePreset - 10 predefined device profiles
@@ -259,8 +241,9 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] XposedEntry - Uses prefs property for config
 - [x] PrefsKeys - Delegates to SharedPrefsKeys
 - [x] PrefsReader - PrefsHelper for hooks
-- [x] **BaseSpoofHooker** - Abstract base class (NEW)
-- [x] **ValueGenerators** - Centralized utils (NEW)
+- [x] **BaseSpoofHooker** - Abstract base class
+- [x] **ValueGenerators** - Centralized utils
+- [x] DualLog - Logs to YLog + internal buffer
 - [x] 8 Hookers - All refactored with shared utilities
 
 ### ✅ :app Module - Complete
@@ -268,6 +251,7 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] ConfigSync - JsonConfig → XposedPrefs sync
 - [x] ConfigManager - Integrated with ConfigSync
 - [x] SpoofRepository - Bridge to ConfigManager
+- [x] **LogManager** - YLog export with file picker
 
 ### ✅ User Interface - Complete (M3 Expressive)
 | Component | Status |
@@ -277,7 +261,7 @@ SharedPrefsKeys         SharedPrefsKeys
 | HomeScreen.kt | ✅ Done |
 | GroupsScreen.kt | ✅ Done |
 | GroupSpoofingScreen.kt | ✅ Done |
-| SettingsScreen.kt | ✅ Done |
+| SettingsScreen.kt | ✅ Done (log export) |
 | DiagnosticsScreen.kt | ✅ Done |
 
 ---
@@ -286,10 +270,10 @@ SharedPrefsKeys         SharedPrefsKeys
 
 | Build Type | Status | Last Run |
 |------------|--------|----------|
-| :common:assembleDebug | ✅ Success | Dec 25, 2025 |
-| :xposed:assembleDebug | ✅ Success | Dec 25, 2025 |
-| :app:assembleDebug | ✅ Success | Dec 25, 2025 |
-| Full APK Build | ✅ Success | Dec 25, 2025 |
+| :common:assembleDebug | ✅ Success | Dec 27, 2025 |
+| :xposed:assembleDebug | ✅ Success | Dec 27, 2025 |
+| :app:assembleDebug | ✅ Success | Dec 27, 2025 |
+| Full APK Build | ✅ Success | Dec 27, 2025 |
 
 ---
 
@@ -320,5 +304,6 @@ SharedPrefsKeys         SharedPrefsKeys
 | 🗑️ AIDL Complete Removal | Week 14 | ✅ Done |
 | 🚀 Xposed Performance Optimizations | Week 15 | ✅ Done (50-90% faster) |
 | 🧹 Code Quality & Sync Fixes | Week 15 | ✅ Done (33% code reduction) |
-| ✅ v1.0 Release Ready | Week 15 | ✅ COMPLETE! 🎉 |
+| 📊 Log Export Enhancement | Week 16 | 🔄 In Progress |
+| ✅ v1.0 Beta Release | Week 16 | ✅ COMPLETE! 🎉 |
 

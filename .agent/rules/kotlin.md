@@ -466,7 +466,7 @@ fun doSomething(): Unit { }  // Omit Unit
 
 ## Official Resources
 
-### Kotlin 2.3.0 Guide always read this first for targeted Quary
+### Kotlin 2.3.0 Guide always read this first befor generating code for targeted Query.
 
 @/docs/developer-android-docs/kotlin-2-3-0-guide.md
 

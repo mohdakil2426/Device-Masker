@@ -66,13 +66,6 @@
     <string name="settings_export_logs_no_logs">No logs available to export</string>
     <string name="settings_export_logs_error">Failed to export logs: %s</string>
     <string name="settings_exporting">Exporting…</string>
-    <string name="settings_capture_logcat">Capture Logcat</string>
-    <string name="settings_capture_logcat_description">Capture hook logs from all apps (root)</string>
-    <string name="settings_capture_logcat_no_root">Requires root access for logcat</string>
-    <string name="settings_capturing">Capturing…</string>
-    <string name="settings_save_location_prompt">Where would you like to save the log file?</string>
-    <string name="settings_save_downloads">Downloads</string>
-    <string name="settings_save_custom">Choose Location</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_description">Check module health and hook status</string>
     <string name="settings_about">About</string>

@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -69,7 +68,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
  *
  * Provides options for:
  * - Theme settings (theme mode, AMOLED dark mode, dynamic colors)
- * - Debug options (log export, logcat capture with file picker)
+ * - Debug options (log export with file picker)
  * - About information
  */
 @Composable
@@ -79,24 +78,16 @@ fun SettingsScreen(
     amoledDarkMode: Boolean = true,
     dynamicColors: Boolean = true,
     isExportingLogs: Boolean = false,
-    isCapturingLogcat: Boolean = false,
-    hasRootAccess: Boolean = false,
     exportResult: ExportResult? = null,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAmoledDarkModeChange: (Boolean) -> Unit = {},
     onDynamicColorChange: (Boolean) -> Unit = {},
-    onExportLogs: () -> Unit = {},
     onExportLogsToUri: (Uri) -> Unit = {},
-    onCaptureLogcat: () -> Unit = {},
-    onCaptureLogcatToUri: (Uri) -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
-    generateLogcatFileName: () -> String = { "devicemasker_logcat.log" },
 ) {
     var showThemeModeDialog by remember { mutableStateOf(false) }
-    var showExportDialog by remember { mutableStateOf(false) }
-    var showLogcatDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val exportNoLogsMessage = stringResource(R.string.settings_export_logs_no_logs)
@@ -108,25 +99,18 @@ fun SettingsScreen(
         ThemeMode.LIGHT -> false
     }
 
-    // File picker launchers
+    // File picker launcher - directly opens native folder picker
     val exportLogsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
         uri?.let { onExportLogsToUri(it) }
     }
 
-    val captureLogcatLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("text/plain")
-    ) { uri ->
-        uri?.let { onCaptureLogcatToUri(it) }
-    }
-
     // Handle export result
     LaunchedEffect(exportResult) {
         when (exportResult) {
             is ExportResult.Success -> {
-                val typeLabel = if (exportResult.isLogcat) "Logcat captured" else "Logs exported"
-                val message = "$typeLabel (${exportResult.lineCount} lines)\n\nSaved to: ${exportResult.filePath}"
+                val message = "Logs exported (${exportResult.lineCount} lines)\n\nSaved to: ${exportResult.filePath}"
                 snackbarHostState.showSnackbar(message)
                 onClearExportResult()
             }
@@ -149,14 +133,14 @@ fun SettingsScreen(
             amoledDarkMode = amoledDarkMode,
             dynamicColors = dynamicColors,
             isExportingLogs = isExportingLogs,
-            isCapturingLogcat = isCapturingLogcat,
-            hasRootAccess = hasRootAccess,
             isDarkModeActive = isDarkModeActive,
             onThemeModeClick = { showThemeModeDialog = true },
             onAmoledDarkModeChange = onAmoledDarkModeChange,
             onDynamicColorChange = onDynamicColorChange,
-            onExportLogsClick = { showExportDialog = true },
-            onCaptureLogcatClick = { showLogcatDialog = true },
+            onExportLogsClick = { 
+                // Directly open native file picker
+                exportLogsLauncher.launch(generateLogFileName())
+            },
             onNavigateToDiagnostics = onNavigateToDiagnostics,
         )
 
@@ -177,38 +161,6 @@ fun SettingsScreen(
             onDismiss = { showThemeModeDialog = false }
         )
     }
-
-    // Export Logs Dialog (save location choice)
-    if (showExportDialog) {
-        SaveLocationDialog(
-            title = stringResource(R.string.settings_export_logs),
-            onDownloads = {
-                showExportDialog = false
-                onExportLogs()
-            },
-            onCustomLocation = {
-                showExportDialog = false
-                exportLogsLauncher.launch(generateLogFileName())
-            },
-            onDismiss = { showExportDialog = false }
-        )
-    }
-
-    // Capture Logcat Dialog (save location choice)
-    if (showLogcatDialog) {
-        SaveLocationDialog(
-            title = stringResource(R.string.settings_capture_logcat),
-            onDownloads = {
-                showLogcatDialog = false
-                onCaptureLogcat()
-            },
-            onCustomLocation = {
-                showLogcatDialog = false
-                captureLogcatLauncher.launch(generateLogcatFileName())
-            },
-            onDismiss = { showLogcatDialog = false }
-        )
-    }
 }
 
 @Composable
@@ -218,14 +170,11 @@ private fun SettingsScreenContent(
     amoledDarkMode: Boolean,
     dynamicColors: Boolean,
     isExportingLogs: Boolean,
-    isCapturingLogcat: Boolean,
-    hasRootAccess: Boolean,
     isDarkModeActive: Boolean,
     onThemeModeClick: () -> Unit,
     onAmoledDarkModeChange: (Boolean) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onExportLogsClick: () -> Unit,
-    onCaptureLogcatClick: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
 ) {
     LazyColumn(
@@ -302,25 +251,6 @@ private fun SettingsScreenContent(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Capture Logcat
-                SettingsClickableItem(
-                    icon = Icons.Outlined.Terminal,
-                    title = stringResource(id = R.string.settings_capture_logcat),
-                    description = if (isCapturingLogcat) {
-                        stringResource(id = R.string.settings_capturing)
-                    } else if (hasRootAccess) {
-                        stringResource(id = R.string.settings_capture_logcat_description)
-                    } else {
-                        stringResource(id = R.string.settings_capture_logcat_no_root)
-                    },
-                    onClick = { if (!isCapturingLogcat) onCaptureLogcatClick() },
-                    trailingContent = if (isCapturingLogcat) {
-                        { LoadingIndicator() }
-                    } else null
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 SettingsClickableItem(
                     icon = Icons.Outlined.Shield,
                     title = stringResource(id = R.string.settings_diagnostics),
@@ -373,42 +303,6 @@ private fun LoadingIndicator() {
             .width(24.dp)
             .height(24.dp),
         strokeWidth = 2.dp
-    )
-}
-
-/** Dialog for choosing save location: Downloads or Custom */
-@Composable
-private fun SaveLocationDialog(
-    title: String,
-    onDownloads: () -> Unit,
-    onCustomLocation: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-        },
-        text = {
-            Text(
-                text = stringResource(R.string.settings_save_location_prompt),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onCustomLocation) {
-                Text(stringResource(R.string.settings_save_custom))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDownloads) {
-                Text(stringResource(R.string.settings_save_downloads))
-            }
-        },
     )
 }
 

@@ -2,96 +2,33 @@
 
 ## Current Work Focus
 
-### ✅ Complete: YukiHookAPI Code Quality & Sync Improvements (Dec 25, 2025)
+### ✅ Complete: Simplified Log Export (Dec 27, 2025)
 
 **Status**: Complete ✅  
-**Scope**: Code refactoring, centralized utilities, sync architecture fixes
+**Scope**: Simplified log export by removing logcat capture and direct download options
 
-#### 1. Code Quality Improvements (Phase 1)
+#### Changes Made
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| **ValueGenerators** | `xposed/utils/ValueGenerators.kt` | Centralized value generation (IMEI, MAC, Android ID, etc.) |
-| **BaseSpoofHooker** | `xposed/hooker/BaseSpoofHooker.kt` | Abstract base class with shared hooker functionality |
+| Change | Description |
+|--------|-------------|
+| **Removed Logcat Capture** | Eliminated root-dependent logcat feature that was unreliable |
+| **Removed Root Request** | No longer requests Magisk/SuperSU root on app start |
+| **Removed Save Location Dialog** | No more "Downloads or Custom?" dialog |
+| **Direct File Picker** | Export Logs now opens native file picker immediately |
 
-#### 2. Hookers Refactored (~33% Code Reduction)
+#### Files Removed
+- `service/RootManager.kt` - Root access utility no longer needed
 
-| Hooker | Before | After | Reduction |
-|--------|--------|-------|-----------|
-| DeviceHooker | 492 lines | 253 lines | -48% |
-| NetworkHooker | 175 lines | 134 lines | -23% |
-| AdvertisingHooker | 150 lines | 107 lines | -29% |
-| LocationHooker | 177 lines | 134 lines | -24% |
-| SystemHooker | 176 lines | 118 lines | -33% |
-| SensorHooker | 158 lines | 123 lines | -22% |
-| WebViewHooker | 98 lines | 76 lines | -22% |
-| AntiDetectHooker | 277 lines | 195 lines | -30% |
-
-#### 3. Sync Architecture Fix (Phase 2)
-
-**Problem Solved**: Duplicate key generators in 3 files risked drift.
-
-**New Architecture**:
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    COMMON MODULE (Single Source of Truth)       │
-│   SharedPrefsKeys.kt                                            │
-│   ├── KEY_MODULE_ENABLED, KEY_DEBUG_ENABLED, etc.              │
-│   ├── getAppEnabledKey(packageName)                            │
-│   ├── getSpoofValueKey(packageName, type)                      │
-│   └── getSpoofEnabledKey(packageName, type)                    │
-└─────────────────────────────────────────────────────────────────┘
-                    ▲                           ▲
-         ┌─────────┴────────┐        ┌─────────┴────────┐
-         │    APP MODULE    │        │   XPOSED MODULE  │
-         │  XposedPrefs.kt  │        │   PrefsKeys.kt   │
-         │   ↓ DELEGATES    │        │   ↓ DELEGATES    │
-         │  SharedPrefsKeys │        │  SharedPrefsKeys │
-         └──────────────────┘        └──────────────────┘
-```
-
-#### Files Modified in Sync Fix
-
+#### Files Modified
 | File | Change |
 |------|--------|
-| `common/SharedPrefsKeys.kt` | Enhanced as single source of truth |
-| `xposed/PrefsKeys.kt` | Now delegates to SharedPrefsKeys |
-| `app/XposedPrefs.kt` | Now delegates to SharedPrefsKeys |
-| `app/ConfigSync.kt` | Added docs clarifying caching behavior |
-| `xposed/PrefsReader.kt` | Added sync architecture docs |
-
----
-
-### ✅ Complete: Comprehensive Enhancements (Dec 25, 2025)
-
-**Status**: Complete ✅  
-**Scope**: Logging, Stability, Performance, Code Quality
-
-#### 1. Fixed Log Export (CRITICAL)
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| **LogManager** | `app/service/LogManager.kt` | Exports logs to Downloads via MediaStore |
-| **YLog Recording** | `app/hook/HookEntry.kt` | Enabled `isRecord = true` for in-memory logs |
-| **SettingsViewModel** | Fixed | Now uses LogManager for real export |
-| **Storage Permissions** | `AndroidManifest.xml` | Added WRITE_EXTERNAL_STORAGE for legacy Android |
-
-#### 2. Xposed Performance Optimizations
-
-| Hooker | Changes |
-|--------|---------|
-| **DeviceHooker** | 4 cached classes, 3 cached values, 8 hooks → `replaceAny` |
-| **NetworkHooker** | 4 cached classes, 3 cached values, 3 hooks → `replaceAny` |
-| **SensorHooker** | 2 cached classes, cached preset |
-| **WebViewHooker** | 1 cached class, cached model |
-
-#### 3. SDK Version Safety (Android 16 Compatible)
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| **HookHelper** | `xposed/HookHelper.kt` | SDK version utilities |
-| **SdkVersions** | Object | Constants for LOLLIPOP through BAKLAVA (Android 16) |
-| **Validation** | Functions | IMEI, MAC, Android ID format validation |
+| `service/LogManager.kt` | Simplified to YLog export only |
+| `ui/screens/settings/SettingsScreen.kt` | Single export button, no dialog |
+| `ui/screens/settings/SettingsViewModel.kt` | Removed logcat methods |
+| `ui/screens/settings/SettingsState.kt` | Removed logcat state |
+| `ui/screens/home/HomeViewModel.kt` | Removed root request |
+| `MainActivity.kt` | Removed logcat callbacks |
+| `res/values/strings.xml` | Removed unused strings |
 
 ---
 
@@ -140,18 +77,14 @@
 
 | Module | Status | Last Build |
 |--------|--------|------------|
-| :common | ✅ SUCCESS | Dec 25, 2025 |
-| :xposed | ✅ SUCCESS | Dec 25, 2025 |
-| :app | ✅ SUCCESS | Dec 25, 2025 |
-| Full APK | ✅ SUCCESS | Dec 25, 2025 |
+| :common | ✅ SUCCESS | Dec 27, 2025 |
+| :xposed | ✅ SUCCESS | Dec 27, 2025 |
+| :app | ✅ SUCCESS | Dec 27, 2025 |
+| Full APK | ✅ SUCCESS | Dec 27, 2025 |
 
 ---
 
 ## Next Steps
-
-### No Active Development Work
-
-The spoofing functionality is now **fully working, optimized, and properly synced**! 🎉
 
 ### Future Enhancements (Optional)
 
@@ -166,6 +99,13 @@ The spoofing functionality is now **fully working, optimized, and properly synce
 
 ## Important Files Reference
 
+### Log Export Files
+| File | Purpose |
+|------|---------|
+| `service/LogManager.kt` | YLog in-memory export with file picker |
+| `ui/screens/settings/SettingsScreen.kt` | Export button |
+| `ui/screens/settings/SettingsViewModel.kt` | Export action |
+
 ### Sync Architecture Files
 | File | Purpose |
 |------|---------|
@@ -175,12 +115,12 @@ The spoofing functionality is now **fully working, optimized, and properly synce
 | `app/data/XposedPrefs.kt` | Delegates to SharedPrefsKeys, writes with MODE_WORLD_READABLE |
 | `app/data/ConfigSync.kt` | Syncs UI config to XposedPrefs |
 
-### Code Quality Files
+### Hook Entry Files
 | File | Purpose |
 |------|---------|
-| `xposed/utils/ValueGenerators.kt` | Centralized IMEI, MAC, Android ID generators |
-| `xposed/hooker/BaseSpoofHooker.kt` | Abstract base with shared hooker functionality |
-| `xposed/XposedEntry.kt` | Hook entry point, uses prefs property |
-| `app/service/ConfigManager.kt` | Config management + sync trigger |
+| `app/hook/HookEntry.kt` | KSP entry point, YLog config with isRecord=true |
+| `xposed/XposedEntry.kt` | Hook loader, loads all hookers |
+| `xposed/DualLog.kt` | Logs to both YLog and internal buffer |
+| `xposed/hooker/*.kt` | Individual hookers |
 
 

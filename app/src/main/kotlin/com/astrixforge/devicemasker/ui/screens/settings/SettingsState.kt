@@ -10,18 +10,16 @@ data class SettingsState(
     val amoledMode: Boolean = true,
     val dynamicColors: Boolean = true,
     val showThemeModeDialog: Boolean = false,
-    // Log export states (separate operations)
+    // Log export state
     val isExportingLogs: Boolean = false,
-    val isCapturingLogcat: Boolean = false,
-    val exportResult: ExportResult? = null,
-    val hasRootAccess: Boolean = false
+    val exportResult: ExportResult? = null
 )
 
 /**
  * Result of a log export operation.
  */
 sealed class ExportResult {
-    data class Success(val filePath: String, val lineCount: Int, val isLogcat: Boolean = false) : ExportResult()
+    data class Success(val filePath: String, val lineCount: Int) : ExportResult()
     data class Error(val message: String) : ExportResult()
     data object NoLogs : ExportResult()
 }
