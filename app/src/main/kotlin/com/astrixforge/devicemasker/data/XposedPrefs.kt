@@ -12,11 +12,11 @@ import com.astrixforge.devicemasker.common.SpoofType
  * - UI app writes with MODE_WORLD_READABLE
  * - Hooked apps read via XSharedPreferences (prefs() in YukiHookAPI)
  *
- * ⚠️ CRITICAL: All key generation DELEGATES to SharedPrefsKeys in :common module
- * to ensure keys are IDENTICAL between app and xposed module.
+ * ⚠️ CRITICAL: All key generation DELEGATES to SharedPrefsKeys in :common module to ensure keys are
+ * IDENTICAL between app and xposed module.
  *
- * IMPORTANT: LSPosed automatically handles making these prefs readable
- * when xposedsharedprefs=true in AndroidManifest.xml.
+ * IMPORTANT: LSPosed automatically handles making these prefs readable when xposedsharedprefs=true
+ * in AndroidManifest.xml.
  *
  * Note: DataStore is NOT compatible with XSharedPreferences!
  */
@@ -39,21 +39,19 @@ class XposedPrefs(context: Context) {
     }
 
     /**
-     * SharedPreferences with MODE_WORLD_READABLE for Xposed access.
-     * LSPosed handles the world-readable aspect when xposedsharedprefs=true.
+     * SharedPreferences with MODE_WORLD_READABLE for Xposed access. LSPosed handles the
+     * world-readable aspect when xposedsharedprefs=true.
      */
-    private val prefs: SharedPreferences = try {
-        context.getSharedPreferences(
-            context.packageName + "_preferences",
-            Context.MODE_WORLD_READABLE
-        )
-    } catch (e: SecurityException) {
-        // Fallback for non-Xposed contexts (shouldn't happen in production)
-        context.getSharedPreferences(
-            context.packageName + "_preferences",
-            Context.MODE_PRIVATE
-        )
-    }
+    private val prefs: SharedPreferences =
+        try {
+            context.getSharedPreferences(
+                context.packageName + "_preferences",
+                Context.MODE_WORLD_READABLE,
+            )
+        } catch (e: SecurityException) {
+            // Fallback for non-Xposed contexts (shouldn't happen in production)
+            context.getSharedPreferences(context.packageName + "_preferences", Context.MODE_PRIVATE)
+        }
 
     // ═══════════════════════════════════════════════════════════
     // GLOBAL SETTINGS
@@ -78,37 +76,27 @@ class XposedPrefs(context: Context) {
     // PER-APP SETTINGS
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Sets whether spoofing is enabled for an app.
-     */
+    /** Sets whether spoofing is enabled for an app. */
     fun setAppEnabled(packageName: String, enabled: Boolean) {
         prefs.edit().putString(getAppEnabledKey(packageName), enabled.toString()).apply()
     }
 
-    /**
-     * Gets whether spoofing is enabled for an app.
-     */
+    /** Gets whether spoofing is enabled for an app. */
     fun isAppEnabled(packageName: String): Boolean {
         return prefs.getString(getAppEnabledKey(packageName), "true") == "true"
     }
 
-    /**
-     * Sets whether a specific spoof type is enabled for an app.
-     */
+    /** Sets whether a specific spoof type is enabled for an app. */
     fun setSpoofTypeEnabled(packageName: String, type: SpoofType, enabled: Boolean) {
         prefs.edit().putString(getSpoofEnabledKey(packageName, type), enabled.toString()).apply()
     }
 
-    /**
-     * Gets whether a specific spoof type is enabled for an app.
-     */
+    /** Gets whether a specific spoof type is enabled for an app. */
     fun isSpoofTypeEnabled(packageName: String, type: SpoofType): Boolean {
         return prefs.getString(getSpoofEnabledKey(packageName, type), "false") == "true"
     }
 
-    /**
-     * Sets the spoof value for a specific type and app.
-     */
+    /** Sets the spoof value for a specific type and app. */
     fun setSpoofValue(packageName: String, type: SpoofType, value: String?) {
         if (value != null) {
             prefs.edit().putString(getSpoofValueKey(packageName, type), value).apply()
@@ -117,9 +105,7 @@ class XposedPrefs(context: Context) {
         }
     }
 
-    /**
-     * Gets the spoof value for a specific type and app.
-     */
+    /** Gets the spoof value for a specific type and app. */
     fun getSpoofValue(packageName: String, type: SpoofType): String? {
         return prefs.getString(getSpoofValueKey(packageName, type), null)
     }
@@ -128,14 +114,8 @@ class XposedPrefs(context: Context) {
     // HELPER METHODS
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Configures spoofing for an app.
-     */
-    fun configureApp(
-        packageName: String,
-        enabled: Boolean,
-        spoofTypes: Map<SpoofType, String?>
-    ) {
+    /** Configures spoofing for an app. */
+    fun configureApp(packageName: String, enabled: Boolean, spoofTypes: Map<SpoofType, String?>) {
         val editor = prefs.edit()
 
         // Set app enabled
@@ -154,9 +134,7 @@ class XposedPrefs(context: Context) {
         editor.apply()
     }
 
-    /**
-     * Clears all settings for an app.
-     */
+    /** Clears all settings for an app. */
     fun clearAppSettings(packageName: String) {
         val editor = prefs.edit()
         val prefix = SharedPrefsKeys.sanitize(packageName)
@@ -172,10 +150,10 @@ class XposedPrefs(context: Context) {
 
     /**
      * Increments config version.
-     * 
-     * NOTE: This does NOT cause hooked apps to reload config!
-     * XSharedPreferences caches values. Config changes require app restart.
-     * This version is only useful for debugging/logging purposes.
+     *
+     * NOTE: This does NOT cause hooked apps to reload config! XSharedPreferences caches values.
+     * Config changes require app restart. This version is only useful for debugging/logging
+     * purposes.
      */
     fun notifyConfigChanged() {
         configVersion++

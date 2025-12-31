@@ -7,14 +7,14 @@ import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
 /**
  * Prefs Keys for Cross-Process Configuration Sharing.
  *
- * ⚠️ DELEGATES to SharedPrefsKeys in :common module to ensure
- * keys are IDENTICAL between app and xposed module.
+ * ⚠️ DELEGATES to SharedPrefsKeys in :common module to ensure keys are IDENTICAL between app and
+ * xposed module.
  *
- * Uses YukiHookAPI's YukiHookPrefsBridge which internally uses XSharedPreferences
- * for cross-process communication between the module app and hooked apps.
+ * Uses YukiHookAPI's YukiHookPrefsBridge which internally uses XSharedPreferences for cross-process
+ * communication between the module app and hooked apps.
  *
- * IMPORTANT: Requires in AndroidManifest.xml:
- * <meta-data android:name="xposedsharedprefs" android:value="true" />
+ * IMPORTANT: Requires in AndroidManifest.xml: <meta-data android:name="xposedsharedprefs"
+ * android:value="true" />
  */
 object PrefsKeys {
 
@@ -39,32 +39,31 @@ object PrefsKeys {
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Gets the pref key for a specific app and spoof type.
-     * DELEGATES to SharedPrefsKeys for consistency.
+     * Gets the pref key for a specific app and spoof type. DELEGATES to SharedPrefsKeys for
+     * consistency.
      */
     fun getSpoofKey(packageName: String, type: SpoofType): String {
         return SharedPrefsKeys.getSpoofValueKey(packageName, type)
     }
 
     /**
-     * Gets the pref key for checking if a spoof type is enabled for an app.
-     * DELEGATES to SharedPrefsKeys for consistency.
+     * Gets the pref key for checking if a spoof type is enabled for an app. DELEGATES to
+     * SharedPrefsKeys for consistency.
      */
     fun getSpoofEnabledKey(packageName: String, type: SpoofType): String {
         return SharedPrefsKeys.getSpoofEnabledKey(packageName, type)
     }
 
     /**
-     * Gets the pref key for checking if an app is enabled for spoofing.
-     * DELEGATES to SharedPrefsKeys for consistency.
+     * Gets the pref key for checking if an app is enabled for spoofing. DELEGATES to
+     * SharedPrefsKeys for consistency.
      */
     fun getAppEnabledKey(packageName: String): String {
         return SharedPrefsKeys.getAppEnabledKey(packageName)
     }
 
     /**
-     * Gets the device profile preset key for an app.
-     * DELEGATES to SharedPrefsKeys for consistency.
+     * Gets the device profile preset key for an app. DELEGATES to SharedPrefsKeys for consistency.
      */
     fun getDeviceProfileKey(packageName: String): String {
         return SharedPrefsKeys.getDeviceProfileKey(packageName)

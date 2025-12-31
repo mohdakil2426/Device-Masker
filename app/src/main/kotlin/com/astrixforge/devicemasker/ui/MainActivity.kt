@@ -144,8 +144,8 @@ fun DeviceMaskerMainApp(
     val context = LocalContext.current
 
     // Hide bottom nav on group spoofing and diagnostics screens for a cleaner focused experience
-    val showBottomBar = !currentRoute.startsWith(NavRoutes.GROUP_SPOOFING) &&
-            currentRoute != NavRoutes.DIAGNOSTICS
+    val showBottomBar =
+        !currentRoute.startsWith(NavRoutes.GROUP_SPOOFING) && currentRoute != NavRoutes.DIAGNOSTICS
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -174,43 +174,39 @@ fun DeviceMaskerMainApp(
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
                 fadeIn(animationSpec = spring()) +
-                        slideIntoContainer(
-                            towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                            animationSpec = AppMotion.DefaultSpringOffset,
-                        )
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
             },
             exitTransition = {
                 fadeOut(animationSpec = spring()) +
-                        slideOutOfContainer(
-                            towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                            animationSpec = AppMotion.DefaultSpringOffset,
-                        )
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
             },
             popEnterTransition = {
                 fadeIn(animationSpec = spring()) +
-                        slideIntoContainer(
-                            towards = AnimatedContentTransitionScope.SlideDirection.End,
-                            animationSpec = AppMotion.DefaultSpringOffset,
-                        )
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
             },
             popExitTransition = {
                 fadeOut(animationSpec = spring()) +
-                        slideOutOfContainer(
-                            towards = AnimatedContentTransitionScope.SlideDirection.End,
-                            animationSpec = AppMotion.DefaultSpringOffset,
-                        )
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = AppMotion.DefaultSpringOffset,
+                    )
             },
         ) {
             composable(NavRoutes.HOME) {
-                val homeViewModel = viewModel {
-                    HomeViewModel(repository)
-                }
+                val homeViewModel = viewModel { HomeViewModel(repository) }
                 HomeScreen(
                     viewModel = homeViewModel,
                     onNavigateToSpoof = { navController.navigate(NavRoutes.GROUPS) },
-                    onRegenerateAll = {
-                        Timber.d("Regenerate all values requested")
-                    },
+                    onRegenerateAll = { Timber.d("Regenerate all values requested") },
                     onNavigateToGroup = { groupId ->
                         navController.navigate(NavRoutes.groupSpoofingRoute(groupId))
                     },
@@ -219,9 +215,7 @@ fun DeviceMaskerMainApp(
 
             composable(NavRoutes.SETTINGS) {
                 val application = (context.applicationContext as android.app.Application)
-                val settingsViewModel = viewModel {
-                    SettingsViewModel(application, settingsStore)
-                }
+                val settingsViewModel = viewModel { SettingsViewModel(application, settingsStore) }
                 val settingsState by settingsViewModel.state.collectAsState()
 
                 SettingsScreen(
@@ -257,8 +251,7 @@ fun DeviceMaskerMainApp(
                 route = NavRoutes.GROUP_SPOOFING_PATTERN,
                 arguments = listOf(navArgument("groupId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val groupId =
-                    backStackEntry.arguments?.getString("groupId") ?: return@composable
+                val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
                 val groupSpoofingViewModel = viewModel {
                     GroupSpoofingViewModel(repository, groupId)
                 }
@@ -269,9 +262,7 @@ fun DeviceMaskerMainApp(
             }
 
             composable(NavRoutes.GROUPS) {
-                val groupsViewModel = viewModel {
-                    GroupsViewModel(repository)
-                }
+                val groupsViewModel = viewModel { GroupsViewModel(repository) }
                 GroupsScreen(
                     viewModel = groupsViewModel,
                     onGroupClick = { group ->

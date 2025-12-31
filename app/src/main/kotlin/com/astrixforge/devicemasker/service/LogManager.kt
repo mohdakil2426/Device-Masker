@@ -21,17 +21,18 @@ object LogManager {
     private const val LOG_FILE_EXTENSION = ".log"
 
     // Industry-standard log separators
-    private const val HEADER_LINE = "════════════════════════════════════════════════════════════════════════════════"
-    private const val SECTION_LINE = "────────────────────────────────────────────────────────────────────────────────"
-    private const val SUBSECTION_LINE = "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
+    private const val HEADER_LINE =
+        "════════════════════════════════════════════════════════════════════════════════"
+    private const val SECTION_LINE =
+        "────────────────────────────────────────────────────────────────────────────────"
+    private const val SUBSECTION_LINE =
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
 
     // ═══════════════════════════════════════════════════════════════════
     // EXPORT LOGS (In-Memory YLog Data)
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Exports YLog in-memory data to a custom URI location.
-     */
+    /** Exports YLog in-memory data to a custom URI location. */
     fun exportLogsToUri(context: Context, uri: Uri): LogExportResult {
         return try {
             val logContent = buildInMemoryLogContent(context)
@@ -89,7 +90,9 @@ object LogManager {
                     builder.appendLine("${entry.time.padEnd(28)} | $level | ${entry.msg}")
 
                     entry.throwable?.let { t ->
-                        builder.appendLine("                             |     | Exception: ${t.javaClass.simpleName}: ${t.message}")
+                        builder.appendLine(
+                            "                             |     | Exception: ${t.javaClass.simpleName}: ${t.message}"
+                        )
                         t.stackTrace.take(5).forEach { se ->
                             builder.appendLine("                             |     |   at $se")
                         }
@@ -121,7 +124,7 @@ object LogManager {
         context: Context,
         logType: String,
         dateFormat: SimpleDateFormat,
-        exportTime: Date
+        exportTime: Date,
     ) {
         builder.appendLine("[EXPORT METADATA]")
         builder.appendLine(SECTION_LINE)
@@ -135,8 +138,12 @@ object LogManager {
         builder.appendLine(SECTION_LINE)
         builder.appendLine("App Name         : Device Masker")
         builder.appendLine("Package          : ${context.packageName}")
-        builder.appendLine("Version          : ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-        builder.appendLine("Build Type       : ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE (Beta)"}")
+        builder.appendLine(
+            "Version          : ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+        )
+        builder.appendLine(
+            "Build Type       : ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE (Beta)"}"
+        )
         builder.appendLine()
 
         builder.appendLine("[DEVICE INFO]")
@@ -144,7 +151,9 @@ object LogManager {
         builder.appendLine("Manufacturer     : ${Build.MANUFACTURER}")
         builder.appendLine("Model            : ${Build.MODEL}")
         builder.appendLine("Device           : ${Build.DEVICE}")
-        builder.appendLine("Android          : ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
+        builder.appendLine(
+            "Android          : ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})"
+        )
         builder.appendLine("Security Patch   : ${Build.VERSION.SECURITY_PATCH}")
         builder.appendLine("Build            : ${Build.DISPLAY}")
     }
@@ -176,7 +185,12 @@ object LogManager {
     // UTILITY METHODS
     // ═══════════════════════════════════════════════════════════════════
 
-    fun getLogCount(): Int = try { YLog.inMemoryData.size } catch (_: Exception) { 0 }
+    fun getLogCount(): Int =
+        try {
+            YLog.inMemoryData.size
+        } catch (_: Exception) {
+            0
+        }
 
     fun generateLogFileName(): String {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
@@ -184,10 +198,9 @@ object LogManager {
     }
 }
 
-/**
- * Result of log export operation.
- */
+/** Result of log export operation. */
 sealed class LogExportResult {
     data class Success(val filePath: String, val lineCount: Int) : LogExportResult()
+
     data class Error(val message: String) : LogExportResult()
 }

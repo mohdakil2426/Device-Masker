@@ -8,8 +8,8 @@ import timber.log.Timber
 /**
  * Syncs JsonConfig to XposedPrefs for cross-process access.
  *
- * The UI uses JsonConfig (group-based, JSON file). But hooks need
- * XSharedPreferences with per-app keys. This class bridges the gap.
+ * The UI uses JsonConfig (group-based, JSON file). But hooks need XSharedPreferences with per-app
+ * keys. This class bridges the gap.
  *
  * ## Sync Flow:
  * ```
@@ -30,8 +30,8 @@ import timber.log.Timber
 object ConfigSync {
 
     /**
-     * Syncs everything from JsonConfig to XposedPrefs.
-     * This should be called after any config change in the UI.
+     * Syncs everything from JsonConfig to XposedPrefs. This should be called after any config
+     * change in the UI.
      *
      * @param context Application context
      * @param config The JsonConfig to sync from
@@ -71,8 +71,7 @@ object ConfigSync {
     }
 
     /**
-     * Quick sync for a single app.
-     * Use when only one app's config changed.
+     * Quick sync for a single app. Use when only one app's config changed.
      *
      * @param context Application context
      * @param config The JsonConfig to sync from
@@ -102,9 +101,7 @@ object ConfigSync {
         Timber.d("App $packageName synced to XposedPrefs")
     }
 
-    /**
-     * Clears all settings for a package from XposedPrefs.
-     */
+    /** Clears all settings for a package from XposedPrefs. */
     fun clearApp(context: Context, packageName: String) {
         val xprefs = XposedPrefs(context)
         xprefs.clearAppSettings(packageName)

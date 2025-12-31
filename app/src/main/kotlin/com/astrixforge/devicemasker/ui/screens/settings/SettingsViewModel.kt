@@ -24,10 +24,8 @@ import kotlinx.coroutines.withContext
  * @param application Application for context access
  * @param settingsStore The SettingsDataStore for persistence
  */
-class SettingsViewModel(
-    application: Application,
-    private val settingsStore: SettingsDataStore
-) : AndroidViewModel(application) {
+class SettingsViewModel(application: Application, private val settingsStore: SettingsDataStore) :
+    AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -35,9 +33,7 @@ class SettingsViewModel(
     init {
         // Collect theme mode
         viewModelScope.launch {
-            settingsStore.themeMode.collect { mode ->
-                _state.update { it.copy(themeMode = mode) }
-            }
+            settingsStore.themeMode.collect { mode -> _state.update { it.copy(themeMode = mode) } }
         }
 
         // Collect AMOLED mode
@@ -56,37 +52,30 @@ class SettingsViewModel(
     }
 
     fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch {
-            settingsStore.setThemeMode(mode)
-        }
+        viewModelScope.launch { settingsStore.setThemeMode(mode) }
     }
 
     fun setAmoledMode(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsStore.setAmoledMode(enabled)
-        }
+        viewModelScope.launch { settingsStore.setAmoledMode(enabled) }
     }
 
     fun setDynamicColors(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsStore.setDynamicColors(enabled)
-        }
+        viewModelScope.launch { settingsStore.setDynamicColors(enabled) }
     }
 
     // ═══════════════════════════════════════════════════════════
     // EXPORT LOGS (In-Memory YLog Data)
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Exports YLog in-memory data to a custom URI location (file picker).
-     */
+    /** Exports YLog in-memory data to a custom URI location (file picker). */
     fun exportLogsToUri(uri: Uri) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
-            val result = withContext(Dispatchers.IO) {
-                LogManager.exportLogsToUri(getApplication(), uri).toExportResult()
-            }
+            val result =
+                withContext(Dispatchers.IO) {
+                    LogManager.exportLogsToUri(getApplication(), uri).toExportResult()
+                }
 
             _state.update { it.copy(isExportingLogs = false, exportResult = result) }
         }

@@ -21,7 +21,7 @@ class SerialGeneratorTest {
             val serial = SerialGenerator.generate()
             assertTrue(
                 serial.length in 10..16,
-                "Serial should be 10-16 characters, got ${serial.length}: $serial"
+                "Serial should be 10-16 characters, got ${serial.length}: $serial",
             )
         }
     }
@@ -32,7 +32,7 @@ class SerialGeneratorTest {
             val serial = SerialGenerator.generate()
             assertTrue(
                 serial.all { it.isLetterOrDigit() },
-                "Serial should be alphanumeric, got: $serial"
+                "Serial should be alphanumeric, got: $serial",
             )
         }
     }
@@ -41,32 +41,26 @@ class SerialGeneratorTest {
     fun `generate for Samsung returns correct format`() {
         repeat(50) {
             val serial = SerialGenerator.generate("Samsung")
-            
+
             // Samsung format: R + 2 digits + year letter + 8 digits = 12 chars
             assertEquals(12, serial.length, "Samsung serial should be 12 chars: $serial")
-            
+
             // Should start with 'R'
-            assertTrue(
-                serial.startsWith("R"),
-                "Samsung serial should start with 'R': $serial"
-            )
-            
+            assertTrue(serial.startsWith("R"), "Samsung serial should start with 'R': $serial")
+
             // Positions 1-2 should be digits
             assertTrue(
                 serial.substring(1, 3).all { it.isDigit() },
-                "Samsung serial positions 1-2 should be digits: $serial"
+                "Samsung serial positions 1-2 should be digits: $serial",
             )
-            
+
             // Position 3 should be a letter (year indicator)
-            assertTrue(
-                serial[3].isLetter(),
-                "Samsung serial position 3 should be letter: $serial"
-            )
-            
+            assertTrue(serial[3].isLetter(), "Samsung serial position 3 should be letter: $serial")
+
             // Positions 4-11 should be digits
             assertTrue(
                 serial.substring(4).all { it.isDigit() },
-                "Samsung serial positions 4-11 should be digits: $serial"
+                "Samsung serial positions 4-11 should be digits: $serial",
             )
         }
     }
@@ -75,16 +69,13 @@ class SerialGeneratorTest {
     fun `generate for Google returns correct format`() {
         repeat(50) {
             val serial = SerialGenerator.generate("Google")
-            
+
             // Pixel format: 16 hex-like characters
             assertEquals(16, serial.length, "Pixel serial should be 16 chars: $serial")
-            
+
             // Should be hex-like (uppercase)
             val hexChars = "0123456789ABCDEF"
-            assertTrue(
-                serial.all { it in hexChars },
-                "Pixel serial should be hex: $serial"
-            )
+            assertTrue(serial.all { it in hexChars }, "Pixel serial should be hex: $serial")
         }
     }
 
@@ -92,17 +83,14 @@ class SerialGeneratorTest {
     fun `generate for Xiaomi returns correct format`() {
         repeat(50) {
             val serial = SerialGenerator.generate("Xiaomi")
-            
+
             // Xiaomi format: 12-16 alphanumeric
-            assertTrue(
-                serial.length in 12..16,
-                "Xiaomi serial should be 12-16 chars: $serial"
-            )
-            
+            assertTrue(serial.length in 12..16, "Xiaomi serial should be 12-16 chars: $serial")
+
             // Should be alphanumeric
             assertTrue(
                 serial.all { it.isLetterOrDigit() },
-                "Xiaomi serial should be alphanumeric: $serial"
+                "Xiaomi serial should be alphanumeric: $serial",
             )
         }
     }
@@ -111,16 +99,13 @@ class SerialGeneratorTest {
     fun `generate for unknown manufacturer returns valid serial`() {
         repeat(50) {
             val serial = SerialGenerator.generate("UnknownBrand")
-            
+
             // Generic format: 10-14 alphanumeric
-            assertTrue(
-                serial.length in 10..14,
-                "Generic serial should be 10-14 chars: $serial"
-            )
-            
+            assertTrue(serial.length in 10..14, "Generic serial should be 10-14 chars: $serial")
+
             assertTrue(
                 serial.all { it.isLetterOrDigit() },
-                "Generic serial should be alphanumeric: $serial"
+                "Generic serial should be alphanumeric: $serial",
             )
         }
     }
@@ -128,22 +113,15 @@ class SerialGeneratorTest {
     @Test
     fun `generated serials are unique`() {
         val serials = (1..1000).map { SerialGenerator.generate() }.toSet()
-        
-        assertTrue(
-            serials.size >= 990,
-            "Expected nearly 1000 unique serials, got ${serials.size}"
-        )
+
+        assertTrue(serials.size >= 990, "Expected nearly 1000 unique serials, got ${serials.size}")
     }
 
     @Test
     fun `Samsung serials are uppercase`() {
         repeat(50) {
             val serial = SerialGenerator.generate("Samsung")
-            assertEquals(
-                serial.uppercase(),
-                serial,
-                "Samsung serial should be uppercase: $serial"
-            )
+            assertEquals(serial.uppercase(), serial, "Samsung serial should be uppercase: $serial")
         }
     }
 
@@ -151,11 +129,7 @@ class SerialGeneratorTest {
     fun `Pixel serials are uppercase`() {
         repeat(50) {
             val serial = SerialGenerator.generate("Google")
-            assertEquals(
-                serial.uppercase(),
-                serial,
-                "Pixel serial should be uppercase: $serial"
-            )
+            assertEquals(serial.uppercase(), serial, "Pixel serial should be uppercase: $serial")
         }
     }
 }

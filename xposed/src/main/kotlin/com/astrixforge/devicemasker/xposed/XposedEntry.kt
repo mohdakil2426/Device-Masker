@@ -38,28 +38,29 @@ object XposedHookLoader : YukiBaseHooker() {
     private const val SELF_PACKAGE = "com.astrixforge.devicemasker"
 
     /**
-     * Common classes used across multiple hookers.
-     * Pre-loading these into ClassCache improves hook performance.
+     * Common classes used across multiple hookers. Pre-loading these into ClassCache improves hook
+     * performance.
      */
-    private val COMMON_CLASSES = arrayOf(
-        // Used by DeviceHooker, NetworkHooker, SystemHooker
-        "android.telephony.TelephonyManager",
-        // Used by DeviceHooker, SystemHooker
-        "android.os.Build",
-        "android.os.SystemProperties",
-        // Used by DeviceHooker
-        "android.provider.Settings\$Secure",
-        "android.content.ContentResolver",
-        // Used by NetworkHooker
-        "android.net.wifi.WifiInfo",
-        "android.bluetooth.BluetoothAdapter",
-        // Used by LocationHooker
-        "java.util.TimeZone",
-        "java.util.Locale",
-        // Used by AntiDetectHooker
-        "java.lang.Thread",
-        "java.lang.Throwable",
-    )
+    private val COMMON_CLASSES =
+        arrayOf(
+            // Used by DeviceHooker, NetworkHooker, SystemHooker
+            "android.telephony.TelephonyManager",
+            // Used by DeviceHooker, SystemHooker
+            "android.os.Build",
+            "android.os.SystemProperties",
+            // Used by DeviceHooker
+            "android.provider.Settings\$Secure",
+            "android.content.ContentResolver",
+            // Used by NetworkHooker
+            "android.net.wifi.WifiInfo",
+            "android.bluetooth.BluetoothAdapter",
+            // Used by LocationHooker
+            "java.util.TimeZone",
+            "java.util.Locale",
+            // Used by AntiDetectHooker
+            "java.lang.Thread",
+            "java.lang.Throwable",
+        )
 
     override fun onHook() {
         // Skip our own module
@@ -69,11 +70,7 @@ object XposedHookLoader : YukiBaseHooker() {
         }
 
         // Skip system-critical processes
-        val forbiddenProcesses = listOf(
-            "android",
-            "com.android.systemui",
-            "com.android.phone",
-        )
+        val forbiddenProcesses = listOf("android", "com.android.systemui", "com.android.phone")
         if (packageName in forbiddenProcesses || processName in forbiddenProcesses) {
             DualLog.debug(TAG, "Skipping system process: $packageName")
             return
@@ -81,7 +78,7 @@ object XposedHookLoader : YukiBaseHooker() {
 
         // Check if module is enabled via XSharedPreferences
         val moduleEnabled = PrefsHelper.isModuleEnabled(prefs)
-        
+
         if (!moduleEnabled) {
             DualLog.debug(TAG, "Module disabled globally, skipping: $packageName")
             return
@@ -116,7 +113,7 @@ object XposedHookLoader : YukiBaseHooker() {
         loadHooker(AdvertisingHooker)
         loadHooker(SystemHooker)
         loadHooker(LocationHooker)
-        
+
         // ═══════════════════════════════════════════════════════════
         // Anti-Fingerprinting Hookers (New)
         // ═══════════════════════════════════════════════════════════
@@ -126,7 +123,7 @@ object XposedHookLoader : YukiBaseHooker() {
         // Log cache performance stats
         val stats = ClassCache.stats()
         DualLog.debug(TAG, "ClassCache stats: $stats")
-        
+
         DualLog.info(TAG, "Hooks registered for: $packageName")
     }
 }

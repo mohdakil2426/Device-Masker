@@ -6,9 +6,9 @@ import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookPrefsBridge
 /**
  * Helper object for reading XSharedPreferences values.
  *
- * This provides utility functions for the hookers to use with YukiHookAPI's prefs.
- * All functions take a YukiHookPrefsBridge instance as the first parameter,
- * which you get from `prefs` property in PackageParam context.
+ * This provides utility functions for the hookers to use with YukiHookAPI's prefs. All functions
+ * take a YukiHookPrefsBridge instance as the first parameter, which you get from `prefs` property
+ * in PackageParam context.
  *
  * ## Key Sync Architecture:
  * ```
@@ -30,33 +30,31 @@ object PrefsHelper {
 
     private const val TAG = "PrefsHelper"
 
-    /**
-     * Checks if the module is enabled globally.
-     */
+    /** Checks if the module is enabled globally. */
     fun isModuleEnabled(prefs: YukiHookPrefsBridge): Boolean {
-        return runCatching {
-            prefs.get(PrefsKeys.MODULE_ENABLED)
-        }.getOrDefault(true)
+        return runCatching { prefs.get(PrefsKeys.MODULE_ENABLED) }.getOrDefault(true)
     }
 
-    /**
-     * Checks if spoofing is enabled for a specific app.
-     */
+    /** Checks if spoofing is enabled for a specific app. */
     fun isAppEnabled(prefs: YukiHookPrefsBridge, packageName: String): Boolean {
         return runCatching {
-            val key = PrefsKeys.getAppEnabledKey(packageName)
-            prefs.getString(key, "true") == "true"
-        }.getOrDefault(true)
+                val key = PrefsKeys.getAppEnabledKey(packageName)
+                prefs.getString(key, "true") == "true"
+            }
+            .getOrDefault(true)
     }
 
-    /**
-     * Checks if a specific spoof type is enabled for an app.
-     */
-    fun isSpoofTypeEnabled(prefs: YukiHookPrefsBridge, packageName: String, type: SpoofType): Boolean {
+    /** Checks if a specific spoof type is enabled for an app. */
+    fun isSpoofTypeEnabled(
+        prefs: YukiHookPrefsBridge,
+        packageName: String,
+        type: SpoofType,
+    ): Boolean {
         return runCatching {
-            val key = PrefsKeys.getSpoofEnabledKey(packageName, type)
-            prefs.getString(key, "false") == "true"
-        }.getOrDefault(false)
+                val key = PrefsKeys.getSpoofEnabledKey(packageName, type)
+                prefs.getString(key, "false") == "true"
+            }
+            .getOrDefault(false)
     }
 
     /**
@@ -78,35 +76,34 @@ object PrefsHelper {
         prefs: YukiHookPrefsBridge,
         packageName: String,
         type: SpoofType,
-        fallback: () -> String
+        fallback: () -> String,
     ): String {
         return runCatching {
-            // Check cascade: module → app → type
-            if (!isModuleEnabled(prefs)) return fallback()
-            if (!isAppEnabled(prefs, packageName)) return fallback()
-            if (!isSpoofTypeEnabled(prefs, packageName, type)) return fallback()
+                // Check cascade: module → app → type
+                if (!isModuleEnabled(prefs)) return fallback()
+                if (!isAppEnabled(prefs, packageName)) return fallback()
+                if (!isSpoofTypeEnabled(prefs, packageName, type)) return fallback()
 
-            // Get the spoof value using key from SharedPrefsKeys
-            val key = PrefsKeys.getSpoofKey(packageName, type)
-            val value = prefs.getString(key, "")
-            
-            if (value.isEmpty()) return fallback()
+                // Get the spoof value using key from SharedPrefsKeys
+                val key = PrefsKeys.getSpoofKey(packageName, type)
+                val value = prefs.getString(key, "")
 
-            DualLog.debug(TAG, "Spoofing ${type.name} for $packageName")
-            value
-        }.getOrElse { e ->
-            DualLog.warn(TAG, "Error reading prefs: ${e.message}")
-            fallback()
-        }
+                if (value.isEmpty()) return fallback()
+
+                DualLog.debug(TAG, "Spoofing ${type.name} for $packageName")
+                value
+            }
+            .getOrElse { e ->
+                DualLog.warn(TAG, "Error reading prefs: ${e.message}")
+                fallback()
+            }
     }
 
     /**
-     * Gets the current config version (for debugging only).
-     * Note: This is NOT useful for detecting config changes as XSharedPreferences caches.
+     * Gets the current config version (for debugging only). Note: This is NOT useful for detecting
+     * config changes as XSharedPreferences caches.
      */
     fun getConfigVersion(prefs: YukiHookPrefsBridge): Int {
-        return runCatching {
-            prefs.get(PrefsKeys.CONFIG_VERSION)
-        }.getOrDefault(1)
+        return runCatching { prefs.get(PrefsKeys.CONFIG_VERSION) }.getOrDefault(1)
     }
 }

@@ -5,8 +5,8 @@ import android.util.LruCache
 /**
  * Global LRU cache for Class<?> instances across all hookers.
  *
- * This cache provides significant performance improvements (10-50x faster) for
- * class lookups by avoiding repeated ClassLoader.loadClass() calls.
+ * This cache provides significant performance improvements (10-50x faster) for class lookups by
+ * avoiding repeated ClassLoader.loadClass() calls.
  *
  * ## Why This Matters
  * - 8 hookers often look up the same classes (TelephonyManager, Build, etc.)
@@ -34,55 +34,51 @@ import android.util.LruCache
  * ```
  *
  * ## Thread Safety
- * LruCache is synchronized internally, making this safe for concurrent access
- * from multiple hookers running in different threads.
+ * LruCache is synchronized internally, making this safe for concurrent access from multiple hookers
+ * running in different threads.
  *
  * @see android.util.LruCache
  */
 object ClassCache {
-    
+
     /**
      * Maximum number of Class<?> entries to cache.
-     * 
+     *
      * 100 entries is sufficient for typical hook scenarios:
      * - Common Android framework classes (~30)
      * - App-specific classes if needed (~20)
      * - Buffer for variations across different apps (~50)
      */
     private const val MAX_CACHE_SIZE = 100
-    
+
     /**
-     * Cache key combining class name and ClassLoader identity.
-     * Different ClassLoaders can load the same class name differently.
+     * Cache key combining class name and ClassLoader identity. Different ClassLoaders can load the
+     * same class name differently.
      */
-    private data class CacheKey(
-        val className: String,
-        val loaderIdentity: Int
-    )
-    
+    private data class CacheKey(val className: String, val loaderIdentity: Int)
+
     /**
-     * The underlying LRU cache.
-     * Automatically evicts least-recently-used entries when capacity is exceeded.
+     * The underlying LRU cache. Automatically evicts least-recently-used entries when capacity is
+     * exceeded.
      */
     private val cache = LruCache<CacheKey, Class<*>>(MAX_CACHE_SIZE)
-    
+
     /**
-     * Track cache misses that resulted in ClassNotFoundException.
-     * Prevents repeated failed lookups for the same non-existent class.
+     * Track cache misses that resulted in ClassNotFoundException. Prevents repeated failed lookups
+     * for the same non-existent class.
      */
     private val notFoundCache = mutableSetOf<CacheKey>()
-    
+
     /**
      * Gets a class from cache or loads it, returning null if not found.
      *
-     * This is the preferred method for optional classes that may not exist
-     * on all Android versions.
+     * This is the preferred method for optional classes that may not exist on all Android versions.
      *
      * @param className Fully qualified class name (e.g., "android.os.Build")
      * @param classLoader The ClassLoader to use for loading
      * @return The Class<?> or null if not found
-     *
      * @sample
+     *
      * ```kotlin
      * val clazz = ClassCache.getClass("android.app.ActivityThread", loader)
      * ```
@@ -91,15 +87,17 @@ object ClassCache {
     fun getClass(className: String, classLoader: ClassLoader?): Class<*>? {
         val loader = classLoader ?: ClassLoader.getSystemClassLoader()
         val key = CacheKey(className, System.identityHashCode(loader))
-        
+
         // Check if we've already determined this class doesn't exist
         if (key in notFoundCache) {
             return null
         }
-        
+
         // Check cache first
-        cache.get(key)?.let { return it }
-        
+        cache.get(key)?.let {
+            return it
+        }
+
         // Load class
         return try {
             val clazz = loader.loadClass(className)
@@ -113,7 +111,7 @@ object ClassCache {
             null
         }
     }
-    
+
     /**
      * Gets a class from cache or loads it, throwing if not found.
      *
@@ -123,8 +121,8 @@ object ClassCache {
      * @param classLoader The ClassLoader to use for loading
      * @return The Class<?>
      * @throws ClassNotFoundException if the class cannot be found
-     *
      * @sample
+     *
      * ```kotlin
      * val clazz = ClassCache.requireClass("android.os.Build", loader)
      * ```
@@ -134,13 +132,13 @@ object ClassCache {
         return getClass(className, classLoader)
             ?: throw ClassNotFoundException("Class not found: $className")
     }
-    
+
     /**
      * Returns cache statistics for debugging and performance monitoring.
      *
      * @return CacheStats containing hit count, miss count, and current size
-     *
      * @sample
+     *
      * ```kotlin
      * val stats = ClassCache.stats()
      * YLog.debug("Cache hits: ${stats.hitCount}, misses: ${stats.missCount}")
@@ -152,10 +150,10 @@ object ClassCache {
             missCount = cache.missCount(),
             size = cache.size(),
             maxSize = MAX_CACHE_SIZE,
-            notFoundCount = notFoundCache.size
+            notFoundCount = notFoundCache.size,
         )
     }
-    
+
     /**
      * Clears the entire cache.
      *
@@ -169,18 +167,18 @@ object ClassCache {
         cache.evictAll()
         notFoundCache.clear()
     }
-    
+
     /**
      * Pre-populates the cache with commonly used classes.
      *
-     * Call this during hook initialization to warm up the cache
-     * with frequently accessed framework classes.
+     * Call this during hook initialization to warm up the cache with frequently accessed framework
+     * classes.
      *
      * @param classLoader The ClassLoader to use for loading
      * @param classNames List of class names to pre-load
      * @return Number of classes successfully cached
-     *
      * @sample
+     *
      * ```kotlin
      * ClassCache.preload(appClassLoader,
      *     "android.telephony.TelephonyManager",
@@ -199,10 +197,8 @@ object ClassCache {
         }
         return loaded
     }
-    
-    /**
-     * Statistics for cache performance monitoring.
-     */
+
+    /** Statistics for cache performance monitoring. */
     data class CacheStats(
         /** Number of successful cache hits */
         val hitCount: Int,
@@ -213,17 +209,18 @@ object ClassCache {
         /** Maximum cache capacity */
         val maxSize: Int,
         /** Number of classes known to not exist */
-        val notFoundCount: Int
+        val notFoundCount: Int,
     ) {
         /** Cache hit rate as a percentage (0-100) */
         val hitRate: Float
-            get() = if (hitCount + missCount > 0) {
-                hitCount.toFloat() / (hitCount + missCount) * 100
-            } else 0f
-        
+            get() =
+                if (hitCount + missCount > 0) {
+                    hitCount.toFloat() / (hitCount + missCount) * 100
+                } else 0f
+
         override fun toString(): String {
             return "CacheStats(hits=$hitCount, misses=$missCount, size=$size/$maxSize, " +
-                    "notFound=$notFoundCount, hitRate=${String.format("%.1f", hitRate)}%)"
+                "notFound=$notFoundCount, hitRate=${String.format("%.1f", hitRate)}%)"
         }
     }
 }

@@ -39,8 +39,8 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIn
 /**
  * Apps tab content for group spoofing screen.
  *
- * Shows a searchable list of installed apps with toggles
- * to assign/unassign them from the current group.
+ * Shows a searchable list of installed apps with toggles to assign/unassign them from the current
+ * group.
  */
 @Composable
 fun AppsTabContent(
@@ -55,37 +55,37 @@ fun AppsTabContent(
     // Filter apps - exclude system apps and own app
     // Sort with assigned apps first for better UX
     // Using derivedStateOf for optimized recomposition during search typing
-    val filteredApps by remember(installedApps, group) {
-        derivedStateOf {
-            installedApps
-                .filter { app ->
-                    // Always exclude our own app and system apps
-                    if (app.packageName == BuildConfig.APPLICATION_ID) {
-                        return@filter false
-                    }
-                    if (app.isSystemApp) {
-                        return@filter false
-                    }
-                    // Match search query
-                    searchQuery.isEmpty() ||
+    val filteredApps by
+        remember(installedApps, group) {
+            derivedStateOf {
+                installedApps
+                    .filter { app ->
+                        // Always exclude our own app and system apps
+                        if (app.packageName == BuildConfig.APPLICATION_ID) {
+                            return@filter false
+                        }
+                        if (app.isSystemApp) {
+                            return@filter false
+                        }
+                        // Match search query
+                        searchQuery.isEmpty() ||
                             app.label.contains(searchQuery, ignoreCase = true) ||
                             app.packageName.contains(searchQuery, ignoreCase = true)
-                }
-                // Sort: assigned apps first, then alphabetically
-                .sortedWith(
-                    compareByDescending<InstalledApp> {
-                        group?.isAppAssigned(it.packageName) == true
-                    }.thenBy { it.label.lowercase() }
-                )
+                    }
+                    // Sort: assigned apps first, then alphabetically
+                    .sortedWith(
+                        compareByDescending<InstalledApp> {
+                                group?.isAppAssigned(it.packageName) == true
+                            }
+                            .thenBy { it.label.lowercase() }
+                    )
+            }
         }
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
         // Search and filter
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Search bar
@@ -100,12 +100,13 @@ fun AppsTabContent(
             )
 
             Text(
-                text = pluralStringResource(
-                    id = R.plurals.group_spoofing_apps_assigned_stats,
-                    count = filteredApps.size,
-                    filteredApps.size,
-                    group?.assignedAppCount() ?: 0
-                ),
+                text =
+                    pluralStringResource(
+                        id = R.plurals.group_spoofing_apps_assigned_stats,
+                        count = filteredApps.size,
+                        filteredApps.size,
+                        group?.assignedAppCount() ?: 0,
+                    ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -114,10 +115,7 @@ fun AppsTabContent(
         // App list with empty state
         if (installedApps.isEmpty()) {
             // Loading state
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ExpressiveLoadingIndicatorWithLabel(
                     label = stringResource(id = R.string.group_spoofing_loading_apps)
                 )
@@ -134,22 +132,20 @@ fun AppsTabContent(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(
-                    count = filteredApps.size,
-                    key = { filteredApps[it].packageName }
-                ) { index ->
+                items(count = filteredApps.size, key = { filteredApps[it].packageName }) { index ->
                     val app = filteredApps[index]
                     val isAssignedToThisGroup = group?.isAppAssigned(app.packageName) == true
-                    val assignedToOtherGroup = allGroups
-                        .filter { it.id != group?.id }
-                        .find { it.isAppAssigned(app.packageName) }
+                    val assignedToOtherGroup =
+                        allGroups
+                            .filter { it.id != group?.id }
+                            .find { it.isAppAssigned(app.packageName) }
 
                     AppListItem(
                         app = app,
                         isAssigned = isAssignedToThisGroup,
                         assignedToOtherGroupName = assignedToOtherGroup?.name,
                         onToggle = { checked -> onAppToggle(app, checked) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 

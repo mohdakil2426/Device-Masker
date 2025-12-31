@@ -11,7 +11,7 @@ import com.highcapable.yukihookapi.hook.type.java.StringClass
  *
  * Apps use WebView's JavaScript to fingerprint devices via:
  * - navigator.userAgent
- * - navigator.platform  
+ * - navigator.platform
  * - screen dimensions
  */
 object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
@@ -20,7 +20,8 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
     private val webSettingsClass by lazy { "android.webkit.WebSettings".toClassOrNull() }
 
     private fun getActivePreset(): DeviceProfilePreset? {
-        val presetId = PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.DEVICE_PROFILE) { "" }
+        val presetId =
+            PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.DEVICE_PROFILE) { "" }
         if (presetId.isEmpty()) return null
         return DeviceProfilePreset.findById(presetId)
     }
@@ -38,29 +39,37 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
     private fun hookWebSettings() {
         webSettingsClass?.apply {
             // Hook getUserAgentString()
-            method { name = "getUserAgentString"; emptyParam() }.hook {
-                after {
-                    val preset = getActivePreset() ?: return@after
-                    val originalUA = result as? String ?: return@after
-                    val spoofedUA = modifyUserAgent(originalUA, preset.model)
-                    if (spoofedUA != originalUA) {
-                        result = spoofedUA
-                        logDebug("Spoofed User-Agent with model: ${preset.model}")
+            method {
+                    name = "getUserAgentString"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        val preset = getActivePreset() ?: return@after
+                        val originalUA = result as? String ?: return@after
+                        val spoofedUA = modifyUserAgent(originalUA, preset.model)
+                        if (spoofedUA != originalUA) {
+                            result = spoofedUA
+                            logDebug("Spoofed User-Agent with model: ${preset.model}")
+                        }
                     }
                 }
-            }
 
             // Hook setUserAgentString(String ua)
-            method { name = "setUserAgentString"; param(StringClass) }.hook {
-                before {
-                    val preset = getActivePreset() ?: return@before
-                    val customUA = args(0).string()
-                    if (customUA.isNotEmpty() && !customUA.contains(preset.model)) {
-                        args[0] = modifyUserAgent(customUA, preset.model)
-                        logDebug("Modified custom User-Agent")
+            method {
+                    name = "setUserAgentString"
+                    param(StringClass)
+                }
+                .hook {
+                    before {
+                        val preset = getActivePreset() ?: return@before
+                        val customUA = args(0).string()
+                        if (customUA.isNotEmpty() && !customUA.contains(preset.model)) {
+                            args[0] = modifyUserAgent(customUA, preset.model)
+                            logDebug("Modified custom User-Agent")
+                        }
                     }
                 }
-            }
         }
     }
 
@@ -68,7 +77,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         // Replace device model in User-Agent
         // Original format: "... (Linux; Android XX; DEVICE_MODEL) ..."
         val regex = Regex("""\(Linux; Android (\d+); ([^)]+)\)""")
-        
+
         return regex.replace(originalUA) { matchResult ->
             val androidVersion = matchResult.groupValues[1]
             "(Linux; Android $androidVersion; $model)"

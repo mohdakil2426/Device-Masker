@@ -93,24 +93,26 @@ fun SettingsScreen(
     val exportNoLogsMessage = stringResource(R.string.settings_export_logs_no_logs)
 
     val isSystemDark = isSystemInDarkTheme()
-    val isDarkModeActive = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemDark
-        ThemeMode.DARK -> true
-        ThemeMode.LIGHT -> false
-    }
+    val isDarkModeActive =
+        when (themeMode) {
+            ThemeMode.SYSTEM -> isSystemDark
+            ThemeMode.DARK -> true
+            ThemeMode.LIGHT -> false
+        }
 
     // File picker launcher - directly opens native folder picker
-    val exportLogsLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("text/plain")
-    ) { uri ->
-        uri?.let { onExportLogsToUri(it) }
-    }
+    val exportLogsLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) {
+            uri ->
+            uri?.let { onExportLogsToUri(it) }
+        }
 
     // Handle export result
     LaunchedEffect(exportResult) {
         when (exportResult) {
             is ExportResult.Success -> {
-                val message = "Logs exported (${exportResult.lineCount} lines)\n\nSaved to: ${exportResult.filePath}"
+                val message =
+                    "Logs exported (${exportResult.lineCount} lines)\n\nSaved to: ${exportResult.filePath}"
                 snackbarHostState.showSnackbar(message)
                 onClearExportResult()
             }
@@ -122,7 +124,7 @@ fun SettingsScreen(
                 snackbarHostState.showSnackbar("Failed: ${exportResult.message}")
                 onClearExportResult()
             }
-            null -> { }
+            null -> {}
         }
     }
 
@@ -137,7 +139,7 @@ fun SettingsScreen(
             onThemeModeClick = { showThemeModeDialog = true },
             onAmoledDarkModeChange = onAmoledDarkModeChange,
             onDynamicColorChange = onDynamicColorChange,
-            onExportLogsClick = { 
+            onExportLogsClick = {
                 // Directly open native file picker
                 exportLogsLauncher.launch(generateLogFileName())
             },
@@ -146,7 +148,7 @@ fun SettingsScreen(
 
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
 
@@ -158,7 +160,7 @@ fun SettingsScreen(
                 onThemeModeChange(mode)
                 showThemeModeDialog = false
             },
-            onDismiss = { showThemeModeDialog = false }
+            onDismiss = { showThemeModeDialog = false },
         )
     }
 }
@@ -182,19 +184,18 @@ private fun SettingsScreenContent(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "header") {
-            ScreenHeader(title = stringResource(id = R.string.settings_title))
-        }
+        item(key = "header") { ScreenHeader(title = stringResource(id = R.string.settings_title)) }
 
         // Appearance Section
         item(key = "appearance") {
             SettingsSection(title = stringResource(id = R.string.settings_appearance)) {
                 SettingsClickableItemWithValue(
-                    icon = when (themeMode) {
-                        ThemeMode.DARK -> Icons.Outlined.DarkMode
-                        ThemeMode.LIGHT -> Icons.Outlined.LightMode
-                        ThemeMode.SYSTEM -> Icons.Outlined.Contrast
-                    },
+                    icon =
+                        when (themeMode) {
+                            ThemeMode.DARK -> Icons.Outlined.DarkMode
+                            ThemeMode.LIGHT -> Icons.Outlined.LightMode
+                            ThemeMode.SYSTEM -> Icons.Outlined.Contrast
+                        },
                     title = stringResource(id = R.string.settings_theme_mode),
                     description = stringResource(id = themeMode.displayNameRes),
                     onClick = onThemeModeClick,
@@ -238,15 +239,17 @@ private fun SettingsScreenContent(
                 SettingsClickableItem(
                     icon = Icons.Outlined.FileDownload,
                     title = stringResource(id = R.string.settings_export_logs),
-                    description = if (isExportingLogs) {
-                        stringResource(id = R.string.settings_exporting)
-                    } else {
-                        stringResource(id = R.string.settings_export_logs_description)
-                    },
+                    description =
+                        if (isExportingLogs) {
+                            stringResource(id = R.string.settings_exporting)
+                        } else {
+                            stringResource(id = R.string.settings_export_logs_description)
+                        },
                     onClick = { if (!isExportingLogs) onExportLogsClick() },
-                    trailingContent = if (isExportingLogs) {
-                        { LoadingIndicator() }
-                    } else null
+                    trailingContent =
+                        if (isExportingLogs) {
+                            { LoadingIndicator() }
+                        } else null,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -266,10 +269,11 @@ private fun SettingsScreenContent(
                 SettingsInfoItem(
                     icon = Icons.Outlined.Info,
                     title = stringResource(id = R.string.settings_version),
-                    value = stringResource(
-                        id = R.string.settings_version_info,
-                        BuildConfig.VERSION_NAME
-                    ),
+                    value =
+                        stringResource(
+                            id = R.string.settings_version_info,
+                            BuildConfig.VERSION_NAME,
+                        ),
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -286,7 +290,7 @@ private fun SettingsScreenContent(
                     icon = Icons.Outlined.Tune,
                     title = "Module Info",
                     description = "YukiHookAPI 1.3.1 • LSPosed Module",
-                    onClick = { },
+                    onClick = {},
                 )
             }
         }
@@ -298,11 +302,8 @@ private fun SettingsScreenContent(
 @Composable
 private fun LoadingIndicator() {
     CircularProgressIndicator(
-        modifier = Modifier
-            .padding(end = 8.dp)
-            .width(24.dp)
-            .height(24.dp),
-        strokeWidth = 2.dp
+        modifier = Modifier.padding(end = 8.dp).width(24.dp).height(24.dp),
+        strokeWidth = 2.dp,
     )
 }
 
@@ -325,20 +326,17 @@ private fun ThemeModeDialog(
             Column(modifier = Modifier.selectableGroup()) {
                 ThemeMode.entries.forEach { mode ->
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = mode == currentMode,
-                                onClick = { onModeSelected(mode) },
-                                role = Role.RadioButton
-                            )
-                            .padding(vertical = 12.dp),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .selectable(
+                                    selected = mode == currentMode,
+                                    onClick = { onModeSelected(mode) },
+                                    role = Role.RadioButton,
+                                )
+                                .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(
-                            selected = mode == currentMode,
-                            onClick = null,
-                        )
+                        RadioButton(selected = mode == currentMode, onClick = null)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
@@ -348,7 +346,8 @@ private fun ThemeModeDialog(
                             )
                             if (mode == ThemeMode.SYSTEM) {
                                 Text(
-                                    text = stringResource(id = R.string.settings_theme_follow_system),
+                                    text =
+                                        stringResource(id = R.string.settings_theme_follow_system),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -359,9 +358,7 @@ private fun ThemeModeDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.action_cancel))
-            }
+            TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.action_cancel)) }
         },
     )
 }

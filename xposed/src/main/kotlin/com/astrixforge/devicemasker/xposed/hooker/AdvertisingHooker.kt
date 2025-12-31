@@ -34,9 +34,15 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
 
     private fun hookAdvertisingIdClient() {
         "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info".toClassOrNull()?.apply {
-            method { name = "getId"; emptyParam() }.hook {
-                after { result = getSpoofValue(SpoofType.ADVERTISING_ID) { fallbackAdvertisingId } }
-            }
+            method {
+                    name = "getId"
+                    emptyParam()
+                }
+                .hook {
+                    after {
+                        result = getSpoofValue(SpoofType.ADVERTISING_ID) { fallbackAdvertisingId }
+                    }
+                }
         }
     }
 
@@ -47,26 +53,34 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
     private fun hookGooglePlayServices() {
         "com.google.android.gsf.Gservices".toClassOrNull()?.apply {
             runCatching {
-                method { name = "getString"; paramCount = 2 }.hook {
-                    after {
-                        val key = args(1).string()
-                        if (key == "android_id") {
-                            result = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
+                method {
+                        name = "getString"
+                        paramCount = 2
+                    }
+                    .hook {
+                        after {
+                            val key = args(1).string()
+                            if (key == "android_id") {
+                                result = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
+                            }
                         }
                     }
-                }
             }
 
             runCatching {
-                method { name = "getLong"; paramCount = 3 }.hook {
-                    after {
-                        val key = args(1).string()
-                        if (key == "android_id") {
-                            val spoofed = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
-                            result = runCatching { spoofed.toLong(16) }.getOrElse { result }
+                method {
+                        name = "getLong"
+                        paramCount = 3
+                    }
+                    .hook {
+                        after {
+                            val key = args(1).string()
+                            if (key == "android_id") {
+                                val spoofed = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
+                                result = runCatching { spoofed.toLong(16) }.getOrElse { result }
+                            }
                         }
                     }
-                }
             }
         }
     }
@@ -78,15 +92,20 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
     private fun hookMediaDrm() {
         "android.media.MediaDrm".toClassOrNull()?.apply {
             runCatching {
-                method { name = "getPropertyByteArray"; param(StringClass) }.hook {
-                    after {
-                        val property = args(0).string()
-                        if (property == "deviceUniqueId") {
-                            val spoofed = getSpoofValue(SpoofType.MEDIA_DRM_ID) { fallbackMediaDrmId }
-                            result = hexToBytes(spoofed)
+                method {
+                        name = "getPropertyByteArray"
+                        param(StringClass)
+                    }
+                    .hook {
+                        after {
+                            val property = args(0).string()
+                            if (property == "deviceUniqueId") {
+                                val spoofed =
+                                    getSpoofValue(SpoofType.MEDIA_DRM_ID) { fallbackMediaDrmId }
+                                result = hexToBytes(spoofed)
+                            }
                         }
                     }
-                }
             }
         }
     }
@@ -101,8 +120,7 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
     }
 
     private fun hexToBytes(hex: String): ByteArray {
-        return runCatching {
-            hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-        }.getOrElse { ByteArray(32) }
+        return runCatching { hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
+            .getOrElse { ByteArray(32) }
     }
 }

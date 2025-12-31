@@ -6,7 +6,7 @@
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Kotlin** | 2.2.21 | Primary language |
+| **Kotlin** | 2.3.0 | Primary language |
 | **Android SDK** | API 36 (compileSdk) | Android 16 support |
 | **Min SDK** | API 26 (Android 8.0) | Broader device compatibility |
 | **Target SDK** | API 36 | Latest Android 16 |
@@ -184,8 +184,8 @@ val bottomNavItems: List<NavItem> = listOf(...)
 [versions]
 # Core
 agp = "8.13.2"
-kotlin = "2.2.21"
-ksp = "2.2.21-2.0.4"
+kotlin = "2.3.0"
+ksp = "2.3.4"
 
 # Android
 coreKtx = "1.17.0"
@@ -461,5 +461,3 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 }
 ```
-
-

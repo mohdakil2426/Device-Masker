@@ -25,7 +25,7 @@ class MACGeneratorTest {
             val mac = MACGenerator.generate()
             assertTrue(
                 macPattern.matches(mac),
-                "MAC should match XX:XX:XX:XX:XX:XX format, got: $mac"
+                "MAC should match XX:XX:XX:XX:XX:XX format, got: $mac",
             )
         }
     }
@@ -36,12 +36,12 @@ class MACGeneratorTest {
             val mac = MACGenerator.generate()
             val octets = mac.split(":")
             assertEquals(6, octets.size, "MAC should have 6 octets")
-            
+
             octets.forEach { octet ->
                 assertEquals(2, octet.length, "Each octet should be 2 hex chars")
                 assertTrue(
                     octet.all { it in "0123456789ABCDEF" },
-                    "Octet should be uppercase hex: $octet"
+                    "Octet should be uppercase hex: $octet",
                 )
             }
         }
@@ -52,7 +52,7 @@ class MACGeneratorTest {
         repeat(100) {
             val mac = MACGenerator.generate()
             val firstOctet = mac.split(":")[0].toInt(16)
-            
+
             // Unicast: LSB of first octet = 0
             val isUnicast = (firstOctet and 0x01) == 0
             assertTrue(isUnicast, "MAC should be unicast (LSB=0), got: $mac")
@@ -64,12 +64,12 @@ class MACGeneratorTest {
         repeat(100) {
             val mac = MACGenerator.generate()
             val firstOctet = mac.split(":")[0].toInt(16)
-            
+
             // Locally administered: bit 1 = 1
             val isLocallyAdministered = (firstOctet and 0x02) != 0
             assertTrue(
                 isLocallyAdministered,
-                "Generic MAC should be locally administered (bit 1=1), got: $mac"
+                "Generic MAC should be locally administered (bit 1=1), got: $mac",
             )
         }
     }
@@ -77,15 +77,15 @@ class MACGeneratorTest {
     @Test
     fun `generateForManufacturer returns valid MAC`() {
         val manufacturers = listOf("samsung", "apple", "google", "xiaomi", "huawei", "unknown")
-        
+
         manufacturers.forEach { manufacturer ->
             repeat(20) {
                 val mac = MACGenerator.generateForManufacturer(manufacturer)
                 assertTrue(
                     macPattern.matches(mac),
-                    "MAC for $manufacturer should be valid format: $mac"
+                    "MAC for $manufacturer should be valid format: $mac",
                 )
-                
+
                 // Should still be unicast
                 val firstOctet = mac.split(":")[0].toInt(16)
                 val isUnicast = (firstOctet and 0x01) == 0
@@ -98,10 +98,7 @@ class MACGeneratorTest {
     fun `generateWiFiMAC returns valid MAC`() {
         repeat(100) {
             val mac = MACGenerator.generateWiFiMAC()
-            assertTrue(
-                macPattern.matches(mac),
-                "WiFi MAC should be valid format: $mac"
-            )
+            assertTrue(macPattern.matches(mac), "WiFi MAC should be valid format: $mac")
         }
     }
 
@@ -109,32 +106,23 @@ class MACGeneratorTest {
     fun `generateBluetoothMAC returns valid MAC`() {
         repeat(100) {
             val mac = MACGenerator.generateBluetoothMAC()
-            assertTrue(
-                macPattern.matches(mac),
-                "Bluetooth MAC should be valid format: $mac"
-            )
+            assertTrue(macPattern.matches(mac), "Bluetooth MAC should be valid format: $mac")
         }
     }
 
     @Test
     fun `generated MACs are unique`() {
         val macs = (1..1000).map { MACGenerator.generate() }.toSet()
-        
+
         // With 48-bit random space, 1000 unique MACs should be guaranteed
-        assertTrue(
-            macs.size >= 990,
-            "Expected nearly 1000 unique MACs, got ${macs.size}"
-        )
+        assertTrue(macs.size >= 990, "Expected nearly 1000 unique MACs, got ${macs.size}")
     }
 
     @Test
     fun `Utils validates generated MACs`() {
         repeat(100) {
             val mac = MACGenerator.generate()
-            assertTrue(
-                Utils.isValidMac(mac),
-                "Utils.isValidMac should accept generated MAC: $mac"
-            )
+            assertTrue(Utils.isValidMac(mac), "Utils.isValidMac should accept generated MAC: $mac")
         }
     }
 }
