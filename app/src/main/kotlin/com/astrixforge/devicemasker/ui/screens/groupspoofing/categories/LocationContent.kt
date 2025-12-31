@@ -15,6 +15,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.ui.components.dialog.TimezonePickerDialog
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
@@ -44,8 +49,11 @@ fun LocationCategoryContent(
     onToggle: (SpoofType, Boolean) -> Unit,
     onRegenerate: (SpoofType) -> Unit,
     onRegenerateLocation: () -> Unit,
+    onTimezoneSelected: (String) -> Unit,
     onCopy: (String) -> Unit,
 ) {
+    var showTimezoneDialog by remember { mutableStateOf(false) }
+
     val timezoneEnabled = group?.isTypeEnabled(SpoofType.TIMEZONE) ?: false
     val timezoneValue = group?.getValue(SpoofType.TIMEZONE) ?: ""
     val localeValue = group?.getValue(SpoofType.LOCALE) ?: ""
@@ -53,6 +61,18 @@ fun LocationCategoryContent(
     val latValue = group?.getValue(SpoofType.LOCATION_LATITUDE) ?: ""
     val longEnabled = group?.isTypeEnabled(SpoofType.LOCATION_LONGITUDE) ?: false
     val longValue = group?.getValue(SpoofType.LOCATION_LONGITUDE) ?: ""
+
+    // Timezone Picker Dialog
+    if (showTimezoneDialog) {
+        TimezonePickerDialog(
+            selectedTimezone = timezoneValue,
+            onTimezoneSelected = { timezone ->
+                onTimezoneSelected(timezone)
+                showTimezoneDialog = false
+            },
+            onDismiss = { showTimezoneDialog = false },
+        )
+    }
 
     // 1. Timezone + Locale combined card - one switch controls both
     ExpressiveCard(
@@ -110,7 +130,7 @@ fun LocationCategoryContent(
                         modifier =
                             Modifier.weight(1f)
                                 .combinedClickable(
-                                    onClick = {},
+                                    onClick = { showTimezoneDialog = true },
                                     onLongClick = {
                                         if (timezoneValue.isNotEmpty()) onCopy(timezoneValue)
                                     },

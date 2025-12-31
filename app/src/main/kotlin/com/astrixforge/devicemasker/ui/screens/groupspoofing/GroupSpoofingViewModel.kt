@@ -109,6 +109,15 @@ class GroupSpoofingViewModel(private val repository: SpoofRepository, private va
         viewModelScope.launch { repository.updateGroupWithCarrier(group.id, carrier) }
     }
 
+    fun updateTimezone(timezoneId: String) {
+        val group = state.value.group ?: return
+        viewModelScope.launch {
+            // Update timezone value directly
+            val updated = group.withValue(SpoofType.TIMEZONE, timezoneId)
+            repository.updateGroup(updated)
+        }
+    }
+
     fun addAppToGroup(packageName: String) {
         viewModelScope.launch { repository.addAppToGroup(groupId, packageName) }
     }
