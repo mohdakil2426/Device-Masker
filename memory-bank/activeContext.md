@@ -2,6 +2,73 @@
 
 ## Current Work Focus
 
+### ✅ Complete: Timezone Picker & UI Improvements (Jan 1, 2026)
+
+**Status**: Complete ✅  
+**Scope**: Added timezone selection dialog, redesigned Location/SIM Card sections
+
+#### Features Added
+
+| Feature | Description |
+|---------|-------------|
+| **TimezonePickerDialog** | Searchable dialog for selecting timezones (similar to CountryPickerDialog) |
+| **Timezone-Locale Sync** | Selecting timezone auto-updates locale to match country |
+| **Location Section Redesign** | Now mirrors SIM Card design pattern |
+| **SIM Card Merge** | Merged "Choose Sim" and "Carrier Info" into single card |
+
+#### Files Created
+| File | Purpose |
+|------|---------|
+| `ui/components/dialog/TimezonePickerDialog.kt` | Searchable timezone picker |
+
+#### Files Modified
+| File | Change |
+|------|--------|
+| `ui/screens/groupspoofing/categories/LocationContent.kt` | Redesigned to match SIM Card pattern |
+| `ui/screens/groupspoofing/categories/SIMCardContent.kt` | Merged Carrier Info into main card |
+| `ui/screens/groupspoofing/GroupSpoofingViewModel.kt` | Added `updateTimezone()` with locale sync |
+| `ui/screens/groupspoofing/GroupSpoofingScreen.kt` | Added onTimezoneSelected callback |
+| `ui/screens/groupspoofing/tabs/SpoofTabContent.kt` | Added onTimezoneSelected parameter |
+| `ui/screens/groupspoofing/categories/CategorySection.kt` | Added onTimezoneSelected parameter |
+| `common/models/LocationConfig.kt` | Added `getLocaleForTimezone()` helper |
+| `res/values/strings.xml` | Added `label_choose_location` string |
+
+#### UI Design Pattern
+
+**Location Section (now matches SIM Card):**
+```
+┌─────────────────────────────────────────────┐
+│ Choose Location                    [Switch] │
+├─────────────────────────────────────────────┤
+│ Timezone    │ Africa/Algiers           [>] │
+│ Locale      │        ko_KR                 │ (read-only, synced)
+└─────────────────────────────────────────────┘
+```
+
+**SIM Card Section (merged):**
+```
+┌─────────────────────────────────────────────┐
+│ Choose Sim                         [Switch] │
+├─────────────────────────────────────────────┤
+│ Country     │ 🇮🇳 India               [>] │
+│ Carrier     │ Airtel                  [▼] │
+├─────────────────────────────────────────────┤
+│ SIM Country          kr                     │
+│ Network Country      kr                     │
+│ MCC/MNC              45005                  │
+│ Carrier Name         SK Telecom             │
+│ SIM Operator         SK Telecom             │
+│ Network Operator     45005                  │
+└─────────────────────────────────────────────┘
+```
+
+#### Animation Fix
+- Changed `AnimatedVisibility` to `if` statement in SIM Card
+- Fixes animation sticking issue when closing the card
+- Matches Device Profile implementation pattern
+
+---
+
 ### ✅ Complete: Kotlin 2.3.0 Upgrade (Jan 1, 2026)
 
 **Status**: Complete ✅  

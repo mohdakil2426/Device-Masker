@@ -6,8 +6,35 @@
 |--------|-------|
 | **Project Phase** | PRODUCTION READY ✅ (Beta) |
 | **Active Changes** | 0 |
-| **Archived Changes** | 11 |
-| **Last Major Update** | January 1, 2026 - Kotlin 2.3.0 Upgrade |
+| **Archived Changes** | 12 |
+| **Last Major Update** | January 1, 2026 - Timezone Picker & UI Improvements |
+
+---
+
+## ✅ Complete: Timezone Picker & UI Improvements (Jan 1, 2026)
+
+**Status**: Complete ✅  
+**Impact**: Better location selection UX, consistent UI design patterns
+
+### Features Added
+
+| Feature | Description |
+|---------|-------------|
+| **TimezonePickerDialog** | Searchable dialog with GMT offset display |
+| **Timezone-Locale Sync** | Auto-updates locale when timezone changes |
+| **Location Redesign** | Mirrors SIM Card design pattern |
+| **SIM Card Merge** | Single card for Choose Sim + Carrier Info |
+
+### Key Files Changed
+- `TimezonePickerDialog.kt` - New searchable timezone picker
+- `LocationContent.kt` - Redesigned with Choose Location + Timezone + Locale
+- `SIMCardContent.kt` - Merged Carrier Info into main card
+- `LocationConfig.kt` - Added `getLocaleForTimezone()` helper
+- `GroupSpoofingViewModel.kt` - Added `updateTimezone()` with locale sync
+
+### Animation Fix
+- Changed `AnimatedVisibility` → `if` in SIM Card
+- Fixes animation sticking when closing card
 
 ---
 
