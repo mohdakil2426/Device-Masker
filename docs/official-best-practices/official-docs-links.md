@@ -57,14 +57,3 @@
 | Repository | Description |
 |------------|-------------|
 | [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix) | Play Integrity bypass module |
-
----
-
-## 📁 Local Documentation
-
-Curated excerpts from official Android documentation for quick offline reference:
-
-| File | Description |
-|------|-------------|
-| [KotlinJetpackCompose.md](developer-android-docs/KoylinJetpackCompose.md) | Kotlin for Jetpack Compose patterns and best practices |
-| [best-practices.md](developer-android-docs/best-practices.md) | Compose performance optimization (`remember`, `derivedStateOf`, lazy keys) |

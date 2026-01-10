@@ -29,7 +29,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 > **Note**: This is a quick reference only — not 100% accurate. Always verify with official docs.
 
-@/docs/lsposed/YukiHookAPI_Reference.md
+@/docs/official-best-practices/lsposed/YukiHookAPI.md
 
 ---
 
@@ -39,15 +39,15 @@ Always check these for best practices and guidelines.
 
 #### Kotlin 2.3.0 Guide
 
-@/docs/developer-android-docs/kotlin-2-3-0-guide.md
+@/docs/official-best-practices/kotlin/kotlin-2-3-0-guide.md
 
 #### Kotlin for Compose
 
-@/docs/developer-android-docs/KoylinJetpackCompose.md
+@/docs/official-best-practices/kotlin/KoylinJetpackCompose.md
 
 #### 🎨 Material 3 Expressive
 
-@/docs/material-ui/material3-guide.md
+@/docs/official-best-practices/material-ui/material-3-guide.md
 
 ---
 
