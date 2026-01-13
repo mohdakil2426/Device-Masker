@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -45,6 +46,7 @@ import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
 import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsScreen
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
+import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import timber.log.Timber
@@ -239,6 +241,30 @@ fun DeviceMaskerMainApp(
                     onExportLogsToUri = { uri ->
                         Timber.d("Exporting logs to: $uri")
                         settingsViewModel.exportLogsToUri(uri)
+                    },
+                    onShareLogs = {
+                        Timber.d("Sharing logs...")
+                        settingsViewModel.createShareableLogs { result ->
+                            when (result) {
+                                is ShareableLogResult.Success -> {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_STREAM, result.uri)
+                                        putExtra(Intent.EXTRA_SUBJECT, "Device Masker Logs")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(shareIntent, "Share Logs"),
+                                    )
+                                }
+                                is ShareableLogResult.NoLogs -> {
+                                    Timber.d("No logs to share")
+                                }
+                                is ShareableLogResult.Error -> {
+                                    Timber.e("Failed to share logs: ${result.message}")
+                                }
+                            }
+                        }
                     },
                     onClearExportResult = { settingsViewModel.clearExportResult() },
                     onNavigateToDiagnostics = { navController.navigate(NavRoutes.DIAGNOSTICS) },

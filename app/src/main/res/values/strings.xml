@@ -66,6 +66,11 @@
     <string name="settings_export_logs_no_logs">No logs available to export</string>
     <string name="settings_export_logs_error">Failed to export logs: %s</string>
     <string name="settings_exporting">Exporting…</string>
+    <string name="settings_export_sheet_title">Export Options</string>
+    <string name="settings_export_save">Save to Device</string>
+    <string name="settings_export_save_desc">Save logs to a file on your device</string>
+    <string name="settings_export_share">Share</string>
+    <string name="settings_export_share_desc">Share logs via another app</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_description">Check module health and hook status</string>
     <string name="settings_about">About</string>

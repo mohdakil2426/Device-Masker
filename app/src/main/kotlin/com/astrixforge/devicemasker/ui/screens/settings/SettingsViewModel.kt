@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.SettingsDataStore
 import com.astrixforge.devicemasker.service.LogExportResult
 import com.astrixforge.devicemasker.service.LogManager
+import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,6 +79,23 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
                 }
 
             _state.update { it.copy(isExportingLogs = false, exportResult = result) }
+        }
+    }
+
+    /**
+     * Creates a shareable log file and returns the result.
+     * The caller should use the URI to launch a share intent.
+     */
+    fun createShareableLogs(onResult: (ShareableLogResult) -> Unit) {
+        viewModelScope.launch {
+            _state.update { it.copy(isExportingLogs = true, exportResult = null) }
+
+            val result = withContext(Dispatchers.IO) {
+                LogManager.createShareableLogFile(getApplication())
+            }
+
+            _state.update { it.copy(isExportingLogs = false) }
+            onResult(result)
         }
     }
 

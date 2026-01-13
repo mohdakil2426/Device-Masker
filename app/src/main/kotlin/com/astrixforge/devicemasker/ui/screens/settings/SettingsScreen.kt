@@ -29,10 +29,13 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
@@ -54,6 +57,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.ui.components.ActionBottomSheet
+import com.astrixforge.devicemasker.ui.components.ActionItem
 import com.astrixforge.devicemasker.ui.components.ScreenHeader
 import com.astrixforge.devicemasker.ui.components.SettingsClickableItem
 import com.astrixforge.devicemasker.ui.components.SettingsClickableItemWithValue
@@ -63,14 +68,16 @@ import com.astrixforge.devicemasker.ui.components.SettingsSwitchItem
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 
+
 /**
  * Settings screen for app preferences.
  *
  * Provides options for:
  * - Theme settings (theme mode, AMOLED dark mode, dynamic colors)
- * - Debug options (log export with file picker)
+ * - Debug options (log export with save/share options)
  * - About information
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -83,14 +90,21 @@ fun SettingsScreen(
     onAmoledDarkModeChange: (Boolean) -> Unit = {},
     onDynamicColorChange: (Boolean) -> Unit = {},
     onExportLogsToUri: (Uri) -> Unit = {},
+    onShareLogs: () -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
 ) {
     var showThemeModeDialog by remember { mutableStateOf(false) }
+    var showExportSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val exportNoLogsMessage = stringResource(R.string.settings_export_logs_no_logs)
+    val exportSheetTitle = stringResource(R.string.settings_export_sheet_title)
+    val saveTitle = stringResource(R.string.settings_export_save)
+    val saveDesc = stringResource(R.string.settings_export_save_desc)
+    val shareTitle = stringResource(R.string.settings_export_share)
+    val shareDesc = stringResource(R.string.settings_export_share_desc)
 
     val isSystemDark = isSystemInDarkTheme()
     val isDarkModeActive =
@@ -100,7 +114,7 @@ fun SettingsScreen(
             ThemeMode.LIGHT -> false
         }
 
-    // File picker launcher - directly opens native folder picker
+    // File picker launcher - opens native folder picker
     val exportLogsLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) {
             uri ->
@@ -140,8 +154,10 @@ fun SettingsScreen(
             onAmoledDarkModeChange = onAmoledDarkModeChange,
             onDynamicColorChange = onDynamicColorChange,
             onExportLogsClick = {
-                // Directly open native file picker
-                exportLogsLauncher.launch(generateLogFileName())
+                // Show bottom sheet with save/share options
+                if (!isExportingLogs) {
+                    showExportSheet = true
+                }
             },
             onNavigateToDiagnostics = onNavigateToDiagnostics,
         )
@@ -161,6 +177,30 @@ fun SettingsScreen(
                 showThemeModeDialog = false
             },
             onDismiss = { showThemeModeDialog = false },
+        )
+    }
+
+    // Export Options Bottom Sheet
+    if (showExportSheet) {
+        ActionBottomSheet(
+            title = exportSheetTitle,
+            actions = listOf(
+                ActionItem(
+                    icon = Icons.Outlined.Save,
+                    title = saveTitle,
+                    description = saveDesc,
+                    onClick = {
+                        exportLogsLauncher.launch(generateLogFileName())
+                    },
+                ),
+                ActionItem(
+                    icon = Icons.Outlined.Share,
+                    title = shareTitle,
+                    description = shareDesc,
+                    onClick = onShareLogs,
+                ),
+            ),
+            onDismiss = { showExportSheet = false },
         )
     }
 }

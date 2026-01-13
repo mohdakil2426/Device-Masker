@@ -3,8 +3,10 @@ package com.astrixforge.devicemasker.service
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import androidx.core.content.FileProvider
 import com.astrixforge.devicemasker.BuildConfig
 import com.highcapable.yukihookapi.hook.log.YLog
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,6 +46,44 @@ object LogManager {
             LogExportResult.Success(uri.lastPathSegment ?: "logs.log", logContent.lines().size)
         } catch (e: Exception) {
             LogExportResult.Error("Export failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Creates a shareable log file in the cache directory.
+     *
+     * @param context Application context
+     * @return Pair of URI for FileProvider and the file path, or null if failed
+     */
+    fun createShareableLogFile(context: Context): ShareableLogResult {
+        return try {
+            val logContent = buildInMemoryLogContent(context)
+            if (logContent.lines().size <= 10) {
+                // Minimal content means no real logs
+                return ShareableLogResult.NoLogs
+            }
+
+            // Create logs directory in cache
+            val logsDir = File(context.cacheDir, "logs")
+            if (!logsDir.exists()) {
+                logsDir.mkdirs()
+            }
+
+            // Create the log file
+            val fileName = generateLogFileName()
+            val logFile = File(logsDir, fileName)
+            logFile.writeText(logContent)
+
+            // Get URI via FileProvider
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                logFile,
+            )
+
+            ShareableLogResult.Success(uri, fileName, logContent.lines().size)
+        } catch (e: Exception) {
+            ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
         }
     }
 
@@ -203,4 +243,13 @@ sealed class LogExportResult {
     data class Success(val filePath: String, val lineCount: Int) : LogExportResult()
 
     data class Error(val message: String) : LogExportResult()
+}
+
+/** Result of shareable log creation. */
+sealed class ShareableLogResult {
+    data class Success(val uri: Uri, val fileName: String, val lineCount: Int) : ShareableLogResult()
+
+    data class Error(val message: String) : ShareableLogResult()
+
+    data object NoLogs : ShareableLogResult()
 }
