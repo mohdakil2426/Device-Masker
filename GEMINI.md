@@ -17,88 +17,131 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
-# 📖 Official Documentation & Resources
+# Device Masker - Project Context
 
-> ⚠️ **IMPORTANT**: These are the **Source of Truth (SOT)** for quick references and best practices. **Never ignore these docs!**
+## Overview
+Device Masker is an advanced Android LSPosed/Xposed module designed to protect user privacy by spoofing device identifiers and hiding hook injection. It features a modern Material 3 Expressive UI and robust anti-detection mechanisms.
 
----
+## Tech Stack
+- **Language**: Kotlin 2.3.0 (Java 25)
+- **Framework**: Android SDK 36 (Android 16 Target)
+- **UI**: Jetpack Compose (BOM 2025.12.00) + Material 3 Expressive (1.5.0-alpha11)
+- **Hooking**: YukiHookAPI 1.3.1 + LSPosed (API 82) + KavaRef
+- **Architecture**: MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)
 
-## 📂 Local Documentation References
 
-### 🪝 YukiHookAPI
+## Build/Lint/Test Commands
 
-> **Note**: This is a quick reference only — not 100% accurate. Always verify with official docs.
+### Build Commands
+```bash
+./gradlew assembleDebug              # Build debug APK
+./gradlew assembleRelease            # Build release APK (requires signing)
+./gradlew installDebug               # Build and install to connected device
+./gradlew :app:assembleDebug         # Build only :app module
+./gradlew :common:assembleDebug      # Build only :common module
+./gradlew :xposed:assembleDebug      # Build only :xposed module
+```
 
-@/docs/official-best-practices/lsposed/YukiHookAPI.md
-
----
-
-### 🧑‍💻 Android Development Guides
-
-Always check these for best practices and guidelines.
-
-#### Kotlin 2.3.0 Guide
-
-@/docs/official-best-practices/kotlin/kotlin-2-3-0-guide.md
-
-#### Kotlin for Compose
-
-@/docs/official-best-practices/kotlin/KoylinJetpackCompose.md
-
-#### 🎨 Material 3 Expressive
-
-@/docs/official-best-practices/material-ui/material-3-guide.md
-
----
-
-## 🌐 Online Resources
-
-### Jetpack Compose
-
-| Resource                                                                                        | Description                        |
-| ----------------------------------------------------------------------------------------------- | ---------------------------------- |
-| [Kotlin for Compose](https://developer.android.com/develop/ui/compose/kotlin)                  | Kotlin language features for Compose |
-| [Compose Documentation](https://developer.android.com/develop/ui/compose/documentation)        | Complete Compose documentation hub   |
-
-### Material 3 & Design Systems
-
-| Resource                                                                                                          | Description                               |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)                | Implementing M3 design system             |
-| [M3 Release Notes](https://developer.android.com/jetpack/androidx/releases/compose-material3)                    | Latest Material 3 releases and changelogs |
-| [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary)    | Complete API documentation                |
-
-### Performance & Optimization
-
-| Resource                                                                                                        | Description                         |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| [Compose Best Practices](https://developer.android.com/develop/ui/compose/performance/bestpractices)           | Performance optimization patterns   |
-| [App Startup Analysis](https://developer.android.com/topic/performance/appstartup/analysis-optimization)       | Startup performance optimization    |
-| [Performance Overview](https://developer.android.com/topic/performance/improving-overview)                     | General Android performance guide   |
+### Lint & Format Commands
+```bash
+./gradlew spotlessApply              # Auto-format all Kotlin files (ktfmt)
+./gradlew spotlessCheck              # Check formatting without fixing
+./gradlew lint                       # Run Android lint on all modules
+./gradlew :app:lint                  # Run lint on :app only
+./gradlew :common:lint               # Run lint on :common only
+```
 
 ---
 
-## 🔗 GitHub Repositories
+## Project Structure
 
-### Official Android Samples
+```
+devicemasker/
+├── :app      # Main application (UI + KSP entry, Compose MVVM)
+├── :common   # Shared models, generators, SharedPrefsKeys (SINGLE SOURCE OF TRUTH)
+└── :xposed   # Xposed hook logic (YukiHookAPI hookers)
+```
 
-| Repository                                                                | Description                          |
-| ------------------------------------------------------------------------- | ------------------------------------ |
-| [compose-samples](https://github.com/android/compose-samples)             | Official Compose sample code         |
-| [codelab-android-compose](https://github.com/android/codelab-android-compose) | Compose codelabs source code     |
-| [nav3-recipes](https://github.com/android/nav3-recipes)                   | Navigation 3 recipes and patterns    |
-| [performance-samples](https://github.com/android/performance-samples)     | Performance optimization samples     |
+---
 
-### Source Code Reference
+## Code Style Guidelines
 
-| Repository                                                                                                                                                              | Description                        |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| [M3 Samples](https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:compose/material3/material3/samples/src/main/java/androidx/compose/material3/samples/) | Official Material 3 component samples |
-| [Kotlin Language](https://github.com/jetbrains/kotlin)                                                                                                                  | Kotlin compiler and stdlib         |
+### Formatting
+- **Formatter**: ktfmt 0.54 with kotlinlangStyle (run `./gradlew spotlessApply`)
+- **Indentation**: 4 spaces (no tabs)
+- **Line length**: ~100 characters preferred
+- **Trailing whitespace**: None (auto-trimmed by Spotless)
+- **End of file**: Single newline
 
-### Related Projects (Spoof References)
+### Imports
+- No wildcard imports (`import foo.*`)
+- Group order: Android, Compose, third-party, project modules
+- Remove unused imports (handled by ktfmt)
 
-| Repository                                                          | Description                                                         |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [PlayIntegrityFix](https://github.com/KOWX712/PlayIntegrityFix)     | Play Integrity bypass — reference for device identity spoofing      |
-| [HMA-OSS](https://github.com/frknkrc44/HMA-OSS)                     | Hide My Applist (Open Source) — app hiding techniques               |
+### Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| Classes/Objects | PascalCase | `DeviceHooker`, `SpoofGroup` |
+| Functions | camelCase | `getSpoofValue()`, `onHook()` |
+| Properties | camelCase | `isEnabled`, `packageName` |
+| Constants | SCREAMING_SNAKE | `KEY_MODULE_ENABLED`, `TAG` |
+| Composables | PascalCase | `HomeScreen()`, `ExpressiveSwitch()` |
+| State classes | PascalCase + State suffix | `HomeState`, `SettingsState` |
+| ViewModels | PascalCase + ViewModel suffix | `HomeViewModel` |
+
+### Types & Null Safety
+- Prefer non-nullable types; use nullable only when semantically meaningful
+- Use `?.let { }` or `?: return` for null handling
+- Use `runCatching { }.getOrElse { }` for exception-prone operations in hooks
+- Always specify explicit return types for public functions
+
+### Data Classes
+- Use `@Serializable` for cross-process data models
+- Prefer immutable `val` properties
+- Use `copy()` for updates (immutable patterns)
+- Place defaults in constructor parameters
+
+### Error Handling
+- **In Hookers**: Wrap uncertain methods with `runCatching { }` to prevent crashes
+- Use `optional()` for methods that may not exist on all Android versions
+- Log errors with `DualLog.warn(TAG, message, throwable)`
+- Never crash target apps - fail gracefully with fallback values
+
+### Compose Guidelines
+- Use `collectAsStateWithLifecycle()` for StateFlow in UI
+- Prefer `derivedStateOf` for expensive computations
+- Add stable `key` to all `LazyColumn` items
+- Use `MaterialTheme.colorScheme.*` - never hardcode colors
+- Use `AppMotion.*` springs for animations
+
+---
+
+## Critical Safety Rules (Xposed)
+
+1. **Never hook system-critical processes**: Skip `android`, `system_server`, `com.android.systemui`
+2. **Load AntiDetectHooker FIRST**: Before any spoofing hooks
+3. **Use `optional()` for uncertain methods**: Prevents crashes on different Android versions
+4. **Never block essential class loading**: Allow `androidx.*`, `kotlin.*`, `java.*`, `android.*`
+
+---
+
+## Key Architecture Notes
+
+- **SharedPrefsKeys** in `:common` is the SINGLE SOURCE OF TRUTH for preference keys
+- **XSharedPreferences caches values** - config changes require target app restart
+- **BaseSpoofHooker** provides shared functionality for all hookers
+- **ConfigSync** bridges UI config (JsonConfig) to hooks (XposedPrefs)
+
+---
+
+## Documentation References
+
+### Local Docs (Source of Truth)
+- YukiHookAPI: @/docs/official-best-practices/lsposed/YukiHookAPI.md
+- Kotlin 2.3.0: @/docs/official-best-practices/kotlin/kotlin-2-3-0-guide.md
+- Material 3: @/docs/official-best-practices/material-ui/material-3-guide.md
+
+### Online Resources
+- [Compose Docs](https://developer.android.com/develop/ui/compose/documentation)
+- [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary)
+- [Compose Performance](https://developer.android.com/develop/ui/compose/performance/bestpractices)
