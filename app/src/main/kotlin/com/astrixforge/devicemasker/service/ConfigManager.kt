@@ -113,13 +113,38 @@ object ConfigManager {
                 configFile.writeText(json)
                 Timber.tag(TAG).d("Config saved to local file")
 
-                // CRITICAL: Sync to XposedPrefs for cross-process access
+                // Sync to XposedPrefs for cross-process access (legacy fallback)
                 // This enables hooked apps to read the config via XSharedPreferences
                 ConfigSync.syncFromConfig(appContext, config)
                 Timber.tag(TAG).d("Config synced to XposedPrefs")
+
+                // NEW: Sync to AIDL service for real-time updates
+                // This enables immediate config changes without app restart
+                syncToAidlService(json)
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Failed to save config")
             }
+        }
+    }
+
+    /**
+     * Syncs configuration to the AIDL service in system_server.
+     *
+     * This provides real-time config updates when the service is available.
+     * Falls back silently if service is not connected.
+     */
+    private suspend fun syncToAidlService(json: String) {
+        runCatching {
+            val serviceClient =
+                com.astrixforge.devicemasker.DeviceMaskerApp.serviceClient
+            if (serviceClient.isConnected) {
+                serviceClient.writeConfig(json)
+                Timber.tag(TAG).d("Config synced to AIDL service")
+            } else {
+                Timber.tag(TAG).d("AIDL service not connected, skipping sync")
+            }
+        }.onFailure { e ->
+            Timber.tag(TAG).w(e, "Failed to sync to AIDL service")
         }
     }
 

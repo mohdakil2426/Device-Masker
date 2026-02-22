@@ -28,6 +28,7 @@ Device Masker is an advanced Android LSPosed/Xposed module designed to protect u
 - **UI**: Jetpack Compose (BOM 2025.12.00) + Material 3 Expressive (1.5.0-alpha11)
 - **Hooking**: YukiHookAPI 1.3.1 + LSPosed (API 82) + KavaRef
 - **Architecture**: MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)
+- **IPC**: AIDL Binder (system_server ↔ app processes)
 
 
 ## Build/Lint/Test Commands
@@ -58,8 +59,11 @@ Device Masker is an advanced Android LSPosed/Xposed module designed to protect u
 ```
 devicemasker/
 ├── :app      # Main application (UI + KSP entry, Compose MVVM)
-├── :common   # Shared models, generators, SharedPrefsKeys (SINGLE SOURCE OF TRUTH)
+│   └── service/ServiceClient.kt  # AIDL client for UI
+├── :common   # Shared models, generators, AIDL interface
+│   └── aidl/IDeviceMaskerService.aidl  # AIDL contract
 └── :xposed   # Xposed hook logic (YukiHookAPI hookers)
+    └── service/DeviceMaskerService.kt  # AIDL service in system_server
 ```
 
 ---
@@ -88,6 +92,8 @@ devicemasker/
 | Composables | PascalCase | `HomeScreen()`, `ExpressiveSwitch()` |
 | State classes | PascalCase + State suffix | `HomeState`, `SettingsState` |
 | ViewModels | PascalCase + ViewModel suffix | `HomeViewModel` |
+| AIDL Interfaces | I + PascalCase + Service | `IDeviceMaskerService` |
+| Services | PascalCase + Service | `DeviceMaskerService` |
 
 ### Types & Null Safety
 - Prefer non-nullable types; use nullable only when semantically meaningful
@@ -103,6 +109,7 @@ devicemasker/
 
 ### Error Handling
 - **In Hookers**: Wrap uncertain methods with `runCatching { }` to prevent crashes
+- **In system_server**: ALWAYS wrap in try-catch (crashes cause bootloop!)
 - Use `optional()` for methods that may not exist on all Android versions
 - Log errors with `DualLog.warn(TAG, message, throwable)`
 - Never crash target apps - fail gracefully with fallback values
@@ -113,24 +120,41 @@ devicemasker/
 - Add stable `key` to all `LazyColumn` items
 - Use `MaterialTheme.colorScheme.*` - never hardcode colors
 - Use `AppMotion.*` springs for animations
-
 ---
 
 ## Critical Safety Rules (Xposed)
 
-1. **Never hook system-critical processes**: Skip `android`, `system_server`, `com.android.systemui`
-2. **Load AntiDetectHooker FIRST**: Before any spoofing hooks
-3. **Use `optional()` for uncertain methods**: Prevents crashes on different Android versions
-4. **Never block essential class loading**: Allow `androidx.*`, `kotlin.*`, `java.*`, `android.*`
+1. **ALWAYS wrap system_server hooks in try-catch**: Crashes cause bootloop!
+2. **Load SystemServiceHooker in loadSystem {}**: Before any app hooks
+3. **Load AntiDetectHooker FIRST in loadApp {}**: Before spoofing hooks
+4. **Use `optional()` for uncertain methods**: Prevents crashes on different Android versions
+5. **Never block essential class loading**: Allow `androidx.*`, `kotlin.*`, `java.*`, `android.*`
+6. **Skip critical packages**: `android`, `com.android.systemui` (for loadApp)
 
 ---
 
 ## Key Architecture Notes
 
+### Current (Hybrid - Jan 2026)
+- **AIDL Service (Primary)**: Real-time config via DeviceMaskerService in system_server
+- **XSharedPreferences (Fallback)**: For when AIDL service is unavailable
+- **BaseSpoofHooker**: Hybrid config - tries service first, falls back to prefs
+
+### AIDL Service Components
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `IDeviceMaskerService.aidl` | `:common` | AIDL interface (15 methods) |
+| `DeviceMaskerService.kt` | `:xposed/service` | Service in system_server |
+| `ConfigManager.kt` | `:xposed/service` | Atomic file config (`/data/misc/`) |
+| `ServiceBridge.kt` | `:xposed/service` | ContentProvider for binder |
+| `SystemServiceHooker.kt` | `:xposed/hooker` | Boot-time service init |
+| `ServiceClient.kt` | `:app/service` | UI client for AIDL |
+
+### XSharedPreferences (Fallback)
 - **SharedPrefsKeys** in `:common` is the SINGLE SOURCE OF TRUTH for preference keys
 - **XSharedPreferences caches values** - config changes require target app restart
-- **BaseSpoofHooker** provides shared functionality for all hookers
 - **ConfigSync** bridges UI config (JsonConfig) to hooks (XposedPrefs)
+
 
 ---
 
@@ -140,8 +164,11 @@ devicemasker/
 - YukiHookAPI: @/docs/official-best-practices/lsposed/YukiHookAPI.md
 - Kotlin 2.3.0: @/docs/official-best-practices/kotlin/kotlin-2-3-0-guide.md
 - Material 3: @/docs/official-best-practices/material-ui/material-3-guide.md
+- AIDL Migration Plan: @/docs/ARCHITECTURE_MIGRATION_PLAN.md
+- HMA-OSS Reference: @/docs/oth-repo-projects/hma-oss.txt
 
 ### Online Resources
 - [Compose Docs](https://developer.android.com/develop/ui/compose/documentation)
 - [M3 API Reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary)
 - [Compose Performance](https://developer.android.com/develop/ui/compose/performance/bestpractices)
+- [AIDL Guide](https://developer.android.com/develop/background-work/services/aidl)

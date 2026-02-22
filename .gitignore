@@ -129,3 +129,5 @@ docs/report
 *.rej
 *.tmp
 LOGS/
+
+xposed-backup-2026-01-20

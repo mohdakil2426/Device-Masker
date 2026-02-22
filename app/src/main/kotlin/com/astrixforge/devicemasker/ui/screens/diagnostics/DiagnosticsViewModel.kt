@@ -8,6 +8,7 @@ import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.service.ServiceClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel for the Diagnostics screen.
  *
- * Manages diagnostic results and anti-detection tests.
+ * Manages diagnostic results, anti-detection tests, and AIDL service status.
  *
  * @param application Application for context access
  * @param repository The SpoofRepository for data access
@@ -30,8 +31,21 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
     private val _state = MutableStateFlow(DiagnosticsState())
     val state: StateFlow<DiagnosticsState> = _state.asStateFlow()
 
+    /** ServiceClient for AIDL communication with system_server */
+    private val serviceClient: ServiceClient = DeviceMaskerApp.serviceClient
+
     init {
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
+
+        // Observe service connection state
+        viewModelScope.launch {
+            serviceClient.connectionState.collect { connectionState ->
+                _state.update {
+                    it.copy(serviceStatus = it.serviceStatus.copy(connectionState = connectionState))
+                }
+            }
+        }
+
         runDiagnostics()
     }
 
@@ -46,14 +60,54 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
 
     private fun runDiagnostics() {
         viewModelScope.launch {
+            // Run all diagnostics in parallel
             val diagnosticResults = runDiagnosticTests()
             val antiDetectionResults = runAntiDetectionTests()
+            refreshServiceStatus()
 
             _state.update {
                 it.copy(
                     diagnosticResults = diagnosticResults,
                     antiDetectionResults = antiDetectionResults,
                     isLoading = false,
+                )
+            }
+        }
+    }
+
+    /**
+     * Refreshes the AIDL service status by connecting and querying stats.
+     */
+    private suspend fun refreshServiceStatus() {
+        // Try to connect if not already connected
+        if (!serviceClient.isConnected) {
+            serviceClient.connect()
+        }
+
+        if (serviceClient.isConnected) {
+            val version = serviceClient.getServiceVersion()
+            val uptime = serviceClient.getServiceUptime()
+            val hookedCount = serviceClient.getHookedAppCount()
+
+            _state.update {
+                it.copy(
+                    serviceStatus = it.serviceStatus.copy(
+                        connectionState = ServiceClient.ConnectionState.CONNECTED,
+                        version = version,
+                        uptimeMs = uptime,
+                        hookedAppCount = hookedCount,
+                    )
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    serviceStatus = it.serviceStatus.copy(
+                        connectionState = ServiceClient.ConnectionState.ERROR,
+                        version = null,
+                        uptimeMs = 0L,
+                        hookedAppCount = 0,
+                    )
                 )
             }
         }
@@ -138,3 +192,4 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         )
     }
 }
+

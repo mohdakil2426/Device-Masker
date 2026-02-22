@@ -7,35 +7,52 @@ import com.astrixforge.devicemasker.xposed.hooker.LocationHooker
 import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
+import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
+import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import com.astrixforge.devicemasker.xposed.utils.ClassCache
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 
 /**
- * Xposed Module Hook Loader - Using YukiHookAPI's XSharedPreferences.
+ * Xposed Module Hook Loader - Hybrid Architecture (AIDL + XSharedPreferences Fallback).
  *
- * This uses the CORRECT approach for cross-process config sharing:
- * - UI app writes to SharedPreferences with MODE_WORLD_READABLE
- * - Hooks read via prefs property which uses XSharedPreferences internally
- * - No need for ServiceManager (blocked by SELinux) or custom IPC
+ * This module supports TWO configuration delivery mechanisms:
  *
- * Requirements:
- * 1. AndroidManifest.xml: xposedsharedprefs = true
- * 2. xposedminversion >= 93
- * 3. LSPosed scope includes target apps
+ * 1. AIDL Service (Primary - Real-time):
+ *    - DeviceMaskerService runs in system_server
+ *    - Initialized by SystemServiceHooker at boot
+ *    - Query via service.getSpoofValue() for real-time config
+ *    - Requires LSPosed scope to include "android" (System Framework)
+ *
+ * 2. XSharedPreferences (Fallback - Cached):
+ *    - UI writes to SharedPreferences with MODE_WORLD_READABLE
+ *    - Hooks read via prefs property (YukiHookAPI XSharedPreferences)
+ *    - Used when service is unavailable
+ *    - Changes require target app restart
+ *
+ * LSPosed Configuration:
+ * - MUST include "android" (System Framework) for AIDL service
+ * - Individual apps no longer need to be added manually
  *
  * Hook Loading Order (CRITICAL):
- * 1. AntiDetectHooker - MUST load first to hide Xposed presence
- * 2. DeviceHooker - IMEI, Serial, Hardware IDs
- * 3. NetworkHooker - MAC, WiFi, Bluetooth
- * 4. AdvertisingHooker - GSF ID, Advertising ID
- * 5. SystemHooker - Build.*, SystemProperties
- * 6. LocationHooker - GPS, Timezone, Locale
+ * 1. SystemServiceHooker (in loadSystem) - Initialize service in system_server
+ * 2. AntiDetectHooker (in loadApp) - MUST load first to hide Xposed presence
+ * 3. Device/Network/Advertising/System/Location/Sensor/WebView Hookers
  */
 object XposedHookLoader : YukiBaseHooker() {
 
     private const val TAG = "DeviceMasker"
     private const val SELF_PACKAGE = "com.astrixforge.devicemasker"
+
+    /**
+     * Packages to SKIP for app hooks (but NOT for system hooks).
+     * These are system-critical processes that should never be spoofed.
+     */
+    private val SKIP_PACKAGES = setOf(
+        SELF_PACKAGE,           // Our own app
+        "com.android.systemui", // SystemUI - can cause UI glitches
+        "com.android.phone",    // Phone/Dialer - critical for calls
+    )
 
     /**
      * Common classes used across multiple hookers. Pre-loading these into ClassCache improves hook
@@ -63,29 +80,73 @@ object XposedHookLoader : YukiBaseHooker() {
         )
 
     override fun onHook() {
-        // Skip our own module
+        // ═══════════════════════════════════════════════════════════
+        // SYSTEM FRAMEWORK HOOK (loadSystem)
+        // ═══════════════════════════════════════════════════════════
+        // This runs when LSPosed scope includes "android" (System Framework).
+        // Initializes DeviceMaskerService in system_server at boot.
+        loadSystem {
+            DualLog.info(TAG, "=== loadSystem: Initializing system hooks ===")
+
+            // Load SystemServiceHooker to initialize our AIDL service
+            loadHooker(SystemServiceHooker)
+
+            DualLog.info(TAG, "=== loadSystem: System hooks registered ===")
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // APP PROCESS HOOKS (loadApp)
+        // ═══════════════════════════════════════════════════════════
+        // This runs for each app process in the LSPosed scope.
+        // With system-wide hooking, this runs for ALL apps.
+        loadApp {
+            loadAppHooks()
+        }
+    }
+
+    /**
+     * Loads hooks for individual app processes.
+     *
+     * Uses a hybrid approach:
+     * 1. Try to get config from AIDL service (real-time)
+     * 2. Fall back to XSharedPreferences (cached)
+     */
+    private fun YukiBaseHooker.loadAppHooks() {
+        // Skip our own module to avoid infinite loops
         if (packageName == SELF_PACKAGE || processName.startsWith(SELF_PACKAGE)) {
-            DualLog.debug(TAG, "Skipping hooks for SELF: $packageName")
+            DualLog.debug(TAG, "Skipping SELF: $packageName")
             return
         }
 
         // Skip system-critical processes
-        val forbiddenProcesses = listOf("android", "com.android.systemui", "com.android.phone")
-        if (packageName in forbiddenProcesses || processName in forbiddenProcesses) {
+        if (packageName in SKIP_PACKAGES || processName in SKIP_PACKAGES) {
             DualLog.debug(TAG, "Skipping system process: $packageName")
             return
         }
 
-        // Check if module is enabled via XSharedPreferences
-        val moduleEnabled = PrefsHelper.isModuleEnabled(prefs)
+        // ═══════════════════════════════════════════════════════════
+        // Check Module Enabled (Hybrid: Service or XSharedPreferences)
+        // ═══════════════════════════════════════════════════════════
+        val service = getServiceOrNull()
+        val moduleEnabled: Boolean
+        val appEnabled: Boolean
+
+        if (service != null) {
+            // Use AIDL service for real-time config
+            moduleEnabled = service.isModuleEnabled
+            appEnabled = service.isAppEnabled(packageName)
+            DualLog.debug(TAG, "[$packageName] Config from AIDL service")
+        } else {
+            // Fallback to XSharedPreferences
+            moduleEnabled = PrefsHelper.isModuleEnabled(prefs)
+            appEnabled = PrefsHelper.isAppEnabled(prefs, packageName)
+            DualLog.debug(TAG, "[$packageName] Config from XSharedPreferences (fallback)")
+        }
 
         if (!moduleEnabled) {
             DualLog.debug(TAG, "Module disabled globally, skipping: $packageName")
             return
         }
-
-        // Check if this app is enabled for spoofing
-        val appEnabled = PrefsHelper.isAppEnabled(prefs, packageName)
 
         if (!appEnabled) {
             DualLog.debug(TAG, "Spoofing disabled for: $packageName")
@@ -115,7 +176,7 @@ object XposedHookLoader : YukiBaseHooker() {
         loadHooker(LocationHooker)
 
         // ═══════════════════════════════════════════════════════════
-        // Anti-Fingerprinting Hookers (New)
+        // Anti-Fingerprinting Hookers
         // ═══════════════════════════════════════════════════════════
         loadHooker(SensorHooker)
         loadHooker(WebViewHooker)
@@ -124,6 +185,26 @@ object XposedHookLoader : YukiBaseHooker() {
         val stats = ClassCache.stats()
         DualLog.debug(TAG, "ClassCache stats: $stats")
 
+        // Increment filter count if service is available
+        service?.incrementFilterCount(packageName)
+
         DualLog.info(TAG, "Hooks registered for: $packageName")
     }
+
+    /**
+     * Attempts to get the DeviceMaskerService instance.
+     *
+     * Returns null if service is not initialized (e.g., when LSPosed scope
+     * doesn't include "android", or during early boot before service init).
+     */
+    private fun getServiceOrNull(): DeviceMaskerService? {
+        return runCatching {
+            if (DeviceMaskerService.isInitialized()) {
+                DeviceMaskerService.getInstance()
+            } else {
+                null
+            }
+        }.getOrNull()
+    }
 }
+

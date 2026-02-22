@@ -111,8 +111,9 @@ cd Device Masker
 ### LSPosed Requirements
 
 - **Minimum Xposed Version**: 93 (required for XSharedPreferences)
-- **Module Scope**: User-selected apps (not system-wide)
-- **Cross-Process Data**: XSharedPreferences via YukiHookAPI `prefs` property
+- **Recommended Scope**: "System Framework (android)" for AIDL service
+- **Fallback Scope**: User-selected apps (XSharedPreferences only)
+- **Cross-Process Data**: Hybrid AIDL + XSharedPreferences (Jan 2026)
 
 **Required AndroidManifest.xml meta-data**:
 ```xml
@@ -121,7 +122,21 @@ cd Device Masker
 <meta-data android:name="xposedminversion" android:value="93" />
 ```
 
-**XSharedPreferences Architecture** (Updated Dec 25, 2025):
+### AIDL Architecture (Jan 20, 2026)
+
+**Primary config delivery via AIDL service in system_server**:
+
+| Component | Module | Purpose |
+|-----------|--------|---------|
+| `IDeviceMaskerService.aidl` | `:common` | AIDL interface (15 methods) |
+| `DeviceMaskerService.kt` | `:xposed/service` | Service impl in system_server |
+| `ConfigManager.kt` | `:xposed/service` | Atomic file config (`/data/misc/devicemasker/`) |
+| `ServiceBridge.kt` | `:xposed/service` | ContentProvider for binder discovery |
+| `SystemServiceHooker.kt` | `:xposed/hooker` | Boot-time service initialization |
+| `ServiceClient.kt` | `:app/service` | UI client for AIDL |
+| `BaseSpoofHooker.kt` | `:xposed/hooker` | Hybrid config (service + prefs fallback) |
+
+**XSharedPreferences Architecture (Fallback)**:
 
 ```
          SharedPrefsKeys.kt (common) ← SINGLE SOURCE OF TRUTH
@@ -140,8 +155,8 @@ SharedPrefsKeys         SharedPrefsKeys
 | `ConfigSync` | `:app` | Sync JsonConfig → per-app keys |
 | `PrefsKeys` | `:xposed` | Delegates to SharedPrefsKeys |
 | `PrefsReader` | `:xposed` | PrefsHelper for hook access |
-| `ValueGenerators` | `:xposed` | Centralized IMEI/MAC/Android ID generators (NEW) |
-| `BaseSpoofHooker` | `:xposed` | Abstract base class for all spoof hookers (NEW) |
+| `ValueGenerators` | `:xposed` | Centralized IMEI/MAC/Android ID generators |
+
 
 ### Performance Constraints
 

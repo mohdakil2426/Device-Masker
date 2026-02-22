@@ -188,12 +188,123 @@ method { name = "getImei" }.hook {
 }
 ```
 
-**Limitations**:
+**Limitations (Solved by AD-10)**:
 - XSharedPreferences caches values - config changes require target app restart
-- No real-time updates (acceptable trade-off for reliability)
+- No real-time updates (solved by AIDL service)
+
+### AD-10: AIDL Architecture for Real-Time Config (Jan 20, 2026)
+
+**Decision**: Implement hybrid AIDL + XSharedPreferences architecture for real-time updates with fallback
+
+**Why AIDL Was Added**:
+1. XSharedPreferences caches values - no real-time updates
+2. Need centralized logging and statistics
+3. Single LSPosed scope ("android") is simpler than multiple app scopes
+
+**Architecture Overview**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        UI Layer (App)                       │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  ConfigManager (app) → saveConfigInternal()         │   │
+│  │         ├── Local File (config.json)                │   │
+│  │         ├── XposedPrefs (fallback)                  │   │
+│  │         └── syncToAidlService() → ServiceClient     │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                          │ AIDL via ContentProvider
+┌─────────────────────────────────────────────────────────────┐
+│                     system_server                           │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  SystemServiceHooker → DeviceMaskerService          │   │
+│  │         ├── Config (AtomicReference<JsonConfig>)    │   │
+│  │         ├── Statistics (ConcurrentHashMap)          │   │
+│  │         └── Logs (ConcurrentLinkedDeque)            │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                          │ Service queries
+┌─────────────────────────────────────────────────────────────┐
+│                     Target App Process                      │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  BaseSpoofHooker.getSpoofValue()                    │   │
+│  │         ├── Try service.getSpoofValue() (real-time) │   │
+│  │         └── Fallback to XSharedPreferences          │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Components**:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `IDeviceMaskerService.aidl` | `:common` | AIDL interface (15 methods) |
+| `DeviceMaskerService.kt` | `:xposed/service` | Service implementation in system_server |
+| `ConfigManager.kt` | `:xposed/service` | Atomic file config in `/data/misc/` |
+| `ServiceBridge.kt` | `:xposed/service` | ContentProvider for binder access |
+| `SystemServiceHooker.kt` | `:xposed/hooker` | Initializes service at boot |
+| `ServiceClient.kt` | `:app/service` | UI client for AIDL |
+| `BaseSpoofHooker.kt` | `:xposed/hooker` | Hybrid config (service + prefs fallback) |
+
+**AIDL Interface Methods**:
+```kotlin
+interface IDeviceMaskerService {
+    // Config
+    void writeConfig(String json);
+    String readConfig();
+    void reloadConfig();
+    
+    // Queries
+    boolean isModuleEnabled();
+    boolean isAppEnabled(String packageName);
+    String getSpoofValue(String packageName, String key);
+    
+    // Statistics
+    void incrementFilterCount(String packageName);
+    int getFilterCount(String packageName);
+    int getHookedAppCount();
+    
+    // Logging
+    void log(String tag, String message, int level);
+    List<String> getLogs(int maxCount);
+    void clearLogs();
+    
+    // Health
+    boolean isServiceAlive();
+    String getServiceVersion();
+    long getServiceUptime();
+}
+```
+
+**Hybrid getSpoofValue() Pattern**:
+```kotlin
+protected fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
+    // Try service first (real-time config)
+    service?.let { svc ->
+        runCatching {
+            svc.getSpoofValue(packageName, type.name)?.let { value ->
+                if (value.isNotBlank()) {
+                    incrementFilterCount()
+                    return value
+                }
+            }
+        }
+    }
+    
+    // Fallback to XSharedPreferences
+    return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
+}
+```
+
+**Benefits Achieved**:
+- ✅ Real-time config updates (no app restart needed)
+- ✅ Centralized logging in system_server
+- ✅ Single LSPosed scope ("android")
+- ✅ Filter count statistics per app
+- ✅ Service health monitoring
+- ✅ Backward compatible with XSharedPreferences fallback
 
 
-## Key Technical Decisions
 
 ### AD-1: YukiHookAPI Selection
 

@@ -100,11 +100,16 @@ This makes it ideal for privacy-focused modifications that need to work across m
 │                                                              │
 │   User configures spoofing → ConfigManager.saveConfig()     │
 │                    ↓                                         │
-│   ConfigSync → XposedPrefs (MODE_WORLD_READABLE)            │
+│   1. Local file (config.json)                               │
+│   2. ConfigSync → XposedPrefs (fallback)                    │
+│   3. syncToAidlService() → DeviceMaskerService              │
 │                                                              │
-│   Config changes require target app restart to take effect   │
+│   Config changes apply in real-time via AIDL (Jan 2026)     │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Real-Time Updates (Jan 2026)**: The AIDL service in system_server now provides
+instant config updates without requiring target app restart.
 
 ## User Experience Goals
 
@@ -175,8 +180,7 @@ This makes it ideal for privacy-focused modifications that need to work across m
 3. **Android 16 Support**: Latest API level compatibility
 4. **Beautiful UI**: Modern design, not utilitarian
 5. **Focused Scope**: Does spoofing well, doesn't try to do everything
-6. **Active Development**: December 2025 tech stack
+6. **Active Development**: January 2026 tech stack
 7. **Clean Architecture**: 3-module structure + Pure MVVM UI layer
-8. **Reliable Config Sharing**: XSharedPreferences via YukiHookAPI (Dec 2025)
-
-
+8. **Hybrid Config Delivery**: AIDL service for real-time + XSharedPreferences fallback (Jan 2026)
+9. **Centralized Logging**: All hook logs in system_server for easy debugging
