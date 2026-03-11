@@ -11,6 +11,14 @@ Device Masker is a production-grade LSPosed/Xposed module that **spoofs device i
 
 ---
 
+## 📌 Project Info
+
+For a complete technical snapshot (modules, runtime architecture, current dependency versions, root files, and commands), see:
+
+- [PROJECT_INFO.md](PROJECT_INFO.md)
+
+---
+
 ## ✨ Key Features
 
 ### 🛡️ Anti-Detection (Stealth First)
@@ -93,7 +101,7 @@ Device Masker uses a high-performance 3-module architecture inspired by HMA-OSS:
 
 ### Prerequisites
 - **Android Studio Ladybug** (2024.1+) or newer
-- **JDK 25** (Host) & **JDK 21** (Target)
+- **JDK 17** (module toolchain target)
 - **Gradle 9.1.0**
 
 ### Build Commands
@@ -116,7 +124,7 @@ cd devicemasker
 
 | Component | Library | Version |
 |-----------|---------|---------|
-| **Core** | Kotlin | 2.2.21 |
+| **Core** | Kotlin | 2.3.0 |
 | **Framework** | YukiHookAPI | 1.3.1 |
 | **Reflection** | KavaRef | 1.0.2 |
 | **UI** | Compose Material 3 | 1.5.0-alpha11 |
