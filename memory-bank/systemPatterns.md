@@ -407,6 +407,35 @@ Target app calls Thread.currentThread().stackTrace
 
 ---
 
+## Project Rules
+
+### Xposed Safety Rules (⚠️ Bootloop Prevention)
+
+1. **ALWAYS wrap system_server hooks in try-catch** — any uncaught exception = bootloop!
+2. **Load `SystemServiceHooker` in `loadSystem {}`** — before any app hooks, or AIDL service never registers.
+3. **Load `AntiDetectHooker` FIRST in `loadApp {}`** — before any spoofing hooks.
+4. **Use `optional()` for uncertain methods** — prevents crashes on different Android versions.
+5. **Never block essential class loading** — always allow `androidx.*`, `kotlin.*`, `java.*`, `android.*`.
+6. **Skip critical packages** — `android`, `com.android.systemui`, `com.android.phone` in `loadApp`.
+7. **Use `runCatching {}` in all hook callbacks** — never crash target apps. Inner + outer wrapping.
+8. **Use `ThreadLocal` re-entrance guards** — prevent infinite recursion in stack trace hooks.
+
+### Configuration Rules
+
+- **`SharedPrefsKeys` in `:common`** is the **SINGLE SOURCE OF TRUTH** for all preference keys — both `XposedPrefs` (`:app`) and `PrefsKeys` (`:xposed`) MUST delegate to it.
+- **XSharedPreferences CACHES values** — config changes via this path require target app restart.
+- **AIDL provides real-time updates** — no restart needed when the service is available.
+- **Correlation groups MUST be respected** — SIM values must use the same carrier; location values must match the same country.
+
+### Data Integrity Rules
+
+- **`SIMConfig` validates on construction** — IMSI must start with carrier MCC/MNC; phone must start with country code.
+- **`DeviceProfilePreset` applies as a complete set** — never mix `Build.*` fields from different presets.
+- **IMEI must pass Luhn validation** — use `IMEIGenerator` which guarantees correct check digits.
+- **All generators use `SecureRandom`** — never use `Random()` or `chars.random()` for identifier generation.
+
+---
+
 ## Anti-Patterns Reference
 
 | ❌ Anti-Pattern                                   | ✅ Correct Pattern                            |

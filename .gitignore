@@ -111,7 +111,7 @@ Thumbs.db
 # Keep memory-bank/ and openspec/ - these are safe
 # Keep .agent/ - workflow definitions
 
-docs/report
+scripts/logs/*.txt
 # ═══════════════════════════════════════════════════════════
 # VERSION CONTROL
 # ═══════════════════════════════════════════════════════════
