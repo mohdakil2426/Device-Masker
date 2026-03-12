@@ -38,6 +38,10 @@ android {
 
     // Include assets in the library (for xposed_init)
     sourceSets { getByName("main") { assets.srcDirs("src/main/assets") } }
+
+    lint {
+        lintConfig = rootProject.file("lint.xml")
+    }
 }
 
 dependencies {

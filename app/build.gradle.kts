@@ -117,6 +117,9 @@ android {
         // Generate HTML report for review
         htmlReport = true
 
+        // Global lint configuration
+        lintConfig = rootProject.file("lint.xml")
+
         // Baseline file to track known issues (optional)
         // baseline = file("lint-baseline.xml")
     }

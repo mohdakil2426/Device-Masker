@@ -40,16 +40,20 @@
 
 The string "API 100" refers to the `minApiVersion` declared in `META-INF/xposed/module.prop`, which tells the LSPosed framework that this module requires at minimum Xposed API level 100. This is analogous to Android's `minSdkVersion`. It does **not** mean a library version number of "100".
 
-The actual library artifact is:
+The actual library artifacts are:
+
 ```
-io.github.libxposed:api
-io.github.libxposed:service
+io.github.libxposed:api:100
+io.github.libxposed:service:100-1.0.0
 ```
 
-These are not on Maven Central (as of early 2026). You must either:
-- **Download the AAR from GitHub Actions CI artifacts** of the `libxposed/api` repo, or
-- **Add them as a local AAR** in `libs/`, or  
-- **Use source dependencies** (clone as a submodule)
+> **✅ CONFIRMED (Mar 13, 2026):** Both artifacts ARE published to **Maven Central** via Sonatype OSSRH.
+> Verified by reading the actual `build.gradle.kts` from the `libxposed/api` and `libxposed/service` GitHub repos.
+> The publish target is `s01.oss.sonatype.org` (Maven Central staging).
+> Available at: https://mvnrepository.com/artifact/io.github.libxposed/api
+>
+> **No local AARs needed.** Standard `mavenCentral()` resolution works.
+> Your `settings.gradle.kts` already has `mavenCentral()` in repositories.
 
 ### The Library Is `compileOnly` — Like the Old API
 
@@ -65,54 +69,54 @@ LSPosed 1.9.0+ implements the modern API. LSPosed 1.10.2+ (which your project al
 
 ### Entry Point
 
-| Aspect | API 82 (Legacy) | API 100 (Modern) |
-|---|---|---|
-| Entry declaration | `assets/xposed_init` | `META-INF/xposed/java_init.list` |
-| Module metadata | `AndroidManifest.xml` meta-data tags | `META-INF/xposed/module.prop` |
-| Scope declaration | LSPosed Manager UI / meta-data | `META-INF/xposed/scope.list` |
-| Base class | `IXposedHookLoadPackage` (interface) | `XposedModule` (abstract class) |
-| Callback method | `handleLoadPackage(lpparam)` | `onPackageLoaded(param)` + `onSystemServerLoaded(param)` |
-| App self-hook | Yes, module app is hooked too | **No** — module app is never hooked |
-| R8/ProGuard obfuscation | Entry class must be kept by name | `adaptresourcefilenames` handles it |
+| Aspect                  | API 82 (Legacy)                      | API 100 (Modern)                                         |
+| ----------------------- | ------------------------------------ | -------------------------------------------------------- |
+| Entry declaration       | `assets/xposed_init`                 | `META-INF/xposed/java_init.list`                         |
+| Module metadata         | `AndroidManifest.xml` meta-data tags | `META-INF/xposed/module.prop`                            |
+| Scope declaration       | LSPosed Manager UI / meta-data       | `META-INF/xposed/scope.list`                             |
+| Base class              | `IXposedHookLoadPackage` (interface) | `XposedModule` (abstract class)                          |
+| Callback method         | `handleLoadPackage(lpparam)`         | `onPackageLoaded(param)` + `onSystemServerLoaded(param)` |
+| App self-hook           | Yes, module app is hooked too        | **No** — module app is never hooked                      |
+| R8/ProGuard obfuscation | Entry class must be kept by name     | `adaptresourcefilenames` handles it                      |
 
 ### Hooking API
 
-| Aspect | API 82 | API 100 |
-|---|---|---|
-| Hook method | `XposedHelpers.findAndHookMethod(...)` | `hook(method, HookerClass::class.java)` |
-| Hook result | `XC_MethodHook.MethodHookParam` | `BeforeHookCallback` / `AfterHookCallback` |
-| Return replacement | `param.result = value` | `callback.returnAndSkip(value)` |
-| Get args | `param.args[0]` | `callback.args[0]` |
-| Get this | `param.thisObject` | `callback.thisObject` |
-| Unhook handle | No clean API | `MethodUnhooker<Method>` — call `.unhook()` |
-| Hook priority | Fixed constants | `Int` priority value (higher = earlier) |
-| Class init hook | Not clean | `hookClassInitializer(clazz, Hooker::class.java)` |
-| ART inline bypass | **Not possible** | `deoptimize(method)` |
-| Call original | `XposedBridge.invokeOriginalMethod(...)` | `invokeOrigin(method, thisObject, args)` |
-| Call super | Not clean | `invokeSpecial(method, thisObject, args)` |
+| Aspect             | API 82                                   | API 100                                           |
+| ------------------ | ---------------------------------------- | ------------------------------------------------- |
+| Hook method        | `XposedHelpers.findAndHookMethod(...)`   | `hook(method, HookerClass::class.java)`           |
+| Hook result        | `XC_MethodHook.MethodHookParam`          | `BeforeHookCallback` / `AfterHookCallback`        |
+| Return replacement | `param.result = value`                   | `callback.returnAndSkip(value)`                   |
+| Get args           | `param.args[0]`                          | `callback.args[0]`                                |
+| Get this           | `param.thisObject`                       | `callback.thisObject`                             |
+| Unhook handle      | No clean API                             | `MethodUnhooker<Method>` — call `.unhook()`       |
+| Hook priority      | Fixed constants                          | `Int` priority value (higher = earlier)           |
+| Class init hook    | Not clean                                | `hookClassInitializer(clazz, Hooker::class.java)` |
+| ART inline bypass  | **Not possible**                         | `deoptimize(method)`                              |
+| Call original      | `XposedBridge.invokeOriginalMethod(...)` | `invokeOrigin(method, thisObject, args)`          |
+| Call super         | Not clean                                | `invokeSpecial(method, thisObject, args)`         |
 
 ### Configuration / Preferences
 
-| Aspect | API 82 | API 100 |
-|---|---|---|
-| Cross-process prefs | `XSharedPreferences` (file-based, cached) | `getRemotePreferences(group)` (live, LSPosed-managed) |
-| Change listener | None — needs app restart | **Live** — changes propagate immediately |
-| Write side | App writes `MODE_WORLD_READABLE` SharedPrefs | App writes **normal** SharedPrefs; libxposed service bridges |
-| Storage location | Module app's internal storage | LSPosed database |
-| Read-only in hooks | No (could write, bad practice) | **Enforced read-only** in hooked processes |
+| Aspect              | API 82                                       | API 100                                                      |
+| ------------------- | -------------------------------------------- | ------------------------------------------------------------ |
+| Cross-process prefs | `XSharedPreferences` (file-based, cached)    | `getRemotePreferences(group)` (live, LSPosed-managed)        |
+| Change listener     | None — needs app restart                     | **Live** — changes propagate immediately                     |
+| Write side          | App writes `MODE_WORLD_READABLE` SharedPrefs | App writes **normal** SharedPrefs; libxposed service bridges |
+| Storage location    | Module app's internal storage                | LSPosed database                                             |
+| Read-only in hooks  | No (could write, bad practice)               | **Enforced read-only** in hooked processes                   |
 
 ### Logging
 
-| API 82 | API 100 |
-|---|---|
+| API 82                  | API 100                                                                   |
+| ----------------------- | ------------------------------------------------------------------------- |
 | `XposedBridge.log(msg)` | `log(priority, tag, msg, throwable)` (uses `android.util.Log` priorities) |
 
 ### Dex Analysis
 
-| API 82 | API 100 |
-|---|---|
-| None | `parseDex(ByteBuffer, includeAnnotations)` → `DexParser` |
-| None | Find all callers of a method to feed into `deoptimize()` |
+| API 82 | API 100                                                  |
+| ------ | -------------------------------------------------------- |
+| None   | `parseDex(ByteBuffer, includeAnnotations)` → `DexParser` |
+| None   | Find all callers of a method to feed into `deoptimize()` |
 
 ---
 
@@ -121,6 +125,7 @@ LSPosed 1.9.0+ implements the modern API. LSPosed 1.10.2+ (which your project al
 ### 3.1 `toClass()` Throws, `toClassOrNull()` Doesn't
 
 Your `DeviceHooker`:
+
 ```kotlin
 // CRASHES if class not found in ANY process — webview sandbox, isolated service, etc.
 private val telephonyClass by lazy { "android.telephony.TelephonyManager".toClass() }
@@ -167,8 +172,9 @@ On some Chinese OEM firmwares (Xiaomi MIUI, OPPO ColorOS), `getImei(int)` has a 
 The IMEI structure: `[TAC 8 digits][SNR 6 digits][CD 1 digit]`
 
 The TAC (Type Allocation Code) uniquely identifies a device model globally. The first 2 digits are the Reporting Body Identifier (RBI):
+
 - `35` = BABT (UK) — used by Google Pixel, Samsung, Apple, OnePlus
-- `86` = CITA (China) — used by Xiaomi, OPPO, Vivo, Huawei  
+- `86` = CITA (China) — used by Xiaomi, OPPO, Vivo, Huawei
 - `01` = PTCRB (USA) — AT&T-certified devices
 - `45` = BABT (allocated to certain ranges)
 
@@ -179,6 +185,7 @@ The TAC (Type Allocation Code) uniquely identifies a device model globally. The 
 ### 4.2 `SubscriptionManager` Is Completely Unhooked
 
 Modern apps — especially banking and e-commerce — use:
+
 ```java
 SubscriptionManager sm = context.getSystemService(SubscriptionManager.class);
 List<SubscriptionInfo> subs = sm.getActiveSubscriptionInfoList();
@@ -200,6 +207,7 @@ You must hook the constructor of `TelephonyManager` or hook `createForSubscripti
 ### 4.4 `Build` Static Fields Are Not Fully Covered
 
 Missing from your `DeviceProfilePreset` and `SystemHooker`:
+
 - `Build.TIME` — build timestamp (a "Pixel 9 Pro" with year-2018 timestamp is suspicious)
 - `Build.SUPPORTED_ABIS` / `Build.SUPPORTED_32_BIT_ABIS` / `Build.SUPPORTED_64_BIT_ABIS`
 - `Build.VERSION.SECURITY_PATCH` — date string like `"2024-12-01"`
@@ -225,6 +233,7 @@ The `CellInfo` objects are raw kernel-level data and are not covered by your hoo
 ### 4.7 `WebView.getDefaultUserAgent(Context)` Is a Static Method
 
 Your `WebViewHooker` hooks `WebSettings.getUserAgentString()`. But many apps also call:
+
 ```java
 String ua = WebView.getDefaultUserAgent(context); // Static — different method
 String httpAgent = System.getProperty("http.agent"); // JVM system property
@@ -247,56 +256,92 @@ Short methods that ART has compiled via JIT/AOT get inlined into callers. Your h
 ### 4.10 `ClassLoader.loadClass()` vs `Class.forName()`
 
 Your `AntiDetectHooker` hooks `Class.forName()` to prevent Xposed class detection. But apps can use:
+
 ```java
 getClass().getClassLoader().loadClass("de.robv.android.xposed.XposedBridge")
 ```
+
 This bypasses `Class.forName()` hooks entirely.
 
 ---
 
 ## 5. Phase 0 — Dependency & Build Setup
 
-### 5.1 Obtaining the libxposed AAR
+### 5.1 Maven Central Coordinates (Confirmed)
 
-Since libxposed is not on Maven Central, add as local libs:
+> **✅ VERIFIED (Mar 13, 2026):** Both libxposed artifacts are published to **Maven Central**
+> via Sonatype OSSRH (`s01.oss.sonatype.org`). Confirmed by reading the actual
+> `build.gradle.kts` publishing config from the libxposed GitHub repos.
+>
+> **No local AARs needed.** Standard `mavenCentral()` resolution works out of the box.
+
+| Artifact                              | Group                 | ArtifactId | Version     | Scope            | Module    |
+| ------------------------------------- | --------------------- | ---------- | ----------- | ---------------- | --------- |
+| **API** (hook engine)                 | `io.github.libxposed` | `api`      | `100`       | `compileOnly`    | `:xposed` |
+| **Service** (RemotePreferences write) | `io.github.libxposed` | `service`  | `100-1.0.0` | `implementation` | `:app`    |
+
+**Source:** https://mvnrepository.com/artifact/io.github.libxposed/api
+
+> ⚠️ Note: The API version is `100` (matching the API level). The Service version is `100-1.0.0`
+> (API level 100, service implementation 1.0.0). These are different version strings intentionally.
+
+### 5.2 Dependency Changes Summary
 
 ```
-xposed/
-  libs/
-    libxposed-api.aar         # from libxposed/api GitHub Actions CI
-    libxposed-service.aar     # from libxposed/service GitHub Actions CI
+BEFORE (5 deps + 1 plugin):
+  implementation   yukihookapi-api        1.3.1     ← REMOVE
+  implementation   kavaref-core           1.0.2     ← REMOVE
+  implementation   kavaref-extension      1.0.2     ← REMOVE
+  compileOnly      xposed-api (de.robv)   82        ← REMOVE
+  ksp              yukihookapi-ksp        1.3.1     ← REMOVE
+  plugin           com.google.devtools.ksp 2.3.6    ← REMOVE
+
+AFTER (2 deps, 0 new plugins):
+  compileOnly      io.github.libxposed:api          100       ← ADD to :xposed
+  implementation   io.github.libxposed:service      100-1.0.0 ← ADD to :app
 ```
 
-### 5.2 `gradle/libs.versions.toml`
+### 5.3 `gradle/libs.versions.toml`
 
 ```toml
 [versions]
-# Remove entirely:
+# ❌ DELETE these:
 # yukihookapi = "1.3.1"
 # kavaref = "1.0.2"
+# ksp = "2.3.6"                    # Only if no other KSP users
 
-# Keep:
-xposed-api-legacy = "82"          # Keep as fallback reference — remove after full migration
-libxposed-api = "local"           # Local AAR
+# ✅ ADD these:
+libxposed-api = "100"
+libxposed-service = "100-1.0.0"
+
+# KEEP unchanged:
+hiddenapibypass = "6.1"
+coroutines = "1.10.2"
+serializationJson = "1.10.0"
 
 [libraries]
-# REMOVE:
-# yukihookapi-api = ...
-# yukihookapi-ksp-xposed = ...
-# kavaref-core = ...
-# kavaref-extension = ...
+# ❌ DELETE these:
+# xposed-api = { group = "de.robv.android.xposed", name = "api", version = "82" }
+# yukihookapi-api = { group = "com.highcapable.yukihookapi", name = "api", version.ref = "yukihookapi" }
+# yukihookapi-ksp-xposed = { group = "com.highcapable.yukihookapi", name = "ksp-xposed", version.ref = "yukihookapi" }
+# kavaref-core = { group = "com.highcapable.kavaref", name = "kavaref-core", version.ref = "kavaref" }
+# kavaref-extension = { group = "com.highcapable.kavaref", name = "kavaref-extension", version.ref = "kavaref" }
 
-# KEEP:
+# ✅ ADD these:
+libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed-api" }
+libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed-service" }
+
+# KEEP unchanged:
 hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version.ref = "hiddenapibypass" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
 
-# ADD:
-libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed-api" }
-libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed-api" }
+[plugins]
+# ❌ DELETE this (only if no other KSP users remain):
+# ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 ```
 
-### 5.3 `xposed/build.gradle.kts`
+### 5.4 `xposed/build.gradle.kts`
 
 ```kotlin
 android {
@@ -305,8 +350,9 @@ android {
         buildConfig = false
         aidl = false
     }
-    
+
     // CRITICAL: libxposed needs Java resources packaged properly
+    // for META-INF/xposed/ files (java_init.list, module.prop, scope.list)
     sourceSets {
         getByName("main") {
             resources.srcDirs("src/main/resources")
@@ -316,47 +362,50 @@ android {
 
 dependencies {
     implementation(project(":common"))
-    
-    // Modern Xposed API — compileOnly, provided at runtime by LSPosed
-    compileOnly(files("libs/libxposed-api.aar"))
-    
-    // Service for RemotePreferences write-side in :app
-    // NOT needed in :xposed — only needed in :app
-    
+
+    // ✅ Modern Xposed API — compileOnly, provided at runtime by LSPosed
+    // Resolves from mavenCentral() — no local AARs needed
+    compileOnly(libs.libxposed.api)
+
     // Hidden API bypass
     implementation(libs.hiddenapibypass)
-    
+
     // Coroutines for async service init
     implementation(libs.kotlinx.coroutines.core)
-    
+
     // Serialization for config objects
     implementation(libs.kotlinx.serialization.json)
-    
-    // REMOVE: yukihookapi.api, kavaref.core, kavaref.extension
-    // REMOVE: compileOnly(libs.xposed.api) — replaced by libxposed-api.aar
+
+    // ❌ REMOVE all of these:
+    // implementation(libs.yukihookapi.api)
+    // implementation(libs.kavaref.core)
+    // implementation(libs.kavaref.extension)
+    // compileOnly(libs.xposed.api)
 }
 ```
 
-### 5.4 `app/build.gradle.kts`
+### 5.5 `app/build.gradle.kts`
 
-```kotlin
-dependencies {
-    // REMOVE: yukihookapi.api, kavaref.*, ksp(yukihookapi.ksp.xposed)
-    // REMOVE: compileOnly(libs.xposed.api)
-    
-    // ADD: libxposed service for writing RemotePreferences
-    implementation(files("../xposed/libs/libxposed-api.aar"))
-    implementation(files("../xposed/libs/libxposed-service.aar"))
-    
-    // Keep everything else unchanged
-}
-```
-
-Also in `app/build.gradle.kts` plugins block:
 ```kotlin
 plugins {
-    // REMOVE: alias(libs.plugins.ksp)
-    // Everything else stays
+    // ❌ REMOVE:
+    // alias(libs.plugins.ksp)
+
+    // KEEP everything else unchanged
+}
+
+dependencies {
+    // ✅ ADD: libxposed service for writing RemotePreferences from the UI
+    // This provides ModulePreferences.from(context, "group_name")
+    implementation(libs.libxposed.service)
+
+    // ❌ REMOVE:
+    // implementation(libs.yukihookapi.api)
+    // ksp(libs.yukihookapi.ksp.xposed)
+    // implementation(libs.kavaref.core)
+    // implementation(libs.kavaref.extension)
+
+    // KEEP everything else unchanged
 }
 ```
 
@@ -407,7 +456,7 @@ This is the default scope hint. Users can override in LSPosed Manager.
     <application
         android:label="@string/app_name"
         android:description="@string/app_description">
-        
+
         <!-- KEEP these for backward compatibility with older LSPosed -->
         <meta-data
             android:name="xposedmodule"
@@ -505,7 +554,7 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
 
         // System server is handled by onSystemServerLoaded
         if (pkg == "android") return
-        
+
         // Skip our own app and critical system processes
         if (pkg in SKIP_PACKAGES) return
 
@@ -594,12 +643,14 @@ Keep using your existing `SharedPrefsKeys` from `:common`. The key format doesn'
 ### 7.3 `:app` Write Side Changes
 
 In `XposedPrefs.kt` (`:app`), replace:
+
 ```kotlin
 // OLD — MODE_WORLD_READABLE
 context.getSharedPreferences(name, Context.MODE_WORLD_READABLE)
 ```
 
 With the libxposed service write API:
+
 ```kotlin
 // NEW — libxposed service bridges this to RemotePreferences
 // Uses io.github.libxposed.service.ModulePreferences or the service's SharedPreferences bridge
@@ -676,7 +727,7 @@ object PrefsHelper {
 
 Remove `YukiBaseHooker` inheritance. The new base class is a plain Kotlin class with static factory pattern:
 
-```kotlin
+````kotlin
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
@@ -732,7 +783,7 @@ abstract class BaseSpoofHooker(protected val tag: String) {
             getDeclaredMethod(name, *params).also { it.isAccessible = true }
         } catch (_: NoSuchMethodException) { null }
 }
-```
+````
 
 ---
 
@@ -809,6 +860,7 @@ The libxposed API 100 hooker pattern uses static inner classes annotated with `@
 ### Critical Pattern: Static Context Object
 
 Because `@BeforeInvocation` and `@AfterInvocation` methods **must be static**, you cannot capture outer class fields directly. Instead:
+
 1. Store shared data in `companion object` of the hooker class
 2. Pass context between before/after via the return value of `@BeforeInvocation`
 
@@ -1376,6 +1428,7 @@ data class DeviceProfilePreset(
 ```
 
 Then in `SystemHooker`:
+
 ```kotlin
 // Hook Build.TIME
 safeHook("Build.TIME") {
@@ -1393,7 +1446,7 @@ safeHook("Build.ID") {
     }
 }
 
-// Hook Build.TAGS  
+// Hook Build.TAGS
 safeHook("Build.TAGS") {
     buildClass.getDeclaredField("TAGS").apply {
         isAccessible = true
@@ -1699,7 +1752,7 @@ This is a `:common` module change in `ValueGenerators.kt`:
 private val DEVICE_TAC_PREFIXES: Map<String, List<String>> = mapOf(
     // Google Pixel 9 Pro
     "pixel_9_pro"      to listOf("35414610", "35414611", "35414612"),
-    // Google Pixel 8 Pro  
+    // Google Pixel 8 Pro
     "pixel_8_pro"      to listOf("35173210", "35173211", "35173212"),
     // Google Pixel 8
     "pixel_8"          to listOf("35173310", "35173311"),
@@ -1813,29 +1866,31 @@ val SAMSUNG_S24_ULTRA = DeviceProfilePreset(
 
 This table defines the complete set of correlated values that MUST be consistent:
 
-| Source: Carrier (SIM_CARD group) | Derived values | Hook Location |
-|---|---|---|
-| `CARRIER_MCC_MNC` | `NETWORK_TYPE` (LTE/NR per region) | DeviceHooker.GetNetworkTypeHooker |
-| `CARRIER_MCC_MNC` | `SIM_COUNTRY_ISO`, `NETWORK_COUNTRY_ISO` | DeviceHooker, SubscriptionHooker |
-| `CARRIER_MCC_MNC` | `TIMEZONE` range (must match country) | LocationHooker |
-| `CARRIER_MCC_MNC` | `LOCALE` language (must match country) | LocationHooker |
-| `CARRIER_MCC_MNC` | GPS lat/lon (must be in carrier country) | LocationHooker |
-| `IMSI` prefix | Must start with same MCC+MNC as CARRIER | ValueGenerators.imsi() |
-| `ICCID` prefix | Country code in digits 4-5 must match | ValueGenerators.iccid() |
-| `PHONE_NUMBER` | Country calling code must match carrier | ValueGenerators.phoneNumber() |
+| Source: Carrier (SIM_CARD group) | Derived values                           | Hook Location                     |
+| -------------------------------- | ---------------------------------------- | --------------------------------- |
+| `CARRIER_MCC_MNC`                | `NETWORK_TYPE` (LTE/NR per region)       | DeviceHooker.GetNetworkTypeHooker |
+| `CARRIER_MCC_MNC`                | `SIM_COUNTRY_ISO`, `NETWORK_COUNTRY_ISO` | DeviceHooker, SubscriptionHooker  |
+| `CARRIER_MCC_MNC`                | `TIMEZONE` range (must match country)    | LocationHooker                    |
+| `CARRIER_MCC_MNC`                | `LOCALE` language (must match country)   | LocationHooker                    |
+| `CARRIER_MCC_MNC`                | GPS lat/lon (must be in carrier country) | LocationHooker                    |
+| `IMSI` prefix                    | Must start with same MCC+MNC as CARRIER  | ValueGenerators.imsi()            |
+| `ICCID` prefix                   | Country code in digits 4-5 must match    | ValueGenerators.iccid()           |
+| `PHONE_NUMBER`                   | Country calling code must match carrier  | ValueGenerators.phoneNumber()     |
 
-| Source: Device Profile | Derived values | Hook Location |
-|---|---|---|
-| `DEVICE_PROFILE` | `IMEI` TAC prefix | DeviceHooker (via imeiForPreset()) |
-| `DEVICE_PROFILE` | `SERIAL` format | DeviceHooker (brand-specific format) |
-| `DEVICE_PROFILE` | `Build.*` all fields | SystemHooker |
-| `DEVICE_PROFILE` | `hasSystemFeature(nfc)` | PackageManagerHooker |
-| `DEVICE_PROFILE` | `getPhoneCount()` (1 or 2) | DeviceHooker |
-| `DEVICE_PROFILE` | `Sensor` list (match device specs) | SensorHooker |
-| `DEVICE_PROFILE` | `WebView` User-Agent model | WebViewHooker |
-| `DEVICE_PROFILE` | `Build.SUPPORTED_ABIS` | SystemHooker |
-| `DEVICE_PROFILE` | `Build.TIME` (build date) | SystemHooker |
-| `DEVICE_PROFILE` | `Build.VERSION.SECURITY_PATCH` | SystemHooker |
+| Source: Device Profile | Derived values                     | Hook Location                        |
+| ---------------------- | ---------------------------------- | ------------------------------------ |
+| `DEVICE_PROFILE`       | `IMEI` TAC prefix                  | DeviceHooker (via imeiForPreset())   |
+| `DEVICE_PROFILE`       | `SERIAL` format                    | DeviceHooker (brand-specific format) |
+| `DEVICE_PROFILE`       | `Build.*` all fields               | SystemHooker                         |
+| `DEVICE_PROFILE`       | `hasSystemFeature(nfc)`            | PackageManagerHooker                 |
+| `DEVICE_PROFILE`       | `getPhoneCount()` (1 or 2)         | DeviceHooker                         |
+| `DEVICE_PROFILE`       | `Sensor` list (match device specs) | SensorHooker                         |
+| `DEVICE_PROFILE`       | `WebView` User-Agent model         | WebViewHooker                        |
+| `DEVICE_PROFILE`       | `Build.SUPPORTED_ABIS`             | SystemHooker                         |
+| `DEVICE_PROFILE`       | `Build.TIME` (build date)          | SystemHooker                         |
+| `DEVICE_PROFILE`       | `Build.VERSION.SECURITY_PATCH`     | SystemHooker                         |
+
+---
 
 ### 19.1 `NetworkTypeMapper.kt` (New utility)
 
@@ -1973,6 +2028,7 @@ object XposedPrefs {
 ### After Each Phase — Run This Verification
 
 **Phase 0-1 (Build setup):**
+
 - [ ] `./gradlew :xposed:assembleDebug` compiles without errors
 - [ ] APK contains `META-INF/xposed/java_init.list` (check with `unzip -l app.apk`)
 - [ ] APK contains `META-INF/xposed/module.prop`
@@ -1980,53 +2036,64 @@ object XposedPrefs {
 - [ ] LSPosed Manager shows module with correct description from `android:description`
 
 **Phase 2-3 (Entry + Prefs):**
+
 - [ ] Module loads without crash in logcat (filter: `DeviceMasker`)
 - [ ] `XposedEntry loaded in process:` appears in logs for target apps
 - [ ] RemotePreferences readable: enable spoofing for a test app, check logs
 
 **Phase 4 (Deoptimize):**
+
 - [ ] No `deoptimize() failed` warnings in logcat for TelephonyManager methods
 - [ ] IMEI hook fires in apps where it previously was silent (test with IMEI checker app)
 
 **Phase 5 (DeviceHooker):**
+
 - [ ] IMEI spoofed: `*#06#` in dialer shows real, but IMEI-checker apps show spoofed
 - [ ] `getLine1Number()` spoofed: phone number apps show spoofed number
 - [ ] No crashes on Xiaomi/Samsung devices (test `getImei(int)` overload handling)
 
 **Phase 6 (NetworkHooker):**
+
 - [ ] WiFi MAC spoofed: check in `Settings > About phone`
 - [ ] BSSID spoofed in apps that read WiFi info
 
 **Phase 7 (SubscriptionHooker):**
+
 - [ ] Apps using `SubscriptionManager.getActiveSubscriptionInfoList()` show spoofed ICCID/number
 - [ ] Subscription count reports 1
 
 **Phase 8 (SystemHooker):**
+
 - [ ] `Build.MODEL` spoofed correctly
 - [ ] `Build.TIME` updated (no 2018 timestamps)
 - [ ] `Build.VERSION.SECURITY_PATCH` matches preset
 - [ ] `Build.SUPPORTED_ABIS` matches preset (arm64-v8a for Pixel)
 
 **Phase 9 (WebViewHooker):**
+
 - [ ] WebView UA shows spoofed model (test in browser app)
 - [ ] `WebView.getDefaultUserAgent()` returns spoofed model
 - [ ] `http.agent` system property shows spoofed model
 
 **Phase 10 (PackageManagerHooker):**
+
 - [ ] `hasSystemFeature("android.hardware.nfc")` returns `preset.hasNfc`
 - [ ] Feature set consistent with device model
 
 **Phase 11 (AntiDetect):**
+
 - [ ] `ClassLoader.loadClass("de.robv.android.xposed.XposedBridge")` throws `ClassNotFoundException`
 - [ ] RootBeer does not detect hooks
 - [ ] No Xposed-related class names in `/proc/self/maps` (check with root file manager)
 
 **Phase 12-13 (TAC + Preset):**
+
 - [ ] Generated IMEI TAC matches device profile (first 8 digits)
 - [ ] Luhn validation passes (use online validator)
 - [ ] No `86` TAC prefix when profile is a Google/Samsung device
 
 **Phase 14 (Correlation):**
+
 - [ ] IMSI starts with same MCC+MNC as CARRIER_MCC_MNC
 - [ ] ICCID country digits match carrier country
 - [ ] GPS coordinates are in the correct country for the spoofed carrier
@@ -2037,37 +2104,37 @@ object XposedPrefs {
 
 ## 23. Complete File Change Index
 
-| File | Action | Module | Notes |
-|---|---|---|---|
-| `gradle/libs.versions.toml` | Modify | root | Remove yuki/kavaref, add libxposed |
-| `xposed/build.gradle.kts` | Modify | `:xposed` | New deps, remove KSP plugin |
-| `app/build.gradle.kts` | Modify | `:app` | Remove ksp plugin, add service dep |
-| `xposed/src/main/assets/xposed_init` | **DELETE** | `:xposed` | Replaced by java_init.list |
-| `xposed/src/main/resources/META-INF/xposed/java_init.list` | **CREATE** | `:xposed` | New entry |
-| `xposed/src/main/resources/META-INF/xposed/module.prop` | **CREATE** | `:xposed` | minApiVersion=100 |
-| `xposed/src/main/resources/META-INF/xposed/scope.list` | **CREATE** | `:xposed` | Default scope |
-| `xposed/src/main/AndroidManifest.xml` | Modify | `:xposed` | Update xposedminversion=100 |
-| `app/src/main/AndroidManifest.xml` | Modify | `:app` | Add libxposed-service provider |
-| `xposed/.../XposedEntry.kt` | **REWRITE** | `:xposed` | `XposedModule` subclass |
-| `xposed/.../BaseSpoofHooker.kt` | **REWRITE** | `:xposed` | Remove YukiBaseHooker |
-| `xposed/.../PrefsHelper.kt` | **REWRITE** | `:xposed` | Use RemotePreferences |
-| `xposed/.../DeoptimizeManager.kt` | **CREATE** | `:xposed` | New — ART inline bypass |
-| `xposed/.../NetworkTypeMapper.kt` | **CREATE** | `:xposed` | New — carrier→network type |
-| `xposed/hooker/DeviceHooker.kt` | **REWRITE** | `:xposed` | API 100 hooker pattern |
-| `xposed/hooker/NetworkHooker.kt` | Modify | `:xposed` | Add missing hooks |
-| `xposed/hooker/SubscriptionHooker.kt` | **CREATE** | `:xposed` | New — biggest gap |
-| `xposed/hooker/SystemHooker.kt` | Modify | `:xposed` | Add TIME, ABIS, PATCH |
-| `xposed/hooker/WebViewHooker.kt` | Modify | `:xposed` | Add getDefaultUserAgent |
-| `xposed/hooker/PackageManagerHooker.kt` | **CREATE** | `:xposed` | New — feature set spoofing |
-| `xposed/hooker/AntiDetectHooker.kt` | Modify | `:xposed` | Add loadClass, runningServices |
-| `xposed/hooker/LocationHooker.kt` | Modify | `:xposed` | API 100 pattern migration |
-| `xposed/hooker/SensorHooker.kt` | Modify | `:xposed` | API 100 pattern migration |
-| `xposed/hooker/AdvertisingHooker.kt` | Modify | `:xposed` | API 100 pattern migration |
-| `xposed/consumer-rules.pro` | **REWRITE** | `:xposed` | API 100 keep rules |
-| `app/data/XposedPrefs.kt` | Modify | `:app` | ModulePreferences write side |
-| `common/models/DeviceProfilePreset.kt` | Modify | `:common` | Add enriched fields |
-| `common/utils/ValueGenerators.kt` | Modify | `:common` | TAC-aware IMEI generation |
-| `common/utils/NetworkTypeMapper.kt` | **CREATE** | `:common` (or xposed) | Carrier→network type |
+| File                                                       | Action      | Module                | Notes                              |
+| ---------------------------------------------------------- | ----------- | --------------------- | ---------------------------------- |
+| `gradle/libs.versions.toml`                                | Modify      | root                  | Remove yuki/kavaref, add libxposed |
+| `xposed/build.gradle.kts`                                  | Modify      | `:xposed`             | New deps, remove KSP plugin        |
+| `app/build.gradle.kts`                                     | Modify      | `:app`                | Remove ksp plugin, add service dep |
+| `xposed/src/main/assets/xposed_init`                       | **DELETE**  | `:xposed`             | Replaced by java_init.list         |
+| `xposed/src/main/resources/META-INF/xposed/java_init.list` | **CREATE**  | `:xposed`             | New entry                          |
+| `xposed/src/main/resources/META-INF/xposed/module.prop`    | **CREATE**  | `:xposed`             | minApiVersion=100                  |
+| `xposed/src/main/resources/META-INF/xposed/scope.list`     | **CREATE**  | `:xposed`             | Default scope                      |
+| `xposed/src/main/AndroidManifest.xml`                      | Modify      | `:xposed`             | Update xposedminversion=100        |
+| `app/src/main/AndroidManifest.xml`                         | Modify      | `:app`                | Add libxposed-service provider     |
+| `xposed/.../XposedEntry.kt`                                | **REWRITE** | `:xposed`             | `XposedModule` subclass            |
+| `xposed/.../BaseSpoofHooker.kt`                            | **REWRITE** | `:xposed`             | Remove YukiBaseHooker              |
+| `xposed/.../PrefsHelper.kt`                                | **REWRITE** | `:xposed`             | Use RemotePreferences              |
+| `xposed/.../DeoptimizeManager.kt`                          | **CREATE**  | `:xposed`             | New — ART inline bypass            |
+| `xposed/.../NetworkTypeMapper.kt`                          | **CREATE**  | `:xposed`             | New — carrier→network type         |
+| `xposed/hooker/DeviceHooker.kt`                            | **REWRITE** | `:xposed`             | API 100 hooker pattern             |
+| `xposed/hooker/NetworkHooker.kt`                           | Modify      | `:xposed`             | Add missing hooks                  |
+| `xposed/hooker/SubscriptionHooker.kt`                      | **CREATE**  | `:xposed`             | New — biggest gap                  |
+| `xposed/hooker/SystemHooker.kt`                            | Modify      | `:xposed`             | Add TIME, ABIS, PATCH              |
+| `xposed/hooker/WebViewHooker.kt`                           | Modify      | `:xposed`             | Add getDefaultUserAgent            |
+| `xposed/hooker/PackageManagerHooker.kt`                    | **CREATE**  | `:xposed`             | New — feature set spoofing         |
+| `xposed/hooker/AntiDetectHooker.kt`                        | Modify      | `:xposed`             | Add loadClass, runningServices     |
+| `xposed/hooker/LocationHooker.kt`                          | Modify      | `:xposed`             | API 100 pattern migration          |
+| `xposed/hooker/SensorHooker.kt`                            | Modify      | `:xposed`             | API 100 pattern migration          |
+| `xposed/hooker/AdvertisingHooker.kt`                       | Modify      | `:xposed`             | API 100 pattern migration          |
+| `xposed/consumer-rules.pro`                                | **REWRITE** | `:xposed`             | API 100 keep rules                 |
+| `app/data/XposedPrefs.kt`                                  | Modify      | `:app`                | ModulePreferences write side       |
+| `common/models/DeviceProfilePreset.kt`                     | Modify      | `:common`             | Add enriched fields                |
+| `common/utils/ValueGenerators.kt`                          | Modify      | `:common`             | TAC-aware IMEI generation          |
+| `common/utils/NetworkTypeMapper.kt`                        | **CREATE**  | `:common` (or xposed) | Carrier→network type               |
 
 ---
 
@@ -2086,4 +2153,4 @@ object XposedPrefs {
 
 ---
 
-*End of Plan — Device Masker libxposed API 100 Migration*
+_End of Plan — Device Masker libxposed API 100 Migration_

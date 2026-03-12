@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Exclude non-project folders from all lint checks -->
+    <issue id="all">
+        <ignore path="memory-bank/**" />
+        <ignore path="openspec/**" />
+        <ignore path="scripts/**" />
+        <ignore path=".agents/**" />
+        <ignore path=".claude/**" />
+        <ignore path="docs/**" />
+    </issue>
+</lint>

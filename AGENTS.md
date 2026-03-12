@@ -7,8 +7,6 @@
 
 **RESPECT ALL RULES**: You MUST follow every rule, guideline, principle, coding standard and best practice documented below. No exceptions, no shortcuts, no lazy work, full efforts. Respect project patterns, shared contracts, and existing code style consistency.
 
----
-
 ## Architecture (Hybrid AIDL + XSharedPreferences)
 
 ```text
@@ -83,89 +81,208 @@ devicemasker/
 | system_server service | `:xposed/service/`                       | Running AIDL service from `:app`          |
 | Config persistence    | `ConfigManager` (both app-side & xposed) | Direct file I/O from hookers              |
 
-### Xposed Safety Rules (⚠️ BOOTLOOP PREVENTION)
-
-1. **ALWAYS wrap system_server hooks in try-catch** — crashes cause bootloop!
-2. **Load `SystemServiceHooker` in `loadSystem {}`** — before any app hooks.
-3. **Load `AntiDetectHooker` FIRST in `loadApp {}`** — before any spoofing hooks.
-4. **Use `optional()` for uncertain methods** — prevents crashes on different Android versions.
-5. **Never block essential class loading** — always allow `androidx.*`, `kotlin.*`, `java.*`, `android.*`.
-6. **Skip critical packages** — `android`, `com.android.systemui`, `com.android.phone` in loadApp.
-7. **Use `runCatching { }` in all hooker callbacks** — never crash target apps.
-8. **Use `ThreadLocal` re-entrance guards** — prevent infinite recursion in stack trace hooks.
-
-### Configuration Rules
-
-- **`SharedPrefsKeys`** in `:common` is the **SINGLE SOURCE OF TRUTH** for all preference keys.
-- Both `XposedPrefs` (`:app`) and `PrefsKeys` (`:xposed`) **MUST delegate** to `SharedPrefsKeys`.
-- **XSharedPreferences CACHES values** — config changes via this path require target app restart.
-- **AIDL provides real-time updates** — no restart needed when service is available.
-- **Correlation groups MUST be respected** — SIM values must use same carrier, location values same country.
-
-### Data Integrity Rules
-
-- **`SIMConfig` validates on construction** — IMSI must start with carrier MCC/MNC, phone must start with country code.
-- **`DeviceProfilePreset` values are applied as a complete set** — never mix fields from different presets.
-- **IMEI must pass Luhn validation** — use `IMEIGenerator` which guarantees valid check digits.
-- **All generators use `SecureRandom`** — never use `Random()` for security-sensitive values.
-
----
-
-## Universal Development Principles
-
-1. **Safety First** — every hook callback wrapped in `runCatching { }`, system_server code in try-catch.
-2. **Immutable Data** — use `copy()` for all model updates, `val` properties, `@Serializable` data classes.
-3. **Fail Gracefully** — return fallback values instead of crashing; use `optional()` for uncertain methods.
-4. **Single Source of Truth** — `SharedPrefsKeys` for keys, `SpoofType` for identifiers, `JsonConfig` for config.
-5. **Correlate Values** — SIM/Location/Hardware values must be generated together via `CorrelationGroup`.
-6. **DRY** — use `BaseSpoofHooker` for common hook patterns, delegates for key generation.
-7. **Performance** — use `ClassCache` (LRU) for class lookups, pre-load common classes at init.
-8. **Thread Safety** — `AtomicReference`, `ConcurrentHashMap`, `@Volatile`, `synchronized` in system_server.
-9. **Document Intent** — comments explain WHY, not WHAT; use KDoc for public APIs.
-10. **KISS** — simple, maintainable designs over clever abstractions.
-
 ---
 
 ## Tech Stack
 
-| Layer          | Stack                                                                   |
-| -------------- | ----------------------------------------------------------------------- |
-| **Language**   | Kotlin 2.3.0, Java 25                                                   |
-| **Platform**   | Android SDK 36 (Android 16 / Baklava), minSdk 26                        |
-| **UI**         | Jetpack Compose (BOM 2025.12.00), Material 3 Expressive (1.5.0-alpha11) |
-| **Hooking**    | YukiHookAPI 1.3.1, LSPosed (API 82), KavaRef                            |
-| **IPC**        | AIDL Binder (system_server ↔ app processes), ContentProvider bridge     |
-| **Arch**       | MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)                |
-| **Data**       | kotlinx.serialization (JSON), SharedPreferences, AtomicFile             |
-| **Build**      | Gradle (Kotlin DSL), KSP, Spotless (ktfmt 0.54)                         |
-| **Logging**    | Timber (app), DualLog (xposed → YLog + buffer), HookMetrics             |
-| **Navigation** | Jetpack Navigation Compose, spring-based animated transitions           |
+| Layer          | Stack                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| **Language**   | Kotlin 2.3.0, Java 25                                               |
+| **Platform**   | Android SDK 36 (Android 16 / Baklava), minSdk 26                    |
+| **UI**         | Jetpack Compose (BOM 2026.02.01), Material 3 Expressive (1.4.0)     |
+| **Hooking**    | YukiHookAPI 1.3.1, LSPosed (API 82), KavaRef                        |
+| **IPC**        | AIDL Binder (system_server ↔ app processes), ContentProvider bridge |
+| **Arch**       | MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)            |
+| **Data**       | kotlinx.serialization (JSON), SharedPreferences, AtomicFile         |
+| **Build**      | Gradle (Kotlin DSL), KSP, Spotless (ktfmt 0.54)                     |
+| **Logging**    | Timber (app), DualLog (xposed → YLog + buffer), HookMetrics         |
+| **Navigation** | Jetpack Navigation Compose, spring-based animated transitions       |
 
 ---
 
 ## Commands
 
-### Build Commands
+### 🔨 Build
 
 ```bash
-./gradlew assembleDebug              # Build debug APK
-./gradlew assembleRelease            # Build release APK (requires signing)
-./gradlew installDebug               # Build and install to connected device
-./gradlew :app:assembleDebug         # Build only :app module
-./gradlew :common:assembleDebug      # Build only :common module
-./gradlew :xposed:assembleDebug      # Build only :xposed module
+# Quality gate — run in this order before every commit
+./gradlew spotlessApply && ./gradlew spotlessCheck && ./gradlew lint && ./gradlew test && ./gradlew assembleDebug
+
+./gradlew assembleDebug          # Full debug build (all 3 modules)
+./gradlew assembleRelease        # Release build (R8 shrinking + obfuscation)
+./gradlew installDebug           # Build + install to connected rooted device
+./gradlew clean assembleDebug    # Clean rebuild (fixes stale caches)
+
+# Module-specific (faster for targeted changes)
+./gradlew :app:assembleDebug
+./gradlew :xposed:assembleDebug
+./gradlew :common:assembleDebug
 ```
 
-### Lint & Format Commands
+### 🎨 Format & Lint
 
 ```bash
-./gradlew spotlessApply              # Auto-format all Kotlin files (ktfmt)
-./gradlew spotlessCheck              # Check formatting without fixing
-./gradlew lint                       # Run Android lint on all modules
-./gradlew :app:lint                  # Run lint on :app only
-./gradlew :common:lint               # Run lint on :common only
-./gradlew :xposed:lint               # Run lint on :xposed only
+./gradlew spotlessApply          # Auto-fix formatting (run before committing)
+./gradlew spotlessCheck          # Verify formatting (CI)
+
+./gradlew lint                   # Full cross-module lint
+./gradlew :app:lint              # App-only lint
+./gradlew :app:lintRelease       # Stricter — catches R8-specific issues
+./gradlew :app:updateLintBaseline  # Snapshot known issues
 ```
+
+> Reports: `app/build/reports/lint-results-debug.xml`
+
+### 🧪 Tests
+
+```bash
+./gradlew test                   # All unit tests
+./gradlew :common:test           # Generator tests (fastest — 29 tests)
+./gradlew :common:test --tests "com.astrixforge.devicemasker.common.generators.IMEIGeneratorTest"
+./gradlew :app:connectedAndroidTest  # On-device tests
+```
+
+### 🛡️ Release Validation
+
+```bash
+./gradlew assembleRelease
+
+# Verify critical classes were KEPT (not stripped) by R8
+Select-String -Path 'app\build\outputs\mapping\release\mapping.txt' -Pattern 'DeviceMaskerService|XposedEntry|HookEntry|AntiDetect'
+
+# APK size
+Get-Item app\build\outputs\apk\release\*.apk | Select-Object Name, @{N='MB';E={[math]::Round($_.Length/1MB,2)}}
+
+# Verify xposed_init exists (CRITICAL — LSPosed won't load without it)
+type xposed\src\main\assets\xposed_init
+```
+
+### 🔎 Xposed Safety Checks (All must return 0 results)
+
+```bash
+# 1. Unprotected hook callbacks
+grep -rn 'after {\|before {\|replaceAny {' xposed/src --include='*.kt' | grep -v 'runCatching'
+
+# 2. Hardcoded pref keys (must use SharedPrefsKeys)
+grep -rn '"module_enabled"\|"app_enabled_"\|"spoof_value_"\|"spoof_enabled_"' app/src xposed/src --include='*.kt'
+
+# 3. Non-secure random in generators
+grep -rn 'Random()\b' common/src --include='*.kt' | grep -v 'SecureRandom'
+
+# 4. Timber in :xposed (must use DualLog)
+grep -rn 'Timber\.' xposed/src --include='*.kt'
+
+# 5. Compose imports in :common or :xposed
+grep -rn 'import androidx.compose' common/src xposed/src --include='*.kt'
+```
+
+### 🗂️ PowerShell One-Liners
+
+```powershell
+# Files modified in last 24h
+Get-ChildItem -Recurse -Filter '*.kt' | Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-24) }
+
+# Search across all modules
+Select-String -Path 'app/src','xposed/src','common/src' -Recurse -Pattern 'BaseSpoofHooker' -Include '*.kt'
+
+# Kotlin line count per module
+Get-ChildItem -Recurse -Filter '*.kt' app/src,xposed/src,common/src | Measure-Object -Sum -Property Length
+```
+
+## Pre-Commit Checklist
+
+> **⛔ ZERO-TOLERANCE**: Every gate below MUST pass before considering any task complete.
+> Running these checks is NOT optional. A single failure means the task is NOT done.
+> Fix the root cause — never suppress or ignore warnings/errors.
+
+---
+
+### Quality Gates
+
+> Run ALL gates **in the order listed** every time you touch any source file.
+> A single FAILED gate means the task is **NOT done** — fix root cause, do not suppress.
+
+#### 🟢 Gate 1 — Format (Always First)
+
+```bash
+# Auto-fix formatting — run before everything else
+./gradlew spotlessApply
+
+# Verify no formatting issues remain (used in CI)
+./gradlew spotlessCheck
+# Expected: BUILD SUCCESSFUL — zero formatting violations
+```
+
+#### 🟡 Gate 2 — Compile
+
+```bash
+./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin
+# Expected: BUILD SUCCESSFUL — zero compilation errors or warnings
+```
+
+#### 🟠 Gate 3 — Lint
+
+```bash
+./gradlew lint
+# Expected: BUILD SUCCESSFUL, 0 errors
+```
+
+#### 🔴 Gate 4 — Unit Tests
+
+```bash
+./gradlew test
+# Expected: All tests GREEN — 0 failures, 0 errors
+```
+
+#### 🔵 Gate 5 — Debug Build
+
+```bash
+./gradlew assembleDebug
+# Expected: BUILD SUCCESSFUL — APK in app/build/outputs/apk/debug/
+```
+
+#### ⚫ Gate 6 — Release Build (R8 Validation)
+
+```bash
+./gradlew assembleRelease
+Select-String -Path 'app\build\outputs\mapping\release\mapping.txt' -Pattern 'DeviceMaskerService|XposedEntry|HookEntry|AntiDetect'
+# Expected: each critical class appears in mapping (kept, not stripped)
+```
+
+#### 🔎 Gate 7 — Xposed Safety Checks (Grep)
+
+```bash
+grep -rn 'after {\|before {\|replaceAny {' xposed/src --include='*.kt' | grep -v 'runCatching'
+grep -rn '"module_enabled"\|"app_enabled_"\|"spoof_value_"\|"spoof_enabled_"' app/src xposed/src --include='*.kt'
+grep -rn 'Random()' common/src --include='*.kt' | grep -v 'SecureRandom'
+grep -rn 'Timber\.' xposed/src --include='*.kt'
+grep -rn 'import androidx.compose' common/src xposed/src --include='*.kt'
+# All 5 checks must return 0 results
+```
+
+## 🚀 All-in-One Audit Script
+
+Runs **every** check — all 10 safety grep checks + all 7 Gradle quality gates — and saves a
+structured TXT report to `scripts/logs/audit-report.txt`. Designed to be read by both humans and AI agents.
+
+### Run the Audit
+
+```powershell
+.\scripts\run-audit.ps1
+```
+
+> Output saved to: `scripts/logs/audit-report.txt`
+> Encoding: UTF-8, structured sections, clear PASS/FAIL labels — safe for AI agent consumption.
+
+### What the Script Does
+
+1. Runs all 10 Xposed safety grep checks (0-result checks)
+2. Runs Gate 1 (spotlessCheck)
+3. Runs Gate 2 (compileDebugKotlin — all 3 modules)
+4. Runs Gate 3 (lint)
+5. Runs Gate 4 (test)
+6. Runs Gate 5 (assembleDebug)
+7. Summarises overall PASS / FAIL with a count of violations
 
 ---
 
@@ -306,34 +423,6 @@ private val filterCounts = ConcurrentHashMap<String, AtomicInteger>()
 
 ---
 
-## Pre-Commit Checklist
-
-> **⛔ ZERO-TOLERANCE**: Every gate below MUST pass before considering any task complete.
-> Running these checks is NOT optional. A single failure means the task is NOT done.
-> Fix the root cause — never suppress or ignore warnings/errors.
-
----
-
-### Quality Gates
-
-Run ALL commands, in order, every time you touch any source file:
-
-```bash
-# 1. Format — MUST complete with no changes needed
-./gradlew spotlessApply
-
-# 2. Format check — MUST show BUILD SUCCESSFUL
-./gradlew spotlessCheck
-
-# 3. Lint — MUST show BUILD SUCCESSFUL, zero errors
-./gradlew lint
-
-# 4. Build — MUST produce APK with zero compile errors
-./gradlew assembleDebug
-```
-
----
-
 ### Manual Verification Checklist
 
 Before closing any task, confirm ALL of the following:
@@ -367,10 +456,14 @@ Before closing any task, confirm ALL of the following:
 
 ## MCP Tools
 
-| Server                         | Purpose                                  |
-| ------------------------------ | ---------------------------------------- |
-| **context7**                   | Query library docs & code examples       |
-| **google-developer-knowledge** | Official Google developer docs & samples |
+> **⛔ MANDATORY — Query BEFORE writing any code, every time, no exceptions.**
+> **Priority 1: `google-developer-knowledge`** — Android, Compose, Jetpack, Google APIs (official Google sources).
+> **Priority 2: `context7`** — All other libraries (YukiHookAPI, kotlinx, third-party). Use only if google-developer-knowledge has no result.
+
+| Server                         | Priority | Covers                                                                              |
+| ------------------------------ | -------- | ----------------------------------------------------------------------------------- |
+| **google-developer-knowledge** | **1st**  | Android SDK, Jetpack Compose, Material 3, Firebase, Google APIs, Chrome, TensorFlow |
+| **context7**                   | 2nd      | YukiHookAPI, kotlinx, all non-Google libraries                                      |
 
 ---
 
@@ -380,16 +473,34 @@ Before closing any task, confirm ALL of the following:
 
 Skills are located in `.agents/skills/` — read the **SKILL.md** file inside each skill folder.
 
+### Design & Planning
+
+| Skill                | When to Use                                                            | Path                               |
+| :------------------- | :--------------------------------------------------------------------- | :--------------------------------- |
+| **brainstorming**    | Use before creative work — exploring features, components, and intent. | `.agents/skills/brainstorming/`    |
+| **mermaid-diagrams** | Creating software diagrams (class, sequence, flow, C4, ERD, Git).      | `.agents/skills/mermaid-diagrams/` |
+
 ### Android & Kotlin
 
-| Skill                     | When to Use                            | Path                                    |
-| ------------------------- | -------------------------------------- | --------------------------------------- |
-| **kotlin-coroutines**     | Coroutines, suspend, Flow, channels    | `.agents/skills/kotlin-coroutines/`     |
-| **kotlin-specialist**     | Idiomatic Kotlin, DSLs, sealed classes | `.agents/skills/kotlin-specialist/`     |
-| **material-3-expressive** | M3 Expressive UI design & review       | `.agents/skills/material-3-expressive/` |
-| **mobile-design**         | Mobile-first UX, touch patterns        | `.agents/skills/mobile-design/`         |
-| **android-agent-skills**  | Android platform patterns              | `.agents/skills/android-agent-skills/`  |
+| Skill             | When to Use                                                                      | Path                                    |
+| :---------------- | :------------------------------------------------------------------------------- | :-------------------------------------- |
+| **android-ninja** | Core Android architectural guidance (Kotlin, Compose, MVVM, Hilt, Multi-module). | `.agents/skills/claude-android-ninja/`  |
+| **material-3**    | Material 3 Expressive UI design, review, token specification, and motion.        | `.agents/skills/material-3-expressive/` |
+
+### DevOps & Infrastructure
+
+| Skill              | When to Use                                                             | Path                                       |
+| :----------------- | :---------------------------------------------------------------------- | :----------------------------------------- |
+| **docker-expert**  | Containerization, multi-stage builds, image optimization, and security. | `.agents/skills/docker-expert/`            |
+| **github-actions** | Automating CI/CD: testing, building, and deployment workflows.          | `.agents/skills/github-actions-templates/` |
+
+### Tooling & Maintenance
+
+| Skill                | When to Use                                                               | Path                                     |
+| :------------------- | :------------------------------------------------------------------------ | :--------------------------------------- |
+| **skill-creator**    | Creating, modifying, and optimizing agentic skills via data-driven evals. | `.agents/skills/skill-creator/`          |
+| **coding-standards** | Generating project-specific style guides from existing source code.       | `.agents/skills/write-coding-standards/` |
 
 ---
 
-_Last Updated: 2026-03-12 (AIDL hybrid architecture complete, 24 SpoofTypes, 8 active hookers, 10 device presets)_
+_Last Updated: 2026-03-13 (Skill reference update, AIDL hybrid architecture, R8 full-mode release build, 7-gate quality pipeline, Xposed safety grep checks, 24 SpoofTypes)_

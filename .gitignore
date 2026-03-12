@@ -111,6 +111,8 @@ Thumbs.db
 # Keep memory-bank/ and openspec/ - these are safe
 # Keep .agent/ - workflow definitions
 
+.playwright-cli/
+.playwright-mcp/
 scripts/logs/*.txt
 # ═══════════════════════════════════════════════════════════
 # VERSION CONTROL

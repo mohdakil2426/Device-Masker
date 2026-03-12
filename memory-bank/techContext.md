@@ -41,6 +41,14 @@
 
 > Full command reference with 60+ commands: see `GEMINI.md` → Commands section.
 
+### Folder Exclusions (Context & Meta)
+
+The following folders are explicitly excluded from Spotless, Lint, and IDE Indexing to prevent conflicts and improve performance:
+
+- `memory-bank`, `openspec`, `scripts`, `.agents`, `.claude`, `docs`
+
+Configured in `build.gradle.kts` (root) and root `lint.xml`.
+
 ### R8 Release Build (Enabled Mar 12, 2026)
 
 **Critical `gradle.properties` flags** (previously disabled — now correctly on):

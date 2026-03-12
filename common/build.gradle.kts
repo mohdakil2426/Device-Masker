@@ -36,6 +36,10 @@ android {
         aidl = true
         buildConfig = true
     }
+
+    lint {
+        lintConfig = rootProject.file("lint.xml")
+    }
 }
 
 dependencies {

@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.spotless)
+    idea
 }
 
 // Shared configuration for all modules
@@ -20,6 +21,12 @@ spotless {
     kotlin {
         target("**/*.kt")
         targetExclude("**/build/**/*.kt")
+        targetExclude("memory-bank/**/*.kt")
+        targetExclude("openspec/**/*.kt")
+        targetExclude("scripts/**/*.kt")
+        targetExclude(".agents/**/*.kt")
+        targetExclude(".claude/**/*.kt")
+        targetExclude("docs/**/*.kt")
         ktfmt("0.54").kotlinlangStyle()
         trimTrailingWhitespace()
         indentWithSpaces(4)
@@ -27,6 +34,28 @@ spotless {
     }
     kotlinGradle {
         target("**/*.gradle.kts")
+        targetExclude("**/build/**/*.gradle.kts")
+        targetExclude("memory-bank/**/*.gradle.kts")
+        targetExclude("openspec/**/*.gradle.kts")
+        targetExclude("scripts/**/*.gradle.kts")
+        targetExclude(".agents/**/*.gradle.kts")
+        targetExclude(".claude/**/*.gradle.kts")
+        targetExclude("docs/**/*.gradle.kts")
         ktfmt("0.54").kotlinlangStyle()
+    }
+}
+
+idea {
+    module {
+        excludeDirs.addAll(
+            files(
+                "memory-bank",
+                "openspec",
+                "scripts",
+                ".agents",
+                ".claude",
+                "docs"
+            )
+        )
     }
 }

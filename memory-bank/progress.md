@@ -2,12 +2,35 @@
 
 ## Overall Status
 
-| Metric                | Value                                                              |
-| --------------------- | ------------------------------------------------------------------ |
-| **Project Phase**     | Hook Safety Audit In Progress ⏳                                   |
-| **Active Changes**    | 2 (`refactor-xposed-aidl-architecture`, `hook-safety-audit`)       |
-| **Archived Changes**  | 12                                                                 |
-| **Last Major Update** | March 12, 2026 — Hook Safety Audit + R8 Release Build Optimization |
+| Metric                | Value                                                                   |
+| --------------------- | ----------------------------------------------------------------------- |
+| **Project Phase**     | Hook Safety Audit In Progress ⏳                                        |
+| **Active Changes**    | 2 (`refactor-xposed-aidl-architecture`, `hook-safety-audit`)            |
+| **Archived Changes**  | 12                                                                      |
+| **Last Major Update** | March 13, 2026 — Project-wide lint/build exclusions for context folders |
+
+---
+
+## ✅ Complete: Project-Wide Lint & Build Exclusions (Mar 13, 2026)
+
+**Status**: Complete ✅  
+**Impact**: Stabilized build and lint runs by excluding non-code context and agent metadata folders.
+
+### Excluded Folders
+
+- `memory-bank`
+- `openspec`
+- `scripts`
+- `.agents`
+- `.claude`
+- `docs`
+
+### Changes Made
+
+- **Spotless**: Added `targetExclude` for all above folders in root `build.gradle.kts`.
+- **IDE**: Used `idea` plugin in root `build.gradle.kts` to exclude these folders from indexing.
+- **Lint**: Created root `lint.xml` with `<ignore path="..." />` for all folders.
+- **Modules**: Updated `:app`, `:common`, and `:xposed` to point to the root `lint.xml`.
 
 ---
 
