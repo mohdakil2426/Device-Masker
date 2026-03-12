@@ -284,6 +284,10 @@ structured TXT report to `scripts/logs/audit-report.txt`. Designed to be read by
 6. Runs Gate 5 (assembleDebug)
 7. Summarises overall PASS / FAIL with a count of violations
 
+## More Commands
+
+`docs/guides/RUNBOOK.md`
+
 ---
 
 ## Coding Standards — Kotlin

@@ -1,20 +1,37 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context — shown to AI when creating artifacts
+context: |
+  Project: Device Masker — LSPosed/Xposed Android privacy module
+  Tech stack: Kotlin 2.3.0, Android SDK 36 (minSdk 26), Jetpack Compose (BOM 2026.02.01),
+              Material 3 Expressive 1.4.0, YukiHookAPI 1.3.1 (being migrated to libxposed API 100),
+              AIDL Binder IPC, kotlinx.serialization
+  Architecture: 3-module Gradle (:app UI/MVVM, :common shared models, :xposed hook layer)
+  Domain: Device identifier spoofing (IMEI, MAC, Serial, etc.) and Xposed hook anti-detection
+  Coding standards: ktfmt 0.54, KISS/DRY/YAGNI, SecureRandom only, runCatching in all hooks
+  Build: Spotless → Lint → Test → assembleDebug → assembleRelease (R8 full mode)
+  Key patterns: SharedPrefsKeys (single source of truth), BaseSpoofHooker (AIDL-first fallback),
+                @Volatile HookState objects, oneway AIDL for diagnostics, DualLog (not Timber) in :xposed
+  Safety: system_server code = bootloop risk, always try-catch. Hook callbacks must never throw.
+  Shell: PowerShell (Windows). Use ./gradlew for Gradle tasks.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+# Per-artifact rules
+rules:
+  proposal:
+    - Reference planning docs in docs/planning/ when relevant
+    - Mark breaking changes with **BREAKING**
+    - List capabilities using kebab-case names matching module/feature names
+  design:
+    - Include alternatives considered for each decision
+    - Reference specific sections in planning docs (§ notation)
+    - Always include migration/rollback strategy
+  specs:
+    - Use SHALL/MUST for normative requirements
+    - Every hook scenario must specify deoptimize() behavior
+    - Include "class not found" graceful-skip scenarios for optional hooks
+    - Include safety-wrapping requirements (safeHook/runCatching)
+  tasks:
+    - Group by migration phase (Phase 0-16 from planning doc)
+    - Include verification step after each phase group
+    - Reference planning doc sections with § notation
+    - Include grep safety checks as final task group
