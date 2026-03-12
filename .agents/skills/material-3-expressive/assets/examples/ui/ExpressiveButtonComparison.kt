@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 /**
  * COMPARISON: Standard M3 Button vs M3 Expressive Button
  *
- * This example demonstrates the key differences between a standard Material 3
- * button and one enhanced with M3 Expressive principles.
+ * This example demonstrates the key differences between a standard Material 3 button and one
+ * enhanced with M3 Expressive principles.
  */
 
 // ============================================================================
@@ -34,13 +34,10 @@ import androidx.compose.ui.unit.dp
 // Uses default Material 3 styling with no expressive enhancements
 // ============================================================================
 @Composable
-fun StandardM3Button(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun StandardM3Button(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
         // Uses default shape: RoundedCornerShape(100) - fully rounded ends
         // Uses default colors: primary container
         // Uses default typography: labelLarge
@@ -55,37 +52,37 @@ fun StandardM3Button(
 // Enhanced with expressive hierarchy, shape contrast, and emotional intent
 // ============================================================================
 @Composable
-fun ExpressiveM3Button(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun ExpressiveM3Button(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            // EXPRESSIVE: Generous touch target (56dp vs default 40dp)
-            // Improves accessibility and creates visual prominence
-            // Replace with token-derived values from references/m3-*-specs-tokens.md where applicable.
-            .height(56.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                // EXPRESSIVE: Generous touch target (56dp vs default 40dp)
+                // Improves accessibility and creates visual prominence
+                // Replace with token-derived values from references/m3-*-specs-tokens.md where
+                // applicable.
+                .height(56.dp),
         // EXPRESSIVE: Shape contrast using XL corner radius (18dp)
         // Creates visual interest while maintaining brand recognition
         // See: m3-shape-corner-radius-scale.md for scale values
         shape = RoundedCornerShape(18.dp),
-        colors = ButtonDefaults.buttonColors(
-            // Uses primary color from dynamic color system
-            // EXPRESSIVE: Rich color emphasis for primary actions
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+        colors =
+            ButtonDefaults.buttonColors(
+                // Uses primary color from dynamic color system
+                // EXPRESSIVE: Rich color emphasis for primary actions
+                containerColor = MaterialTheme.colorScheme.primary
+            ),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Center,
         ) {
             // EXPRESSIVE: Leading icon reinforces action intent
             // Icon + label combo improves scannability
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = null // Decorative, text provides meaning
+                contentDescription = null, // Decorative, text provides meaning
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -93,7 +90,7 @@ fun ExpressiveM3Button(
                 // EXPRESSIVE: Type hierarchy with increased weight
                 // titleMedium + Bold creates emphasis without size increase
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
             )
         }
     }
@@ -105,16 +102,13 @@ fun ExpressiveM3Button(
 // ============================================================================
 @Composable
 fun ButtonComparisonDemo() {
-    Column(
-        modifier = Modifier.padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         // Standard button - functional but not expressive
         Column {
             Text(
                 text = "Standard M3 Button",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             StandardM3Button(onClick = {})
@@ -125,7 +119,7 @@ fun ButtonComparisonDemo() {
             Text(
                 text = "M3 Expressive Button",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             ExpressiveM3Button(onClick = {})
