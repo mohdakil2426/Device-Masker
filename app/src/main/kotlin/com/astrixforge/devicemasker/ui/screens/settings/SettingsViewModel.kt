@@ -83,16 +83,15 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
     }
 
     /**
-     * Creates a shareable log file and returns the result.
-     * The caller should use the URI to launch a share intent.
+     * Creates a shareable log file and returns the result. The caller should use the URI to launch
+     * a share intent.
      */
     fun createShareableLogs(onResult: (ShareableLogResult) -> Unit) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
-            val result = withContext(Dispatchers.IO) {
-                LogManager.createShareableLogFile(getApplication())
-            }
+            val result =
+                withContext(Dispatchers.IO) { LogManager.createShareableLogFile(getApplication()) }
 
             _state.update { it.copy(isExportingLogs = false) }
             onResult(result)

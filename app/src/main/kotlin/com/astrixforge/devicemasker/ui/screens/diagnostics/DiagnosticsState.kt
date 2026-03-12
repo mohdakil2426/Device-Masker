@@ -68,4 +68,3 @@ enum class DiagnosticStatus {
 
 /** Anti-detection test result. */
 data class AntiDetectionTest(val nameRes: Int, val descriptionRes: Int, val isPassed: Boolean)
-

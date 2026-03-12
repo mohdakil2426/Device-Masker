@@ -41,7 +41,9 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         viewModelScope.launch {
             serviceClient.connectionState.collect { connectionState ->
                 _state.update {
-                    it.copy(serviceStatus = it.serviceStatus.copy(connectionState = connectionState))
+                    it.copy(
+                        serviceStatus = it.serviceStatus.copy(connectionState = connectionState)
+                    )
                 }
             }
         }
@@ -75,9 +77,7 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         }
     }
 
-    /**
-     * Refreshes the AIDL service status by connecting and querying stats.
-     */
+    /** Refreshes the AIDL service status by connecting and querying stats. */
     private suspend fun refreshServiceStatus() {
         // Try to connect if not already connected
         if (!serviceClient.isConnected) {
@@ -91,23 +91,25 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
 
             _state.update {
                 it.copy(
-                    serviceStatus = it.serviceStatus.copy(
-                        connectionState = ServiceClient.ConnectionState.CONNECTED,
-                        version = version,
-                        uptimeMs = uptime,
-                        hookedAppCount = hookedCount,
-                    )
+                    serviceStatus =
+                        it.serviceStatus.copy(
+                            connectionState = ServiceClient.ConnectionState.CONNECTED,
+                            version = version,
+                            uptimeMs = uptime,
+                            hookedAppCount = hookedCount,
+                        )
                 )
             }
         } else {
             _state.update {
                 it.copy(
-                    serviceStatus = it.serviceStatus.copy(
-                        connectionState = ServiceClient.ConnectionState.ERROR,
-                        version = null,
-                        uptimeMs = 0L,
-                        hookedAppCount = 0,
-                    )
+                    serviceStatus =
+                        it.serviceStatus.copy(
+                            connectionState = ServiceClient.ConnectionState.ERROR,
+                            version = null,
+                            uptimeMs = 0L,
+                            hookedAppCount = 0,
+                        )
                 )
             }
         }
@@ -192,4 +194,3 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         )
     }
 }
-

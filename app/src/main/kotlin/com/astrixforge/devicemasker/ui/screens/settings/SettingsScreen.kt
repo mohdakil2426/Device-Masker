@@ -68,7 +68,6 @@ import com.astrixforge.devicemasker.ui.components.SettingsSwitchItem
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 
-
 /**
  * Settings screen for app preferences.
  *
@@ -184,22 +183,21 @@ fun SettingsScreen(
     if (showExportSheet) {
         ActionBottomSheet(
             title = exportSheetTitle,
-            actions = listOf(
-                ActionItem(
-                    icon = Icons.Outlined.Save,
-                    title = saveTitle,
-                    description = saveDesc,
-                    onClick = {
-                        exportLogsLauncher.launch(generateLogFileName())
-                    },
+            actions =
+                listOf(
+                    ActionItem(
+                        icon = Icons.Outlined.Save,
+                        title = saveTitle,
+                        description = saveDesc,
+                        onClick = { exportLogsLauncher.launch(generateLogFileName()) },
+                    ),
+                    ActionItem(
+                        icon = Icons.Outlined.Share,
+                        title = shareTitle,
+                        description = shareDesc,
+                        onClick = onShareLogs,
+                    ),
                 ),
-                ActionItem(
-                    icon = Icons.Outlined.Share,
-                    title = shareTitle,
-                    description = shareDesc,
-                    onClick = onShareLogs,
-                ),
-            ),
             onDismiss = { showExportSheet = false },
         )
     }

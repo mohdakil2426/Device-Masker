@@ -108,7 +108,7 @@ fun AppListItem(
 @Composable
 private fun AppIcon(app: InstalledApp, modifier: Modifier = Modifier) {
     val bitmap = app.iconBitmap
-    
+
     if (bitmap != null) {
         Image(
             bitmap = bitmap.asImageBitmap(),

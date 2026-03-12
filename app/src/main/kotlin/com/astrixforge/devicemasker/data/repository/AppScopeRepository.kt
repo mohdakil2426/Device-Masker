@@ -31,13 +31,11 @@ class AppScopeRepository(private val context: Context) {
     suspend fun loadApps(forceRefresh: Boolean = false) {
         cacheMutex.withLock {
             if (isCacheValid && !forceRefresh) return
-            
+
             _isLoading.value = true
-            
-            val apps = withContext(Dispatchers.IO) {
-                queryInstalledApps()
-            }
-            
+
+            val apps = withContext(Dispatchers.IO) { queryInstalledApps() }
+
             _installedApps.value = apps
             isCacheValid = true
             _isLoading.value = false
@@ -71,12 +69,13 @@ class AppScopeRepository(private val context: Context) {
         return try {
             val label = packageManager.getApplicationLabel(appInfo).toString()
             val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-            val versionName = try {
-                packageManager.getPackageInfo(appInfo.packageName, 0).versionName ?: ""
-            } catch (_: Exception) {
-                ""
-            }
-            
+            val versionName =
+                try {
+                    packageManager.getPackageInfo(appInfo.packageName, 0).versionName ?: ""
+                } catch (_: Exception) {
+                    ""
+                }
+
             val iconBitmap = loadIconBitmap(appInfo)
 
             InstalledApp(

@@ -43,17 +43,18 @@ abstract class BaseSpoofHooker(protected val tag: String) : YukiBaseHooker() {
     /**
      * Gets the DeviceMaskerService if available.
      *
-     * This is a cached reference obtained once per hooker instance.
-     * Returns null if service is not initialized (fallback to prefs).
+     * This is a cached reference obtained once per hooker instance. Returns null if service is not
+     * initialized (fallback to prefs).
      */
     protected val service: IDeviceMaskerService? by lazy {
         runCatching {
-            if (DeviceMaskerService.isInitialized()) {
-                DeviceMaskerService.getInstance()
-            } else {
-                null
+                if (DeviceMaskerService.isInitialized()) {
+                    DeviceMaskerService.getInstance()
+                } else {
+                    null
+                }
             }
-        }.getOrNull()
+            .getOrNull()
     }
 
     /** Returns true if AIDL service is available for config queries. */
@@ -95,9 +96,7 @@ abstract class BaseSpoofHooker(protected val tag: String) : YukiBaseHooker() {
      * @return The value from service, or null if unavailable
      */
     protected fun getSpoofValueFromService(key: String): String? {
-        return runCatching {
-            service?.getSpoofValue(packageName, key)
-        }.getOrNull()
+        return runCatching { service?.getSpoofValue(packageName, key) }.getOrNull()
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -107,13 +106,11 @@ abstract class BaseSpoofHooker(protected val tag: String) : YukiBaseHooker() {
     /**
      * Increments the filter count for this package via service.
      *
-     * Called automatically when a spoof value is returned from getSpoofValue().
-     * Safe to call even if service is unavailable.
+     * Called automatically when a spoof value is returned from getSpoofValue(). Safe to call even
+     * if service is unavailable.
      */
     protected fun incrementFilterCount() {
-        runCatching {
-            service?.incrementFilterCount(packageName)
-        }
+        runCatching { service?.incrementFilterCount(packageName) }
     }
 
     /** Logs the start of hook registration for this package. */
@@ -175,9 +172,7 @@ abstract class BaseSpoofHooker(protected val tag: String) : YukiBaseHooker() {
      * @param level Log level (0=INFO, 1=WARN, 2=ERROR, 3=DEBUG)
      */
     private fun logToService(message: String, level: Int) {
-        runCatching {
-            service?.log(tag, message, level)
-        }
+        runCatching { service?.log(tag, message, level) }
     }
 
     companion object {
@@ -188,4 +183,3 @@ abstract class BaseSpoofHooker(protected val tag: String) : YukiBaseHooker() {
         private const val LOG_LEVEL_DEBUG = 3
     }
 }
-

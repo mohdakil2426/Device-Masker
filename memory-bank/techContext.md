@@ -4,47 +4,47 @@
 
 ### Core Technologies
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **Kotlin** | 2.3.0 | Primary language |
-| **Android SDK** | API 36 (compileSdk) | Android 16 support |
-| **Min SDK** | API 26 (Android 8.0) | Broader device compatibility |
-| **Target SDK** | API 36 | Latest Android 16 |
+| Technology       | Version                 | Purpose                           |
+| ---------------- | ----------------------- | --------------------------------- |
+| **Kotlin**       | 2.3.0                   | Primary language                  |
+| **Android SDK**  | API 36 (compileSdk)     | Android 16 support                |
+| **Min SDK**      | API 26 (Android 8.0)    | Broader device compatibility      |
+| **Target SDK**   | API 36                  | Latest Android 16                 |
 | **Java Version** | 21 (Target) / 25 (Host) | Toolchain provisioning via Foojay |
-| **Gradle** | 9.1.0 (Wrapper) | Build system (Java 25 compatible) |
+| **Gradle**       | 9.3.1 (Wrapper)         | Build system (AGP 9.1.0)          |
 
 ### UI Framework
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| **Compose BOM** | 2025.12.00 | December 2025 release |
-| **Compose UI** | BOM | Core UI toolkit |
-| **Material 3** | 1.5.0-alpha11 | Material 3 Expressive |
-| **Graphics Shapes** | 1.0.1 | Shape morphing support |
-| **Activity Compose** | 1.12.1 | Activity integration |
-| **Navigation Compose** | 2.9.6 | Navigation component |
-| **Lifecycle** | 2.10.0 | Lifecycle-aware components |
+| Library                | Version    | Purpose                    |
+| ---------------------- | ---------- | -------------------------- |
+| **Compose BOM**        | 2026.02.01 | February 2026 release      |
+| **Compose UI**         | BOM        | Core UI toolkit            |
+| **Material 3**         | 1.4.0      | Material 3 Stable          |
+| **Graphics Shapes**    | 1.1.0      | Shape morphing support     |
+| **Activity Compose**   | 1.12.4     | Activity integration       |
+| **Navigation Compose** | 2.9.7      | Navigation component       |
+| **Lifecycle**          | 2.10.0     | Lifecycle-aware components |
 
 ### Hooking Framework
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| **YukiHookAPI** | 1.3.1 | Modern Kotlin Hook API |
-| **KavaRef** | 1.0.2 | Reflection engine (required by Yuki v1.3+) |
-| **AndroidHiddenApiBypass** | 6.1 | Access to hidden APIs |
-| **YukiHookAPI KSP** | 2.2.21-2.0.4 | Annotation processor |
-| **LSPosed (Xposed)** | 1.10.2+ (API 82) | Framework (external) |
-| **Magisk** | 30.6+ | Root solution (external) |
+| Library                    | Version          | Purpose                                    |
+| -------------------------- | ---------------- | ------------------------------------------ |
+| **YukiHookAPI**            | 1.3.1            | Modern Kotlin Hook API                     |
+| **KavaRef**                | 1.0.2            | Reflection engine (required by Yuki v1.3+) |
+| **AndroidHiddenApiBypass** | 6.1              | Access to hidden APIs                      |
+| **YukiHookAPI KSP**        | 2.3.6            | Annotation processor                       |
+| **LSPosed (Xposed)**       | 1.10.2+ (API 82) | Framework (external)                       |
+| **Magisk**                 | 30.6+            | Root solution (external)                   |
 
 ### Data & Utilities
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| **DataStore** | 1.2.0 | Preferences storage |
-| **Kotlinx Coroutines** | 1.10.2 | Async operations |
-| **Kotlinx Serialization** | 1.9.0 | JSON serialization |
-| **Timber** | 5.0.1 | Logging |
-| **Coil Compose** | 3.2.0 | Image loading (app icons) |
+| Library                   | Version | Purpose                   |
+| ------------------------- | ------- | ------------------------- |
+| **DataStore**             | 1.2.0   | Preferences storage       |
+| **Kotlinx Coroutines**    | 1.10.2  | Async operations          |
+| **Kotlinx Serialization** | 1.10.0  | JSON serialization        |
+| **Timber**                | 5.0.1   | Logging                   |
+| **Coil Compose**          | 3.4.0   | Image loading (app icons) |
 
 ## Development Setup
 
@@ -98,15 +98,15 @@ cd Device Masker
 
 ### Android Version Compatibility
 
-| API Level | Android Version | Support Status |
-|-----------|-----------------|----------------|
-| 26-28 | Android 8.0-9.0 | ✅ Supported |
-| 29-30 | Android 10-11 | ✅ Supported |
-| 31-32 | Android 12-12L | ✅ Supported (dynamic colors) |
-| 33 | Android 13 | ✅ Supported |
-| 34 | Android 14 | ✅ Supported |
-| 35 | Android 15 | ✅ Supported |
-| 36 | Android 16 | ✅ Supported (target) |
+| API Level | Android Version | Support Status                |
+| --------- | --------------- | ----------------------------- |
+| 26-28     | Android 8.0-9.0 | ✅ Supported                  |
+| 29-30     | Android 10-11   | ✅ Supported                  |
+| 31-32     | Android 12-12L  | ✅ Supported (dynamic colors) |
+| 33        | Android 13      | ✅ Supported                  |
+| 34        | Android 14      | ✅ Supported                  |
+| 35        | Android 15      | ✅ Supported                  |
+| 36        | Android 16      | ✅ Supported (target)         |
 
 ### LSPosed Requirements
 
@@ -116,6 +116,7 @@ cd Device Masker
 - **Cross-Process Data**: Hybrid AIDL + XSharedPreferences (Jan 2026)
 
 **Required AndroidManifest.xml meta-data**:
+
 ```xml
 <meta-data android:name="xposedmodule" android:value="true" />
 <meta-data android:name="xposedsharedprefs" android:value="true" />
@@ -126,15 +127,15 @@ cd Device Masker
 
 **Primary config delivery via AIDL service in system_server**:
 
-| Component | Module | Purpose |
-|-----------|--------|---------|
-| `IDeviceMaskerService.aidl` | `:common` | AIDL interface (15 methods) |
-| `DeviceMaskerService.kt` | `:xposed/service` | Service impl in system_server |
-| `ConfigManager.kt` | `:xposed/service` | Atomic file config (`/data/misc/devicemasker/`) |
-| `ServiceBridge.kt` | `:xposed/service` | ContentProvider for binder discovery |
-| `SystemServiceHooker.kt` | `:xposed/hooker` | Boot-time service initialization |
-| `ServiceClient.kt` | `:app/service` | UI client for AIDL |
-| `BaseSpoofHooker.kt` | `:xposed/hooker` | Hybrid config (service + prefs fallback) |
+| Component                   | Module            | Purpose                                         |
+| --------------------------- | ----------------- | ----------------------------------------------- |
+| `IDeviceMaskerService.aidl` | `:common`         | AIDL interface (15 methods)                     |
+| `DeviceMaskerService.kt`    | `:xposed/service` | Service impl in system_server                   |
+| `ConfigManager.kt`          | `:xposed/service` | Atomic file config (`/data/misc/devicemasker/`) |
+| `ServiceBridge.kt`          | `:xposed/service` | ContentProvider for binder discovery            |
+| `SystemServiceHooker.kt`    | `:xposed/hooker`  | Boot-time service initialization                |
+| `ServiceClient.kt`          | `:app/service`    | UI client for AIDL                              |
+| `BaseSpoofHooker.kt`        | `:xposed/hooker`  | Hybrid config (service + prefs fallback)        |
 
 **XSharedPreferences Architecture (Fallback)**:
 
@@ -148,15 +149,14 @@ XposedPrefs.kt (app)    PrefsKeys.kt (xposed)
 SharedPrefsKeys         SharedPrefsKeys
 ```
 
-| Component | Module | Purpose |
-|-----------|--------|---------|
-| `SharedPrefsKeys` | `:common` | **SINGLE SOURCE OF TRUTH** for key generation |
-| `XposedPrefs` | `:app` | Delegates to SharedPrefsKeys, writes MODE_WORLD_READABLE |
-| `ConfigSync` | `:app` | Sync JsonConfig → per-app keys |
-| `PrefsKeys` | `:xposed` | Delegates to SharedPrefsKeys |
-| `PrefsReader` | `:xposed` | PrefsHelper for hook access |
-| `ValueGenerators` | `:xposed` | Centralized IMEI/MAC/Android ID generators |
-
+| Component         | Module    | Purpose                                                  |
+| ----------------- | --------- | -------------------------------------------------------- |
+| `SharedPrefsKeys` | `:common` | **SINGLE SOURCE OF TRUTH** for key generation            |
+| `XposedPrefs`     | `:app`    | Delegates to SharedPrefsKeys, writes MODE_WORLD_READABLE |
+| `ConfigSync`      | `:app`    | Sync JsonConfig → per-app keys                           |
+| `PrefsKeys`       | `:xposed` | Delegates to SharedPrefsKeys                             |
+| `PrefsReader`     | `:xposed` | PrefsHelper for hook access                              |
+| `ValueGenerators` | `:xposed` | Centralized IMEI/MAC/Android ID generators               |
 
 ### Performance Constraints
 
@@ -175,15 +175,16 @@ SharedPrefsKeys         SharedPrefsKeys
 
 > **Issue Discovered**: Dec 15, 2025
 
-| Issue | Symptom | Solution |
-|-------|---------|----------|
+| Issue                             | Symptom                                                                            | Solution                                                                          |
+| --------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **Sealed Class Navigation Crash** | `NullPointerException` on `NavDestination.getRoute()` during Compose recomposition | Use `data class` + string constants instead of sealed class `object` declarations |
 
-**Root Cause**: Sealed class `object` declarations (e.g., `object Home : NavDestination()`) 
-can fail to initialize properly during Jetpack Compose's recomposition cycle on Android 16. 
+**Root Cause**: Sealed class `object` declarations (e.g., `object Home : NavDestination()`)
+can fail to initialize properly during Jetpack Compose's recomposition cycle on Android 16.
 When a lambda captures these objects (e.g., in `NavigationBar`), they may be null.
 
-**Solution Applied**: 
+**Solution Applied**:
+
 ```kotlin
 // Replace sealed class objects with data class + string constants
 object NavRoutes { const val HOME = "home" }
@@ -198,20 +199,20 @@ val bottomNavItems: List<NavItem> = listOf(...)
 ```toml
 [versions]
 # Core
-agp = "8.13.2"
+agp = "9.1.0"
 kotlin = "2.3.0"
-ksp = "2.3.4"
+ksp = "2.3.6"
 
 # Android
 coreKtx = "1.17.0"
 appcompat = "1.7.1"
-activityCompose = "1.12.1"
+activityCompose = "1.12.4"
 lifecycleRuntimeKtx = "2.10.0"
-navigationCompose = "2.9.6"
+navigationCompose = "2.9.7"
 
 # Compose
-composeBom = "2025.12.00"
-material3 = "1.5.0-alpha11"
+composeBom = "2026.02.01"
+material3 = "1.4.0"
 
 # YukiHookAPI
 material = "1.13.0"
@@ -221,16 +222,16 @@ hiddenapibypass = "6.1"
 
 # Data
 datastore = "1.2.0"
-serializationJson = "1.9.0"
+serializationJson = "1.10.0"
 coroutines = "1.10.2"
 
 # Utilities
 timber = "5.0.1"
-coilCompose = "3.2.0"
+coilCompose = "3.4.0"
 
 # Testing
 junit = "4.13.2"
-junitVersion = "1.2.1"
+junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 
 [libraries]
@@ -266,7 +267,7 @@ object HookEntry : IYukiHookXposedInit {
     override fun onInit() = configs {
         debugLog { tag = "Device Masker"; isEnable = BuildConfig.DEBUG }
     }
-    
+
     override fun onHook() = encase {
         // Load XposedHookLoader from :xposed module
         loadHooker(XposedHookLoader)
@@ -278,13 +279,13 @@ object DeviceHooker : YukiBaseHooker() {
     override fun onHook() {
         "android.telephony.TelephonyManager".toClass().apply {
             method { name = "getImei" }.hook {
-                after { 
+                after {
                     result = getSpoofValue(SpoofType.IMEI) { fallbackImei }
                 }
             }
         }
     }
-    
+
     private fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
         return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
     }
@@ -310,7 +311,7 @@ val spoofValue = PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.IMEI) {
 class SpoofViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SpoofUiState())
     val uiState: StateFlow<SpoofUiState> = _uiState.asStateFlow()
-    
+
     fun regenerateIMEI() {
         viewModelScope.launch {
             val newImei = IMEIGenerator.generate()
@@ -332,12 +333,12 @@ data class SpoofUiState(
 
 ### External Modules (User Installed)
 
-| Module | Purpose | Repository |
-|--------|---------|------------|
-| Shamiko | Root hiding, Zygisk deny list | LSPosed/Shamiko |
-| Play Integrity Fix | Pass Play Integrity checks | chiteroman/PlayIntegrityFix |
-| Tricky Store | Hardware attestation | 5ec1cff/TrickyStore |
-| Zygisk-Next | Zygisk on KernelSU/APatch | Dr-TSNG/ZygiskNext |
+| Module             | Purpose                       | Repository                  |
+| ------------------ | ----------------------------- | --------------------------- |
+| Shamiko            | Root hiding, Zygisk deny list | LSPosed/Shamiko             |
+| Play Integrity Fix | Pass Play Integrity checks    | chiteroman/PlayIntegrityFix |
+| Tricky Store       | Hardware attestation          | 5ec1cff/TrickyStore         |
+| Zygisk-Next        | Zygisk on KernelSU/APatch     | Dr-TSNG/ZygiskNext          |
 
 ### No External API Calls
 

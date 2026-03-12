@@ -466,10 +466,11 @@ class SpoofRepository(private val context: Context) {
 
         // Add description and initialize with generated values
         // If first group, also set as default
-        var updatedGroup = newGroup.copy(
-            description = description,
-            isDefault = isFirstGroup, // First group becomes default automatically
-        )
+        var updatedGroup =
+            newGroup.copy(
+                description = description,
+                isDefault = isFirstGroup, // First group becomes default automatically
+            )
         SpoofType.entries.forEach { type ->
             val value = generateValue(type)
             updatedGroup = updatedGroup.withValue(type, value)

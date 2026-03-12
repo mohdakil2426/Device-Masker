@@ -9,9 +9,9 @@ import android.os.Bundle
 /**
  * ContentProvider that acts as a bridge between the UI app and DeviceMaskerService.
  *
- * This ContentProvider is dynamically registered in system_server by SystemServiceHooker
- * after the DeviceMaskerService is initialized. It allows the UI app to discover and
- * connect to the service running in system_server.
+ * This ContentProvider is dynamically registered in system_server by SystemServiceHooker after the
+ * DeviceMaskerService is initialized. It allows the UI app to discover and connect to the service
+ * running in system_server.
  *
  * The UI app can retrieve the service binder by calling:
  * ```kotlin
@@ -47,9 +47,8 @@ class ServiceBridge : ContentProvider() {
     /**
      * Called when the ContentProvider is created.
      *
-     * Note: This is called in the UI app's process, not system_server.
-     * The actual service runs in system_server and this provider just
-     * returns the binder to it.
+     * Note: This is called in the UI app's process, not system_server. The actual service runs in
+     * system_server and this provider just returns the binder to it.
      */
     override fun onCreate(): Boolean {
         return true
@@ -71,15 +70,11 @@ class ServiceBridge : ContentProvider() {
         return when (method) {
             METHOD_GET_BINDER -> {
                 // Return the service binder
-                Bundle().apply {
-                    putBinder(KEY_BINDER, DeviceMaskerService.getInstance())
-                }
+                Bundle().apply { putBinder(KEY_BINDER, DeviceMaskerService.getInstance()) }
             }
             METHOD_PING -> {
                 // Health check
-                Bundle().apply {
-                    putBoolean(KEY_ALIVE, DeviceMaskerService.isInitialized())
-                }
+                Bundle().apply { putBoolean(KEY_ALIVE, DeviceMaskerService.isInitialized()) }
             }
             else -> null
         }
@@ -94,7 +89,7 @@ class ServiceBridge : ContentProvider() {
         projection: Array<out String>?,
         selection: String?,
         selectionArgs: Array<out String>?,
-        sortOrder: String?
+        sortOrder: String?,
     ): Cursor? = null
 
     override fun getType(uri: Uri): String? = null
@@ -107,6 +102,6 @@ class ServiceBridge : ContentProvider() {
         uri: Uri,
         values: ContentValues?,
         selection: String?,
-        selectionArgs: Array<out String>?
+        selectionArgs: Array<out String>?,
     ): Int = 0
 }

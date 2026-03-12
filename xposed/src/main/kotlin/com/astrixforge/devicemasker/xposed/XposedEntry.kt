@@ -17,18 +17,16 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
  * Xposed Module Hook Loader - Hybrid Architecture (AIDL + XSharedPreferences Fallback).
  *
  * This module supports TWO configuration delivery mechanisms:
- *
  * 1. AIDL Service (Primary - Real-time):
- *    - DeviceMaskerService runs in system_server
- *    - Initialized by SystemServiceHooker at boot
- *    - Query via service.getSpoofValue() for real-time config
- *    - Requires LSPosed scope to include "android" (System Framework)
- *
+ *     - DeviceMaskerService runs in system_server
+ *     - Initialized by SystemServiceHooker at boot
+ *     - Query via service.getSpoofValue() for real-time config
+ *     - Requires LSPosed scope to include "android" (System Framework)
  * 2. XSharedPreferences (Fallback - Cached):
- *    - UI writes to SharedPreferences with MODE_WORLD_READABLE
- *    - Hooks read via prefs property (YukiHookAPI XSharedPreferences)
- *    - Used when service is unavailable
- *    - Changes require target app restart
+ *     - UI writes to SharedPreferences with MODE_WORLD_READABLE
+ *     - Hooks read via prefs property (YukiHookAPI XSharedPreferences)
+ *     - Used when service is unavailable
+ *     - Changes require target app restart
  *
  * LSPosed Configuration:
  * - MUST include "android" (System Framework) for AIDL service
@@ -45,14 +43,15 @@ object XposedHookLoader : YukiBaseHooker() {
     private const val SELF_PACKAGE = "com.astrixforge.devicemasker"
 
     /**
-     * Packages to SKIP for app hooks (but NOT for system hooks).
-     * These are system-critical processes that should never be spoofed.
+     * Packages to SKIP for app hooks (but NOT for system hooks). These are system-critical
+     * processes that should never be spoofed.
      */
-    private val SKIP_PACKAGES = setOf(
-        SELF_PACKAGE,           // Our own app
-        "com.android.systemui", // SystemUI - can cause UI glitches
-        "com.android.phone",    // Phone/Dialer - critical for calls
-    )
+    private val SKIP_PACKAGES =
+        setOf(
+            SELF_PACKAGE, // Our own app
+            "com.android.systemui", // SystemUI - can cause UI glitches
+            "com.android.phone", // Phone/Dialer - critical for calls
+        )
 
     /**
      * Common classes used across multiple hookers. Pre-loading these into ClassCache improves hook
@@ -99,9 +98,7 @@ object XposedHookLoader : YukiBaseHooker() {
         // ═══════════════════════════════════════════════════════════
         // This runs for each app process in the LSPosed scope.
         // With system-wide hooking, this runs for ALL apps.
-        loadApp {
-            loadAppHooks()
-        }
+        loadApp { loadAppHooks() }
     }
 
     /**
@@ -194,17 +191,17 @@ object XposedHookLoader : YukiBaseHooker() {
     /**
      * Attempts to get the DeviceMaskerService instance.
      *
-     * Returns null if service is not initialized (e.g., when LSPosed scope
-     * doesn't include "android", or during early boot before service init).
+     * Returns null if service is not initialized (e.g., when LSPosed scope doesn't include
+     * "android", or during early boot before service init).
      */
     private fun getServiceOrNull(): DeviceMaskerService? {
         return runCatching {
-            if (DeviceMaskerService.isInitialized()) {
-                DeviceMaskerService.getInstance()
-            } else {
-                null
+                if (DeviceMaskerService.isInitialized()) {
+                    DeviceMaskerService.getInstance()
+                } else {
+                    null
+                }
             }
-        }.getOrNull()
+            .getOrNull()
     }
 }
-

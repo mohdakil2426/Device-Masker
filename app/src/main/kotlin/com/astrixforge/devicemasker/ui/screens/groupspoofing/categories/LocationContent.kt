@@ -155,9 +155,10 @@ fun LocationCategoryContent(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        text = timezoneValue.ifEmpty {
-                                            stringResource(id = R.string.group_spoofing_not_set)
-                                        },
+                                        text =
+                                            timezoneValue.ifEmpty {
+                                                stringResource(id = R.string.group_spoofing_not_set)
+                                            },
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
@@ -196,9 +197,10 @@ fun LocationCategoryContent(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = localeValue.ifEmpty {
-                                        stringResource(id = R.string.group_spoofing_not_set)
-                                    },
+                                    text =
+                                        localeValue.ifEmpty {
+                                            stringResource(id = R.string.group_spoofing_not_set)
+                                        },
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }

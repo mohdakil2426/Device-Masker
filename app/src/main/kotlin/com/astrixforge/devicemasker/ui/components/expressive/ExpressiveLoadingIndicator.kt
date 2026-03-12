@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,8 +30,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 /**
  * Material 3 Expressive Loading Indicator.
  *
- * Uses the new M3 LoadingIndicator that morphs between abstract shapes, providing a more engaging
- * loading experience than traditional spinners.
+ * Fallback to stable CircularProgressIndicator as LoadingIndicator is only available in alpha.
  *
  * Best for: 200ms - 5s wait times For longer waits: Use progress indicators with determinate
  * progress
@@ -47,7 +45,12 @@ fun ExpressiveLoadingIndicator(
     size: Dp = 48.dp,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
-    LoadingIndicator(modifier = modifier.size(size), color = color)
+    CircularProgressIndicator(
+        modifier = modifier.size(size),
+        color = color,
+        strokeWidth = size / 10,
+        trackColor = color.copy(alpha = 0.1f),
+    )
 }
 
 /**

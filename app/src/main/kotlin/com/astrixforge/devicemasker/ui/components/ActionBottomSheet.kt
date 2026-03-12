@@ -45,8 +45,8 @@ data class ActionItem(
 /**
  * A reusable modal bottom sheet that displays a list of action items.
  *
- * Follows Material 3 design patterns with expressive styling.
- * Each action item displays an icon, title, and optional description.
+ * Follows Material 3 design patterns with expressive styling. Each action item displays an icon,
+ * title, and optional description.
  *
  * @param title Optional header title for the bottom sheet
  * @param actions List of actions to display
@@ -70,10 +70,7 @@ fun ActionBottomSheet(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)
         ) {
             // Optional title
             if (title != null) {
@@ -102,9 +99,7 @@ fun ActionBottomSheet(
     }
 }
 
-/**
- * A single row in the action bottom sheet.
- */
+/** A single row in the action bottom sheet. */
 @Composable
 private fun ActionItemRow(
     icon: ImageVector,
@@ -114,10 +109,11 @@ private fun ActionItemRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 14.dp, horizontal = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 14.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -156,20 +152,21 @@ private fun ActionBottomSheetPreview() {
     DeviceMaskerTheme {
         ActionBottomSheet(
             title = "Export Logs",
-            actions = listOf(
-                ActionItem(
-                    icon = Icons.Outlined.Save,
-                    title = "Save to Device",
-                    description = "Save logs to a file on your device",
-                    onClick = {},
+            actions =
+                listOf(
+                    ActionItem(
+                        icon = Icons.Outlined.Save,
+                        title = "Save to Device",
+                        description = "Save logs to a file on your device",
+                        onClick = {},
+                    ),
+                    ActionItem(
+                        icon = Icons.Outlined.Share,
+                        title = "Share",
+                        description = "Share logs via another app",
+                        onClick = {},
+                    ),
                 ),
-                ActionItem(
-                    icon = Icons.Outlined.Share,
-                    title = "Share",
-                    description = "Share logs via another app",
-                    onClick = {},
-                ),
-            ),
             onDismiss = {},
         )
     }

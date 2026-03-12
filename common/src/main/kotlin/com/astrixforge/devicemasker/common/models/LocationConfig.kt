@@ -257,7 +257,7 @@ data class LocationConfig(
                 locale = locales.random(),
                 latitude = lat,
                 longitude = lon,
-        )
+            )
         }
 
         /**
@@ -277,9 +277,7 @@ data class LocationConfig(
          * @return Country ISO code or null if not found
          */
         fun getCountryForTimezone(timezoneId: String): String? {
-            return COUNTRY_TIMEZONES.entries.find { (_, timezones) ->
-                timezoneId in timezones
-            }?.key
+            return COUNTRY_TIMEZONES.entries.find { (_, timezones) -> timezoneId in timezones }?.key
         }
 
         /**

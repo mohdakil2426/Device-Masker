@@ -13,9 +13,9 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * AIDL service implementation running in system_server.
  *
- * This service provides real-time configuration access to all hooked app processes
- * and centralized logging/statistics. It is initialized by SystemServiceHooker when
- * the system boots and exposed via ServiceBridge ContentProvider.
+ * This service provides real-time configuration access to all hooked app processes and centralized
+ * logging/statistics. It is initialized by SystemServiceHooker when the system boots and exposed
+ * via ServiceBridge ContentProvider.
  *
  * Thread Safety:
  * - Config is held in AtomicReference for lock-free reads
@@ -39,8 +39,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         const val VERSION = "1.0.0"
         private const val MAX_LOGS = 1000
 
-        @Volatile
-        private var instance: DeviceMaskerService? = null
+        @Volatile private var instance: DeviceMaskerService? = null
 
         /**
          * Gets or creates the singleton service instance.
@@ -48,17 +47,17 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
          * Thread-safe double-checked locking with volatile instance.
          */
         fun getInstance(): DeviceMaskerService {
-            return instance ?: synchronized(this) {
-                instance ?: DeviceMaskerService().also {
-                    instance = it
-                    it.initialize()
+            return instance
+                ?: synchronized(this) {
+                    instance
+                        ?: DeviceMaskerService().also {
+                            instance = it
+                            it.initialize()
+                        }
                 }
-            }
         }
 
-        /**
-         * Checks if the service instance exists without creating it.
-         */
+        /** Checks if the service instance exists without creating it. */
         fun isInitialized(): Boolean = instance != null
     }
 
@@ -88,24 +87,27 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
     /**
      * Initializes the service by loading configuration from disk.
      *
-     * Called once when getInstance() creates the singleton.
-     * All initialization is wrapped in try-catch to prevent bootloops.
+     * Called once when getInstance() creates the singleton. All initialization is wrapped in
+     * try-catch to prevent bootloops.
      */
     private fun initialize() {
         runCatching {
-            startTime.set(System.currentTimeMillis())
+                startTime.set(System.currentTimeMillis())
 
-            // Load config from disk
-            val loadedConfig = ConfigManager.loadConfig()
-            if (loadedConfig != null) {
-                config.set(loadedConfig)
-                log(TAG, "Service initialized with ${loadedConfig.getAllGroups().size} groups", LOG_LEVEL_INFO)
-            } else {
-                log(TAG, "Using default config (load failed or first run)", LOG_LEVEL_WARN)
+                // Load config from disk
+                val loadedConfig = ConfigManager.loadConfig()
+                if (loadedConfig != null) {
+                    config.set(loadedConfig)
+                    log(
+                        TAG,
+                        "Service initialized with ${loadedConfig.getAllGroups().size} groups",
+                        LOG_LEVEL_INFO,
+                    )
+                } else {
+                    log(TAG, "Using default config (load failed or first run)", LOG_LEVEL_WARN)
+                }
             }
-        }.onFailure { e ->
-            log(TAG, "Initialization error: ${e.message}", LOG_LEVEL_ERROR)
-        }
+            .onFailure { e -> log(TAG, "Initialization error: ${e.message}", LOG_LEVEL_ERROR) }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -119,30 +121,26 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
      */
     override fun writeConfig(json: String?) {
         runCatching {
-            if (json.isNullOrBlank()) {
-                log(TAG, "writeConfig: Empty JSON received", LOG_LEVEL_WARN)
-                return
-            }
+                if (json.isNullOrBlank()) {
+                    log(TAG, "writeConfig: Empty JSON received", LOG_LEVEL_WARN)
+                    return
+                }
 
-            val newConfig = JsonConfig.parse(json)
-            config.set(newConfig)
-            ConfigManager.saveConfig(newConfig)
-            log(TAG, "Config updated: ${newConfig.getAllGroups().size} groups", LOG_LEVEL_INFO)
-        }.onFailure { e ->
-            log(TAG, "writeConfig failed: ${e.message}", LOG_LEVEL_ERROR)
-        }
+                val newConfig = JsonConfig.parse(json)
+                config.set(newConfig)
+                ConfigManager.saveConfig(newConfig)
+                log(TAG, "Config updated: ${newConfig.getAllGroups().size} groups", LOG_LEVEL_INFO)
+            }
+            .onFailure { e -> log(TAG, "writeConfig failed: ${e.message}", LOG_LEVEL_ERROR) }
     }
 
-    /**
-     * Reads current configuration as JSON string.
-     */
+    /** Reads current configuration as JSON string. */
     override fun readConfig(): String? {
-        return runCatching {
-            config.get().toJsonString()
-        }.getOrElse { e ->
-            log(TAG, "readConfig failed: ${e.message}", LOG_LEVEL_ERROR)
-            null
-        }
+        return runCatching { config.get().toJsonString() }
+            .getOrElse { e ->
+                log(TAG, "readConfig failed: ${e.message}", LOG_LEVEL_ERROR)
+                null
+            }
     }
 
     /**
@@ -152,27 +150,22 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
      */
     override fun reloadConfig() {
         runCatching {
-            val reloadedConfig = ConfigManager.loadConfig()
-            if (reloadedConfig != null) {
-                config.set(reloadedConfig)
-                log(TAG, "Config reloaded from disk", LOG_LEVEL_INFO)
+                val reloadedConfig = ConfigManager.loadConfig()
+                if (reloadedConfig != null) {
+                    config.set(reloadedConfig)
+                    log(TAG, "Config reloaded from disk", LOG_LEVEL_INFO)
+                }
             }
-        }.onFailure { e ->
-            log(TAG, "reloadConfig failed: ${e.message}", LOG_LEVEL_ERROR)
-        }
+            .onFailure { e -> log(TAG, "reloadConfig failed: ${e.message}", LOG_LEVEL_ERROR) }
     }
 
     // ═══════════════════════════════════════════════════════════
     // QUERY METHODS (Called by Hookers)
     // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Checks if the module is globally enabled.
-     */
+    /** Checks if the module is globally enabled. */
     override fun isModuleEnabled(): Boolean {
-        return runCatching {
-            config.get().isModuleEnabled
-        }.getOrElse { false }
+        return runCatching { config.get().isModuleEnabled }.getOrElse { false }
     }
 
     /**
@@ -187,15 +180,16 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         if (packageName.isNullOrBlank()) return false
 
         return runCatching {
-            val currentConfig = config.get()
+                val currentConfig = config.get()
 
-            // Module must be enabled
-            if (!currentConfig.isModuleEnabled) return false
+                // Module must be enabled
+                if (!currentConfig.isModuleEnabled) return false
 
-            // Check if app has a group (explicit or default)
-            val group = currentConfig.getGroupForApp(packageName)
-            group != null && group.isEnabled
-        }.getOrElse { false }
+                // Check if app has a group (explicit or default)
+                val group = currentConfig.getGroupForApp(packageName)
+                group != null && group.isEnabled
+            }
+            .getOrElse { false }
     }
 
     /**
@@ -209,25 +203,24 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         if (packageName.isNullOrBlank() || key.isNullOrBlank()) return null
 
         return runCatching {
-            val currentConfig = config.get()
+                val currentConfig = config.get()
 
-            // Get the group for this app
-            val group = currentConfig.getGroupForApp(packageName) ?: return null
+                // Get the group for this app
+                val group = currentConfig.getGroupForApp(packageName) ?: return null
 
-            // Check if group is enabled
-            if (!group.isEnabled) return null
+                // Check if group is enabled
+                if (!group.isEnabled) return null
 
-            // Get the spoof type from key
-            val spoofType = runCatching {
-                SpoofType.valueOf(key)
-            }.getOrNull() ?: return null
+                // Get the spoof type from key
+                val spoofType = runCatching { SpoofType.valueOf(key) }.getOrNull() ?: return null
 
-            // Check if this type is enabled in the group
-            if (!group.isTypeEnabled(spoofType)) return null
+                // Check if this type is enabled in the group
+                if (!group.isTypeEnabled(spoofType)) return null
 
-            // Return the value
-            group.getValue(spoofType)
-        }.getOrNull()
+                // Return the value
+                group.getValue(spoofType)
+            }
+            .getOrNull()
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -243,24 +236,18 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         if (packageName.isNullOrBlank()) return
 
         runCatching {
-            filterCounts
-                .computeIfAbsent(packageName) { AtomicInteger(0) }
-                .incrementAndGet()
+            filterCounts.computeIfAbsent(packageName) { AtomicInteger(0) }.incrementAndGet()
             hookedApps.add(packageName)
         }
     }
 
-    /**
-     * Gets the filter count for a specific app.
-     */
+    /** Gets the filter count for a specific app. */
     override fun getFilterCount(packageName: String?): Int {
         if (packageName.isNullOrBlank()) return 0
         return filterCounts[packageName]?.get() ?: 0
     }
 
-    /**
-     * Gets the total number of apps with active hooks.
-     */
+    /** Gets the total number of apps with active hooks. */
     override fun getHookedAppCount(): Int {
         return hookedApps.size
     }
@@ -280,13 +267,14 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         if (tag.isNullOrBlank() || message.isNullOrBlank()) return
 
         runCatching {
-            val levelStr = when (level) {
-                LOG_LEVEL_INFO -> "I"
-                LOG_LEVEL_WARN -> "W"
-                LOG_LEVEL_ERROR -> "E"
-                LOG_LEVEL_DEBUG -> "D"
-                else -> "?"
-            }
+            val levelStr =
+                when (level) {
+                    LOG_LEVEL_INFO -> "I"
+                    LOG_LEVEL_WARN -> "W"
+                    LOG_LEVEL_ERROR -> "E"
+                    LOG_LEVEL_DEBUG -> "D"
+                    else -> "?"
+                }
 
             val timestamp = System.currentTimeMillis()
             val entry = "$timestamp|$levelStr|$tag|$message"
@@ -311,14 +299,13 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
      */
     override fun getLogs(maxCount: Int): List<String> {
         return runCatching {
-            val count = maxCount.coerceIn(1, MAX_LOGS)
-            logs.toList().takeLast(count)
-        }.getOrElse { emptyList() }
+                val count = maxCount.coerceIn(1, MAX_LOGS)
+                logs.toList().takeLast(count)
+            }
+            .getOrElse { emptyList() }
     }
 
-    /**
-     * Clears all log entries.
-     */
+    /** Clears all log entries. */
     override fun clearLogs() {
         logs.clear()
         log(TAG, "Logs cleared", LOG_LEVEL_INFO)
@@ -335,14 +322,10 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
      */
     override fun isServiceAlive(): Boolean = true
 
-    /**
-     * Gets the service version string.
-     */
+    /** Gets the service version string. */
     override fun getServiceVersion(): String = VERSION
 
-    /**
-     * Gets service uptime in milliseconds.
-     */
+    /** Gets service uptime in milliseconds. */
     override fun getServiceUptime(): Long {
         return System.currentTimeMillis() - startTime.get()
     }

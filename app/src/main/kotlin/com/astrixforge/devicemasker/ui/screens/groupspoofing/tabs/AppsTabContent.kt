@@ -54,31 +54,31 @@ fun AppsTabContent(
     var debouncedQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        snapshotFlow { searchQuery }
-            .debounce(300)
-            .collect { debouncedQuery = it }
+        snapshotFlow { searchQuery }.debounce(300).collect { debouncedQuery = it }
     }
 
-    val filteredApps by remember(installedApps, group, debouncedQuery) {
-        derivedStateOf {
-            val query = debouncedQuery.lowercase()
-            installedApps
-                .asSequence()
-                .filter { app ->
-                    if (app.packageName == BuildConfig.APPLICATION_ID) return@filter false
-                    if (app.isSystemApp) return@filter false
-                    query.isEmpty() ||
-                        app.label.lowercase().contains(query) ||
-                        app.packageName.lowercase().contains(query)
-                }
-                .sortedWith(
-                    compareByDescending<InstalledApp> {
-                        group?.isAppAssigned(it.packageName) == true
-                    }.thenBy { it.label.lowercase() }
-                )
-                .toList()
+    val filteredApps by
+        remember(installedApps, group, debouncedQuery) {
+            derivedStateOf {
+                val query = debouncedQuery.lowercase()
+                installedApps
+                    .asSequence()
+                    .filter { app ->
+                        if (app.packageName == BuildConfig.APPLICATION_ID) return@filter false
+                        if (app.isSystemApp) return@filter false
+                        query.isEmpty() ||
+                            app.label.lowercase().contains(query) ||
+                            app.packageName.lowercase().contains(query)
+                    }
+                    .sortedWith(
+                        compareByDescending<InstalledApp> {
+                                group?.isAppAssigned(it.packageName) == true
+                            }
+                            .thenBy { it.label.lowercase() }
+                    )
+                    .toList()
+            }
         }
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Column(
@@ -135,8 +135,9 @@ fun AppsTabContent(
                     ) { app ->
                         val isAssignedToThisGroup = group?.isAppAssigned(app.packageName) == true
                         val assignedToOtherGroup =
-                            allGroups
-                                .firstOrNull { it.id != group?.id && it.isAppAssigned(app.packageName) }
+                            allGroups.firstOrNull {
+                                it.id != group?.id && it.isAppAssigned(app.packageName)
+                            }
 
                         AppListItem(
                             app = app,

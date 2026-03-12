@@ -2,12 +2,36 @@
 
 ## Overall Status
 
-| Metric | Value |
-|--------|-------|
-| **Project Phase** | AIDL Architecture Migration Complete ✅ |
-| **Active Changes** | 1 (`refactor-xposed-aidl-architecture` - testing pending) |
-| **Archived Changes** | 12 |
-| **Last Major Update** | January 20, 2026 - AIDL Migration Implementation Complete |
+| Metric                | Value                                                           |
+| --------------------- | --------------------------------------------------------------- |
+| **Project Phase**     | AIDL Architecture Migration Complete ✅                         |
+| **Active Changes**    | 1 (`refactor-xposed-aidl-architecture` - testing pending)       |
+| **Archived Changes**  | 12                                                              |
+| **Last Major Update** | March 12, 2026 - Dependency Modernization & Stable M3 Migration |
+
+---
+
+## ✅ Complete: Dependency Modernization & Stable M3 Migration (Mar 12, 2026)
+
+**Status**: Complete ✅  
+**Impact**: Upgraded build system to AGP 9.1.0/Gradle 9.3.1 and ensured UI stability by migrating away from experimental pre-release components.
+
+### Version Changes
+
+| Component   | Before        | After              |
+| ----------- | ------------- | ------------------ |
+| AGP         | 8.9.3         | **9.1.0**          |
+| Gradle      | 9.1.0         | **9.3.1**          |
+| Compose BOM | 2025.01.00    | **2026.02.01**     |
+| Material 3  | 1.5.0-alpha11 | **1.4.0** (Stable) |
+| KSP         | 2.3.4         | **2.3.6**          |
+
+### UI Refactors (Stable Migration)
+
+- **ExpressiveLoadingIndicator**: Migrated from `LoadingIndicator` (alpha) to `CircularProgressIndicator` (stable).
+- **ExpressivePullToRefresh**: Removed dependency on `ExperimentalMaterial3ExpressiveApi`.
+- **QuickActionGroup**: Replaced `ButtonGroup` and `ToggleButton` (alpha) with stable `Row` + `FilledTonalButton` implementation.
+- **SelectionButtonGroup**: Replaced with stable `Row` of buttons.
 
 ---
 
@@ -18,37 +42,37 @@
 
 ### What Changed
 
-| Aspect | Before (XSharedPreferences) | After (AIDL Service) |
-|--------|---------------------------|---------------------|
-| Config Delivery | File-based, cached | Binder IPC, real-time |
-| LSPosed Scope | Multiple apps | Single "android" |
-| Config Updates | Requires app restart | Instant (<100ms) |
-| Logging | Per-app, fragmented | Centralized in service |
-| Statistics | None | Filter counts, hooked apps |
+| Aspect          | Before (XSharedPreferences) | After (AIDL Service)       |
+| --------------- | --------------------------- | -------------------------- |
+| Config Delivery | File-based, cached          | Binder IPC, real-time      |
+| LSPosed Scope   | Multiple apps               | Single "android"           |
+| Config Updates  | Requires app restart        | Instant (<100ms)           |
+| Logging         | Per-app, fragmented         | Centralized in service     |
+| Statistics      | None                        | Filter counts, hooked apps |
 
 ### Files Created
 
-| File | Purpose |
-|------|---------|
+| File                                    | Purpose                     |
+| --------------------------------------- | --------------------------- |
 | `common/aidl/IDeviceMaskerService.aidl` | AIDL interface (15 methods) |
-| `xposed/service/DeviceMaskerService.kt` | Service impl (~350 lines) |
-| `xposed/service/ConfigManager.kt` | Atomic file config |
-| `xposed/service/ServiceBridge.kt` | ContentProvider bridge |
-| `xposed/hooker/SystemServiceHooker.kt` | Boot-time init |
-| `app/service/ServiceClient.kt` | UI client (~300 lines) |
+| `xposed/service/DeviceMaskerService.kt` | Service impl (~350 lines)   |
+| `xposed/service/ConfigManager.kt`       | Atomic file config          |
+| `xposed/service/ServiceBridge.kt`       | ContentProvider bridge      |
+| `xposed/hooker/SystemServiceHooker.kt`  | Boot-time init              |
+| `app/service/ServiceClient.kt`          | UI client (~300 lines)      |
 
 ### Implementation Phases
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| 0. Pre-Implementation | ✅ Complete | Backup, proposal, design docs |
-| 1. AIDL & Common Module | ✅ Complete | IDeviceMaskerService.aidl |
-| 2. Xposed Service | ✅ Complete | DeviceMaskerService, ConfigManager, ServiceBridge |
-| 3. System Hook | ✅ Complete | SystemServiceHooker, XposedEntry loadSystem |
-| 4. Hooker Migration | ✅ Complete | Hybrid BaseSpoofHooker |
-| 5. UI Integration | ✅ Complete | ServiceClient, DiagnosticsViewModel |
-| 6. Testing | ⏳ Pending | Device deployment required |
-| 7. Documentation | ⏳ Pending | Memory bank update |
+| Phase                   | Status      | Description                                       |
+| ----------------------- | ----------- | ------------------------------------------------- |
+| 0. Pre-Implementation   | ✅ Complete | Backup, proposal, design docs                     |
+| 1. AIDL & Common Module | ✅ Complete | IDeviceMaskerService.aidl                         |
+| 2. Xposed Service       | ✅ Complete | DeviceMaskerService, ConfigManager, ServiceBridge |
+| 3. System Hook          | ✅ Complete | SystemServiceHooker, XposedEntry loadSystem       |
+| 4. Hooker Migration     | ✅ Complete | Hybrid BaseSpoofHooker                            |
+| 5. UI Integration       | ✅ Complete | ServiceClient, DiagnosticsViewModel               |
+| 6. Testing              | ⏳ Pending  | Device deployment required                        |
+| 7. Documentation        | ⏳ Pending  | Memory bank update                                |
 
 ---
 
@@ -59,14 +83,15 @@
 
 ### Features Added
 
-| Feature | Description |
-|---------|-------------|
+| Feature                  | Description                               |
+| ------------------------ | ----------------------------------------- |
 | **TimezonePickerDialog** | Searchable dialog with GMT offset display |
 | **Timezone-Locale Sync** | Auto-updates locale when timezone changes |
-| **Location Redesign** | Mirrors SIM Card design pattern |
-| **SIM Card Merge** | Single card for Choose Sim + Carrier Info |
+| **Location Redesign**    | Mirrors SIM Card design pattern           |
+| **SIM Card Merge**       | Single card for Choose Sim + Carrier Info |
 
 ### Key Files Changed
+
 - `TimezonePickerDialog.kt` - New searchable timezone picker
 - `LocationContent.kt` - Redesigned with Choose Location + Timezone + Locale
 - `SIMCardContent.kt` - Merged Carrier Info into main card
@@ -74,6 +99,7 @@
 - `GroupSpoofingViewModel.kt` - Added `updateTimezone()` with locale sync
 
 ### Animation Fix
+
 - Changed `AnimatedVisibility` → `if` in SIM Card
 - Fixes animation sticking when closing card
 
@@ -86,12 +112,13 @@
 
 ### Version Changes
 
-| Component | Before | After |
-|-----------|--------|-------|
-| Kotlin | 2.2.21 | **2.3.0** |
-| KSP | 2.2.21-2.0.4 | **2.3.4** (KSP2) |
+| Component | Before       | After            |
+| --------- | ------------ | ---------------- |
+| Kotlin    | 2.2.21       | **2.3.0**        |
+| KSP       | 2.2.21-2.0.4 | **2.3.4** (KSP2) |
 
 ### Benefits
+
 - Java 25 native support
 - K2 compiler improvements (faster incremental builds)
 - Better type inference for Compose
@@ -108,27 +135,30 @@
 ### Changes Made
 
 #### 1. Simplified Export Flow
+
 - **REMOVED:** Logcat capture feature (root-dependent, unreliable)
 - **REMOVED:** Root access request on app start
 - **REMOVED:** Save location dialog with Downloads/Custom options
 - **KEPT:** YLog in-memory export via native file picker
 
 #### 2. Direct File Picker
+
 - Click "Export Logs" → Opens native file picker immediately
 - No dialog asking for location choice
 - Cleaner, faster UX
 
 #### 3. Files Removed/Modified
-| File | Change |
-|------|--------|
-| **DELETED:** `service/RootManager.kt` | Root access utility removed |
-| `service/LogManager.kt` | Removed logcat capture, kept YLog export only |
-| `ui/screens/settings/SettingsScreen.kt` | Removed logcat button, removed SaveLocationDialog |
-| `ui/screens/settings/SettingsViewModel.kt` | Removed logcat methods, root checks |
-| `ui/screens/settings/SettingsState.kt` | Removed logcat state, hasRootAccess |
-| `ui/screens/home/HomeViewModel.kt` | Removed root request on init |
-| `MainActivity.kt` | Removed logcat callbacks |
-| `res/values/strings.xml` | Removed logcat and save location strings |
+
+| File                                       | Change                                            |
+| ------------------------------------------ | ------------------------------------------------- |
+| **DELETED:** `service/RootManager.kt`      | Root access utility removed                       |
+| `service/LogManager.kt`                    | Removed logcat capture, kept YLog export only     |
+| `ui/screens/settings/SettingsScreen.kt`    | Removed logcat button, removed SaveLocationDialog |
+| `ui/screens/settings/SettingsViewModel.kt` | Removed logcat methods, root checks               |
+| `ui/screens/settings/SettingsState.kt`     | Removed logcat state, hasRootAccess               |
+| `ui/screens/home/HomeViewModel.kt`         | Removed root request on init                      |
+| `MainActivity.kt`                          | Removed logcat callbacks                          |
+| `res/values/strings.xml`                   | Removed logcat and save location strings          |
 
 ---
 
@@ -140,44 +170,52 @@
 ### Phase 1: Quick Wins
 
 #### 1.1 Stable Keys for LazyColumns ✅
+
 - All LazyColumns already had stable keys (except 2 files enhanced)
 - Added key to `CountryPickerDialog.kt` and `DiagnosticsScreen.kt`
 
 #### 1.2 Config Sync Documentation ✅
+
 - Created `ConfigSyncInfoCard` in DiagnosticsScreen
 - Added explanation of restart requirement
 - Updated README.md with "Important Notes" section
 - Fixed outdated AIDL reference → now correctly says "XSharedPreferences"
 
 #### 1.3 Thread-Safe StateFlow Updates ✅
+
 - All ViewModels already used `_state.update {}` pattern ✅
 
 ### Phase 2: Performance Optimizations
 
 #### 2.1 ClassCache Utility - ⚠️ REVERTED
+
 **Initial implementation** created then reverted after cost-benefit analysis:
+
 - Hookers already use `lazy { }` for per-hooker caching
 - Only ~5ms/app launch gain not worth breaking YukiHookAPI DSL
 - Decision: Keep existing pattern, removed ClassCache.kt
 
 #### 2.2 derivedStateOf ✅
+
 - Applied to `AppsTabContent.kt` for app filtering (500+ apps)
 - HomeScreen and GroupsScreen already optimized
 
 ### Phase 3: Testing Infrastructure ✅
 
 #### 3.1 Test Configuration ✅
+
 - Added test dependencies to `common/build.gradle.kts`
 - Created test directory structure
 
 #### 3.2 Generator Unit Tests ✅
-| Test Class | Tests | Status |
-|------------|-------|--------|
-| `IMEIGeneratorTest.kt` | 7 | ✅ All pass |
-| `MACGeneratorTest.kt` | 9 | ✅ All pass |
-| `SerialGeneratorTest.kt` | 9 | ✅ All pass |
-| `AndroidIdGeneratorTest.kt` | 4 | ✅ All pass |
-| **Total** | **29** | **0 failures** |
+
+| Test Class                  | Tests  | Status         |
+| --------------------------- | ------ | -------------- |
+| `IMEIGeneratorTest.kt`      | 7      | ✅ All pass    |
+| `MACGeneratorTest.kt`       | 9      | ✅ All pass    |
+| `SerialGeneratorTest.kt`    | 9      | ✅ All pass    |
+| `AndroidIdGeneratorTest.kt` | 4      | ✅ All pass    |
+| **Total**                   | **29** | **0 failures** |
 
 ---
 
@@ -189,22 +227,23 @@
 ### 1. Code Quality Improvements
 
 #### New Files Created
+
 - `xposed/utils/ValueGenerators.kt` - Centralized value generation (IMEI, MAC, Android ID, etc.)
 - `xposed/hooker/BaseSpoofHooker.kt` - Abstract base class with shared functionality
 
 #### Hookers Refactored
 
-| Hooker | Before | After | Reduction |
-|--------|--------|-------|-----------|
-| DeviceHooker | 492 lines | 253 lines | -48% |
-| NetworkHooker | 175 lines | 134 lines | -23% |
-| AdvertisingHooker | 150 lines | 107 lines | -29% |
-| LocationHooker | 177 lines | 134 lines | -24% |
-| SystemHooker | 176 lines | 118 lines | -33% |
-| SensorHooker | 158 lines | 123 lines | -22% |
-| WebViewHooker | 98 lines | 76 lines | -22% |
-| AntiDetectHooker | 277 lines | 195 lines | -30% |
-| **Total** | ~1,700 lines | ~1,140 lines | **-33%** |
+| Hooker            | Before       | After        | Reduction |
+| ----------------- | ------------ | ------------ | --------- |
+| DeviceHooker      | 492 lines    | 253 lines    | -48%      |
+| NetworkHooker     | 175 lines    | 134 lines    | -23%      |
+| AdvertisingHooker | 150 lines    | 107 lines    | -29%      |
+| LocationHooker    | 177 lines    | 134 lines    | -24%      |
+| SystemHooker      | 176 lines    | 118 lines    | -33%      |
+| SensorHooker      | 158 lines    | 123 lines    | -22%      |
+| WebViewHooker     | 98 lines     | 76 lines     | -22%      |
+| AntiDetectHooker  | 277 lines    | 195 lines    | -30%      |
+| **Total**         | ~1,700 lines | ~1,140 lines | **-33%**  |
 
 ### 2. Sync Architecture Fix
 
@@ -231,12 +270,12 @@ SharedPrefsKeys         SharedPrefsKeys
 
 ### Optimizations Applied
 
-| Hooker | Changes |
-|--------|---------|
-| **DeviceHooker** | 4 cached classes, 3 cached values, 8 hooks → `replaceAny` |
+| Hooker            | Changes                                                   |
+| ----------------- | --------------------------------------------------------- |
+| **DeviceHooker**  | 4 cached classes, 3 cached values, 8 hooks → `replaceAny` |
 | **NetworkHooker** | 4 cached classes, 3 cached values, 3 hooks → `replaceAny` |
-| **SensorHooker** | 2 cached classes, cached preset |
-| **WebViewHooker** | 1 cached class, cached model |
+| **SensorHooker**  | 2 cached classes, cached preset                           |
+| **WebViewHooker** | 1 cached class, cached model                              |
 
 ---
 
@@ -248,15 +287,16 @@ SharedPrefsKeys         SharedPrefsKeys
 
 ### Solution: XSharedPreferences via YukiHookAPI
 
-| Component | File | Purpose |
-|-----------|------|---------|
+| Component       | File                        | Purpose                             |
+| --------------- | --------------------------- | ----------------------------------- |
 | SharedPrefsKeys | `common/SharedPrefsKeys.kt` | **Single source of truth** for keys |
-| XposedPrefs | `app/data/XposedPrefs.kt` | Write with MODE_WORLD_READABLE |
-| ConfigSync | `app/data/ConfigSync.kt` | Sync JsonConfig → per-app keys |
-| PrefsKeys | `xposed/PrefsKeys.kt` | Delegates to SharedPrefsKeys |
-| PrefsReader | `xposed/PrefsReader.kt` | Helper functions for hooks |
+| XposedPrefs     | `app/data/XposedPrefs.kt`   | Write with MODE_WORLD_READABLE      |
+| ConfigSync      | `app/data/ConfigSync.kt`    | Sync JsonConfig → per-app keys      |
+| PrefsKeys       | `xposed/PrefsKeys.kt`       | Delegates to SharedPrefsKeys        |
+| PrefsReader     | `xposed/PrefsReader.kt`     | Helper functions for hooks          |
 
 ### Important Limitation
+
 > XSharedPreferences **CACHES values**. Config changes require target app restart.
 
 ---
@@ -300,12 +340,14 @@ SharedPrefsKeys         SharedPrefsKeys
 ## What Works
 
 ### ✅ Core Infrastructure - Complete
+
 - [x] libs.versions.toml - Full dependency catalog
 - [x] Build configuration - Gradle 9.1.0/Java 25
 - [x] AndroidManifest.xml - LSPosed metadata + xposedsharedprefs
 - [x] 3-module Gradle structure (:app, :common, :xposed)
 
 ### ✅ Cross-Process Config - Complete
+
 - [x] XSharedPreferences via YukiHookAPI prefs property
 - [x] **SharedPrefsKeys as single source of truth**
 - [x] XposedPrefs with MODE_WORLD_READABLE (delegates to SharedPrefsKeys)
@@ -314,11 +356,13 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] PrefsHelper for easy access in hooks
 
 ### ✅ Log Export System - Complete
+
 - [x] YLog in-memory export via native file picker
 - [x] Industry-standard formatted output
 - [x] Direct file picker (no dialog)
 
 ### ✅ :common Module - Complete
+
 - [x] SpoofType, SpoofCategory - Spoofing enums (22 types)
 - [x] DeviceProfilePreset - 10 predefined device profiles
 - [x] SpoofGroup, DeviceIdentifier, AppConfig - Data models
@@ -327,6 +371,7 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] generators/ - 7 value generators
 
 ### ✅ :xposed Module - Complete
+
 - [x] XposedEntry - Uses prefs property for config
 - [x] PrefsKeys - Delegates to SharedPrefsKeys
 - [x] PrefsReader - PrefsHelper for hooks
@@ -336,6 +381,7 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] 8 Hookers - All refactored with shared utilities
 
 ### ✅ :app Module - Complete
+
 - [x] XposedPrefs - Delegates key generation to SharedPrefsKeys
 - [x] ConfigSync - JsonConfig → XposedPrefs sync
 - [x] ConfigManager - Integrated with ConfigSync
@@ -343,57 +389,60 @@ SharedPrefsKeys         SharedPrefsKeys
 - [x] **LogManager** - YLog export with file picker
 
 ### ✅ User Interface - Complete (M3 Expressive)
-| Component | Status |
-|-----------|--------|
-| Theme System (Motion) | ✅ Done |
-| MainActivity.kt | ✅ Done (3-tab navigation) |
-| HomeScreen.kt | ✅ Done |
-| GroupsScreen.kt | ✅ Done |
-| GroupSpoofingScreen.kt | ✅ Done |
-| SettingsScreen.kt | ✅ Done (log export) |
-| DiagnosticsScreen.kt | ✅ Done |
+
+| Component              | Status                     |
+| ---------------------- | -------------------------- |
+| Theme System (Motion)  | ✅ Done                    |
+| MainActivity.kt        | ✅ Done (3-tab navigation) |
+| HomeScreen.kt          | ✅ Done                    |
+| GroupsScreen.kt        | ✅ Done                    |
+| GroupSpoofingScreen.kt | ✅ Done                    |
+| SettingsScreen.kt      | ✅ Done (log export)       |
+| DiagnosticsScreen.kt   | ✅ Done                    |
 
 ---
 
 ## Build Status
 
-| Build Type | Status | Last Run |
-|------------|--------|----------|
-| :common:assembleDebug | ✅ Success | Jan 1, 2026 |
-| :xposed:assembleDebug | ✅ Success | Jan 1, 2026 |
-| :app:assembleDebug | ✅ Success | Jan 1, 2026 |
-| Full APK Build | ✅ Success | Jan 1, 2026 |
+| Build Type            | Status     | Last Run     |
+| --------------------- | ---------- | ------------ |
+| :common:assembleDebug | ✅ Success | Mar 12, 2026 |
+| :xposed:assembleDebug | ✅ Success | Mar 12, 2026 |
+| :app:assembleDebug    | ✅ Success | Mar 12, 2026 |
+| Full APK Build        | ✅ Success | Mar 12, 2026 |
 
 ---
 
 ## Milestones
 
-| Milestone | Target | Status |
-|-----------|--------|--------|
-| 📋 Planning Complete | Week 0 | ✅ Done |
-| 🔧 Core Infrastructure | Week 2 | ✅ Done |
-| 🎣 Device Spoofing | Week 3 | ✅ Done |
-| 🛡️ Anti-Detection | Week 4 | ✅ Done |
-| 💾 Data Persistence | Week 5 | ✅ Done |
-| 🎨 UI Complete | Week 7 | ✅ Done |
-| 📝 Documentation | Week 8 | ✅ Done |
-| 📦 Release Build | Week 8 | ✅ Done |
-| 🔄 Group Workflow Redesign | Week 9 | ✅ Done |
-| 🔓 Independent Groups | Week 10 | ✅ Done |
-| ✨ M3 Expressive Features | Week 11 | ✅ Done |
-| 🏗️ Multi-Module Migration | Week 12 | ✅ Done |
-| 📱 Device Profile UI | Week 12 | ✅ Done |
-| 🔒 Value Generator Quality | Week 12 | ✅ Done |
-| 📦 Generator Migration to :common | Week 12 | ✅ Done |
-| 🔗 Spoof Value Correlation UI | Week 12 | ✅ Done |
-| 🌍 Value Generation Improvements | Week 13 | ✅ Done |
-| ✅ Expressive Cards App-wide | Week 13 | ✅ Done |
-| 🔄 Refactor Profile to Group | Week 14 | ✅ Done |
-| 🔧 XSharedPreferences Config | Week 14 | ✅ Done |
-| 🗑️ AIDL Complete Removal | Week 14 | ✅ Done |
-| 🚀 Xposed Performance Optimizations | Week 15 | ✅ Done (50-90% faster) |
-| 🧹 Code Quality & Sync Fixes | Week 15 | ✅ Done (33% code reduction) |
-| 📊 Log Export Simplification | Week 16 | ✅ Done |
-| ✅ v1.0 Beta Release | Week 16 | ✅ COMPLETE! 🎉 |
-| 🚀 Kotlin 2.3.0 Upgrade | Week 17 | ✅ Done (Jan 1, 2026) |
-| 🔄 AIDL Architecture Migration | Week 18 | 🔄 In Progress (Jan 20, 2026) |
+| Milestone                           | Target  | Status                       |
+| ----------------------------------- | ------- | ---------------------------- |
+| 📋 Planning Complete                | Week 0  | ✅ Done                      |
+| 🔧 Core Infrastructure              | Week 2  | ✅ Done                      |
+| 🎣 Device Spoofing                  | Week 3  | ✅ Done                      |
+| 🛡️ Anti-Detection                   | Week 4  | ✅ Done                      |
+| 💾 Data Persistence                 | Week 5  | ✅ Done                      |
+| 🎨 UI Complete                      | Week 7  | ✅ Done                      |
+| 📝 Documentation                    | Week 8  | ✅ Done                      |
+| 📦 Release Build                    | Week 8  | ✅ Done                      |
+| 🔄 Group Workflow Redesign          | Week 9  | ✅ Done                      |
+| 🔓 Independent Groups               | Week 10 | ✅ Done                      |
+| ✨ M3 Expressive Features           | Week 11 | ✅ Done                      |
+| 🏗️ Multi-Module Migration           | Week 12 | ✅ Done                      |
+| 📱 Device Profile UI                | Week 12 | ✅ Done                      |
+| 🔒 Value Generator Quality          | Week 12 | ✅ Done                      |
+| 📦 Generator Migration to :common   | Week 12 | ✅ Done                      |
+| 🔗 Spoof Value Correlation UI       | Week 12 | ✅ Done                      |
+| 🌍 Value Generation Improvements    | Week 13 | ✅ Done                      |
+| ✅ Expressive Cards App-wide        | Week 13 | ✅ Done                      |
+| 🔄 Refactor Profile to Group        | Week 14 | ✅ Done                      |
+| 🔧 XSharedPreferences Config        | Week 14 | ✅ Done                      |
+| 🗑️ AIDL Complete Removal            | Week 14 | ✅ Done                      |
+| 🚀 Xposed Performance Optimizations | Week 15 | ✅ Done (50-90% faster)      |
+| 🧹 Code Quality & Sync Fixes        | Week 15 | ✅ Done (33% code reduction) |
+| 📊 Log Export Simplification        | Week 16 | ✅ Done                      |
+| ✅ v1.0 Beta Release                | Week 16 | ✅ COMPLETE! 🎉              |
+| 🚀 Kotlin 2.3.0 Upgrade             | Week 17 | ✅ Done (Jan 1, 2026)        |
+| 🔄 AIDL Architecture Migration      | Week 18 | ✅ Done (Jan 20, 2026)       |
+| 🚀 Dependency Modernization         | Week 19 | ✅ Done (Mar 12, 2026)       |
+| 🎨 Stable M3 Migration              | Week 19 | ✅ Done (Mar 12, 2026)       |

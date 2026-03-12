@@ -36,9 +36,7 @@ class GroupSpoofingViewModel(private val repository: SpoofRepository, private va
             }
         }
 
-        viewModelScope.launch {
-            repository.appScopeRepository.loadApps()
-        }
+        viewModelScope.launch { repository.appScopeRepository.loadApps() }
 
         viewModelScope.launch {
             repository.appScopeRepository.installedApps.collect { apps ->

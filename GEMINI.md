@@ -128,18 +128,18 @@ devicemasker/
 
 ## Tech Stack
 
-| Layer          | Stack                                                                   |
-| -------------- | ----------------------------------------------------------------------- |
-| **Language**   | Kotlin 2.3.0, Java 25                                                   |
-| **Platform**   | Android SDK 36 (Android 16 / Baklava), minSdk 26                        |
-| **UI**         | Jetpack Compose (BOM 2025.12.00), Material 3 Expressive (1.5.0-alpha11) |
-| **Hooking**    | YukiHookAPI 1.3.1, LSPosed (API 82), KavaRef                            |
-| **IPC**        | AIDL Binder (system_server ↔ app processes), ContentProvider bridge     |
-| **Arch**       | MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)                |
-| **Data**       | kotlinx.serialization (JSON), SharedPreferences, AtomicFile             |
-| **Build**      | Gradle (Kotlin DSL), KSP, Spotless (ktfmt 0.54)                         |
-| **Logging**    | Timber (app), DualLog (xposed → YLog + buffer), HookMetrics             |
-| **Navigation** | Jetpack Navigation Compose, spring-based animated transitions           |
+| Layer          | Stack                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| **Language**   | Kotlin 2.3.0, Java 25                                               |
+| **Platform**   | Android SDK 36 (Android 16 / Baklava), minSdk 26                    |
+| **UI**         | Jetpack Compose (BOM 2026.02.01), Material 3 Expressive (1.4.0)     |
+| **Hooking**    | YukiHookAPI 1.3.1, LSPosed (API 82), KavaRef                        |
+| **IPC**        | AIDL Binder (system_server ↔ app processes), ContentProvider bridge |
+| **Arch**       | MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)            |
+| **Data**       | kotlinx.serialization (JSON), SharedPreferences, AtomicFile         |
+| **Build**      | Gradle (Kotlin DSL), KSP, Spotless (ktfmt 0.54)                     |
+| **Logging**    | Timber (app), DualLog (xposed → YLog + buffer), HookMetrics         |
+| **Navigation** | Jetpack Navigation Compose, spring-based animated transitions       |
 
 ---
 

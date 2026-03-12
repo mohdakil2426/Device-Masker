@@ -6,16 +6,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Fingerprint
-import androidx.compose.material3.ButtonGroup
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -43,40 +44,32 @@ data class QuickAction(
 )
 
 /**
- * Material 3 Expressive Button Group for quick actions.
+ * Material 3 Button Group for quick actions (Stable fallback).
  *
- * Uses the new M3 ButtonGroup component with spring animations for a cohesive group of related
- * actions.
+ * Uses Row with weighted buttons as ButtonGroup is only available in alpha.
  *
  * @param actions List of quick actions to display
  * @param modifier Modifier for the button group
- *
- * Usage:
- * ```kotlin
- * QuickActionGroup(
- *     actions = listOf(
- *         QuickAction("Configure", Icons.Outlined.Fingerprint) { onConfigure() },
- *         QuickAction("Regenerate", Icons.Filled.Refresh) { onRegenerate() }
- *     )
- * )
- * ```
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun QuickActionGroup(actions: List<QuickAction>, modifier: Modifier = Modifier) {
-    ButtonGroup(modifier = modifier.fillMaxWidth()) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         actions.forEach { action ->
-            ToggleButton(
-                checked = false,
-                onCheckedChange = { action.onClick() },
+            FilledTonalButton(
+                onClick = action.onClick,
                 enabled = action.enabled,
                 modifier = Modifier.weight(1f),
+                contentPadding = ButtonDefaults.TextButtonContentPadding,
             ) {
                 if (action.icon != null) {
-                    Icon(imageVector = action.icon, contentDescription = null)
+                    Icon(
+                        imageVector = action.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(text = action.label)
+                Text(text = action.label, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -125,14 +118,13 @@ fun QuickActionRow(
 }
 
 /**
- * Single-select button group for mode selection.
+ * Single-select button group for mode selection (Stable fallback).
  *
  * @param options List of option labels
  * @param selectedIndex Currently selected index
  * @param onSelectionChange Callback when selection changes
  * @param modifier Modifier for the button group
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SelectionButtonGroup(
     options: List<String>,
@@ -140,14 +132,25 @@ fun SelectionButtonGroup(
     onSelectionChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ButtonGroup(modifier = modifier.fillMaxWidth()) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEachIndexed { index, option ->
-            ToggleButton(
-                checked = selectedIndex == index,
-                onCheckedChange = { onSelectionChange(index) },
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(text = option)
+            val isSelected = selectedIndex == index
+            if (isSelected) {
+                FilledTonalButton(
+                    onClick = { onSelectionChange(index) },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                ) {
+                    Text(text = option, style = MaterialTheme.typography.labelLarge)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { onSelectionChange(index) },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                ) {
+                    Text(text = option, style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }

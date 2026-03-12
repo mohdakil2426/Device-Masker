@@ -33,6 +33,7 @@ import androidx.navigation.navArgument
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.data.SettingsDataStore
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
 import com.astrixforge.devicemasker.ui.navigation.NavRoutes
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
@@ -46,7 +47,6 @@ import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
 import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsScreen
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
-import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import timber.log.Timber
@@ -247,14 +247,15 @@ fun DeviceMaskerMainApp(
                         settingsViewModel.createShareableLogs { result ->
                             when (result) {
                                 is ShareableLogResult.Success -> {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_STREAM, result.uri)
-                                        putExtra(Intent.EXTRA_SUBJECT, "Device Masker Logs")
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
+                                    val shareIntent =
+                                        Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_STREAM, result.uri)
+                                            putExtra(Intent.EXTRA_SUBJECT, "Device Masker Logs")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
                                     context.startActivity(
-                                        Intent.createChooser(shareIntent, "Share Logs"),
+                                        Intent.createChooser(shareIntent, "Share Logs")
                                     )
                                 }
                                 is ShareableLogResult.NoLogs -> {

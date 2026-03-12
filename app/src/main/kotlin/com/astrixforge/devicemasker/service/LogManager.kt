@@ -75,11 +75,8 @@ object LogManager {
             logFile.writeText(logContent)
 
             // Get URI via FileProvider
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                logFile,
-            )
+            val uri =
+                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", logFile)
 
             ShareableLogResult.Success(uri, fileName, logContent.lines().size)
         } catch (e: Exception) {
@@ -247,7 +244,8 @@ sealed class LogExportResult {
 
 /** Result of shareable log creation. */
 sealed class ShareableLogResult {
-    data class Success(val uri: Uri, val fileName: String, val lineCount: Int) : ShareableLogResult()
+    data class Success(val uri: Uri, val fileName: String, val lineCount: Int) :
+        ShareableLogResult()
 
     data class Error(val message: String) : ShareableLogResult()
 

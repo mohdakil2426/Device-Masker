@@ -51,8 +51,7 @@ class DeviceMaskerApp : ModuleApplication() {
     }
 
     companion object {
-        @Volatile
-        private var instance: DeviceMaskerApp? = null
+        @Volatile private var instance: DeviceMaskerApp? = null
 
         /**
          * Get the application instance.
@@ -60,16 +59,17 @@ class DeviceMaskerApp : ModuleApplication() {
          * @throws IllegalStateException if called before onCreate()
          */
         fun getInstance(): DeviceMaskerApp {
-            return instance ?: throw IllegalStateException(
-                "DeviceMaskerApp not initialized. Ensure Application.onCreate() has been called."
-            )
+            return instance
+                ?: throw IllegalStateException(
+                    "DeviceMaskerApp not initialized. Ensure Application.onCreate() has been called."
+                )
         }
 
         /**
          * Get the global ServiceClient instance.
          *
-         * This client is used for AIDL communication with the DeviceMaskerService
-         * running in system_server. ViewModels should use this for:
+         * This client is used for AIDL communication with the DeviceMaskerService running in
+         * system_server. ViewModels should use this for:
          * - Writing/reading configuration
          * - Getting hook statistics
          * - Viewing centralized logs
@@ -78,11 +78,10 @@ class DeviceMaskerApp : ModuleApplication() {
             get() = getInstance()._serviceClient
 
         /**
-         * Check if the Xposed module is currently active.
-         * This is set by YukiHookAPI when the module is properly loaded.
+         * Check if the Xposed module is currently active. This is set by YukiHookAPI when the
+         * module is properly loaded.
          */
         val isXposedModuleActive: Boolean
             get() = com.highcapable.yukihookapi.YukiHookAPI.Status.isModuleActive
     }
 }
-

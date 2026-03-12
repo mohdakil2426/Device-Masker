@@ -130,22 +130,20 @@ object ConfigManager {
     /**
      * Syncs configuration to the AIDL service in system_server.
      *
-     * This provides real-time config updates when the service is available.
-     * Falls back silently if service is not connected.
+     * This provides real-time config updates when the service is available. Falls back silently if
+     * service is not connected.
      */
     private suspend fun syncToAidlService(json: String) {
         runCatching {
-            val serviceClient =
-                com.astrixforge.devicemasker.DeviceMaskerApp.serviceClient
-            if (serviceClient.isConnected) {
-                serviceClient.writeConfig(json)
-                Timber.tag(TAG).d("Config synced to AIDL service")
-            } else {
-                Timber.tag(TAG).d("AIDL service not connected, skipping sync")
+                val serviceClient = com.astrixforge.devicemasker.DeviceMaskerApp.serviceClient
+                if (serviceClient.isConnected) {
+                    serviceClient.writeConfig(json)
+                    Timber.tag(TAG).d("Config synced to AIDL service")
+                } else {
+                    Timber.tag(TAG).d("AIDL service not connected, skipping sync")
+                }
             }
-        }.onFailure { e ->
-            Timber.tag(TAG).w(e, "Failed to sync to AIDL service")
-        }
+            .onFailure { e -> Timber.tag(TAG).w(e, "Failed to sync to AIDL service") }
     }
 
     /** Updates the configuration and saves. */

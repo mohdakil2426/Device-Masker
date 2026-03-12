@@ -67,7 +67,10 @@ fun DeviceHardwareCategoryContent(
 
     ExpressiveCard(
         onClick = { /* Card click feedback */ },
-        onLongClick = { if (deviceProfileEnabled && deviceProfileDisplayValue.isNotEmpty()) onCopy(deviceProfileDisplayValue) },
+        onLongClick = {
+            if (deviceProfileEnabled && deviceProfileDisplayValue.isNotEmpty())
+                onCopy(deviceProfileDisplayValue)
+        },
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         containerColor = MaterialTheme.colorScheme.surface,

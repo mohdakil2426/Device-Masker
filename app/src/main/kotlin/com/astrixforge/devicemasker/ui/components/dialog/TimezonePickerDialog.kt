@@ -34,9 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import java.util.TimeZone
 
-/**
- * Data class representing a timezone entry for the picker.
- */
+/** Data class representing a timezone entry for the picker. */
 data class TimezoneEntry(
     val id: String,
     val displayName: String,
@@ -53,20 +51,11 @@ data class TimezoneEntry(
                     val offsetMinutes = tz.rawOffset / 60000
                     val hours = offsetMinutes / 60
                     val minutes = kotlin.math.abs(offsetMinutes % 60)
-                    val offsetStr = String.format(
-                        "GMT%s%02d:%02d",
-                        if (hours >= 0) "+" else "",
-                        hours,
-                        minutes
-                    )
+                    val offsetStr =
+                        String.format("GMT%s%02d:%02d", if (hours >= 0) "+" else "", hours, minutes)
                     val region = id.substringBefore("/")
                     val city = id.substringAfter("/").replace("_", " ")
-                    TimezoneEntry(
-                        id = id,
-                        displayName = city,
-                        offset = offsetStr,
-                        region = region,
-                    )
+                    TimezoneEntry(id = id, displayName = city, offset = offsetStr, region = region)
                 }
                 .sortedWith(compareBy({ it.region }, { it.displayName }))
         }

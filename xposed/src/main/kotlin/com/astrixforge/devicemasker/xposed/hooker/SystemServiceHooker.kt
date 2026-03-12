@@ -8,9 +8,9 @@ import com.highcapable.yukihookapi.hook.factory.method
 /**
  * System Framework Hooker - Initializes DeviceMaskerService in system_server.
  *
- * This hooker is loaded via `loadSystem { }` when LSPosed scope includes "android"
- * (System Framework). It hooks into the system boot process to initialize our
- * centralized AIDL service before any apps start.
+ * This hooker is loaded via `loadSystem { }` when LSPosed scope includes "android" (System
+ * Framework). It hooks into the system boot process to initialize our centralized AIDL service
+ * before any apps start.
  *
  * Hook Strategy:
  * - Hooks both AMS.systemReady() and SystemServer.run()
@@ -29,8 +29,7 @@ object SystemServiceHooker : YukiBaseHooker() {
     private const val TAG = "SystemServiceHooker"
 
     /** Flag to prevent multiple initializations */
-    @Volatile
-    private var initialized = false
+    @Volatile private var initialized = false
 
     override fun onHook() {
         DualLog.info(TAG, "SystemServiceHooker.onHook() called in process: $processName")
@@ -39,35 +38,31 @@ object SystemServiceHooker : YukiBaseHooker() {
         // HOOK 1: ActivityManagerService.systemReady() (PRIMARY)
         // ═══════════════════════════════════════════════════════════
         runCatching {
-            "com.android.server.am.ActivityManagerService".toClass().apply {
-                method {
-                    name = "systemReady"
-                    paramCount(1..5)
-                }.hook {
-                    after { initializeServiceSafely("AMS.systemReady") }
+                "com.android.server.am.ActivityManagerService".toClass().apply {
+                    method {
+                            name = "systemReady"
+                            paramCount(1..5)
+                        }
+                        .hook { after { initializeServiceSafely("AMS.systemReady") } }
                 }
+                DualLog.info(TAG, "AMS.systemReady() hook registered")
             }
-            DualLog.info(TAG, "AMS.systemReady() hook registered")
-        }.onFailure { e ->
-            DualLog.error(TAG, "AMS hook failed: ${e.message}")
-        }
+            .onFailure { e -> DualLog.error(TAG, "AMS hook failed: ${e.message}") }
 
         // ═══════════════════════════════════════════════════════════
         // HOOK 2: SystemServer.run() (FALLBACK)
         // ═══════════════════════════════════════════════════════════
         runCatching {
-            "com.android.server.SystemServer".toClass().apply {
-                method {
-                    name = "run"
-                    emptyParam()
-                }.hook {
-                    after { initializeServiceSafely("SystemServer.run") }
+                "com.android.server.SystemServer".toClass().apply {
+                    method {
+                            name = "run"
+                            emptyParam()
+                        }
+                        .hook { after { initializeServiceSafely("SystemServer.run") } }
                 }
+                DualLog.info(TAG, "SystemServer.run() hook registered")
             }
-            DualLog.info(TAG, "SystemServer.run() hook registered")
-        }.onFailure { e ->
-            DualLog.error(TAG, "SystemServer hook failed: ${e.message}")
-        }
+            .onFailure { e -> DualLog.error(TAG, "SystemServer hook failed: ${e.message}") }
     }
 
     /**
@@ -87,25 +82,23 @@ object SystemServiceHooker : YukiBaseHooker() {
             if (initialized) return
 
             runCatching {
-                DualLog.info(TAG, "Initializing DeviceMaskerService from $source...")
-                val service = DeviceMaskerService.getInstance()
+                    DualLog.info(TAG, "Initializing DeviceMaskerService from $source...")
+                    val service = DeviceMaskerService.getInstance()
 
-                if (service.isServiceAlive) {
-                    initialized = true
-                    DualLog.info(TAG, "Service initialized! (v${service.serviceVersion})")
-                } else {
-                    DualLog.error(TAG, "Service created but not responding")
+                    if (service.isServiceAlive) {
+                        initialized = true
+                        DualLog.info(TAG, "Service initialized! (v${service.serviceVersion})")
+                    } else {
+                        DualLog.error(TAG, "Service created but not responding")
+                    }
                 }
-            }.onFailure { e ->
-                DualLog.error(TAG, "Service init failed: ${e.message}")
-                e.printStackTrace()
-            }
+                .onFailure { e ->
+                    DualLog.error(TAG, "Service init failed: ${e.message}")
+                    e.printStackTrace()
+                }
         }
     }
 
     /** Checks if the service has been initialized. */
     fun isServiceInitialized(): Boolean = initialized
 }
-
-
-

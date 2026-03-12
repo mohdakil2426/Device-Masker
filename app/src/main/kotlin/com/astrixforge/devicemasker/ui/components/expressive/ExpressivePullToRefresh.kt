@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -29,25 +27,7 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
 /**
  * Material 3 Expressive Pull-to-Refresh container.
  *
- * Wraps content with pull-to-refresh functionality using the M3 Expressive
- * [androidx.compose.material3.LoadingIndicator] (morphing shapes) instead of the standard circular
- * indicator.
- *
- * Features:
- * - Morphing shape animation during refresh
- * - Smooth spring physics for pull gesture
- * - Customizable indicator colors and size
- * - Drop-in replacement for standard PullToRefresh
- *
- * Usage:
- * ```kotlin
- * ExpressivePullToRefresh(
- *     isRefreshing = isRefreshing,
- *     onRefresh = { viewModel.refresh() }
- * ) {
- *     LazyColumn { ... }
- * }
- * ```
+ * Wraps content with pull-to-refresh functionality using stable components.
  *
  * @param isRefreshing Whether content is currently refreshing
  * @param onRefresh Callback triggered when user pulls to refresh
@@ -57,7 +37,7 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
  * @param indicatorSize Size of the loading indicator
  * @param content Content to display with pull-to-refresh
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpressivePullToRefresh(
     isRefreshing: Boolean,
@@ -90,12 +70,12 @@ fun ExpressivePullToRefresh(
 }
 
 /**
- * M3 Expressive refresh indicator with morphing LoadingIndicator.
+ * M3 Expressive refresh indicator with stable CircularProgressIndicator.
  *
- * Shows a Surface container with the morphing LoadingIndicator inside. Animates visibility based on
- * pull progress and refresh state.
+ * Shows a Surface container with the progress indicator inside. Animates visibility based on pull
+ * progress and refresh state.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpressiveRefreshIndicator(
     state: PullToRefreshState,
@@ -139,7 +119,10 @@ fun ExpressiveRefreshIndicator(
             tonalElevation = 2.dp,
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                LoadingIndicator(modifier = Modifier.size(indicatorSize), color = indicatorColor)
+                ExpressiveLoadingIndicator(
+                    modifier = Modifier.size(indicatorSize),
+                    color = indicatorColor,
+                )
             }
         }
     }
