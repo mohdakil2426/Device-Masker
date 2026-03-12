@@ -170,19 +170,28 @@ object AntiDetectHooker : YukiBaseHooker() {
     // ═══════════════════════════════════════════════════════════
 
     private fun hookProcMaps() {
-        "java.io.BufferedReader".toClass().apply {
-            method {
-                    name = "readLine"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val line = result as? String ?: return@after
-                        if (HIDDEN_LIBRARY_PATTERNS.any { line.contains(it, ignoreCase = true) }) {
-                            result = ""
+        // Use toClassOrNull — BufferedReader always exists on Android, but optional() is safer
+        "java.io.BufferedReader".toClassOrNull()?.apply {
+            runCatching {
+                method {
+                        name = "readLine"
+                        emptyParam()
+                    }
+                    .hook {
+                        after {
+                            runCatching {
+                                val line = result as? String ?: return@runCatching
+                                if (
+                                    HIDDEN_LIBRARY_PATTERNS.any {
+                                        line.contains(it, ignoreCase = true)
+                                    }
+                                ) {
+                                    result = ""
+                                }
+                            }
                         }
                     }
-                }
+            }
         }
     }
 
@@ -191,32 +200,42 @@ object AntiDetectHooker : YukiBaseHooker() {
     // ═══════════════════════════════════════════════════════════
 
     private fun hookPackageManager() {
-        "android.app.ApplicationPackageManager".toClass().apply {
-            method {
-                    name = "getPackageInfo"
-                    paramCount = 2
-                }
-                .hook {
-                    before {
-                        val pkgName = args(0).string()
-                        if (HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }) {
-                            throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
+        "android.app.ApplicationPackageManager".toClassOrNull()?.apply {
+            runCatching {
+                method {
+                        name = "getPackageInfo"
+                        paramCount = 2
+                    }
+                    .hook {
+                        before {
+                            runCatching {
+                                val pkgName = args(0).string()
+                                if (HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }) {
+                                    android.content.pm.PackageManager.NameNotFoundException(pkgName)
+                                        .throwToApp()
+                                }
+                            }
                         }
                     }
-                }
+            }
 
-            method {
-                    name = "getApplicationInfo"
-                    paramCount = 2
-                }
-                .hook {
-                    before {
-                        val pkgName = args(0).string()
-                        if (HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }) {
-                            throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
+            runCatching {
+                method {
+                        name = "getApplicationInfo"
+                        paramCount = 2
+                    }
+                    .hook {
+                        before {
+                            runCatching {
+                                val pkgName = args(0).string()
+                                if (HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }) {
+                                    android.content.pm.PackageManager.NameNotFoundException(pkgName)
+                                        .throwToApp()
+                                }
+                            }
                         }
                     }
-                }
+            }
 
             runCatching {
                 method {

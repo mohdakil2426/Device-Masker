@@ -2,1336 +2,428 @@
 
 ## System Architecture
 
-### High-Level Architecture (Multi-Module)
-
-> **Updated Dec 22, 2025**: 3-module structure with MVVM in UI layer
+### 3-Module Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              LSPOSED FRAMEWORK                           │
-│                         (External - Not Part of Module)                  │
-└─────────────────────────────────┬───────────────────────────────────────┘
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Device Masker MODULE                             │
-│                   (3-Module Gradle Structure)                            │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │                        :app MODULE                                │   │
-│  │  HookEntry.kt (@InjectYukiHookWithXposed)                         │   │
-│  │  UI Layer (MVVM + Material 3 Expressive + Jetpack Compose)        │   │
-│  │  ├── screens/[feature]/ViewModel.kt (State management)            │   │
-│  │  │  screens/[feature]/State.kt (Immutable UI state)              │   │
-│  │  └── screens/[feature]/Screen.kt (Composable UI)                  │   │
-│  │  XposedPrefs + ConfigManager (XSharedPreferences) ✅              │   │
-│  └────────────────────────────────┬─────────────────────────────────┘   │
-│                                   │                                      │
-│                          loads XposedHookLoader                          │
-│                                   ▼                                      │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │                       :xposed MODULE                              │   │
-│  │                                                                   │   │
-│  │  ┌───────────────────────────┐  ┌───────────────────────────┐    │   │
-│  │  │   XposedEntry (prefs)     │  │  XposedHookLoader         │    │   │
-│  │  │   PrefsHelper/PrefsKeys   │  │  (YukiBaseHooker)         │    │   │
-│  │  │   XSharedPreferences      │  │  - Loads all hookers      │    │   │
-│  │  │   config access           │  │  - System init            │    │   │
-│  │  └───────────────────────────┘  └───────────────────────────┘    │   │
-│  │                                                                   │   │
-│  │  ┌─────────────────────────────────────────────────────────────┐ │   │
-│  │  │                       HOOKERS                                │ │   │
-│  │  │  AntiDetect │ Device │ Network │ Advertising │ System │ Loc │ │   │
-│  │  │  ─────────────────────────────────────────────────────────── │ │   │
-│  │  │  All use PrefsHelper.getSpoofValue(prefs, ...)               │ │   │
-│  │  └─────────────────────────────────────────────────────────────┘ │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-│                                   │                                      │
-│                          uses shared models                              │
-│                                   ▼                                      │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │                       :common MODULE                              │   │
-│  │                                                                   │   │
-│  │  SharedPrefsKeys  │  JsonConfig  │  SpoofGroup  │  generators/   │   │
-│  │  SpoofType  │  DeviceIdentifier  │  AppConfig  │  Constants      │   │
-│  │  (All @Serializable for JSON persistence)                        │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                    LSPosed Framework (External)                │
+└───────────────────────────────┬────────────────────────────────┘
+                                │ Loads module via xposed_init
+┌────────────────────────────────────────────────────────────────┐
+│  :app  (UI + HookEntry)                                        │
+│  HookEntry(@InjectYukiHookWithXposed) ──► delegates XposedEntry│
+│  ConfigManager ──► AIDL ServiceClient ──► system_server        │
+│  ConfigManager ──► ConfigSync ──► XposedPrefs (fallback write) │
+├────────────────────────────────────────────────────────────────┤
+│  :common  (Shared Contract)                                    │
+│  IDeviceMaskerService.aidl │ SharedPrefsKeys │ SpoofType       │
+│  JsonConfig │ SpoofGroup │ DeviceProfilePreset │ generators/   │
+├────────────────────────────────────────────────────────────────┤
+│  :xposed  (Hook Layer)                                         │
+│  XposedEntry: loadSystem{SystemServiceHooker}                  │
+│               loadApp{AntiDetect → Device → Network → ...}     │
+│  DeviceMaskerService (system_server AIDL impl)                 │
+│  BaseSpoofHooker: AIDL-first ──► XSharedPreferences fallback   │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-### MVVM UI Architecture (Dec 22, 2025)
+### MVVM UI Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      PRESENTATION LAYER                         │
-│                                                                 │
-│  ┌─────────────────┐         ┌─────────────────────────────┐    │
-│  │  HomeScreen.kt  │◄────────│  HomeViewModel              │    │
-│  │  (Composable)   │  state  │  ├─ _state: MutableStateFlow│    │
-│  │                 │         │  ├─ state: StateFlow        │    │
-│  │  - Observes     │────────►│  └─ fun onAction(...)       │    │
-│  │    state        │  events │                             │    │
-│  │  - Renders UI   │         └───────────┬─────────────────┘    │
-│  │  - Sends events │                     │                      │
-│  └─────────────────┘                     │                      │
-│                                          ▼                      │
-│                              ┌───────────────────────┐          │
-│                              │   SpoofRepository     │          │
-│                              │   (Singleton)         │          │
-│                              │   ├─ flows            │          │
-│                              │   └─ suspend funs     │          │
-│                              └───────────────────────┘          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+Screen (Composable)
+  │ collectAsStateWithLifecycle()
+  ▼
+ViewModel (_state: MutableStateFlow, fun onAction)
+  │ suspend funs / collect flows
+  ▼
+SpoofRepository (singleton)
+  │
+  ├──► ConfigManager (app-side) ──► config.json + AIDL sync
+  └──► AppScopeRepository ──► installed apps list
 ```
 
-### Data Flow (XSharedPreferences - Dec 24, 2025)
+---
 
-> **Updated**: Migrated from AIDL ServiceManager to XSharedPreferences due to SELinux restrictions
+## AIDL Architecture (Real-Time Config)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        APP UI PROCESS                        │
-├─────────────────────────────────────────────────────────────┤
-│  User saves config → ConfigManager.saveConfigInternal()     │
-│                           │                                  │
-│                           ▼                                  │
-│  ConfigSync.syncFromConfig() → XposedPrefs (MODE_WORLD_READABLE)
-│                                                              │
-│  Writes keys like:                                           │
-│  - module_enabled = true                                     │
-│  - app_enabled_com_target_app = true                        │
-│  - spoof_enabled_com_target_app_IMEI = true                 │
-│  - spoof_value_com_target_app_IMEI = "358673912845672"      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ XSharedPreferences reads file
-┌─────────────────────────────────────────────────────────────┐
-│                      TARGET APP PROCESS                      │
-├─────────────────────────────────────────────────────────────┤
-│  XposedEntry.onHook() → prefs.get(PrefsKeys.moduleEnabled)  │
-│                           │                                  │
-│                           ▼                                  │
-│  DeviceHooker.hook → PrefsHelper.getSpoofValue(prefs, ...)  │
-│                           │                                  │
-│                           ▼                                  │
-│  Returns spoofed "358673912845672" to app                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### AD-9: XSharedPreferences for Cross-Process Config (Dec 24, 2025)
-
-**Decision**: Use XSharedPreferences via YukiHookAPI's `prefs` property instead of AIDL ServiceManager
-
-**Why AIDL ServiceManager Failed**:
-1. SELinux blocks app UIDs from registering services in ServiceManager
-2. `/data/system/` directory not writable by app processes
-3. system_server detection logic was unreliable
-
-**Solution Architecture (Updated Dec 25, 2025)**:
+### Data Flow
 
 ```
-         SharedPrefsKeys.kt (common) ← SINGLE SOURCE OF TRUTH
-                  ↑
-    ┌─────────────┴─────────────┐
-    │                           │
-XposedPrefs.kt (app)    PrefsKeys.kt (xposed)
-  ↓ DELEGATES              ↓ DELEGATES
-SharedPrefsKeys         SharedPrefsKeys
+UI saves config
+  │
+  ▼
+ConfigManager (app)
+  ├── Writes config.json (local persistence)
+  ├── ConfigSync → XposedPrefs (fallback, cached, needs app restart)
+  └── ServiceClient → AIDL → DeviceMaskerService (system_server, real-time)
+                                      │
+                                      │ Hooker queries
+                                      ▼
+                          BaseSpoofHooker.getSpoofValue()
+                            ├── 1st: service.getSpoofValue() ← real-time
+                            └── 2nd: XSharedPreferences ← fallback
 ```
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `SharedPrefsKeys` | `:common` | **SINGLE SOURCE OF TRUTH** for all key generation |
-| `XposedPrefs` | `:app` | Delegates to SharedPrefsKeys, writes with MODE_WORLD_READABLE |
-| `ConfigSync` | `:app` | Flatten JsonConfig groups to per-app keys |
-| `PrefsKeys` | `:xposed` | Delegates to SharedPrefsKeys for key generation |
-| `PrefsReader` | `:xposed` | PrefsHelper object for hook access |
+### Hybrid getSpoofValue() — Core Pattern
 
-**Key Format**:
 ```kotlin
-// Global settings
-const val KEY_MODULE_ENABLED = "module_enabled"
-const val KEY_DEBUG_ENABLED = "debug_enabled"
-
-// Per-app settings (packageName sanitized: . → _)
-fun getAppEnabledKey(pkg: String) = "app_enabled_${sanitize(pkg)}"
-fun getSpoofEnabledKey(pkg: String, type: SpoofType) = "spoof_enabled_${sanitize(pkg)}_${type.name}"
-fun getSpoofValueKey(pkg: String, type: SpoofType) = "spoof_value_${sanitize(pkg)}_${type.name}"
-```
-
-**Critical AndroidManifest.xml Requirements**:
-```xml
-<meta-data android:name="xposedmodule" android:value="true" />
-<meta-data android:name="xposedsharedprefs" android:value="true" />
-<meta-data android:name="xposedminversion" android:value="93" />
-```
-
-**Usage in Hooks**:
-```kotlin
-// XposedEntry.kt
-override fun onHook() = encase {
-    val moduleEnabled = prefs.get(PrefsKeys.moduleEnabled)
-    if (!moduleEnabled) return@encase
-    loadHooker(DeviceHooker)
-}
-
-// DeviceHooker.kt
-method { name = "getImei" }.hook {
-    after {
-        result = PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.IMEI) {
-            IMEIGenerator.generate()
-        }
-    }
-}
-```
-
-**Limitations (Solved by AD-10)**:
-- XSharedPreferences caches values - config changes require target app restart
-- No real-time updates (solved by AIDL service)
-
-### AD-10: AIDL Architecture for Real-Time Config (Jan 20, 2026)
-
-**Decision**: Implement hybrid AIDL + XSharedPreferences architecture for real-time updates with fallback
-
-**Why AIDL Was Added**:
-1. XSharedPreferences caches values - no real-time updates
-2. Need centralized logging and statistics
-3. Single LSPosed scope ("android") is simpler than multiple app scopes
-
-**Architecture Overview**:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        UI Layer (App)                       │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  ConfigManager (app) → saveConfigInternal()         │   │
-│  │         ├── Local File (config.json)                │   │
-│  │         ├── XposedPrefs (fallback)                  │   │
-│  │         └── syncToAidlService() → ServiceClient     │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                          │ AIDL via ContentProvider
-┌─────────────────────────────────────────────────────────────┐
-│                     system_server                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  SystemServiceHooker → DeviceMaskerService          │   │
-│  │         ├── Config (AtomicReference<JsonConfig>)    │   │
-│  │         ├── Statistics (ConcurrentHashMap)          │   │
-│  │         └── Logs (ConcurrentLinkedDeque)            │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                          │ Service queries
-┌─────────────────────────────────────────────────────────────┐
-│                     Target App Process                      │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  BaseSpoofHooker.getSpoofValue()                    │   │
-│  │         ├── Try service.getSpoofValue() (real-time) │   │
-│  │         └── Fallback to XSharedPreferences          │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Key Components**:
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `IDeviceMaskerService.aidl` | `:common` | AIDL interface (15 methods) |
-| `DeviceMaskerService.kt` | `:xposed/service` | Service implementation in system_server |
-| `ConfigManager.kt` | `:xposed/service` | Atomic file config in `/data/misc/` |
-| `ServiceBridge.kt` | `:xposed/service` | ContentProvider for binder access |
-| `SystemServiceHooker.kt` | `:xposed/hooker` | Initializes service at boot |
-| `ServiceClient.kt` | `:app/service` | UI client for AIDL |
-| `BaseSpoofHooker.kt` | `:xposed/hooker` | Hybrid config (service + prefs fallback) |
-
-**AIDL Interface Methods**:
-```kotlin
-interface IDeviceMaskerService {
-    // Config
-    void writeConfig(String json);
-    String readConfig();
-    void reloadConfig();
-    
-    // Queries
-    boolean isModuleEnabled();
-    boolean isAppEnabled(String packageName);
-    String getSpoofValue(String packageName, String key);
-    
-    // Statistics
-    void incrementFilterCount(String packageName);
-    int getFilterCount(String packageName);
-    int getHookedAppCount();
-    
-    // Logging
-    void log(String tag, String message, int level);
-    List<String> getLogs(int maxCount);
-    void clearLogs();
-    
-    // Health
-    boolean isServiceAlive();
-    String getServiceVersion();
-    long getServiceUptime();
-}
-```
-
-**Hybrid getSpoofValue() Pattern**:
-```kotlin
+// BaseSpoofHooker.kt — Every hooker inherits this
 protected fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
-    // Try service first (real-time config)
+    // Primary: AIDL service (real-time, no restart needed)
     service?.let { svc ->
         runCatching {
-            svc.getSpoofValue(packageName, type.name)?.let { value ->
-                if (value.isNotBlank()) {
-                    incrementFilterCount()
-                    return value
-                }
-            }
+            svc.getSpoofValue(packageName, type.name)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { incrementFilterCount(); return it }
         }
     }
-    
-    // Fallback to XSharedPreferences
+    // Fallback: XSharedPreferences (cached, needs target app restart)
     return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
 }
 ```
 
-**Benefits Achieved**:
-- ✅ Real-time config updates (no app restart needed)
-- ✅ Centralized logging in system_server
-- ✅ Single LSPosed scope ("android")
-- ✅ Filter count statistics per app
-- ✅ Service health monitoring
-- ✅ Backward compatible with XSharedPreferences fallback
+### SharedPrefsKeys Delegation — Single Source of Truth
 
-
-
-### AD-1: YukiHookAPI Selection
-
-**Decision**: Use YukiHookAPI 1.3.1 instead of raw Xposed API
-
-**Rationale**:
-- Modern Kotlin DSL with type-safe method/field references
-- `@InjectYukiHookWithXposed` eliminates boilerplate
-- Built-in `YukiBaseHooker` for modular organization
-- KSP annotation processing for compile-time safety
-- Active maintenance and documentation
-
-**Trade-offs**:
-- Additional dependency (~350KB)
-- Learning curve for raw Xposed developers
-
-### AD-2: Modular Hooker Architecture
-
-**Decision**: Separate hookers by domain (Device, Network, Advertising, System, Location, AntiDetect)
-
-**Structure**:
 ```
-hook/
-├── HookEntry.kt
-└── hooker/
-    ├── DeviceHooker.kt       # IMEI, Serial, Hardware
-    ├── NetworkHooker.kt      # MAC, WiFi, Bluetooth
-    ├── AdvertisingHooker.kt  # GSF, AdvID, Android ID
-    ├── SystemHooker.kt       # Build.*, SystemProperties
-    ├── LocationHooker.kt     # GPS, Timezone
-    └── AntiDetectHooker.kt   # Detection bypass
+SharedPrefsKeys.kt (:common)   ← THE ONLY place pref keys are generated
+         ↑
+┌────────┴────────┐
+XposedPrefs (:app)    PrefsKeys (:xposed)
+ DELEGATES →           DELEGATES →
+SharedPrefsKeys        SharedPrefsKeys
 ```
 
-**Rationale**: Single Responsibility Principle, testable isolation, clear ownership
+Key format generated by `SharedPrefsKeys`:
 
-### AD-3: Anti-Detection First Loading
-
-**Decision**: Always load AntiDetectHooker before spoofing hookers
-
-**Implementation**:
 ```kotlin
-override fun onHook() = encase {
-    loadHooker(AntiDetectHooker)  // ⚠️ MUST BE FIRST
-    loadHooker(DeviceHooker)
-    // ...
-}
+fun getAppEnabledKey(pkg: String) = "app_enabled_${sanitize(pkg)}"
+fun getSpoofEnabledKey(pkg: String, type: SpoofType) = "spoof_enabled_${sanitize(pkg)}_${type.name}"
+fun getSpoofValueKey(pkg: String, type: SpoofType)   = "spoof_value_${sanitize(pkg)}_${type.name}"
 ```
 
-**Rationale**: Detection checks may run early; must hide before spoofing begins
+---
 
-### AD-3b: Critical Safety Rules (MUST FOLLOW!)
+## Hook Loading Order (MANDATORY)
 
-**Decision**: Never hook system-critical processes or block essential classes
-
-**Forbidden Processes** (SKIP these in HookEntry.onHook()):
 ```kotlin
-val forbiddenProcesses = listOf(
-    "android",              // Core Android framework - NEVER HOOK
-    "system_server",        // System server - dangerous
-    "com.android.systemui", // SystemUI - causes UI glitches
-)
-
-if (packageName in forbiddenProcesses || processName in forbiddenProcesses) {
-    return@encase  // Skip entirely!
-}
-```
-
-**Allowed Class Patterns** (NEVER block in AntiDetectHooker):
-```kotlin
-val allowedPatterns = listOf(
-    "com.astrixforge.devicemasker",  // Our own module
-    "androidx.",               // AndroidX libraries  
-    "kotlin.", "kotlinx.",     // Kotlin stdlib
-    "java.",                   // Java stdlib
-    "android.",                // Android framework
-    "com.google.android",      // Google libraries
-)
-```
-
-**Why This Matters**:
-1. YukiHookAPI's `packageName` in `encase {}` can be `"android"` in Zygote scope
-2. Hooking system classes affects ALL apps including the module itself
-3. Blocking essential class loading crashes the module app
-4. **Hard-learned lesson**: App stuck at logo crash was caused by this exact issue!
-5. **Warning Cleanup**: Use `@Suppress("UNCHECKED_CAST")` with safe casts (`as? Array<StackTraceElement>`) in `AntiDetectHooker` to avoid cluttering the build log with non-critical warnings.
-
-**Rationale**: Prevents module from crashing itself or the entire system
-
-### AD-4: DataStore for Persistence
-
-**Decision**: Use Jetpack DataStore (Preferences) over SharedPreferences
-
-**Rationale**:
-- Asynchronous by design (Kotlin Flow)
-- No UI thread ANRs
-- Type-safe key definitions
-- Modern recommendation from Google
-
-### AD-5: Unidirectional Data Flow (UDF)
-
-**Decision**: StateFlow + immutable data classes for UI state
-
-**Pattern**:
-```
-UI Events → ViewModel → Repository → DataStore
-                ↓
-         StateFlow<UiState>
-                ↓
-              UI (Compose)
-```
-
-### AD-6: Group-Based Configuration
-
-**Decision**: Named groups assignable per-app with independent enable/disable
-
-**Structure**:
-- `SpoofGroup`: Named collection of spoofed values with `isEnabled` flag
-- `assignedApps: Set<String>`: Apps assigned to this group
-- Default group for apps without explicit config
-
-### AD-6b: Independent Groups (No Global Config)
-
-**Decision**: Remove GlobalSpoofConfig entirely, groups are fully independent
-
-**Why Global Config Was Removed** (Dec 17, 2025):
-- **Simpler Mental Model**: Each group controls its own behavior
-- **No Conflicts**: No confusing interaction between global and group settings
-- **Cleaner Code**: Hookers only check group settings, not two layers
-
-**New Data Flow**:
-```
-App Launch → HookDataProvider.getGroupForPackage()
-                      ↓
-            Group found? No → Return null (no spoofing)
-                      ↓ Yes
-            Group.isEnabled? No → Return null (no spoofing)
-                      ↓ Yes
-            Type enabled in group? No → Return null
-                      ↓ Yes
-            Return spoofed value
-```
-
-**Old Flow (Removed)**:
-```
-❌ ConfigManager.isTypeEnabled() -> Group.isTypeEnabled()
-```
-
-**Hooker Pattern (Simplified)**:
-```kotlin
-private fun getSpoofValueOrGenerate(
-    context: Context?,
-    type: SpoofType,
-    generator: () -> String
-): String? {
-    val provider = getProvider(context)
-    if (provider == null) {
-        return generator() // No provider, use fallback
+// XposedEntry.kt
+override fun onHook() {
+    loadSystem {
+        loadHooker(SystemServiceHooker)  // MUST be in loadSystem — registers AIDL service at boot
     }
-    
-    // getSpoofValue handles ALL checks:
-    // 1. Group exists for this app
-    // 2. Group.isEnabled == true
-    // 3. Group.isTypeEnabled(type) == true
-    return provider.getSpoofValue(type) ?: generator()
+    loadApp {
+        // Skip system-critical processes
+        if (packageName in listOf("android", "system_server", "com.android.systemui",
+                                   "com.android.phone")) return@loadApp
+
+        loadHooker(AntiDetectHooker)     // ⚠️ ALWAYS FIRST — hide Xposed before any spoofing
+        loadHooker(DeviceHooker)
+        loadHooker(NetworkHooker)
+        loadHooker(AdvertisingHooker)
+        loadHooker(SystemHooker)
+        loadHooker(LocationHooker)
+        loadHooker(SensorHooker)
+        loadHooker(WebViewHooker)
+    }
 }
 ```
 
-**Group Model**:
-```kotlin
-data class SpoofGroup(
-    val id: String,
-    val name: String,
-    val isEnabled: Boolean = true,  // Master switch per group
-    val isDefault: Boolean = false,
-    val assignedApps: Set<String> = emptySet(),
-    val identifiers: List<DeviceIdentifier> = emptyList()
-) {
-    fun isTypeEnabled(type: SpoofType): Boolean
-    fun getValue(type: SpoofType): String?
-    fun withEnabled(enabled: Boolean): SpoofGroup
-}
-```
+**Why AntiDetect must be first**: Detection apps check for Xposed at launch. If spoofing hooks run first, Xposed evidence may be observable during that window.
 
-### AD-7: Material 3 Expressive Design
+**Why `system_server` is skipped in `loadApp`**: It's loaded in `loadSystem`. Double-loading causes duplicate service registration.
 
-**Decision**: Material 3 Expressive (1.5.0-alpha11) with physics-based animations
+---
 
-**Version**: Material 3 `1.5.0-alpha11` with Graphics Shapes `1.0.1`
+## Hook Safety Pattern (MANDATORY)
 
-**Motion Strategy (Spring-Based)**:
-```kotlin
-// Spatial Springs - For position, size, scale (CAN overshoot)
-AppMotion.Spatial.Expressive  // Icon buttons, FABs (0.5 damping, low stiffness)
-AppMotion.Spatial.Standard    // Navigation, list animations (0.75 damping, medium stiffness)
-AppMotion.Spatial.Snappy      // Toggle switches, quick feedback (0.75 damping, high stiffness)
-
-// Effect Springs - For color, opacity (NO overshoot)
-AppMotion.Effect.Color        // Background, track, thumb color changes
-AppMotion.Effect.Alpha        // Fade in/out, visibility
-AppMotion.Effect.Quick        // Immediate feedback
-```
-
-**Expressive Components (10 Total)**:
-```
-ui/components/expressive/
-├── AnimatedSection.kt           # Animated expand/collapse sections
-├── ExpressiveCard.kt            # Card with spring press feedback
-├── ExpressiveIconButton.kt      # Icon button with spring scale animation
-├── ExpressiveLoadingIndicator.kt # M3 LoadingIndicator wrapper
-├── ExpressivePullToRefresh.kt   # Pull-to-refresh with morphing indicator
-├── ExpressiveSwitch.kt          # M3 Switch with spring thumb animation
-├── MorphingShape.kt             # Animated corner radius utilities
-├── QuickActionGroup.kt          # M3 ButtonGroup wrapper
-├── SectionHeader.kt             # Consistent section headers
-└── StatusIndicator.kt           # Status dot indicators
-```
-
-**ExpressiveSwitch Usage**:
-```kotlin
-// Basic usage - uses MaterialTheme colors automatically
-ExpressiveSwitch(
-    checked = isEnabled,
-    onCheckedChange = { onEnableChange(it) }
-)
-
-// Without thumb icon
-ExpressiveSwitch(
-    checked = checked,
-    onCheckedChange = onCheckedChange,
-    showThumbIcon = false
-)
-```
-
-**ExpressiveIconButton Usage**:
-```kotlin
-// Standard size (40dp button, 24dp icon) - for prominent actions
-ExpressiveIconButton(
-    onClick = { onRefresh() },
-    icon = Icons.Filled.Refresh,
-    contentDescription = "Refresh",
-    tint = MaterialTheme.colorScheme.primary
-)
-
-// Compact size (36dp button, 20dp icon) - for action rows
-CompactExpressiveIconButton(
-    onClick = { onCopy() },
-    icon = Icons.Filled.ContentCopy,
-    contentDescription = "Copy",
-    tint = MaterialTheme.colorScheme.onSecondaryContainer
-)
-```
-
-**Color Strategy**:
-- Dynamic colors on Android 12+ (Material You)
-- Custom Teal/Cyan accent as fallback
-- Pure black (#000000) background in dark mode
-- Secondary color for active navigation labels (M3 1.4.0+ spec)
-- ExpressiveSwitch uses `colorScheme.primary` for checked track (theme-aware)
-
-### AD-8: UI Layering (Z-Order) for Overlays
-
-**Decision**: Place all overlays (Loading, Error, Dialogs) as the **last child** of the main `Box` container.
-
-**Rationale**:
-- In Jetpack Compose `Box`, the rendering order is sequential; later children appear on top.
-- Ensures `AnimatedLoadingOverlay` properly obscures and blocks interaction with the dashboard while loading.
-- Prevents components from being "cut off" or obscured by sibling elements.
-
-## Design Patterns in Use
-
-### 1. YukiBaseHooker Pattern
-
-Each domain has a dedicated hooker class:
+Every hook callback **must** follow this exact double-`runCatching` structure:
 
 ```kotlin
-object DeviceHooker : YukiBaseHooker() {
-    override fun onHook() {
-        // Check app scope first
-        if (!SpoofDataStore.isAppEnabled(packageName)) return
-        
-        // Hook methods
-        "android.telephony.TelephonyManager".toClass().apply {
-            method { name = "getImei" }.hook {
-                after { result = SpoofDataStore.getSpoofedIMEI() }
+// ✅ CORRECT
+"android.telephony.TelephonyManager".toClassOrNull()?.apply {
+    runCatching {                               // Outer: method lookup failure won't crash hooker
+        method { name = "getImei"; emptyParam() }.hook {
+            after {
+                runCatching {                   // Inner: hook body error won't crash target app
+                    result = getSpoofValue(SpoofType.IMEI) { fallbackImei }
+                }
             }
         }
     }
 }
-```
 
-### 2. Repository Pattern
-
-Abstracts data access from ViewModels:
-
-```kotlin
-class SpoofRepository(
-    private val dataStore: SpoofDataStore,
-    private val configManager: ConfigManager
-) {
-    fun getGroups(): Flow<List<SpoofGroup>>
-    suspend fun saveGroup(group: SpoofGroup)
-    suspend fun regenerateAll()
-}
-```
-
-### 3. State Hoisting Pattern
-
-Compose screens receive state and emit events:
-
-```kotlin
-@Composable
-fun SpoofValueCard(
-    label: String,
-    value: String,
-    onRegenerate: () -> Unit,  // Event up
-    onEdit: (String) -> Unit,
-    modifier: Modifier = Modifier
-)
-```
-
-### 4. Navigation Routes Pattern
-
-Type-safe navigation using string constants and data class (NOT sealed class objects):
-
-```kotlin
-// ⚠️ IMPORTANT: Do NOT use sealed class with object declarations for navigation
-// It causes NullPointerException on Android 16 (API 36) during Compose recomposition
-
-// ✅ CORRECT: String constants + data class
-object NavRoutes {
-    const val HOME = "home"
-    const val SPOOF = "spoof" 
-    const val SETTINGS = "settings"
-}
-
-data class NavItem(
-    val route: String,
-    val label: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
-)
-
-val bottomNavItems: List<NavItem> = listOf(
-    NavItem(route = NavRoutes.HOME, label = "Home", ...),
-    NavItem(route = NavRoutes.SPOOF, label = "Spoof", ...),
-    NavItem(route = NavRoutes.SETTINGS, label = "Settings", ...)
-)
-
-// ❌ WRONG: Sealed class objects (causes crashes on Android 16)
-// sealed class NavDestination { object Home : NavDestination() }
-```
-
-**Why**: Sealed class object declarations can cause `NullPointerException` during 
-Compose recomposition on Android 16 (API 36). The objects may not be fully 
-initialized when NavigationBar lambda captures them. Using simple data classes 
-with string constants avoids this initialization timing issue.
-
-### 5. Screen Header Pattern (Material 3 Consistency)
-
-**IMPORTANT**: Screen header style depends on navigation context:
-
-#### Main Navigation Destinations (Bottom Nav Tabs)
-Use **inline headers** inside LazyColumn with `headlineMedium` typography:
-
-```kotlin
-// ✅ CORRECT for main nav destinations (Home, Apps, Spoof, Groups, Settings)
-LazyColumn(
-    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-) {
-    item {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Screen Title",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            // Optional action buttons
-        }
-    }
-    // Content items...
-}
-```
-
-#### Sub-Screens / Detail Screens
-Use **TopAppBar** with Scaffold for screens navigated TO (not in bottom nav):
-
-```kotlin
-// ✅ CORRECT for sub-screens (Diagnostics, Group Spoofing, etc.)
-Scaffold(
-    topBar = {
-        TopAppBar(
-            title = { Text("Detail Screen") },
-            navigationIcon = { /* Back button */ }
-        )
-    }
-) { innerPadding ->
-    // Content...
-}
-```
-
-| Screen Type | Header Style | Example Screens |
-|-------------|--------------|-----------------|
-| Main Nav Destination | Inline `headlineMedium` | Home, Apps, Spoof, Groups, Settings |
-| Sub-screen/Detail | TopAppBar in Scaffold | Diagnostics, Group Spoofing |
-
-### 6. Value Generator Pattern
-
-Stateless generators with validation:
-
-```kotlin
-object IMEIGenerator {
-    fun generate(): String {
-        val tac = getRealisticTAC()
-        val serial = generateSerial()
-        val checkDigit = calculateLuhn(tac + serial)
-        return tac + serial + checkDigit
-    }
-    
-    fun isValid(imei: String): Boolean {
-        if (imei.length != 15) return false
-        return calculateLuhn(imei.dropLast(1)) == imei.last().digitToInt()
+// ❌ WRONG — bare after{} + toClass() = crash risk
+"android.telephony.TelephonyManager".toClass().apply {   // throws if class missing
+    method { name = "getImei" }.hook {
+        after { result = getSpoofValue(SpoofType.IMEI) { fallbackImei } }  // unprotected
     }
 }
 ```
 
-## Component Relationships
-
-### Hook Layer Dependencies
-
-```
-HookEntry
-    │
-    ├──▶ AntiDetectHooker (loads first)
-    │         └──▶ (no dependencies, self-contained)
-    │
-    ├──▶ DeviceHooker
-    │         └──▶ SpoofDataStore (read values)
-    │
-    ├──▶ NetworkHooker
-    │         └──▶ SpoofDataStore
-    │
-    ├──▶ AdvertisingHooker
-    │         └──▶ SpoofDataStore
-    │
-    ├──▶ SystemHooker
-    │         └──▶ SpoofDataStore
-    │
-    └──▶ LocationHooker
-              └──▶ SpoofDataStore
-```
-
-### Data Layer Dependencies
-
-```
-SpoofRepository
-    │
-    ├──▶ SpoofDataStore (DataStore Preferences)
-    │
-    ├──▶ ConfigManager
-    │         └──▶ JsonConfig (group storage)
-    │
-    └──▶ AppScopeRepository
-              └──▶ JsonConfig (app config storage)
-```
-
-### UI Layer Dependencies (MVVM - Dec 22, 2025)
-
-```
-MainActivity
-    │
-    └──▶ NavHost (with viewModel { } factory for each screen)
-              │
-              ├──▶ HomeScreen ──▶ HomeViewModel ──▶ SpoofRepository
-              │         └─ collectAsStateWithLifecycle(HomeState)
-              │
-              ├──▶ SettingsScreen ──▶ SettingsViewModel ──▶ SettingsDataStore
-              │         └─ collectAsStateWithLifecycle(SettingsState)
-              │
-              ├──▶ GroupsScreen ──▶ GroupsViewModel ──▶ SpoofRepository
-              │         └─ collectAsStateWithLifecycle(GroupsState)
-              │
-              ├──▶ GroupSpoofingScreen ──▶ GroupSpoofingViewModel ──▶ SpoofRepository
-              │         └─ collectAsStateWithLifecycle(GroupSpoofingState)
-              │
-              └──▶ DiagnosticsScreen ──▶ DiagnosticsViewModel ──▶ SpoofRepository
-                        └─ collectAsStateWithLifecycle(DiagnosticsState)
-```
-
-## Critical Implementation Paths
-
-### Path 1: IMEI Spoofing Flow
-
-```
-1. User enables app in AppSelectionScreen
-2. AppScopeManager saves to DataStore
-3. User sets IMEI in SpoofSettingsScreen
-4. SpoofRepository saves via SpoofDataStore
-5. Target app launches
-6. HookEntry.onHook() executes
-7. DeviceHooker checks isAppEnabled(packageName) ✓
-8. Hook intercepts TelephonyManager.getImei()
-9. SpoofDataStore.getSpoofedIMEIBlocking() returns value
-10. Target app receives spoofed IMEI
-```
-
-### Path 2: Anti-Detection Flow
-
-```
-1. Target app calls Thread.getStackTrace()
-2. AntiDetectHooker intercepts (loaded first!)
-3. Filter stack frames containing:
-   - de.robv.android.xposed.*
-   - io.github.lsposed.*
-   - com.highcapable.yukihookapi.*
-   - EdHooker*, LSPHooker*, XposedBridge, etc.
-4. Return filtered stack trace
-5. App sees no Xposed evidence
-```
-
-### Path 3: Group Switch Flow
-
-```
-1. User creates new group in GroupsScreen
-2. ConfigManager/Generators generate default values
-3. User edits values in GroupSpoofingScreen
-4. User assigns group to app in AppsTabContent
-5. ConfigManager saves groupId to app config
-6. Next app launch uses new group values
-```
-
-## Anti-Patterns to Avoid
-
-### ❌ DON'T: Blocking UI Thread
-
-```kotlin
-// BAD
-fun loadGroups(): List<SpoofGroup> {
-    return runBlocking { dataStore.data.first().groups }  // ❌ Blocks UI
-}
-
-// GOOD
-fun loadGroups(): Flow<List<SpoofGroup>> {
-    return dataStore.data.map { it.groups }  // ✅ Reactive
-}
-```
-
-### ❌ DON'T: Raw Xposed API
-
-```kotlin
-// BAD
-XposedHelpers.findAndHookMethod(...)  // ❌ Old way
-
-// GOOD
-"ClassName".toClass().method { name = "methodName" }.hook { ... }  // ✅
-```
-
-### ❌ DON'T: Hardcoded Values
-
-```kotlin
-// BAD
-val primary = Color(0xFF00BCD4)  // ❌ Hardcoded
-
-// GOOD
-MaterialTheme.colorScheme.primary  // ✅ Theme-aware
-```
-
-### ❌ DON'T: Mutable State Classes
-
-```kotlin
-// BAD
-class UiState(var imei: String)  // ❌ Mutable
-
-// GOOD
-data class UiState(val imei: String)  // ✅ Immutable
-```
-
-### ❌ DON'T: Missing optional() for Uncertain Methods
-
-```kotlin
-// BAD - may crash on some Android versions
-method { name = "newApiMethod" }.hook { ... }  // ❌
-
-// GOOD
-method { name = "newApiMethod" }.optional().hook { ... }  // ✅
-```
-
-### ❌ DON'T: Hook System Processes (CRITICAL!)
-
-```kotlin
-// BAD - Causes module app crash and system instability
-override fun onHook() = encase {
-    // No checks! Hooks EVERYTHING including "android" core process
-    loadHooker(AntiDetectHooker)  // ❌ Will block own class loading
-}
-
-// GOOD
-override fun onHook() = encase {
-    // Skip system-critical processes
-    val forbidden = listOf("android", "system_server", "com.android.systemui")
-    if (packageName in forbidden) return@encase  // ✅ Safe
-    
-    loadHooker(AntiDetectHooker)
-}
-```
-
-### ❌ DON'T: Block Essential Class Loading
-
-```kotlin
-// BAD - Blocks module's own dependencies from loading
-private fun shouldBlockClass(className: String): Boolean {
-    return HIDDEN_PATTERNS.any { className.contains(it) }  // ❌ No allowlist!
-}
-
-// GOOD
-private fun shouldBlockClass(className: String): Boolean {
-    // Allowlist essential classes FIRST
-    val allowed = listOf("androidx.", "kotlin.", "java.", "android.")
-    if (allowed.any { className.startsWith(it) }) return false  // ✅ Never block
-    
-    return HIDDEN_PATTERNS.any { className.contains(it) }
-}
-```
-
-## Theming Patterns
-
-### TP-1: Complete Dark Color Schemes
-
-**Pattern**: Material 3 `darkColorScheme()` does NOT provide sensible defaults - always specify ALL color roles.
-
-```kotlin
-// BAD - Missing critical colors, content will be invisible
-darkColorScheme(
-    primary = PrimaryDark,
-    secondary = SecondaryDark
-    // Missing background, surface, onSurface, etc.!
-)
-
-// GOOD - Complete color scheme
-darkColorScheme(
-    primary = PrimaryDark,
-    onPrimary = Color.Black,
-    // ... all primaries/secondaries/tertiaries/errors
-    
-    // CRITICAL - These are often forgotten:
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE3E3E3),
-    surface = Color(0xFF121212),
-    onSurface = Color(0xFFE3E3E3),
-    surfaceVariant = Color(0xFF1E1E1E),
-    onSurfaceVariant = Color(0xFFC0C0C0),
-    surfaceContainer = Color(0xFF1A1A1A),
-    surfaceContainerHigh = Color(0xFF242424),
-    surfaceContainerHighest = Color(0xFF2E2E2E),
-    surfaceContainerLow = Color(0xFF161616),
-    surfaceContainerLowest = Color(0xFF0E0E0E)
-)
-```
-
-### TP-2: Dynamic Edge-to-Edge with Theme Changes
-
-**Pattern**: `SystemBarStyle.auto()` follows SYSTEM theme, not app theme. Use `DisposableEffect` to update on app theme changes.
-
-```kotlin
-// BAD - Uses system theme, not app theme
-enableEdgeToEdge()  // or SystemBarStyle.auto()
-
-// GOOD - Reacts to app theme changes
-DisposableEffect(darkTheme) {
-    activity.enableEdgeToEdge(
-        statusBarStyle = if (darkTheme) {
-            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-        } else {
-            SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        },
-        navigationBarStyle = if (darkTheme) {
-            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-        } else {
-            SystemBarStyle.light(...)
-        }
-    )
-    onDispose { }
-}
-```
-
-### TP-3: Consistent Screen Layout Pattern
-
-**Pattern**: Main navigation screens use LazyColumn with inline headers. Sub-screens can use TopAppBar.
-
-```kotlin
-// Main Nav Screens (Home, Apps, Spoof, Groups, Settings)
-LazyColumn(
-    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-    verticalArrangement = Arrangement.spacedBy(12.dp)
-) {
-    item {
-        Text(
-            text = "Screen Title",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-    }
-    // Content items...
-}
-
-// Sub-Screens with FAB: Use Box + positioned FAB (NOT nested Scaffold)
-Box(modifier = modifier.fillMaxSize()) {
-    LazyColumn(...) { /* content */ }
-    
-    ExtendedFloatingActionButton(
-        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-    )
-}
-```
-
-### TP-4: Consistent Card Styling
-
-**Pattern**: All cards use the same base styling for visual consistency.
-
-```kotlin
-// STANDARD: All cards in the app
-ElevatedCard(
-    modifier = Modifier.fillMaxWidth(),
-    colors = CardDefaults.elevatedCardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    ),
-    shape = MaterialTheme.shapes.large  // or shapes.medium for list items
-) {
-    // Card content
-}
-
-// ACTIVE/SELECTED STATE: Use primaryContainer with alpha
-colors = CardDefaults.elevatedCardColors(
-    containerColor = if (isActive) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    }
-)
-```
-
-**Do NOT use**:
-- `Card` (use `ElevatedCard` instead)
-- `surfaceContainerLow` (use `surfaceContainerHigh`)
-- Missing `colors` parameter (always specify explicitly)
-- Missing `shape` parameter (always specify explicitly)
-
-### TP-5: Device Group Presets (System Spoofing)
-
-**Pattern**: Use unified device groups instead of individual Build.* fields to ensure consistency.
-
-**Rationale**: Apps detect spoofing by checking if Build.* values are consistent (e.g., fingerprint matches model, brand, device). Spoofing these individually leads to detection failures.
-
-**Implementation**:
-```kotlin
-// DeviceProfilePreset.kt - Predefined consistent profiles
-data class DeviceProfilePreset(
-    val id: String,           // e.g., "pixel_8_pro"
-    val name: String,         // e.g., "Google Pixel 8 Pro"
-    val brand: String,
-    val manufacturer: String,
-    val model: String,
-    val device: String,
-    val product: String,
-    val board: String,
-    val fingerprint: String,  // Consistent with all above
-    val securityPatch: String,
-)
-
-// 10 presets available: Pixel, Samsung, OnePlus, Xiaomi, Sony, Nothing
-```
-
-**UI Pattern**:
-- Single toggle for entire device group
-- Display preset name (not ID)
-- Regenerate randomly picks from 10 presets
-- Same pattern as all other spoof items (toggle, copy, regenerate)
-
-**Hook Pattern**:
-```kotlin
-// SystemHooker.kt - Apply all Build.* from preset
-val preset = DeviceProfilePreset.findById(groupId)
-if (preset != null) {
-    hookBuildField("MODEL", preset.model)
-    hookBuildField("MANUFACTURER", preset.manufacturer)
-    hookBuildField("FINGERPRINT", preset.fingerprint)
-    // ... all other fields
-}
-```
-
-**SpoofType Change**: 
-- Removed: `BUILD_FINGERPRINT`, `BUILD_MODEL`, `BUILD_MANUFACTURER`, `BUILD_BRAND`, `BUILD_DEVICE`, `BUILD_PRODUCT`, `BUILD_BOARD`
-- Added: `DEVICE_PROFILE` (value = preset ID)
+| Rule                                            | Consequence if violated                                     |
+| ----------------------------------------------- | ----------------------------------------------------------- |
+| `toClassOrNull()` not `toClass()`               | `ClassNotFoundException` on older Android versions          |
+| Outer `runCatching` around `.hook{}`            | Method lookup crash kills the hooker init                   |
+| Inner `runCatching` inside `after/before {}`    | Any exception crashes the target app                        |
+| `exception.throwToApp()` as Throwable extension | Compile error — wrong API call syntax                       |
+| `SecureRandom` in ALL generators                | `java.util.Random` / `chars.random()` are not cryptographic |
+| Try-catch ALL code in `system_server`           | Any uncaught exception → **bootloop**                       |
 
 ---
 
-## Spoof Value Correlation UI Patterns
+## Xposed Safety Rules
 
-> **Updated Dec 20, 2025**: Simplified patterns after fixing regeneration bugs
+### Forbidden Skip-List (loadApp)
 
-### Category Types
+```kotlin
+// These processes must NEVER be hooked in loadApp
+listOf("android", "system_server", "com.android.systemui", "com.android.phone")
+```
 
-| Category | Type | UI Pattern | Regeneration Behavior |
-|----------|------|------------|----------------------|
-| **SIM Card** | Correlated | Single switch + regenerate at category top | All values regenerate together |
-| **Device Hardware** | Independent | All 3 use `IndependentSpoofItem` | Each regenerates independently |
-| **Location** | Hybrid | Timezone+Locale combined card, Lat/Long independent | TZ regenerate updates both TZ+Locale |
-| **Network** | Independent | Each item has own switch + regenerate | Individual regeneration |
-| **Advertising** | Independent | Each item has own switch + regenerate | Individual regeneration |
+### Allowlist for AntiDetectHooker Class Blocking
 
-### UI Component Hierarchy
+AntiDetectHooker hides Xposed class names from stack traces. But it MUST NOT block:
+
+```kotlin
+val allowedPrefixes = listOf(
+    "com.astrixforge.devicemasker",  // Own module classes
+    "androidx.", "kotlin.", "kotlinx.",
+    "java.", "android.", "com.google.android"
+)
+// Rule: if className.startsWithAny(allowedPrefixes) → NEVER block, return original
+```
+
+---
+
+## Configuration Data Model
+
+```
+JsonConfig (root, @Serializable)
+  └── groups: List<SpoofGroup>
+        └── SpoofGroup
+              ├── id, name, isEnabled, isDefault
+              ├── assignedApps: Set<String>   (package names)
+              └── identifiers: List<DeviceIdentifier>
+                    └── DeviceIdentifier
+                          ├── type: SpoofType  (24 types)
+                          ├── value: String
+                          └── isEnabled: Boolean
+```
+
+**Key Rule — Independent Groups**: There is no global config. Each `SpoofGroup` is fully self-contained. Hookers check:
+
+1. Is this app in any group? → if not, pass through
+2. Is that group `isEnabled`? → if not, pass through
+3. Is the specific `SpoofType` enabled in the group? → if not, pass through
+4. Return the spoofed value
+
+---
+
+## Spoof Value Correlation
+
+### Correlation Groups
+
+```
+SIM_CARD group:   IMSI + ICCID + PHONE_NUMBER + CARRIER_NAME + CARRIER_MCC_MNC
+                  (must all be from the same carrier — MCC/MNC prefix enforced)
+
+LOCATION group:   TIMEZONE + LOCALE + LOCATION_LATITUDE + LOCATION_LONGITUDE
+                  (must all be from the same country)
+
+DEVICE_HARDWARE:  IMEI + SERIAL + DEVICE_PROFILE
+                  (independent — each can regenerate separately)
+
+NONE (independent): WIFI_MAC, BLUETOOTH_MAC, ANDROID_ID, GSF_ID, ADVERTISING_ID,
+                    WIFI_SSID, WIFI_BSSID
+```
+
+### Carrier → Location Auto-Sync
+
+When user picks a carrier, `SpoofRepository.updateGroupWithCarrier()`:
+
+1. Generates `SIMConfig` (IMSI, ICCID, phone, carrier MCC/MNC) for that carrier
+2. Generates `LocationConfig` (timezone, locale, GPS coords) for that carrier's country
+3. Updates the group atomically with both SIM + Location values
+
+---
+
+## Design Patterns
+
+### Group-Spoofing UI Hierarchy
 
 ```
 GroupSpoofingScreen
-├── GroupSpoofingContent
-│   └── CategorySection (for each UIDisplayCategory)
-│       ├── Category Header (icon + title + expand arrow)
-│       └── AnimatedVisibility (expanded content)
-│           ├── If SIM_CARD (Correlated):
-│           │   ├── Switch + Regenerate row
-│           │   └── CorrelatedSpoofItem[] (display-only)
-│           ├── If DEVICE_HARDWARE:
-│           │   └── DeviceHardwareContent
-│           │       └── 3x IndependentSpoofItem (Group, IMEI, Serial)
-│           ├── If LOCATION:
-│           │   └── LocationContent
-│           │       ├── Timezone+Locale card (combined, single switch)
-│           │       └── 2x IndependentSpoofItem (Lat, Long)
-│           └── If Network/Advertising (Independent):
-│               └── IndependentSpoofItem[] (each has switch + regenerate)
+└── CategorySection (per UIDisplayCategory)
+    ├── SIM_CARD (Correlated):
+    │     Single switch + regenerate at top → CorrelatedSpoofItem[] (display-only)
+    ├── DEVICE_HARDWARE:
+    │     DeviceHardwareCategoryContent → 3× IndependentSpoofItem (IMEI, Serial, Profile)
+    ├── LOCATION (Hybrid):
+    │     Timezone+Locale combined card (single switch) + 2× IndependentSpoofItem (Lat, Long)
+    └── NETWORK / ADVERTISING (Independent):
+          IndependentSpoofItem[] (each with own switch + regenerate)
 ```
 
-### Copy & Regenerate UX
+Key composables:
 
-| Interaction | Pattern |
-|-------------|---------|
-| **Copy value** | Long-press on value text |
-| **Regenerate icon** | IconButton (standard size) |
-| **Category header** | Icon + title only (clean) |
+- `CorrelatedSpoofItem` — display only, long-press to copy
+- `IndependentSpoofItem` — has toggle + regenerate icon button
+- `AnimatedSection` — expand/collapse with spring animation
 
-### Key Composables
-
-| Composable | Purpose | Used For |
-|------------|---------|----------|
-| `CorrelatedSpoofItem` | Display-only item (long-press to copy) | SIM Card category items |
-| `IndependentSpoofItem` | Item with switch + regenerate | Network, Advertising, Device Hardware items, Lat/Long |
-| `LocationCategoryContent` | Timezone+Locale combined card + Lat/Long independent | Location category |
-| `DeviceHardwareCategoryContent` | 3x IndependentSpoofItem (all independent) | Device Hardware category |
-
-### Implementation Notes
-
-1. **Location Regeneration** (Fixed):
-   ```kotlin
-   // Regenerate button calls BOTH individually to avoid cache issues
-   IconButton(onClick = {
-       onRegenerate(SpoofType.TIMEZONE)
-       onRegenerate(SpoofType.LOCALE)
-   }) { ... }
-   ```
-
-2. **Device Hardware Simplified**:
-   ```kotlin
-   // All 3 items now use standard IndependentSpoofItem
-   IndependentSpoofItem(
-       type = SpoofType.DEVICE_PROFILE,
-       value = deviceProfileDisplayValue,  // Shows preset name, not ID
-       ...
-   )
-   ```
-
-3. **Long-press to Copy**:
-   ```kotlin
-   @OptIn(ExperimentalFoundationApi::class)
-   Text(
-       text = value,
-       modifier = Modifier.combinedClickable(
-           onClick = { },
-           onLongClick = { onCopy(value) }
-       )
-   )
-   ```
-
-4. **UIDisplayCategory enum** uses `isCorrelated = false` for Location and Device Hardware to enable custom rendering logic via dedicated composables.
-
-## Value Generation & Correlation Patterns (Dec 21, 2025)
-
-### Correlation Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                   CORRELATION GROUPS                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  SIM_CARD (Primary)           SIM_CARD_2 (Dual-SIM)         │
-│  ├── IMSI                     ├── IMSI_2                    │
-│  ├── ICCID                    ├── ICCID_2                   │
-│  ├── PHONE_NUMBER             ├── PHONE_NUMBER_2            │
-│  ├── CARRIER_NAME             ├── CARRIER_NAME_2            │
-│  └── CARRIER_MCC_MNC          └── CARRIER_MCC_MNC_2         │
-│                                                              │
-│  LOCATION (Country-Based)     DEVICE_HARDWARE               │
-│  ├── TIMEZONE                 ├── IMEI                      │
-│  ├── LOCALE                   ├── SERIAL                    │
-│  ├── LOCATION_LATITUDE        └── (Device Group)          │
-│  └── LOCATION_LONGITUDE                                     │
-│                                                              │
-│  NONE (Independent)                                          │
-│  ├── WIFI_SSID, WIFI_BSSID, WIFI_MAC                        │
-│  ├── BLUETOOTH_MAC, ANDROID_ID                              │
-│  └── GSF_ID, ADVERTISING_ID                                 │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Carrier → Location Sync Flow
-
-```
-User selects Carrier (e.g., T-Mobile US)
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│     SpoofRepository.updateGroupWithCarrier()       │
-├─────────────────────────────────────────┤
-│  1. Generate SIMConfig for carrier                 │
-│  2. Generate LocationConfig for carrier's country  │
-│  3. Update group with:                             │
-│     - All SIM values (IMSI, ICCID, Phone, etc.)   │
-│     - Timezone (country-appropriate)              │
-│     - Locale (country-appropriate)                │
-│     - GPS coordinates (city-level bounds)         │
-└─────────────────────────────────────────┘
-```
-
-### GPS Correlation Implementation
+### Navigation Routes
 
 ```kotlin
-// LocationConfig now includes GPS coordinates
-data class LocationConfig(
-    val country: String,      // ISO code
-    val timezone: String,     // TZ database name
-    val locale: String,       // Language_Country
-    val latitude: Double,     // Within country bounds
-    val longitude: Double     // Within country bounds
-)
-
-// GPS bounds per country (major cities)
-private val COUNTRY_GPS_BOUNDS = mapOf(
-    "US" to listOf(
-        GPSBounds(40.4774, 40.9176, -74.2591, -73.7004),   // NYC
-        GPSBounds(33.7037, 34.3373, -118.6682, -117.6462), // LA
-        // ... more cities
-    ),
-    "IN" to listOf(
-        GPSBounds(18.8928, 19.2705, 72.7758, 72.9866),     // Mumbai
-        GPSBounds(28.4041, 28.8835, 76.8380, 77.3419),     // Delhi
-        // ... more cities
-    ),
-    // 16 countries total, 42 city bounds
-)
-```
-
-
-
-### Country Data Coverage
-
-| Country | ISO | Carriers | GPS Cities | Timezones | Locales |
-|---------|-----|----------|------------|-----------|---------|
-| 🇺🇸 USA | US | 45+ | 6 | 7 | en_US, es_US |
-| 🇮🇳 India | IN | 5 | 6 | 1 | en_IN, hi_IN |
-| 🇬🇧 UK | GB | 4 | 3 | 1 | en_GB |
-| 🇩🇪 Germany | DE | 3 | 3 | 1 | de_DE |
-| 🇫🇷 France | FR | 3 | 3 | 1 | fr_FR |
-| 🇯🇵 Japan | JP | 3 | 3 | 1 | ja_JP |
-| 🇨🇳 China | CN | 3 | 3 | 2 | zh_CN |
-| 🇦🇺 Australia | AU | 3 | 4 | 5 | en_AU |
-| 🇨🇦 Canada | CA | 3 | 3 | 5 | en_CA, fr_CA |
-| 🇰🇷 South Korea | KR | 3 | 3 | 1 | ko_KR |
-| 🇧🇷 Brazil | BR | 4 | 3 | 3 | pt_BR |
-| 🇷🇺 Russia | RU | 4 | 3 | 3 | ru_RU |
-| 🇲🇽 Mexico | MX | 3 | 3 | 3 | es_MX |
-| 🇮🇩 Indonesia | ID | 4 | 3 | 3 | id_ID |
-| 🇸🇦 Saudi Arabia | SA | 3 | 3 | 1 | ar_SA |
-| 🇦🇪 UAE | AE | 2 | 3 | 1 | ar_AE, en_AE |
-
-### Phone Number Generation
-
-```kotlin
-// Area codes by US state for realism
-private val US_AREA_CODES = listOf(
-    // Northeast
-    212, 347, 718, 917, 646,  // New York
-    201, 551, 609, 732, 856,  // New Jersey
-    // ... 100+ total
-)
-
-// NANP-compliant generation
-fun generateUSPhoneNumber(): String {
-    val areaCode = US_AREA_CODES.random()
-    val exchange = "${(2..9).random()}${secureRandom.nextInt(10)}${secureRandom.nextInt(10)}"
-    val subscriber = buildString { repeat(4) { append(secureRandom.nextInt(10)) } }
-    return "+1$areaCode$exchange$subscriber"
+// ✅ CORRECT — string constants + data class
+object NavRoutes {
+    const val HOME = "home"
+    const val GROUPS = "groups"
+    const val SETTINGS = "settings"
+    const val GROUP_SPOOFING = "group_spoofing/{groupId}"
+    const val DIAGNOSTICS = "diagnostics"
 }
+
+// ❌ WRONG — sealed class objects crash on Android 16 (API 36)
+// sealed class Screen { object Home : Screen() }
+// NullPointerException in NavDestination.getRoute() during Compose recomposition
 ```
 
-### WiFi SSID Patterns
+### Screen Header — Context-Dependent
+
+| Screen Type               | Header Style                                          | Example                    |
+| ------------------------- | ----------------------------------------------------- | -------------------------- |
+| Bottom nav tab (root)     | Inline `headlineMedium` text in LazyColumn first item | Home, Groups, Settings     |
+| Sub-screen (navigated-to) | `TopAppBar` with back navigation inside `Scaffold`    | Diagnostics, GroupSpoofing |
+
+### Value Generator Contract
+
+All generators in `:common/generators/`:
+
+- Must use `java.security.SecureRandom` — never `Random()` or `chars.random()`
+- Must generate **valid format** values (Luhn IMEI, unicast MAC bit, correct MCC/MNC prefix for carrier)
+- Are stateless `object`s with a `generate()` function and optional `isValid()` validator
+- `DeviceProfilePreset` applies ALL `Build.*` fields as a set — never mix fields from different presets
+
+---
+
+## Theming Patterns
+
+### Dark Color Scheme — Always Specify All Roles
+
+`darkColorScheme()` defaults are NOT sensible — always provide full specification:
 
 ```kotlin
-private fun generateRealisticSSID(): String {
-    val patterns = listOf(
-        "NETGEAR${secureRandom.nextInt(100).toString().padStart(2, '0')}",
-        "TP-LINK_${generateHexSuffix(4)}",
-        "ASUS_RT-${listOf("AC68U", "AX88U", "N66U").random()}",
-        "ATT${generateHexSuffix(6)}",
-        "xfinitywifi",
-        "Linksys${secureRandom.nextInt(10000).toString().padStart(5, '0')}",
-        "${listOf("Home", "Guest", "MyNetwork").random()}_${generateHexSuffix(4)}",
+darkColorScheme(
+    primary = ..., onPrimary = Color.Black,
+    // Critical — commonly forgotten:
+    background = Color(0xFF121212),   onBackground = Color(0xFFE3E3E3),
+    surface = Color(0xFF121212),      onSurface = Color(0xFFE3E3E3),
+    surfaceVariant = Color(0xFF1E1E1E), onSurfaceVariant = Color(0xFFC0C0C0),
+    surfaceContainer = Color(0xFF1A1A1A),
+    surfaceContainerHigh = Color(0xFF242424),
+    surfaceContainerHighest = Color(0xFF2E2E2E),
+)
+```
+
+### Edge-to-Edge — Must React to App Theme
+
+```kotlin
+// ✅ CORRECT — use DisposableEffect(darkTheme) to update when theme changes
+DisposableEffect(darkTheme) {
+    activity.enableEdgeToEdge(
+        statusBarStyle = if (darkTheme) SystemBarStyle.dark(TRANSPARENT)
+                         else SystemBarStyle.light(TRANSPARENT, TRANSPARENT),
+        navigationBarStyle = ...
     )
-    return patterns.random()
+    onDispose { }
 }
+// ❌ WRONG — enableEdgeToEdge() called once at Activity start follows SYSTEM theme, not app theme
 ```
 
+### Card Styling — Consistent Base
+
+```kotlin
+ElevatedCard(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.elevatedCardColors(
+        containerColor = if (isActive)
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        else
+            MaterialTheme.colorScheme.surfaceContainerHigh
+    ),
+    shape = MaterialTheme.shapes.large  // shapes.medium for list items
+)
+// Never use Card (use ElevatedCard). Never omit colors or shape params.
+```
+
+### Spring Motion System
+
+```kotlin
+// Spatial springs (CAN overshoot — position, scale, size)
+AppMotion.Spatial.Expressive  // FABs, icon buttons
+AppMotion.Spatial.Standard    // Nav, list animations
+AppMotion.Spatial.Snappy      // Toggles, quick feedback
+
+// Effect springs (NO overshoot — color, alpha)
+AppMotion.Effect.Color   // Track/thumb color changes
+AppMotion.Effect.Alpha   // Fade in/out
+```
+
+---
+
+## Critical Implementation Paths
+
+### Config Write Path (App → System)
+
+```
+User changes value → ViewModel.onAction()
+  → SpoofRepository.saveGroup(group.copy(...))
+  → ConfigManager.saveConfigInternal(config)
+    ├── Write config.json (filesDir)
+    ├── ConfigSync.syncFromConfig() → XposedPrefs per-app keys
+    └── ServiceClient.syncConfig(config) → AIDL → DeviceMaskerService
+```
+
+### Config Read Path (Hook → Value)
+
+```
+Target app calls TelephonyManager.getImei()
+  → DeviceHooker.after{} (double-runCatching wrapped)
+  → BaseSpoofHooker.getSpoofValue(SpoofType.IMEI)
+    ├── service.getSpoofValue(pkg, "IMEI") → real-time value (AIDL)
+    └── PrefsHelper.getSpoofValue(prefs, pkg, IMEI) → cached value (fallback)
+  → result = spoofed IMEI
+```
+
+### Anti-Detection Path
+
+```
+Target app calls Thread.currentThread().stackTrace
+  → AntiDetectHooker intercepts (loaded FIRST)
+  → Filter frames containing:
+      de.robv.android.xposed.*, io.github.lsposed.*,
+      com.highcapable.yukihookapi.*, EdXposed*, XposedBridge
+  → Return filtered array (no Xposed evidence)
+```
+
+---
+
+## Anti-Patterns Reference
+
+| ❌ Anti-Pattern                                   | ✅ Correct Pattern                            |
+| ------------------------------------------------- | --------------------------------------------- |
+| `toClass()` in hooker                             | `toClassOrNull()?.apply {}`                   |
+| Bare `after { ... }`                              | `after { runCatching { ... } }`               |
+| `throwToApp(e)`                                   | `e.throwToApp()` (Throwable extension)        |
+| `java.util.Random()` in generator                 | `java.security.SecureRandom()`                |
+| `chars.random()` in generator                     | `secureRandom.nextBytes(...)`                 |
+| `Timber.d()` in `:xposed`                         | `DualLog.debug(TAG, ...)`                     |
+| Hardcoded pref key string                         | Delegate to `SharedPrefsKeys`                 |
+| `runBlocking` in ViewModel                        | `viewModelScope.launch {}`                    |
+| `Card` composable                                 | `ElevatedCard` with explicit colors + shape   |
+| `sealed class object` for NavRoute                | `object NavRoutes { const val X = "x" }`      |
+| Hooking `android` / `system_server` in `loadApp`  | Skip in forbidden-process list                |
+| Hooking without `system_server` try-catch         | Every line wrapped in `try-catch`             |
+| Mixing Build.\* fields from different presets     | Apply `DeviceProfilePreset` as a complete set |
+| `import androidx.compose` in `:xposed`            | Never — UI code only in `:app`                |
+| Hook logic in `:app` or `:common`                 | Only in `:xposed/hooker/`                     |
+| `@Serializable` data class in `:app` or `:xposed` | Only in `:common`                             |

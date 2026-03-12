@@ -145,26 +145,248 @@ devicemasker/
 
 ## Commands
 
-### Build Commands
+### 🔨 Build Commands
 
 ```bash
-./gradlew assembleDebug              # Build debug APK
-./gradlew assembleRelease            # Build release APK (requires signing)
-./gradlew installDebug               # Build and install to connected device
-./gradlew :app:assembleDebug         # Build only :app module
-./gradlew :common:assembleDebug      # Build only :common module
-./gradlew :xposed:assembleDebug      # Build only :xposed module
+# Full debug build (all 3 modules)
+./gradlew assembleDebug
+
+# Full release build with R8 full-mode shrinking + obfuscation
+./gradlew assembleRelease
+
+# Install debug APK directly to connected rooted device
+./gradlew installDebug
+
+# Module-specific builds (faster for targeted changes)
+./gradlew :app:assembleDebug
+./gradlew :common:assembleDebug
+./gradlew :xposed:assembleDebug
+
+# Compile Kotlin only (fastest check — no APK packaging)
+./gradlew :app:compileDebugKotlin
+./gradlew :xposed:compileDebugKotlin
+./gradlew :common:compileDebugKotlin
+
+# Clean + full rebuild (fixes stale caches)
+./gradlew clean assembleDebug
 ```
 
-### Lint & Format Commands
+---
+
+### 🎨 Format & Style Commands
 
 ```bash
-./gradlew spotlessApply              # Auto-format all Kotlin files (ktfmt)
-./gradlew spotlessCheck              # Check formatting without fixing
-./gradlew lint                       # Run Android lint on all modules
-./gradlew :app:lint                  # Run lint on :app only
-./gradlew :common:lint               # Run lint on :common only
-./gradlew :xposed:lint               # Run lint on :xposed only
+# Auto-fix all Kotlin formatting issues (run FIRST before committing)
+./gradlew spotlessApply
+
+# Check formatting without modifying files (use in CI)
+./gradlew spotlessCheck
+
+# Check only Kotlin source files (skip Gradle scripts)
+./gradlew spotlessKotlinCheck
+
+# Check only Gradle KTS files
+./gradlew spotlessKotlinGradleCheck
+```
+
+---
+
+### 🔍 Lint Commands — Android Lint
+
+```bash
+# Run lint across ALL modules (recommended — enables cross-module analysis)
+./gradlew lint
+
+# Module-specific lint (faster for focused changes)
+./gradlew :app:lint
+./gradlew :common:lint
+./gradlew :xposed:lint
+
+# Lint with HTML report (opens in browser at app/build/reports/lint-results.html)
+./gradlew :app:lintDebug
+
+# Lint the release variant (stricter — catches R8-specific issues)
+./gradlew :app:lintRelease
+
+# Lint vital checks only (subset, very fast — same as what R8 runs pre-release)
+./gradlew :app:lintVitalRelease
+
+# Generate lint baseline (snapshot known issues so future runs show only NEW issues)
+./gradlew :app:updateLintBaseline
+```
+
+> **Reports Location**: `app/build/reports/lint-results-debug.html`  
+> Open in browser to see issues with code context, severity, and fix suggestions.
+
+---
+
+### 🔬 Deep Analysis Commands
+
+```bash
+# Full quality gate pipeline — run ALL of these in order before every commit:
+./gradlew spotlessApply && ./gradlew spotlessCheck && ./gradlew lint && ./gradlew assembleDebug
+
+# Dependency insight — see why a transitive dependency is pulled in
+./gradlew :app:dependencyInsight --dependency <group:artifact>
+# Example: check why coroutines is included
+./gradlew :app:dependencyInsight --dependency kotlinx-coroutines-core
+
+# Full dependency tree for each module
+./gradlew :app:dependencies
+./gradlew :common:dependencies
+./gradlew :xposed:dependencies
+
+# Only runtime dependencies tree (cleaner output)
+./gradlew :app:dependencies --configuration releaseRuntimeClasspath
+
+# Check for outdated dependencies (requires gradle-versions-plugin if added)
+# ./gradlew dependencyUpdates
+
+# Build scan — full profiling and analysis (uploads to scans.gradle.com)
+./gradlew assembleDebug --scan
+
+# Profile build performance (local, no upload)
+./gradlew assembleDebug --profile
+# Report: build/reports/profile/profile-*.html
+
+# Task dependency graph for a specific task
+./gradlew :app:assembleRelease --dry-run
+```
+
+---
+
+### 🧪 Test Commands
+
+```bash
+# Run all unit tests across all modules
+./gradlew test
+
+# Module-specific unit tests
+./gradlew :common:test
+./gradlew :app:test
+./gradlew :xposed:test
+
+# Run tests with verbose output (shows each test case result)
+./gradlew :common:test --info
+
+# Run a specific test class
+./gradlew :common:test --tests "com.astrixforge.devicemasker.common.generators.IMEIGeneratorTest"
+
+# Run tests and generate HTML report
+./gradlew :common:test
+# Report: common/build/reports/tests/test/index.html
+
+# Run instrumented (on-device) tests
+./gradlew :app:connectedAndroidTest
+```
+
+---
+
+### 🛡️ Release Validation Commands
+
+```bash
+# Full release build with R8 (validates ProGuard rules are complete)
+./gradlew assembleRelease
+
+# Inspect the R8 mapping file (see what was renamed/stripped)
+# File: app/build/outputs/mapping/release/mapping.txt
+cat app/build/outputs/mapping/release/mapping.txt | grep 'com.astrixforge'
+
+# Verify the release APK was produced
+ls app/build/outputs/apk/release/
+
+# Check APK size after R8 shrinking
+# Windows:
+Get-Item app\build\outputs\apk\release\*.apk | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}}
+
+# Inspect APK contents (lists all DEX, assets, manifest entries)
+# Requires Android SDK build-tools:
+%ANDROID_HOME%\build-tools\36.0.0\aapt2 dump file app/build/outputs/apk/release/app-release-unsigned.apk
+
+# Check that xposed_init asset is present (CRITICAL for LSPosed to load module)
+# Must contain: com.astrixforge.devicemasker.hook.HookEntry
+%ANDROID_HOME%\build-tools\36.0.0\aapt dump file app/build/outputs/apk/release/app-release-unsigned.apk assets/xposed_init
+```
+
+---
+
+### 🔎 Xposed-Specific Issue Finder Commands (Grep)
+
+These grep commands scan the codebase for common Xposed anti-patterns and safety violations.
+
+```bash
+# ⚠️  SAFETY: Find hook callbacks NOT wrapped in runCatching { }
+# Any 'after {' or 'before {' or 'replaceAny {' without runCatching is a crash risk
+grep -rn 'after {\|before {\|replaceAny {' xposed/src --include='*.kt' | grep -v 'runCatching'
+
+# ⚠️  BOOTLOOP RISK: Find system_server code NOT wrapped in try-catch
+# All code in DeviceMaskerService, ConfigManager, SystemServiceHooker must be in try-catch
+grep -rn 'fun ' xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/service/ --include='*.kt'
+
+# 🔑 KEY MISMATCH: Find hardcoded preference key strings (not using SharedPrefsKeys)
+# Should return 0 results. Any match = silent config failure risk.
+grep -rn '"module_enabled"\|"app_enabled_"\|"spoof_value_"\|"spoof_enabled_"' app/src xposed/src --include='*.kt'
+
+# 🎲 SECURITY: Find usage of Random() instead of SecureRandom in generators
+# All generators MUST use SecureRandom for security-critical values
+grep -rn 'Random()\b' common/src --include='*.kt' | grep -v 'SecureRandom'
+
+# 📦 MODULE BOUNDARY: Find UI/Compose code leaking into :common or :xposed modules
+grep -rn 'import androidx.compose' common/src xposed/src --include='*.kt'
+
+# 📦 MODULE BOUNDARY: Find hook logic leaking into :app or :common modules
+grep -rn 'YukiBaseHooker\|BaseSpoofHooker\|onHook()' app/src common/src --include='*.kt'
+
+# 🔁 RECURSION RISK: Find stack trace hooks without ThreadLocal re-entrance guards
+grep -rn 'getStackTrace\|fillInStackTrace' xposed/src --include='*.kt' | grep -v 'ThreadLocal\|reentrant\|guard'
+
+# 📍 DEPRECATED: Find any usage of the old Random() instead of SecureRandom
+grep -rn 'java.util.Random\b' xposed/src common/src --include='*.kt'
+
+# 🔗 AIDL SAFETY: Find direct Binder calls without null-check (service may be null)
+grep -rn 'service\.' xposed/src --include='*.kt' | grep -v '?\.' | grep -v 'runCatching'
+
+# 🧹 DEAD CODE: Find TODO/FIXME/HACK comments that need resolution
+grep -rn 'TODO\|FIXME\|HACK\|XXX' app/src xposed/src common/src --include='*.kt'
+
+# 📏 COMPLEXITY: Find functions over 50 lines (may need refactoring)
+# Counts non-blank lines per function — report manually if any file is too large
+wc -l xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/*.kt
+
+# 🚫 ANTI-PATTERN: Find Timber.log usage in xposed module (should use DualLog)
+grep -rn 'Timber\.' xposed/src --include='*.kt'
+
+# 🚫 ANTI-PATTERN: Find System.out.println in any module
+grep -rn 'println\|System.out\|System.err' app/src xposed/src common/src --include='*.kt'
+
+# 🔐 SERIALIZATION: Find @Serializable data classes missing @Keep or not in common module
+grep -rn '@Serializable' app/src xposed/src --include='*.kt'
+
+# 📋 VERIFY: Confirm xposed_init asset file contains the correct entry point
+# Expected: com.astrixforge.devicemasker.hook.HookEntry
+type xposed\src\main\assets\xposed_init 2>nul || echo 'xposed_init not found in xposed module'
+type app\src\main\assets\xposed_init 2>nul || echo 'xposed_init not found in app module'
+```
+
+---
+
+### 🗂️ Useful One-Liners (Windows PowerShell)
+
+```powershell
+# Count total lines of Kotlin code per module
+Get-ChildItem -Recurse -Filter '*.kt' app/src | Measure-Object -Sum -Property Length
+Get-ChildItem -Recurse -Filter '*.kt' xposed/src | Measure-Object -Sum -Property Length
+Get-ChildItem -Recurse -Filter '*.kt' common/src | Measure-Object -Sum -Property Length
+
+# Find all Kotlin files modified in the last 24 hours
+Get-ChildItem -Recurse -Filter '*.kt' | Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-24) }
+
+# Search for a class/function across all modules
+Select-String -Path 'app/src','xposed/src','common/src' -Recurse -Pattern 'BaseSpoofHooker' -Include '*.kt'
+
+# Show APK size before and after release build
+Get-Item app\build\outputs\apk\debug\*.apk, app\build\outputs\apk\release\*.apk |
+    Select-Object Name, @{N='MB';E={[math]::Round($_.Length/1MB,2)}}
 ```
 
 ---
@@ -316,20 +538,95 @@ private val filterCounts = ConcurrentHashMap<String, AtomicInteger>()
 
 ### Quality Gates
 
-Run ALL commands, in order, every time you touch any source file:
+> Run ALL gates **in the order listed** every time you touch any source file.
+> A single FAILED gate means the task is **NOT done** — fix root cause, do not suppress.
+
+#### 🟢 Gate 1 — Format (Always First)
 
 ```bash
-# 1. Format — MUST complete with no changes needed
+# Auto-fix formatting — run before everything else
 ./gradlew spotlessApply
 
-# 2. Format check — MUST show BUILD SUCCESSFUL
+# Verify no formatting issues remain (used in CI)
 ./gradlew spotlessCheck
+# Expected: BUILD SUCCESSFUL — zero formatting violations
+```
 
-# 3. Lint — MUST show BUILD SUCCESSFUL, zero errors
+#### 🟡 Gate 2 — Compile
+
+```bash
+# Fast Kotlin-only compile check (no APK, very fast)
+./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin
+# Expected: BUILD SUCCESSFUL — zero compilation errors or warnings
+```
+
+#### 🟠 Gate 3 — Lint
+
+```bash
+# Full cross-module lint (checkDependencies=true is set in app/build.gradle.kts)
 ./gradlew lint
+# Expected: BUILD SUCCESSFUL, 0 errors (warnings are acceptable with justification)
 
-# 4. Build — MUST produce APK with zero compile errors
+# For focused changes: run only the affected module's lint
+./gradlew :app:lint        # for UI changes
+./gradlew :xposed:lint     # for hook changes
+./gradlew :common:lint     # for model/generator changes
+```
+
+#### 🔴 Gate 4 — Unit Tests
+
+```bash
+# Run all tests (29 generator tests + any new tests)
+./gradlew test
+# Expected: All tests GREEN — 0 failures, 0 errors
+
+# Run only common module tests (fastest, covers generators)
+./gradlew :common:test
+```
+
+#### 🔵 Gate 5 — Debug Build
+
+```bash
+# Full debug APK must build without errors
 ./gradlew assembleDebug
+# Expected: BUILD SUCCESSFUL — APK produced in app/build/outputs/apk/debug/
+```
+
+#### ⚫ Gate 6 — Release Build (R8 Validation) — Run Before Every Release
+
+```bash
+# Full R8 release build — validates ALL ProGuard rules are correct
+./gradlew assembleRelease
+# Expected: BUILD SUCCESSFUL — release APK in app/build/outputs/apk/release/
+# Any R8 error = missing -keep rule → fix in proguard-rules.pro or consumer-rules.pro
+
+# After release build, check the R8 mapping for suspicious stripping:
+Select-String -Path 'app\build\outputs\mapping\release\mapping.txt' -Pattern 'DeviceMaskerService|XposedEntry|HookEntry|AntiDetect'
+# Expected: Each critical class APPEARS in the mapping (means it was kept, not stripped)
+```
+
+#### 🔎 Gate 7 — Xposed Safety Checks (Grep)
+
+```bash
+# Check 1: No hook callbacks missing runCatching
+# Expected: 0 results (all hooks must be wrapped)
+grep -rn 'after {\|before {\|replaceAny {' xposed/src --include='*.kt' | grep -v 'runCatching'
+
+# Check 2: No hardcoded pref keys (must use SharedPrefsKeys)
+# Expected: 0 results
+grep -rn '"module_enabled"\|"app_enabled_"\|"spoof_value_"\|"spoof_enabled_"' app/src xposed/src --include='*.kt'
+
+# Check 3: No Random() usage in generators (must be SecureRandom)
+# Expected: 0 results
+grep -rn 'Random()' common/src --include='*.kt' | grep -v 'SecureRandom'
+
+# Check 4: No Timber usage in :xposed module (must use DualLog)
+# Expected: 0 results
+grep -rn 'Timber\.' xposed/src --include='*.kt'
+
+# Check 5: No Compose imports in :common or :xposed
+# Expected: 0 results
+grep -rn 'import androidx.compose' common/src xposed/src --include='*.kt'
 ```
 
 ---
@@ -392,4 +689,4 @@ Skills are located in `.agents/skills/` — read the **SKILL.md** file inside ea
 
 ---
 
-_Last Updated: 2026-03-12 (AIDL hybrid architecture complete, 24 SpoofTypes, 8 active hookers, 10 device presets)_
+_Last Updated: 2026-03-12 (AIDL hybrid architecture, R8 full-mode release build, 7-gate quality pipeline, Xposed safety grep checks, 24 SpoofTypes, 8 active hookers, 10 device presets)_

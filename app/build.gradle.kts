@@ -34,15 +34,38 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // SIGNING — Read keystore credentials from environment variables
+    // Set these in your CI/CD environment or local.properties (gitignored)
+    // Usage: KEYSTORE_PATH=... KEYSTORE_PASS=... KEY_ALIAS=... KEY_PASS=...
+    // ═══════════════════════════════════════════════════════════
+    signingConfigs {
+        create("release") {
+            storeFile = System.getenv("KEYSTORE_PATH")?.let { file(it) }
+            storePassword = System.getenv("KEYSTORE_PASS")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASS")
+        }
+    }
+
     buildTypes {
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            isDebuggable = true
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Apply signing config only when env vars are set (safe fallback for dev)
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            if (releaseSigningConfig?.storeFile != null) {
+                signingConfig = releaseSigningConfig
+            }
         }
     }
 
@@ -59,9 +82,25 @@ android {
 
     // CRITICAL: Prevent synthetic lambda classes that cause ClassNotFoundException in Xposed
     packaging {
-        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
-        // Ensure all module classes are in the primary dex
+        resources {
+            // Standard open-source licence files
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Coroutines debug metadata (not needed in release)
+            excludes += "/META-INF/com/android/build/gradle/**"
+            // Duplicate service files from multiple deps
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+            // Kotlin module files can duplicate across transitive deps
+            excludes += "**/*.kotlin_module"
+            // YukiHookAPI assets must NOT be excluded
+        }
+        // Ensure all module classes are in the primary dex for Xposed class loading
         dex { useLegacyPackaging = true }
+        // Include native libs if any future deps need them
+        jniLibs { keepDebugSymbols += "**/*.so" }
     }
 
     // ═══════════════════════════════════════════════════════════

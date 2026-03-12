@@ -81,16 +81,21 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
 
     private fun hookNetworkInterface() {
         networkInterfaceClass?.apply {
-            method {
-                    name = "getHardwareAddress"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val spoofedMac = getSpoofValue(SpoofType.WIFI_MAC) { fallbackWifiMac }
-                        result = ValueGenerators.parseMacToBytes(spoofedMac)
+            runCatching {
+                method {
+                        name = "getHardwareAddress"
+                        emptyParam()
                     }
-                }
+                    .hook {
+                        after {
+                            runCatching {
+                                val spoofedMac =
+                                    getSpoofValue(SpoofType.WIFI_MAC) { fallbackWifiMac }
+                                result = ValueGenerators.parseMacToBytes(spoofedMac)
+                            }
+                        }
+                    }
+            }
         } ?: logDebug("NetworkInterface class not found")
     }
 
@@ -100,15 +105,20 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
 
     private fun hookBluetoothAdapter() {
         bluetoothAdapterClass?.apply {
-            method {
-                    name = "getAddress"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        result = getSpoofValue(SpoofType.BLUETOOTH_MAC) { fallbackBluetoothMac }
+            runCatching {
+                method {
+                        name = "getAddress"
+                        emptyParam()
                     }
-                }
+                    .hook {
+                        after {
+                            runCatching {
+                                result =
+                                    getSpoofValue(SpoofType.BLUETOOTH_MAC) { fallbackBluetoothMac }
+                            }
+                        }
+                    }
+            }
         } ?: logDebug("BluetoothAdapter class not found")
     }
 
@@ -118,16 +128,21 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
 
     private fun hookTelephonyCarrier() {
         telephonyClass?.apply {
-            method {
-                    name = "getNetworkOperatorName"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val current = result as? String
-                        result = getSpoofValue(SpoofType.CARRIER_NAME) { current ?: "Unknown" }
+            runCatching {
+                method {
+                        name = "getNetworkOperatorName"
+                        emptyParam()
                     }
-                }
+                    .hook {
+                        after {
+                            runCatching {
+                                val current = result as? String
+                                result =
+                                    getSpoofValue(SpoofType.CARRIER_NAME) { current ?: "Unknown" }
+                            }
+                        }
+                    }
+            }
 
             runCatching {
                 method {
@@ -136,22 +151,30 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                     }
                     .hook {
                         after {
-                            val current = result as? String
-                            result = getSpoofValue(SpoofType.CARRIER_NAME) { current ?: "Unknown" }
+                            runCatching {
+                                val current = result as? String
+                                result =
+                                    getSpoofValue(SpoofType.CARRIER_NAME) { current ?: "Unknown" }
+                            }
                         }
                     }
             }
 
-            method {
-                    name = "getNetworkOperator"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val current = result as? String
-                        result = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { current ?: "310260" }
+            runCatching {
+                method {
+                        name = "getNetworkOperator"
+                        emptyParam()
                     }
-                }
+                    .hook {
+                        after {
+                            runCatching {
+                                val current = result as? String
+                                result =
+                                    getSpoofValue(SpoofType.CARRIER_MCC_MNC) { current ?: "310260" }
+                            }
+                        }
+                    }
+            }
 
             runCatching {
                 method {
@@ -160,9 +183,11 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                     }
                     .hook {
                         after {
-                            val current = result as? String
-                            result =
-                                getSpoofValue(SpoofType.CARRIER_MCC_MNC) { current ?: "310260" }
+                            runCatching {
+                                val current = result as? String
+                                result =
+                                    getSpoofValue(SpoofType.CARRIER_MCC_MNC) { current ?: "310260" }
+                            }
                         }
                     }
             }

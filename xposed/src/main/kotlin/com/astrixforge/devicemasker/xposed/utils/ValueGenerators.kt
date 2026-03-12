@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.xposed.utils
 
-import java.util.Random
+import java.security.SecureRandom
 
 /**
  * Centralized value generators for spoofing.
@@ -10,7 +10,8 @@ import java.util.Random
  */
 object ValueGenerators {
 
-    private val random = Random()
+    // SecureRandom is required — predictable identifiers break the privacy guarantee
+    private val random = SecureRandom()
 
     // ═══════════════════════════════════════════════════════════
     // DEVICE IDENTIFIERS

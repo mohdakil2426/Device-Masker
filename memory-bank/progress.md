@@ -2,19 +2,70 @@
 
 ## Overall Status
 
-| Metric                | Value                                                           |
-| --------------------- | --------------------------------------------------------------- |
-| **Project Phase**     | AIDL Architecture Migration Complete ✅                         |
-| **Active Changes**    | 1 (`refactor-xposed-aidl-architecture` - testing pending)       |
-| **Archived Changes**  | 12                                                              |
-| **Last Major Update** | March 12, 2026 - Dependency Modernization & Stable M3 Migration |
+| Metric                | Value                                                              |
+| --------------------- | ------------------------------------------------------------------ |
+| **Project Phase**     | Hook Safety Audit In Progress ⏳                                   |
+| **Active Changes**    | 2 (`refactor-xposed-aidl-architecture`, `hook-safety-audit`)       |
+| **Archived Changes**  | 12                                                                 |
+| **Last Major Update** | March 12, 2026 — Hook Safety Audit + R8 Release Build Optimization |
 
 ---
 
-## ✅ Complete: Dependency Modernization & Stable M3 Migration (Mar 12, 2026)
+## ✅ Complete: Release Build & Code Shrinker Optimization (Mar 12, 2026)
 
 **Status**: Complete ✅  
-**Impact**: Upgraded build system to AGP 9.1.0/Gradle 9.3.1 and ensured UI stability by migrating away from experimental pre-release components.
+**Impact**: Enabled R8 full mode, comprehensive ProGuard rules, and 2x Gradle performance
+
+### What Changed
+
+| File                        | Change                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `gradle.properties`         | Heap 2GB→4GB, ParallelGC, enabled R8 full mode, build cache, parallel builds, VFS watch             |
+| `app/proguard-rules.pro`    | Full rewrite: correct xposed pkg paths, AIDL Binder keep, Timber strip, Coil, signed method sigs    |
+| `xposed/consumer-rules.pro` | Added service layer (DeviceMaskerService, ConfigManager, ServiceBridge, SystemServiceHooker), utils |
+| `common/consumer-rules.pro` | Added AIDL interface/Stub/Proxy, generators, SharedPrefsKeys, INSTANCE singletons                   |
+| `app/build.gradle.kts`      | Added signing config from env vars, isDebuggable=false in release, expanded packaging exclusions    |
+
+### Key R8 Flags Enabled
+
+```properties
+# Previously disabled — now enabled:
+android.r8.strictFullModeForKeepRules=true   # Raises build error if -keep rules have gaps
+android.r8.optimizedResourceShrinking=true   # AGP 9.x optimized resource shrinking
+# Removed: android.r8.strictFullModeForKeepRules=false
+# Removed: android.r8.optimizedResourceShrinking=false
+```
+
+---
+
+---
+
+## ⏳ In Progress: Hook Safety Audit (Mar 12, 2026)
+
+**Status**: Partially Complete ⏳  
+**Impact**: Eliminates crash-risk hook callbacks and security-weak identifier generators
+
+### Completed Fixes
+
+| File                                 | Fix Applied                                                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `xposed/utils/ValueGenerators.kt`    | `java.util.Random` → `java.security.SecureRandom`                                                         |
+| `xposed/hooker/AdvertisingHooker.kt` | All `after {}` wrapped in `runCatching`, `generateHexId` uses SecureRandom                                |
+| `xposed/hooker/AntiDetectHooker.kt`  | `hookProcMaps()` + `hookPackageManager()` get/getApplicationInfo fixed; `.toClass()` → `.toClassOrNull()` |
+| `xposed/hooker/NetworkHooker.kt`     | All bare `after {}` in getHardwareAddress, getAddress, getNetworkOperatorName, getNetworkOperator wrapped |
+
+### Remaining Fixes (Next Session)
+
+| File                                | Issue                                                                                        | Count   |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- | ------- |
+| `xposed/hooker/DeviceHooker.kt`     | Multiple bare `after {}` in hookTelephonyManager & hookSubscriptionInfo & hookSettingsSecure | ~15     |
+| `xposed/hooker/AntiDetectHooker.kt` | `getInstalledApplications` bare `after {}`                                                   | 1       |
+| `xposed/hooker/LocationHooker.kt`   | Not yet audited                                                                              | Unknown |
+| `xposed/hooker/SensorHooker.kt`     | Not yet audited                                                                              | Unknown |
+| `xposed/hooker/SystemHooker.kt`     | Not yet audited                                                                              | Unknown |
+| `xposed/hooker/WebViewHooker.kt`    | Not yet audited                                                                              | Unknown |
+
+---
 
 ### Version Changes
 

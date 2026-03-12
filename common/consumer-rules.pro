@@ -1,68 +1,103 @@
-# Add project specific ProGuard rules here.
-# Consumer rules for the common module
-# These rules will be included when consuming this library
+# =============================================================================
+# Device Masker — Consumer ProGuard Rules (:common module)
+# Automatically merged into :app's R8 run when :common is consumed.
+# Protects shared models, generators, AIDL interface, and enums.
+# =============================================================================
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# ANNOTATIONS - Required for kotlinx.serialization to work at runtime
-# ═══════════════════════════════════════════════════════════════════════════════
-# Keep all annotations (original rule maintained for compatibility)
+# =============================================================================
+# ANNOTATIONS — Required for kotlinx.serialization at runtime
+# =============================================================================
 -keepattributes *Annotation*
-
-# More specific annotation attributes for optimal preservation
 -keepattributes RuntimeVisibleAnnotations
 -keepattributes RuntimeInvisibleAnnotations
 -keepattributes AnnotationDefault
-
-# Signature is needed for generic type preservation
 -keepattributes Signature
-
-# InnerClasses is needed for proper nested class handling
 -keepattributes InnerClasses
-
-# Exceptions attribute for proper exception handling
 -keepattributes Exceptions
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# KOTLINX SERIALIZATION
-# ═══════════════════════════════════════════════════════════════════════════════
-# Keep @Serializable classes and their serializers
+# =============================================================================
+# AIDL INTERFACE — IDeviceMaskerService and generated Stub/Proxy
+# The AIDL compiler generates IDeviceMaskerService.Stub and .Proxy.
+# Keep all members so Binder can call them via JNI / reflection.
+# =============================================================================
+-keep interface com.astrixforge.devicemasker.common.aidl.IDeviceMaskerService { *; }
+-keep class com.astrixforge.devicemasker.common.aidl.IDeviceMaskerService$Stub { *; }
+-keep class com.astrixforge.devicemasker.common.aidl.IDeviceMaskerService$Stub$Proxy { *; }
+-keepclassmembers class com.astrixforge.devicemasker.common.aidl.** {
+    *;
+}
+
+# =============================================================================
+# SHARED MODELS — @Serializable data classes & JsonConfig
+# =============================================================================
 -keepclassmembers class com.astrixforge.devicemasker.common.** {
     <init>(...);
     *;
 }
 
-# Keep serializer companion objects
+# Keep serializer companion objects (covers both default and named companions)
 -keepclassmembers class com.astrixforge.devicemasker.common.**$Companion {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Keep generated serializer classes
+# Keep generated $$serializer inner classes
 -keep class com.astrixforge.devicemasker.common.**$$serializer { *; }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# ENUMS
-# ═══════════════════════════════════════════════════════════════════════════════
-# Keep enum values and valueOf methods (used by serialization and hooks)
+# =============================================================================
+# ENUMS — SpoofType, SpoofCategory, CorrelationGroup, etc.
+# values() and valueOf() are called by serialization and hook lookup.
+# =============================================================================
 -keepclassmembers enum com.astrixforge.devicemasker.common.** {
     public static **[] values();
     public static ** valueOf(java.lang.String);
     <fields>;
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# DATA CLASSES
-# ═══════════════════════════════════════════════════════════════════════════════
-# Keep data class component methods for destructuring
+# =============================================================================
+# KOTLIN OBJECT SINGLETONS (e.g. SharedPrefsKeys, Constants, generators)
+# R8 full mode can strip the INSTANCE field from singletons that appear
+# unreferenced, breaking reflective access and Xposed hook patterns.
+# =============================================================================
+-keepclassmembers class com.astrixforge.devicemasker.common.** {
+    public static final ** INSTANCE;
+}
+
+# Serializable objects need their INSTANCE kept explicitly
+-keepclassmembers class com.astrixforge.devicemasker.common.** {
+    public static final *** INSTANCE;
+}
+
+# =============================================================================
+# DATA CLASSES — Keep component() methods for destructuring & copy()
+# =============================================================================
 -keepclassmembers class com.astrixforge.devicemasker.common.** {
     public ** component*();
     public ** copy(...);
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# KOTLIN SPECIFICS
-# ═══════════════════════════════════════════════════════════════════════════════
-# Keep Kotlin Metadata for reflection if needed
--keepattributes *KotlinMetadata*
+# =============================================================================
+# GENERATORS — Value generation logic accessed by hookers
+# =============================================================================
+-keep class com.astrixforge.devicemasker.common.generators.** { *; }
+-keepclassmembers class com.astrixforge.devicemasker.common.generators.** {
+    public static *;
+}
 
-# Don't warn about Kotlin internal classes
+# =============================================================================
+# MODELS (SIMConfig, LocationConfig, Carrier, DeviceHardwareConfig)
+# =============================================================================
+-keep class com.astrixforge.devicemasker.common.models.** { *; }
+
+# =============================================================================
+# SHARED PREFS KEYS — Accessed by both :app and :xposed; must not be renamed
+# =============================================================================
+-keep class com.astrixforge.devicemasker.common.SharedPrefsKeys { *; }
+-keepclassmembers class com.astrixforge.devicemasker.common.SharedPrefsKeys {
+    public static *;
+}
+
+# =============================================================================
+# KOTLIN SPECIFICS
+# =============================================================================
+-keepattributes *KotlinMetadata*
 -dontwarn kotlin.reflect.jvm.internal.**

@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 import com.astrixforge.devicemasker.common.SpoofType
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.StringClass
+import java.security.SecureRandom
 import java.util.UUID
 
 /**
@@ -15,7 +16,10 @@ import java.util.UUID
  */
 object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
 
-    // Fallback values (thread-safe lazy)
+    // SecureRandom for cryptographically secure fallback ID generation
+    private val secureRandom = SecureRandom()
+
+    // Fallback values (thread-safe lazy) — generated once per process
     private val fallbackAdvertisingId by lazy { UUID.randomUUID().toString() }
     private val fallbackGsfId by lazy { generateHexId(16) }
     private val fallbackMediaDrmId by lazy { generateHexId(64) }
@@ -34,15 +38,22 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
 
     private fun hookAdvertisingIdClient() {
         "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info".toClassOrNull()?.apply {
-            method {
-                    name = "getId"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        result = getSpoofValue(SpoofType.ADVERTISING_ID) { fallbackAdvertisingId }
+            runCatching {
+                method {
+                        name = "getId"
+                        emptyParam()
                     }
-                }
+                    .hook {
+                        after {
+                            runCatching {
+                                result =
+                                    getSpoofValue(SpoofType.ADVERTISING_ID) {
+                                        fallbackAdvertisingId
+                                    }
+                            }
+                        }
+                    }
+            }
         }
     }
 
@@ -59,9 +70,11 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     }
                     .hook {
                         after {
-                            val key = args(1).string()
-                            if (key == "android_id") {
-                                result = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
+                            runCatching {
+                                val key = args(1).string()
+                                if (key == "android_id") {
+                                    result = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
+                                }
                             }
                         }
                     }
@@ -74,10 +87,12 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     }
                     .hook {
                         after {
-                            val key = args(1).string()
-                            if (key == "android_id") {
-                                val spoofed = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
-                                result = runCatching { spoofed.toLong(16) }.getOrElse { result }
+                            runCatching {
+                                val key = args(1).string()
+                                if (key == "android_id") {
+                                    val spoofed = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
+                                    result = runCatching { spoofed.toLong(16) }.getOrElse { result }
+                                }
                             }
                         }
                     }
@@ -98,11 +113,13 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     }
                     .hook {
                         after {
-                            val property = args(0).string()
-                            if (property == "deviceUniqueId") {
-                                val spoofed =
-                                    getSpoofValue(SpoofType.MEDIA_DRM_ID) { fallbackMediaDrmId }
-                                result = hexToBytes(spoofed)
+                            runCatching {
+                                val property = args(0).string()
+                                if (property == "deviceUniqueId") {
+                                    val spoofed =
+                                        getSpoofValue(SpoofType.MEDIA_DRM_ID) { fallbackMediaDrmId }
+                                    result = hexToBytes(spoofed)
+                                }
                             }
                         }
                     }
@@ -114,9 +131,17 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
     // HELPERS
     // ═══════════════════════════════════════════════════════════
 
+    /**
+     * Generates a cryptographically secure random hex ID of the given length. Uses SecureRandom
+     * \u2014 NOT Kotlin's chars.random() which uses Random.Default.
+     */
     private fun generateHexId(length: Int): String {
         val chars = "0123456789abcdef"
-        return (1..length).map { chars.random() }.joinToString("")
+        val sb = StringBuilder(length)
+        val bytes = ByteArray(length)
+        secureRandom.nextBytes(bytes)
+        repeat(length) { i -> sb.append(chars[bytes[i].toInt().and(0xFF) % chars.length]) }
+        return sb.toString()
     }
 
     private fun hexToBytes(hex: String): ByteArray {
