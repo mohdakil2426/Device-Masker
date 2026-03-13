@@ -1,109 +1,74 @@
 package com.astrixforge.devicemasker.xposed
 
+import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
-import com.highcapable.yukihookapi.hook.xposed.prefs.YukiHookPrefsBridge
 
 /**
- * Helper object for reading XSharedPreferences values.
+ * Thread-safe preference reading for libxposed API 100 RemotePreferences.
  *
- * This provides utility functions for the hookers to use with YukiHookAPI's prefs. All functions
- * take a YukiHookPrefsBridge instance as the first parameter, which you get from `prefs` property
- * in PackageParam context.
+ * ## What changed from the YukiHookAPI (XSharedPreferences) version
  *
- * ## Key Sync Architecture:
- * ```
- * UI App writes to: XposedPrefs (MODE_WORLD_READABLE)
- *                        ↓
- *              Uses SharedPrefsKeys.getXXXKey()
- *                        ↓
- * Xposed reads from: YukiHookPrefsBridge.getString()
- *                        ↓
- *              Uses PrefsKeys.getXXXKey() → SharedPrefsKeys.getXXXKey()
- * ```
+ * Old: Took `YukiHookPrefsBridge` from `prefs` property in YukiHookAPI's `PackageParam`. New: Takes
+ * a standard `SharedPreferences` obtained via `XposedInterface.getRemotePreferences(PREFS_GROUP)`.
  *
- * Both sides use the SAME key generators from :common module.
+ * Key advantages of RemotePreferences over XSharedPreferences:
+ * - **Live**: reflects the latest values written by the UI app — no target app restart needed
+ * - **Safe**: read-only in hooked processes (enforced by libxposed)
+ * - **No reload()**: XSharedPreferences required manual reload() calls; RemotePreferences does not
  *
- * ## Caching Note:
- * XSharedPreferences CACHES values. Config changes require target app restart.
+ * ## Key format (unchanged)
+ *
+ * The `SharedPrefsKeys` class in `:common` remains the single source of truth for all key names. No
+ * key format changes are needed — only the delivery mechanism changed.
+ *
+ * ## Thread safety
+ *
+ * RemotePreferences returned by libxposed are backed by a snapshot that is safe to read on any
+ * thread. Each read reflects the latest committed values from the module app process.
  */
 object PrefsHelper {
 
-    private const val TAG = "PrefsHelper"
-
-    /** Checks if the module is enabled globally. */
-    fun isModuleEnabled(prefs: YukiHookPrefsBridge): Boolean {
-        return runCatching { prefs.get(PrefsKeys.MODULE_ENABLED) }.getOrDefault(true)
-    }
-
-    /** Checks if spoofing is enabled for a specific app. */
-    fun isAppEnabled(prefs: YukiHookPrefsBridge, packageName: String): Boolean {
-        return runCatching {
-                val key = PrefsKeys.getAppEnabledKey(packageName)
-                prefs.getString(key, "true") == "true"
-            }
-            .getOrDefault(true)
-    }
-
-    /** Checks if a specific spoof type is enabled for an app. */
-    fun isSpoofTypeEnabled(
-        prefs: YukiHookPrefsBridge,
-        packageName: String,
-        type: SpoofType,
-    ): Boolean {
-        return runCatching {
-                val key = PrefsKeys.getSpoofEnabledKey(packageName, type)
-                prefs.getString(key, "false") == "true"
-            }
-            .getOrDefault(false)
-    }
-
     /**
-     * Gets the spoofed value for a specific type and package.
+     * Gets the spoof value for a type, or invokes the fallback generator if not configured.
      *
-     * Flow:
-     * 1. Check if module is enabled globally
-     * 2. Check if app is enabled for spoofing
-     * 3. Check if this spoof type is enabled for the app
-     * 4. Return the configured value, or fallback if empty
+     * Check cascade: spoof type enabled? → get value → non-blank? → return value ↓ ↓ fallback()
+     * fallback()
      *
-     * @param prefs The YukiHookPrefsBridge from PackageParam
-     * @param packageName The package being hooked
-     * @param type The type of value to spoof
-     * @param fallback Fallback value generator if not configured
-     * @return The spoofed value, or fallback if not configured/enabled
+     * @param prefs RemotePreferences from XposedEntry.getRemotePreferences(PREFS_GROUP)
+     * @param packageName Target app package name (the app being hooked)
+     * @param type The SpoofType to look up
+     * @param fallback Called if the type is disabled or no value is stored
+     * @return The configured spoof value, or fallback() if not configured
      */
     fun getSpoofValue(
-        prefs: YukiHookPrefsBridge,
+        prefs: SharedPreferences,
         packageName: String,
         type: SpoofType,
         fallback: () -> String,
     ): String {
-        return runCatching {
-                // Check cascade: module → app → type
-                if (!isModuleEnabled(prefs)) return fallback()
-                if (!isAppEnabled(prefs, packageName)) return fallback()
-                if (!isSpoofTypeEnabled(prefs, packageName, type)) return fallback()
+        // If this spoof type is not enabled for this package, return real value
+        val typeEnabled =
+            prefs.getBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), false)
+        if (!typeEnabled) return fallback()
 
-                // Get the spoof value using key from SharedPrefsKeys
-                val key = PrefsKeys.getSpoofKey(packageName, type)
-                val value = prefs.getString(key, "")
-
-                if (value.isEmpty()) return fallback()
-
-                DualLog.debug(TAG, "Spoofing ${type.name} for $packageName")
-                value
-            }
-            .getOrElse { e ->
-                DualLog.warn(TAG, "Error reading prefs: ${e.message}")
-                fallback()
-            }
+        // Return the stored spoof value, or generate fallback if not set
+        val stored = prefs.getString(SharedPrefsKeys.getSpoofValueKey(packageName, type), null)
+        return stored?.takeIf { it.isNotBlank() } ?: fallback()
     }
 
     /**
-     * Gets the current config version (for debugging only). Note: This is NOT useful for detecting
-     * config changes as XSharedPreferences caches.
+     * Checks if a specific spoof type is explicitly enabled for a package.
+     *
+     * Returns false if the key is absent (spoofing types default to disabled — opt-in model).
+     *
+     * @param prefs RemotePreferences from XposedEntry.getRemotePreferences()
+     * @param packageName Target app package name
+     * @param type The SpoofType to check
      */
-    fun getConfigVersion(prefs: YukiHookPrefsBridge): Int {
-        return runCatching { prefs.get(PrefsKeys.CONFIG_VERSION) }.getOrDefault(1)
-    }
+    fun isSpoofTypeEnabled(
+        prefs: SharedPreferences,
+        packageName: String,
+        type: SpoofType,
+    ): Boolean = prefs.getBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), false)
 }

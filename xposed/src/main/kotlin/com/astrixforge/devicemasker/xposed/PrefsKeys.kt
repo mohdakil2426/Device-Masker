@@ -2,70 +2,38 @@ package com.astrixforge.devicemasker.xposed
 
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
 
 /**
- * Prefs Keys for Cross-Process Configuration Sharing.
+ * Preference key helpers for the :xposed module.
  *
- * ⚠️ DELEGATES to SharedPrefsKeys in :common module to ensure keys are IDENTICAL between app and
- * xposed module.
+ * Delegates entirely to SharedPrefsKeys in :common, which remains the SINGLE SOURCE OF TRUTH for
+ * all key names. This class exists only as a convenience alias within :xposed.
  *
- * Uses YukiHookAPI's YukiHookPrefsBridge which internally uses XSharedPreferences for cross-process
- * communication between the module app and hooked apps.
+ * ## Migration note (libxposed API 100)
  *
- * IMPORTANT: Requires in AndroidManifest.xml: <meta-data android:name="xposedsharedprefs"
- * android:value="true" />
+ * Previously used YukiHookAPI's `PrefsData` wrapper objects, which are specific to the
+ * `YukiHookPrefsBridge`. With libxposed API 100 and RemotePreferences, we use standard
+ * `SharedPreferences` keys (plain strings). `PrefsData` wrappers are no longer needed.
+ *
+ * Key format is UNCHANGED — only the delivery mechanism changed (RemotePreferences vs
+ * XSharedPreferences). Both sides still use SharedPrefsKeys from :common.
  */
 object PrefsKeys {
 
-    // ═══════════════════════════════════════════════════════════
-    // GLOBAL SETTINGS (PrefsData for YukiHookAPI)
-    // ═══════════════════════════════════════════════════════════
+    // Global settings key strings (used directly with SharedPreferences.getBoolean/getString)
+    const val MODULE_ENABLED = SharedPrefsKeys.KEY_MODULE_ENABLED
+    const val DEBUG_ENABLED = SharedPrefsKeys.KEY_DEBUG_ENABLED
 
-    /** Master switch for the entire module. */
-    val MODULE_ENABLED = PrefsData(SharedPrefsKeys.KEY_MODULE_ENABLED, true)
+    // Per-app key generators — delegate to SharedPrefsKeys
+    fun getSpoofValueKey(packageName: String, type: SpoofType): String =
+        SharedPrefsKeys.getSpoofValueKey(packageName, type)
 
-    /** Debug logging enabled. */
-    val DEBUG_ENABLED = PrefsData(SharedPrefsKeys.KEY_DEBUG_ENABLED, false)
+    fun getSpoofEnabledKey(packageName: String, type: SpoofType): String =
+        SharedPrefsKeys.getSpoofEnabledKey(packageName, type)
 
-    /** List of apps enabled for spoofing (comma-separated). */
-    val ENABLED_APPS = PrefsData(SharedPrefsKeys.KEY_ENABLED_APPS, "")
+    fun getAppEnabledKey(packageName: String): String =
+        SharedPrefsKeys.getAppEnabledKey(packageName)
 
-    /** Config version for migration. */
-    val CONFIG_VERSION = PrefsData(SharedPrefsKeys.KEY_CONFIG_VERSION, 1)
-
-    // ═══════════════════════════════════════════════════════════
-    // PER-APP KEYS - Delegate to SharedPrefsKeys
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Gets the pref key for a specific app and spoof type. DELEGATES to SharedPrefsKeys for
-     * consistency.
-     */
-    fun getSpoofKey(packageName: String, type: SpoofType): String {
-        return SharedPrefsKeys.getSpoofValueKey(packageName, type)
-    }
-
-    /**
-     * Gets the pref key for checking if a spoof type is enabled for an app. DELEGATES to
-     * SharedPrefsKeys for consistency.
-     */
-    fun getSpoofEnabledKey(packageName: String, type: SpoofType): String {
-        return SharedPrefsKeys.getSpoofEnabledKey(packageName, type)
-    }
-
-    /**
-     * Gets the pref key for checking if an app is enabled for spoofing. DELEGATES to
-     * SharedPrefsKeys for consistency.
-     */
-    fun getAppEnabledKey(packageName: String): String {
-        return SharedPrefsKeys.getAppEnabledKey(packageName)
-    }
-
-    /**
-     * Gets the device profile preset key for an app. DELEGATES to SharedPrefsKeys for consistency.
-     */
-    fun getDeviceProfileKey(packageName: String): String {
-        return SharedPrefsKeys.getDeviceProfileKey(packageName)
-    }
+    fun getDeviceProfileKey(packageName: String): String =
+        SharedPrefsKeys.getDeviceProfileKey(packageName)
 }

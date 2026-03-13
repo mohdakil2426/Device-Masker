@@ -1,104 +1,155 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import android.util.Log
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.method
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
 /**
- * System Framework Hooker - Initializes DeviceMaskerService in system_server.
+ * System Framework Hooker — Initializes the DeviceMaskerService (diagnostics AIDL) in
+ * system_server.
  *
- * This hooker is loaded via `loadSystem { }` when LSPosed scope includes "android" (System
- * Framework). It hooks into the system boot process to initialize our centralized AIDL service
- * before any apps start.
+ * This hooker is called via [XposedEntry.onSystemServerLoaded] when LSPosed scope includes
+ * "android" (System Framework). It hooks into the system boot process to initialize the
+ * diagnostics-only AIDL service before any app processes start.
  *
- * Hook Strategy:
- * - Hooks both AMS.systemReady() and SystemServer.run()
- * - Whichever fires first initializes the service
- * - Double-check locking prevents duplicate initialization
+ * ## Hook Strategy
+ * Hooks both AMS.systemReady() and SystemServer.run() — whichever fires first initializes the
+ * service. A @Volatile `initialized` flag prevents duplicate initializations.
  *
- * CRITICAL SAFETY RULES:
- * - ALL code MUST be wrapped in try-catch (crashes = bootloop!)
- * - NEVER throw exceptions
- * - Log errors but continue gracefully
+ * ## CRITICAL SAFETY RULES
+ * - ALL code MUST be in try-catch. Any uncaught exception here = system_server crash = bootloop.
+ * - NEVER throw exceptions.
+ * - Log errors but continue gracefully.
  *
- * @see DeviceMaskerService
+ * ## API 100 change
+ * - Old: Extends YukiBaseHooker, implements onHook(), uses toClass()/method{}/hook{after{}}
+ * - New: Plain object with static hook(cl, xi) factory. @XposedHooker inner classes for callbacks.
  */
-object SystemServiceHooker : YukiBaseHooker() {
+object SystemServiceHooker {
 
     private const val TAG = "SystemServiceHooker"
 
-    /** Flag to prevent multiple initializations */
     @Volatile private var initialized = false
 
-    override fun onHook() {
-        DualLog.info(TAG, "SystemServiceHooker.onHook() called in process: $processName")
-
-        // ═══════════════════════════════════════════════════════════
-        // HOOK 1: ActivityManagerService.systemReady() (PRIMARY)
-        // ═══════════════════════════════════════════════════════════
-        runCatching {
-                "com.android.server.am.ActivityManagerService".toClass().apply {
-                    method {
-                            name = "systemReady"
-                            paramCount(1..5)
-                        }
-                        .hook { after { initializeServiceSafely("AMS.systemReady") } }
-                }
-                DualLog.info(TAG, "AMS.systemReady() hook registered")
-            }
-            .onFailure { e -> DualLog.error(TAG, "AMS hook failed: ${e.message}") }
-
-        // ═══════════════════════════════════════════════════════════
-        // HOOK 2: SystemServer.run() (FALLBACK)
-        // ═══════════════════════════════════════════════════════════
-        runCatching {
-                "com.android.server.SystemServer".toClass().apply {
-                    method {
-                            name = "run"
-                            emptyParam()
-                        }
-                        .hook { after { initializeServiceSafely("SystemServer.run") } }
-                }
-                DualLog.info(TAG, "SystemServer.run() hook registered")
-            }
-            .onFailure { e -> DualLog.error(TAG, "SystemServer hook failed: ${e.message}") }
-    }
-
     /**
-     * Safely initializes the DeviceMaskerService.
+     * Registers hooks into the system boot sequence. Called from
+     * XposedEntry.onSystemServerLoaded().
      *
-     * Multiple calls are safe due to the initialized flag check.
-     *
-     * @param source The hook point that triggered this call
+     * @param cl The system_server ClassLoader
+     * @param xi The XposedInterface hook engine
      */
-    private fun initializeServiceSafely(source: String) {
-        if (initialized) {
-            DualLog.debug(TAG, "Already initialized (triggered by $source)")
-            return
-        }
+    fun hook(cl: ClassLoader, xi: XposedInterface) {
+        DualLog.info(TAG, "Registering system service hooks in: ${android.os.Process.myPid()}")
 
-        synchronized(this) {
-            if (initialized) return
-
-            runCatching {
-                    DualLog.info(TAG, "Initializing DeviceMaskerService from $source...")
-                    val service = DeviceMaskerService.getInstance()
-
-                    if (service.isServiceAlive) {
-                        initialized = true
-                        DualLog.info(TAG, "Service initialized! (v${service.serviceVersion})")
-                    } else {
-                        DualLog.error(TAG, "Service created but not responding")
+        // HOOK 1: ActivityManagerService.systemReady() — PRIMARY
+        // Fires when the system is fully ready to accept binders
+        try {
+            val amsClass = cl.loadClass("com.android.server.am.ActivityManagerService")
+            // systemReady() has varying number of parameters across Android versions (1-5)
+            // Try common signatures; skip if not found
+            listOf(
+                    emptyArray<Class<*>>(),
+                    arrayOf(Runnable::class.java),
+                    arrayOf(Runnable::class.java, Any::class.java),
+                )
+                .forEach { params ->
+                    try {
+                        val method = amsClass.getDeclaredMethod("systemReady", *params)
+                        method.isAccessible = true
+                        xi.hook(method, AmsSystemReadyHooker::class.java)
+                        DualLog.info(TAG, "AMS.systemReady(${params.size} params) hook registered")
+                        return@forEach
+                    } catch (_: NoSuchMethodException) {
+                        // This signature doesn't exist on this Android version — try next
                     }
                 }
-                .onFailure { e ->
-                    DualLog.error(TAG, "Service init failed: ${e.message}")
-                    e.printStackTrace()
-                }
+        } catch (t: Throwable) {
+            // AMS hook unavailable — fall back to SystemServer.run() hook
+            Log.w(TAG, "AMS.systemReady() hook unavailable: ${t.message}")
+        }
+
+        // HOOK 2: SystemServer.run() — FALLBACK
+        // Fires when the system server process starts its main loop
+        try {
+            val ssClass = cl.loadClass("com.android.server.SystemServer")
+            val runMethod = ssClass.getDeclaredMethod("run").also { it.isAccessible = true }
+            xi.hook(runMethod, SystemServerRunHooker::class.java)
+            DualLog.info(TAG, "SystemServer.run() hook registered")
+        } catch (t: Throwable) {
+            Log.w(TAG, "SystemServer.run() hook unavailable: ${t.message}")
         }
     }
 
-    /** Checks if the service has been initialized. */
+    /** Initializes the diagnostics service, guarded by double-check locking. */
+    internal fun initializeServiceSafely(source: String) {
+        if (initialized) {
+            DualLog.debug(TAG, "Already initialized (triggered again by $source)")
+            return
+        }
+        synchronized(SystemServiceHooker) {
+            if (initialized) return
+            try {
+                DualLog.info(TAG, "Initializing DeviceMaskerService from $source...")
+                val service = DeviceMaskerService.getInstance()
+                
+                // Register with ServiceManager for discovery by hooked app processes.
+                // Note: We use the "user." prefix to avoid conflict with official system services.
+                runCatching {
+                    val smClass = Class.forName("android.os.ServiceManager")
+                    val addServiceMethod = smClass.getDeclaredMethod("addService", String::class.java, android.os.IBinder::class.java)
+                    addServiceMethod.invoke(null, "user.devicemasker_diag", service)
+                    DualLog.info(TAG, "Service registered with ServiceManager as 'user.devicemasker_diag'")
+                }.onFailure { e ->
+                    DualLog.warn(TAG, "Failed to register with ServiceManager (hooks won't report logs): ${e.message}")
+                }
+
+                if (service.isAlive) {
+                    initialized = true
+                    DualLog.info(
+                        TAG,
+                        "DeviceMaskerService initialized (v${DeviceMaskerService.VERSION})",
+                    )
+                } else {
+                    DualLog.error(TAG, "Service created but isAlive=false")
+                }
+            } catch (t: Throwable) {
+                // NOTE: Never rethrow — this is system_server context
+                DualLog.error(TAG, "Service init failed from $source: ${t.message}")
+            }
+        }
+    }
+
     fun isServiceInitialized(): Boolean = initialized
+
+    // ─────────────────────────────────────────────────────────────
+    // @XposedHooker inner classes — static, annotation-driven
+    // ─────────────────────────────────────────────────────────────
+
+    class AmsSystemReadyHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    initializeServiceSafely("AMS.systemReady")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "AmsSystemReadyHooker.after() crashed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class SystemServerRunHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    initializeServiceSafely("SystemServer.run")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "SystemServerRunHooker.after() crashed: ${t.message}")
+                }
+            }
+        }
+    }
 }

@@ -1,207 +1,248 @@
 package com.astrixforge.devicemasker.xposed
 
+import android.util.Log
 import com.astrixforge.devicemasker.xposed.hooker.AdvertisingHooker
 import com.astrixforge.devicemasker.xposed.hooker.AntiDetectHooker
 import com.astrixforge.devicemasker.xposed.hooker.DeviceHooker
 import com.astrixforge.devicemasker.xposed.hooker.LocationHooker
 import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
+import com.astrixforge.devicemasker.xposed.hooker.PackageManagerHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
+import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
-import com.astrixforge.devicemasker.xposed.utils.ClassCache
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.SystemServerLoadedParam
 
 /**
- * Xposed Module Hook Loader - Hybrid Architecture (AIDL + XSharedPreferences Fallback).
+ * Device Masker entry point for libxposed API 100.
  *
- * This module supports TWO configuration delivery mechanisms:
- * 1. AIDL Service (Primary - Real-time):
- *     - DeviceMaskerService runs in system_server
- *     - Initialized by SystemServiceHooker at boot
- *     - Query via service.getSpoofValue() for real-time config
- *     - Requires LSPosed scope to include "android" (System Framework)
- * 2. XSharedPreferences (Fallback - Cached):
- *     - UI writes to SharedPreferences with MODE_WORLD_READABLE
- *     - Hooks read via prefs property (YukiHookAPI XSharedPreferences)
- *     - Used when service is unavailable
- *     - Changes require target app restart
+ * Each target process gets a NEW instance of this class — LSPosed reads
+ * META-INF/xposed/java_init.list, instantiates this class via reflection, then calls
+ * onPackageLoaded() or onSystemServerLoaded() as appropriate.
  *
- * LSPosed Configuration:
- * - MUST include "android" (System Framework) for AIDL service
- * - Individual apps no longer need to be added manually
+ * Architecture decisions:
+ * - `instance` singleton gives hookers access to the XposedModule log API
+ * - RemotePreferences retrieved via `getRemotePreferences(PREFS_GROUP)` — live, no restart needed
+ * - Each hooker is a stateless `object` with a `hook(cl, xi, prefs, pkg)` factory method
+ * - All hook registrations wrapped in `hookSafely()` — one failed hooker never crashes others
  *
- * Hook Loading Order (CRITICAL):
- * 1. SystemServiceHooker (in loadSystem) - Initialize service in system_server
- * 2. AntiDetectHooker (in loadApp) - MUST load first to hide Xposed presence
- * 3. Device/Network/Advertising/System/Location/Sensor/WebView Hookers
+ * Config delivery path (post-migration): UI → ConfigSync → ModulePreferences → LSPosed DB →
+ * getRemotePreferences() (in hooks)
+ *
+ * Diagnostics path: Hooks → oneway AIDL → DeviceMaskerService (system_server) →
+ * DiagnosticsViewModel reads
  */
-object XposedHookLoader : YukiBaseHooker() {
+class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModule(base, param) {
 
-    private const val TAG = "DeviceMasker"
-    private const val SELF_PACKAGE = "com.astrixforge.devicemasker"
+    companion object {
+        const val TAG = "DeviceMasker"
+        const val SELF_PACKAGE = "com.astrixforge.devicemasker"
 
-    /**
-     * Packages to SKIP for app hooks (but NOT for system hooks). These are system-critical
-     * processes that should never be spoofed.
-     */
-    private val SKIP_PACKAGES =
-        setOf(
-            SELF_PACKAGE, // Our own app
-            "com.android.systemui", // SystemUI - can cause UI glitches
-            "com.android.phone", // Phone/Dialer - critical for calls
-        )
+        /**
+         * Preferences group name matching the name written by XposedPrefs.kt in :app. Must match
+         * exactly — this is the bridge between what the UI writes and what hooks read.
+         */
+        const val PREFS_GROUP = "device_masker_config"
 
-    /**
-     * Common classes used across multiple hookers. Pre-loading these into ClassCache improves hook
-     * performance.
-     */
-    private val COMMON_CLASSES =
-        arrayOf(
-            // Used by DeviceHooker, NetworkHooker, SystemHooker
-            "android.telephony.TelephonyManager",
-            // Used by DeviceHooker, SystemHooker
-            "android.os.Build",
-            "android.os.SystemProperties",
-            // Used by DeviceHooker
-            "android.provider.Settings\$Secure",
-            "android.content.ContentResolver",
-            // Used by NetworkHooker
-            "android.net.wifi.WifiInfo",
-            "android.bluetooth.BluetoothAdapter",
-            // Used by LocationHooker
-            "java.util.TimeZone",
-            "java.util.Locale",
-            // Used by AntiDetectHooker
-            "java.lang.Thread",
-            "java.lang.Throwable",
-        )
+        /**
+         * Packages to skip entirely for app hooks. These are system-critical processes that must
+         * never be intercepted. Note: "android" is skipped separately in onPackageLoaded() since it
+         * is handled by onSystemServerLoaded().
+         */
+        private val SKIP_PACKAGES =
+            setOf(
+                SELF_PACKAGE, // Own module app — never hook ourselves
+                "com.android.systemui", // SystemUI — visual glitch risk
+                "com.android.phone", // Phone/Dialer — call quality risk
+                "com.google.android.gms", // GMS — integrity check interference risk
+            )
 
-    override fun onHook() {
-        // ═══════════════════════════════════════════════════════════
-        // SYSTEM FRAMEWORK HOOK (loadSystem)
-        // ═══════════════════════════════════════════════════════════
-        // This runs when LSPosed scope includes "android" (System Framework).
-        // Initializes DeviceMaskerService in system_server at boot.
-        loadSystem {
-            DualLog.info(TAG, "=== loadSystem: Initializing system hooks ===")
+        /**
+         * Singleton reference to this module instance. Set once per process in the init block.
+         * Hooker companion objects access this to call log() and reportSpoofEvent().
+         */
+        @Volatile
+        lateinit var instance: XposedEntry
+            private set
+    }
 
-            // Load SystemServiceHooker to initialize our AIDL service
-            loadHooker(SystemServiceHooker)
-
-            DualLog.info(TAG, "=== loadSystem: System hooks registered ===")
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // APP PROCESS HOOKS (loadApp)
-        // ═══════════════════════════════════════════════════════════
-        // This runs for each app process in the LSPosed scope.
-        // With system-wide hooking, this runs for ALL apps.
-        loadApp { loadAppHooks() }
+    init {
+        instance = this
+        log(Log.INFO, TAG, "XposedEntry loaded for process: ${param.processName}", null)
     }
 
     /**
-     * Loads hooks for individual app processes.
+     * Called when the System Server (android process) loads. This is the ONLY place where the AIDL
+     * diagnostics service is initialized.
      *
-     * Uses a hybrid approach:
-     * 1. Try to get config from AIDL service (real-time)
-     * 2. Fall back to XSharedPreferences (cached)
+     * CRITICAL SAFETY: Every single line here must be in its own try-catch. Any uncaught exception
+     * here causes a system_server crash = device bootloop.
      */
-    private fun YukiBaseHooker.loadAppHooks() {
-        // Skip our own module to avoid infinite loops
-        if (packageName == SELF_PACKAGE || processName.startsWith(SELF_PACKAGE)) {
-            DualLog.debug(TAG, "Skipping SELF: $packageName")
-            return
+    override fun onSystemServerLoaded(param: SystemServerLoadedParam) {
+        log(
+            Log.INFO,
+            TAG,
+            "System server loading — initializing diagnostics service hooks...",
+            null,
+        )
+        try {
+            SystemServiceHooker.hook(param.classLoader, this)
+        } catch (t: Throwable) {
+            // Non-fatal — if service registration fails, hooks still work via RemotePreferences
+            log(
+                Log.WARN,
+                TAG,
+                "SystemServiceHooker registration failed (diagnostics unavailable): ${t.message}",
+                t,
+            )
         }
-
-        // Skip system-critical processes
-        if (packageName in SKIP_PACKAGES || processName in SKIP_PACKAGES) {
-            DualLog.debug(TAG, "Skipping system process: $packageName")
-            return
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // Check Module Enabled (Hybrid: Service or XSharedPreferences)
-        // ═══════════════════════════════════════════════════════════
-        val service = getServiceOrNull()
-        val moduleEnabled: Boolean
-        val appEnabled: Boolean
-
-        if (service != null) {
-            // Use AIDL service for real-time config
-            moduleEnabled = service.isModuleEnabled
-            appEnabled = service.isAppEnabled(packageName)
-            DualLog.debug(TAG, "[$packageName] Config from AIDL service")
-        } else {
-            // Fallback to XSharedPreferences
-            moduleEnabled = PrefsHelper.isModuleEnabled(prefs)
-            appEnabled = PrefsHelper.isAppEnabled(prefs, packageName)
-            DualLog.debug(TAG, "[$packageName] Config from XSharedPreferences (fallback)")
-        }
-
-        if (!moduleEnabled) {
-            DualLog.debug(TAG, "Module disabled globally, skipping: $packageName")
-            return
-        }
-
-        if (!appEnabled) {
-            DualLog.debug(TAG, "Spoofing disabled for: $packageName")
-            return
-        }
-
-        DualLog.info(TAG, "Starting hooks for: $packageName (process: $processName)")
-
-        // ═══════════════════════════════════════════════════════════
-        // Pre-load common classes into cache for better hook performance
-        // ═══════════════════════════════════════════════════════════
-        val preloadedCount = ClassCache.preload(appClassLoader, *COMMON_CLASSES)
-        DualLog.debug(TAG, "ClassCache preloaded $preloadedCount/${COMMON_CLASSES.size} classes")
-
-        // ═══════════════════════════════════════════════════════════
-        // AntiDetectHooker must load FIRST to hide our presence
-        // ═══════════════════════════════════════════════════════════
-        loadHooker(AntiDetectHooker)
-
-        // ═══════════════════════════════════════════════════════════
-        // Device Spoofing Hookers
-        // ═══════════════════════════════════════════════════════════
-        loadHooker(DeviceHooker)
-        loadHooker(NetworkHooker)
-        loadHooker(AdvertisingHooker)
-        loadHooker(SystemHooker)
-        loadHooker(LocationHooker)
-
-        // ═══════════════════════════════════════════════════════════
-        // Anti-Fingerprinting Hookers
-        // ═══════════════════════════════════════════════════════════
-        loadHooker(SensorHooker)
-        loadHooker(WebViewHooker)
-
-        // Log cache performance stats
-        val stats = ClassCache.stats()
-        DualLog.debug(TAG, "ClassCache stats: $stats")
-
-        // Increment filter count if service is available
-        service?.incrementFilterCount(packageName)
-
-        DualLog.info(TAG, "Hooks registered for: $packageName")
     }
 
     /**
-     * Attempts to get the DeviceMaskerService instance.
+     * Called when a target package's ClassLoader is ready. This fires BEFORE Application.onCreate()
+     * — the earliest possible hook point. Hooks set here intercept the very first identifier reads
+     * by the app.
      *
-     * Returns null if service is not initialized (e.g., when LSPosed scope doesn't include
-     * "android", or during early boot before service init).
+     * @param param Contains packageName, classLoader, and process metadata.
      */
-    private fun getServiceOrNull(): DeviceMaskerService? {
-        return runCatching {
-                if (DeviceMaskerService.isInitialized()) {
-                    DeviceMaskerService.getInstance()
-                } else {
-                    null
+    override fun onPackageLoaded(param: PackageLoadedParam) {
+        val pkg = param.packageName
+
+        // System server is handled by onSystemServerLoaded — do not double-hook
+        if (pkg == "android") return
+
+        // Skip own app and critical system processes
+        if (pkg in SKIP_PACKAGES) return
+
+        // Obtain live RemotePreferences from LSPosed.
+        // These reflect the latest values written by the module app — no restart needed.
+        // getRemotePreferences() is fast (cached by LSPosed) and safe to call per-package load.
+        val prefs =
+            runCatching { getRemotePreferences(PREFS_GROUP) }.getOrNull()
+                ?: run {
+                    log(
+                        Log.WARN,
+                        TAG,
+                        "RemotePreferences unavailable for $pkg — skipping hooks",
+                        null,
+                    )
+                    return
                 }
-            }
-            .getOrNull()
+
+        // Master kill-switch — if module is disabled globally, skip all hooks
+        if (!prefs.getBoolean("module_enabled", true)) return
+
+        // Per-app toggle — only hook apps that the user explicitly enabled
+        if (!prefs.getBoolean("app_enabled_$pkg", false)) return
+
+        val cl = param.classLoader
+
+        // ═══════════════════════════════════════════════════════════
+        // HOOK ORDER IS CRITICAL — do not reorder
+        // ═══════════════════════════════════════════════════════════
+        // 1. AntiDetect MUST load first — detection apps check for Xposed at launch.
+        //    If spoofing hooks run before AntiDetect, Xposed evidence is visible in that window.
+        // 2. SubscriptionHooker alongside DeviceHooker — both hook telephony paths.
+        //    Apps cross-check TelephonyManager and SubscriptionManager results.
+        // 3. Remaining hookers can run in any order.
+        // ═══════════════════════════════════════════════════════════
+        hookSafely(pkg, "AntiDetectHooker") { AntiDetectHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "SubscriptionHooker") { SubscriptionHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "NetworkHooker") { NetworkHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "SystemHooker") { SystemHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "LocationHooker") { LocationHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "SensorHooker") { SensorHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "AdvertisingHooker") { AdvertisingHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "WebViewHooker") { WebViewHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(pkg, "PackageManagerHooker") { PackageManagerHooker.hook(cl, this, prefs, pkg) }
+
+        // Report to diagnostics service (fire-and-forget, oneway AIDL — does not block hooks)
+        reportPackageHooked(pkg)
+
+        log(Log.INFO, TAG, "All hooks registered for: $pkg", null)
+    }
+
+    /**
+     * Wraps a hooker registration block in try-catch so that one failed hooker cannot prevent
+     * subsequent hookers from registering.
+     *
+     * If the block throws (e.g., class not found, method signature mismatch on this OEM), the error
+     * is logged and execution continues with the next hooker.
+     */
+    private fun hookSafely(pkg: String, name: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (t: Throwable) {
+            log(
+                Log.ERROR,
+                TAG,
+                "[$name] Hook registration failed for $pkg: ${t.javaClass.simpleName}: ${t.message}",
+                t,
+            )
+        }
+    }
+
+    /**
+     * Cached reference to the diagnostics service binder.
+     */
+    @Volatile private var diagnosticService: com.astrixforge.devicemasker.IDeviceMaskerService? = null
+
+    /**
+     * Retrieves the diagnostics service binder.
+     *
+     * - In system_server: returns the local instance directly (no IPC).
+     * - In target apps: performs a ServiceManager lookup for "user.devicemasker_diag".
+     */
+    private fun getService(): com.astrixforge.devicemasker.IDeviceMaskerService? {
+        // 1. Return cached binder if still alive
+        diagnosticService?.let { if (it.asBinder().isBinderAlive) return it }
+
+        // 2. If in system_server, use the local singleton instance
+        if (DeviceMaskerService.isInitialized()) {
+            diagnosticService = DeviceMaskerService.getInstance()
+            return diagnosticService
+        }
+
+        // 3. In app process: discovery via ServiceManager (hidden API)
+        val svc =
+            runCatching {
+                    val smClass = Class.forName("android.os.ServiceManager")
+                    val getServiceMethod =
+                        smClass.getDeclaredMethod("getService", String::class.java)
+                    val binder =
+                        getServiceMethod.invoke(null, "user.devicemasker_diag") as? android.os.IBinder
+                    binder?.let {
+                        com.astrixforge.devicemasker.IDeviceMaskerService.Stub.asInterface(it)
+                    }
+                }
+                .getOrNull()
+
+        diagnosticService = svc
+        return svc
+    }
+
+    /**
+     * Reports that this package was hooked to the diagnostics service. This is a fire-and-forget
+     * call — if the service is unavailable, it fails silently. The diagnostics service is
+     * initialized in system_server by SystemServiceHooker.
+     */
+    private fun reportPackageHooked(pkg: String) {
+        runCatching { getService()?.reportPackageHooked(pkg) }
+    }
+
+    /**
+     * Reports a spoof event to the diagnostics service. Called by hooker @AfterInvocation callbacks
+     * after returning a spoofed value. Declared here so hookers can call
+     * XposedEntry.instance.reportSpoofEvent().
+     */
+    fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
+        runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
     }
 }

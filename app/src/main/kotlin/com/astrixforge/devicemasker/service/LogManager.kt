@@ -5,7 +5,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import com.astrixforge.devicemasker.BuildConfig
-import com.highcapable.yukihookapi.hook.log.YLog
+import com.astrixforge.devicemasker.DeviceMaskerApp
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -15,7 +15,7 @@ import java.util.TimeZone
 /**
  * Log Manager - Comprehensive log export with industry-standard formatting.
  *
- * Exports YLog in-memory data (app process logs) via SAF file picker.
+ * Exports logs from the diagnostics service (system_server) via SAF file picker.
  */
 object LogManager {
 
@@ -31,13 +31,13 @@ object LogManager {
         "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
 
     // ═══════════════════════════════════════════════════════════════════
-    // EXPORT LOGS (In-Memory YLog Data)
+    // EXPORT LOGS (Service Data)
     // ═══════════════════════════════════════════════════════════════════
 
-    /** Exports YLog in-memory data to a custom URI location. */
-    fun exportLogsToUri(context: Context, uri: Uri): LogExportResult {
+    /** Exports service logs to a custom URI location. */
+    suspend fun exportLogsToUri(context: Context, uri: Uri): LogExportResult {
         return try {
-            val logContent = buildInMemoryLogContent(context)
+            val logContent = buildLogContent(context)
 
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                 outputStream.write(logContent.toByteArray())
@@ -55,9 +55,9 @@ object LogManager {
      * @param context Application context
      * @return Pair of URI for FileProvider and the file path, or null if failed
      */
-    fun createShareableLogFile(context: Context): ShareableLogResult {
+    suspend fun createShareableLogFile(context: Context): ShareableLogResult {
         return try {
-            val logContent = buildInMemoryLogContent(context)
+            val logContent = buildLogContent(context)
             if (logContent.lines().size <= 10) {
                 // Minimal content means no real logs
                 return ShareableLogResult.NoLogs
@@ -85,10 +85,10 @@ object LogManager {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // IN-MEMORY LOG CONTENT BUILDER
+    // LOG CONTENT BUILDER
     // ═══════════════════════════════════════════════════════════════════
 
-    private fun buildInMemoryLogContent(context: Context): String {
+    private suspend fun buildLogContent(context: Context): String {
         val builder = StringBuilder()
         val exportTime = Date()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", Locale.US)
@@ -96,54 +96,50 @@ object LogManager {
 
         // Header
         builder.appendLine(HEADER_LINE)
-        builder.appendLine("              DEVICE MASKER - IN-MEMORY LOG EXPORT")
-        builder.appendLine("                    YukiHookAPI YLog Data")
+        builder.appendLine("              DEVICE MASKER - LOG EXPORT")
+        builder.appendLine("                    libxposed API 100")
         builder.appendLine(HEADER_LINE)
         builder.appendLine()
 
         // Metadata
-        appendMetadata(builder, context, "IN-MEMORY LOGS", dateFormat, exportTime)
+        appendMetadata(builder, context, "DIAGNOSTICS LOGS", dateFormat, exportTime)
 
         // Log Content
         builder.appendLine()
         builder.appendLine("[LOG ENTRIES]")
         builder.appendLine(SECTION_LINE)
         builder.appendLine()
-        builder.appendLine("Source: YukiHookAPI YLog.inMemoryData")
-        builder.appendLine("Scope: Device Masker app process only")
+        builder.appendLine("Source: DeviceMaskerService (system_server)")
+        builder.appendLine("Scope: All hooked processes + System Server")
         builder.appendLine(SUBSECTION_LINE)
         builder.appendLine()
 
         try {
-            val ylogData = YLog.inMemoryData
-            if (ylogData.isNotEmpty()) {
-                builder.appendLine("Total Entries: ${ylogData.size}")
-                builder.appendLine()
-                builder.appendLine("TIMESTAMP                    | LVL | MESSAGE")
-                builder.appendLine(SECTION_LINE)
-
-                ylogData.forEach { entry ->
-                    val level = parseLogLevel(entry.priority.toString())
-                    builder.appendLine("${entry.time.padEnd(28)} | $level | ${entry.msg}")
-
-                    entry.throwable?.let { t ->
-                        builder.appendLine(
-                            "                             |     | Exception: ${t.javaClass.simpleName}: ${t.message}"
-                        )
-                        t.stackTrace.take(5).forEach { se ->
-                            builder.appendLine("                             |     |   at $se")
-                        }
-                    }
-                }
+            val serviceClient = DeviceMaskerApp.serviceClient
+            if (!serviceClient.isConnected) {
+                serviceClient.connect()
+            }
+            
+            val logs = if (serviceClient.isConnected) {
+                serviceClient.getLogs(500)
             } else {
-                builder.appendLine("(No in-memory logs available)")
+                emptyList()
+            }
+
+            if (logs.isNotEmpty()) {
+                builder.appendLine("Total Entries: ${logs.size}")
+                builder.appendLine()
+                logs.forEach { builder.appendLine(it) }
+            } else {
+                builder.appendLine("(No logs available)")
                 builder.appendLine()
                 builder.appendLine("Possible reasons:")
-                builder.appendLine("  • App was just launched (no operations performed yet)")
-                builder.appendLine("  • Memory was cleared")
+                builder.appendLine("  • No hooks have fired since last reboot")
+                builder.appendLine("  • Service is not connected")
+                builder.appendLine("  • Log buffer was cleared")
             }
         } catch (e: Exception) {
-            builder.appendLine("(Failed to read in-memory logs: ${e.message})")
+            builder.appendLine("(Failed to read logs: ${e.message})")
         }
 
         // Footer
@@ -168,7 +164,7 @@ object LogManager {
         builder.appendLine("Export Type      : $logType")
         builder.appendLine("Export Time      : ${dateFormat.format(exportTime)}")
         builder.appendLine("Timezone         : ${TimeZone.getDefault().id}")
-        builder.appendLine("Log Format       : Device Masker Debug Log v1.0")
+        builder.appendLine("Log Format       : Device Masker Debug Log v1.1")
         builder.appendLine()
 
         builder.appendLine("[APPLICATION INFO]")
@@ -179,7 +175,7 @@ object LogManager {
             "Version          : ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
         )
         builder.appendLine(
-            "Build Type       : ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE (Beta)"}"
+            "Build Type       : ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}"
         )
         builder.appendLine()
 
@@ -207,24 +203,14 @@ object LogManager {
         builder.appendLine("Export completed: ${dateFormat.format(Date())}")
     }
 
-    private fun parseLogLevel(priorityStr: String): String {
-        return when {
-            priorityStr.contains("2") || priorityStr.contains("VERBOSE", true) -> "VRB"
-            priorityStr.contains("3") || priorityStr.contains("DEBUG", true) -> "DBG"
-            priorityStr.contains("4") || priorityStr.contains("INFO", true) -> "INF"
-            priorityStr.contains("5") || priorityStr.contains("WARN", true) -> "WRN"
-            priorityStr.contains("6") || priorityStr.contains("ERROR", true) -> "ERR"
-            else -> "UNK"
-        }
-    }
-
     // ═══════════════════════════════════════════════════════════════════
     // UTILITY METHODS
     // ═══════════════════════════════════════════════════════════════════
 
-    fun getLogCount(): Int =
+    suspend fun getLogCount(): Int =
         try {
-            YLog.inMemoryData.size
+            val serviceClient = DeviceMaskerApp.serviceClient
+            if (serviceClient.isConnected) serviceClient.getLogs(1).size else 0
         } catch (_: Exception) {
             0
         }

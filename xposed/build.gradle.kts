@@ -34,34 +34,35 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures { buildConfig = true }
-
-    // Include assets in the library (for xposed_init)
-    sourceSets { getByName("main") { assets.srcDirs("src/main/assets") } }
-
-    lint {
-        lintConfig = rootProject.file("lint.xml")
+    buildFeatures {
+        buildConfig = false
+        // AIDL no longer needed in :xposed — config delivery via RemotePreferences
+        aidl = false
     }
+
+    // CRITICAL: libxposed reads META-INF/xposed/ files (java_init.list, module.prop, scope.list)
+    // from Java resources — NOT from Android assets. This srcDirs addition makes Gradle
+    // package src/main/resources/ into the AAR/DEX properly.
+    sourceSets { getByName("main") { resources.srcDirs("src/main/resources") } }
+
+    lint { lintConfig = rootProject.file("lint.xml") }
 }
 
 dependencies {
     // Common module for shared models and AIDL
     implementation(project(":common"))
 
-    // YukiHookAPI - Modern Kotlin Hook Framework (API only, no KSP for library)
-    implementation(libs.yukihookapi.api)
+    // ═══════════════════════════════════════════════════════════
+    // libxposed API 100 — Modern Xposed hook engine
+    // compileOnly: LSPosed provides the runtime implementation via its framework
+    // Resolves from mavenCentral() — no local AARs needed
+    // ═══════════════════════════════════════════════════════════
+    compileOnly(libs.libxposed.api)
 
-    // KavaRef - Reflection API (required for YukiHookAPI 1.3.x)
-    implementation(libs.kavaref.core)
-    implementation(libs.kavaref.extension)
-
-    // Hidden API Bypass (replaces FreeReflection)
+    // Hidden API Bypass (replaces FreeReflection, still needed for system field access)
     implementation(libs.hiddenapibypass)
 
-    // Xposed API (provided at runtime by framework)
-    compileOnly(libs.xposed.api)
-
-    // Coroutines for async operations
+    // Coroutines for async operations (AIDL diagnostics service init)
     implementation(libs.kotlinx.coroutines.core)
 
     // Serialization for config parsing

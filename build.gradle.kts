@@ -5,7 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.ksp) apply false
+    // ksp plugin removed — only used by YukiHookAPI KSP processor, now replaced by libxposed API
+    // 100
     alias(libs.plugins.spotless)
     idea
 }
@@ -48,14 +49,7 @@ spotless {
 idea {
     module {
         excludeDirs.addAll(
-            files(
-                "memory-bank",
-                "openspec",
-                "scripts",
-                ".agents",
-                ".claude",
-                "docs"
-            )
+            files("memory-bank", "openspec", "scripts", ".agents", ".claude", "docs")
         )
     }
 }

@@ -1,23 +1,28 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import android.content.SharedPreferences
+import android.util.Log
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.PrefsHelper
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.type.java.IntType
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
 /**
- * Sensor Hooker - Spoofs sensor information to match device profile.
+ * Sensor Hooker — libxposed API 100 edition.
  *
- * Hooks SensorManager and Sensor classes to prevent device fingerprinting via sensor enumeration.
+ * Spoofs sensor-related information to match the active DeviceProfilePreset:
+ * - SensorManager.getSensorList(int) — filters sensor list to mask unique hardware fingerprints
+ * - Sensor.getVendor() — replaced with preset manufacturer for consistency
+ * - Sensor.getName() — removes OEM-specific prefixes that leak device model
+ * - Sensor.getVersion() — normalized to prevent version-based fingerprinting
+ *
+ * Sensor list filtering prevents apps from fingerprinting the number and type of sensors, which are
+ * device-specific and hard to spoof individually.
  */
 object SensorHooker : BaseSpoofHooker("SensorHooker") {
 
-    // Cached class references
-    private val sensorManagerClass by lazy { "android.hardware.SensorManager".toClassOrNull() }
-    private val sensorClass by lazy { "android.hardware.Sensor".toClassOrNull() }
-
-    // Sensor types that should always be present on modern devices
+    // Sensor types that should always be present on modern Android devices
     private val ESSENTIAL_SENSOR_TYPES =
         setOf(
             1, // TYPE_ACCELEROMETER
@@ -28,129 +33,141 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
             11, // TYPE_ROTATION_VECTOR
         )
 
-    private fun getActivePreset(): DeviceProfilePreset? {
-        val presetId =
-            PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.DEVICE_PROFILE) { "" }
-        if (presetId.isEmpty()) return null
-        return DeviceProfilePreset.findById(presetId)
+    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+        HookState.prefs = prefs
+        HookState.pkg = pkg
+
+        // Load preset at hook-registration time — constant for this process
+        val presetId = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
+        if (presetId.isNotEmpty()) {
+            HookState.preset = DeviceProfilePreset.findById(presetId)
+        }
+
+        hookSensorManager(cl, xi)
+        hookSensorMetadata(cl, xi)
     }
 
-    override fun onHook() {
-        logStart()
-        hookSensorManager()
-        hookSensorMetadata()
-        recordSuccess()
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // SENSOR MANAGER HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookSensorManager() {
-        sensorManagerClass?.apply {
-            // Hook getSensorList(int type)
-            method {
-                    name = "getSensorList"
-                    param(IntType)
-                }
-                .hook {
-                    after {
-                        @Suppress("UNCHECKED_CAST")
-                        val originalList = result as? List<Any> ?: return@after
-                        val sensorType = args(0).int()
-
-                        // For TYPE_ALL (-1), filter to only essential sensors
-                        if (sensorType == -1 && originalList.size > 10) {
-                            result = filterSensorList(originalList)
-                            logDebug(
-                                "Filtered sensor list: ${originalList.size} -> ${(result as List<*>).size}"
-                            )
-                        }
-                    }
-                }
-
-            // Hook getDefaultSensor(int type)
-            method {
-                    name = "getDefaultSensor"
-                    param(IntType)
-                }
-                .hook {
-                    after {
-                        val sensorType = args(0).int()
-                        if (result == null && sensorType in ESSENTIAL_SENSOR_TYPES) {
-                            logDebug("Default sensor type $sensorType returned null")
-                        }
-                    }
-                }
+    private fun hookSensorManager(cl: ClassLoader, xi: XposedInterface) {
+        val smClass = cl.loadClassOrNull("android.hardware.SensorManager") ?: return
+        safeHook("SensorManager.getSensorList(int)") {
+            smClass.methodOrNull("getSensorList", Int::class.javaPrimitiveType!!)?.let { m ->
+                xi.hook(m, GetSensorListHooker::class.java)
+            }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SENSOR METADATA HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookSensorMetadata() {
-        sensorClass?.apply {
-            // Hook getVendor()
-            method {
-                    name = "getVendor"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val preset = getActivePreset() ?: return@after
-                        if (preset.manufacturer.isNotEmpty()) {
-                            result = preset.manufacturer
-                        }
-                    }
-                }
-
-            // Hook getVersion() - Normalize to avoid detection
-            method {
-                    name = "getVersion"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val version = result as? Int ?: 1
-                        if (version > 3) {
-                            result = 1
-                        }
-                    }
-                }
-
-            // Hook getName() - Remove manufacturer-specific prefixes
-            method {
-                    name = "getName"
-                    emptyParam()
-                }
-                .hook {
-                    after {
-                        val originalName = result as? String ?: return@after
-                        if (
-                            originalName.contains("Qualcomm") ||
-                                originalName.contains("MediaTek") ||
-                                originalName.contains("Samsung")
-                        ) {
-                            result =
-                                originalName
-                                    .replace("Qualcomm ", "")
-                                    .replace("MediaTek ", "")
-                                    .replace("Samsung ", "")
-                        }
-                    }
-                }
+    private fun hookSensorMetadata(cl: ClassLoader, xi: XposedInterface) {
+        val sensorClass = cl.loadClassOrNull("android.hardware.Sensor") ?: return
+        safeHook("Sensor.getVendor()") {
+            sensorClass.methodOrNull("getVendor")?.let { m ->
+                xi.hook(m, GetSensorVendorHooker::class.java)
+            }
+        }
+        safeHook("Sensor.getVersion()") {
+            sensorClass.methodOrNull("getVersion")?.let { m ->
+                xi.hook(m, GetSensorVersionHooker::class.java)
+            }
+        }
+        safeHook("Sensor.getName()") {
+            sensorClass.methodOrNull("getName")?.let { m ->
+                xi.hook(m, GetSensorNameHooker::class.java)
+            }
         }
     }
 
-    private fun filterSensorList(sensors: List<Any>): List<Any> {
-        return sensors.filter { sensor ->
-            runCatching {
-                    val typeMethod = sensor.javaClass.getMethod("getType")
-                    val sensorType = typeMethod.invoke(sensor) as Int
-                    sensorType in ESSENTIAL_SENSOR_TYPES
+    // ─────────────────────────────────────────────────────────────
+    // Shared state
+    // ─────────────────────────────────────────────────────────────
+
+    internal object HookState {
+        @Volatile var prefs: SharedPreferences? = null
+        @Volatile var pkg: String = ""
+        @Volatile var preset: DeviceProfilePreset? = null
+        val essentialTypes: Set<Int> = ESSENTIAL_SENSOR_TYPES
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // @XposedHooker callback classes
+    // ─────────────────────────────────────────────────────────────
+
+    class GetSensorListHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val type = callback.args.firstOrNull() as? Int ?: return
+                    // Only filter TYPE_ALL to avoid breaking individual-type queries
+                    if (type != -1) return
+                    @Suppress("UNCHECKED_CAST")
+                    val sensors = callback.result as? List<Any> ?: return
+                    if (sensors.size <= 10) return // Small list — no suspicious fingerprint risk
+                    val pkg = HookState.pkg
+                    callback.result =
+                        sensors.filter { sensor ->
+                            runCatching {
+                                    val sensorType =
+                                        sensor.javaClass.getMethod("getType").invoke(sensor) as Int
+                                    sensorType in HookState.essentialTypes
+                                }
+                                .getOrDefault(true)
+                        }
+                    
+                    if (sensors.size != (callback.result as List<*>).size) {
+                         reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                    }
+                } catch (t: Throwable) {
+                    Log.w("GetSensorListHooker", "after() failed: ${t.message}")
                 }
-                .getOrDefault(true)
+            }
+        }
+    }
+
+    class GetSensorVendorHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val preset = HookState.preset ?: return
+                    if (preset.manufacturer.isNotEmpty()) {
+                        callback.result = preset.manufacturer
+                    }
+                } catch (t: Throwable) {
+                    Log.w("GetSensorVendorHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSensorVersionHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val version = callback.result as? Int ?: return
+                    if (version > 3) callback.result = 1
+                } catch (t: Throwable) {
+                    Log.w("GetSensorVersionHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSensorNameHooker : XposedInterface.Hooker {
+        private companion object {
+            private val OEM_PREFIXES = listOf("Qualcomm ", "MediaTek ", "Samsung ")
+
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    var name = callback.result as? String ?: return
+                    for (prefix in OEM_PREFIXES) {
+                        name = name.replace(prefix, "")
+                    }
+                    callback.result = name
+                } catch (t: Throwable) {
+                    Log.w("GetSensorNameHooker", "after() failed: ${t.message}")
+                }
+            }
         }
     }
 }

@@ -1,87 +1,97 @@
 package com.astrixforge.devicemasker
 
+import android.app.Application
+import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.service.ConfigManager
 import com.astrixforge.devicemasker.service.ServiceClient
-import com.highcapable.yukihookapi.hook.xposed.application.ModuleApplication
 import timber.log.Timber
 
 /**
- * Device Masker Application class.
+ * Device Masker Application class — libxposed API 100 edition.
  *
- * Extends [ModuleApplication] from YukiHookAPI to properly initialize the module in both the module
- * app process and hooked app processes.
- *
- * Architecture:
- * - ConfigManager: JSON-based local configuration storage
- * - ServiceClient: AIDL client for communicating with system_server service
- *
- * Responsibilities:
- * - Initialize Timber logging in debug builds
- * - Initialize ConfigManager for local configuration management
- * - Provide ServiceClient for AIDL service communication
- * - Provide module status information via YukiHookAPI
+ * Extends standard [Application] (YukiHookAPI's `ModuleApplication` no longer used after libxposed
+ * migration). Initialises only what is needed at startup:
+ * - **Timber**: debug logging (debug builds only)
+ * - **ConfigManager**: local JSON configuration storage
+ * - **XposedPrefs.init**: initialises libxposed [ModulePreferences] so `ModulePreferences.from()`
+ *   is callable from [com.astrixforge.devicemasker.data.ConfigSync]
+ * - **ServiceClient**: AIDL client for the *diagnostics-only* service in `system_server`
  */
-class DeviceMaskerApp : ModuleApplication() {
+class DeviceMaskerApp : Application() {
 
-    /** ServiceClient for AIDL communication with system_server */
+    /** AIDL client for the diagnostics service (hook event counts, logs, health). */
     private lateinit var _serviceClient: ServiceClient
 
     override fun onCreate() {
         super.onCreate()
         instance = this
 
-        // Initialize Timber logging for debug builds
+        // Debug logging — release builds strip Timber via R8 -assumenosideeffects
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
-            Timber.d("Device Masker Application initialized")
+            Timber.d("Device Masker Application initialised")
         }
 
-        // Initialize ConfigManager (local JSON config storage)
+        // Register XposedService listener — enables getRemotePreferences() write path.
+        // Safe to call multiple times (no-op on reconnect).
+        XposedPrefs.init()
+        Timber.d("XposedPrefs (XposedService) listener registered")
+
+        // Local JSON config — loads existing config.json from filesDir
         ConfigManager.init(this)
-        Timber.d("ConfigManager initialized")
+        Timber.d("ConfigManager initialised")
 
-        // Initialize ServiceClient (AIDL communication with system_server)
+        // Diagnostics-only AIDL client — non-fatal if service is unavailable
         _serviceClient = ServiceClient(this)
-        Timber.d("ServiceClient initialized")
+        Timber.d("ServiceClient initialised")
 
-        // Log module activation status
-        Timber.i(
-            "Device Masker Module Status: ${if (isXposedModuleActive) "Active" else "Inactive"}"
-        )
+        Timber.i("Device Masker module active: $isXposedModuleActive")
     }
 
     companion object {
         @Volatile private var instance: DeviceMaskerApp? = null
 
         /**
-         * Get the application instance.
+         * Returns the application singleton.
          *
-         * @throws IllegalStateException if called before onCreate()
+         * @throws IllegalStateException if called before [onCreate] completes.
          */
-        fun getInstance(): DeviceMaskerApp {
-            return instance
+        fun getInstance(): DeviceMaskerApp =
+            instance
                 ?: throw IllegalStateException(
-                    "DeviceMaskerApp not initialized. Ensure Application.onCreate() has been called."
+                    "DeviceMaskerApp not initialised. Has Application.onCreate() run?"
                 )
-        }
 
         /**
-         * Get the global ServiceClient instance.
+         * Diagnostics-only [ServiceClient].
          *
-         * This client is used for AIDL communication with the DeviceMaskerService running in
-         * system_server. ViewModels should use this for:
-         * - Writing/reading configuration
-         * - Getting hook statistics
-         * - Viewing centralized logs
+         * Post-migration the service only exposes hook event counts, log aggregation, and a
+         * health-check. Config delivery is via [XposedPrefs] / [ModulePreferences].
          */
         val serviceClient: ServiceClient
             get() = getInstance()._serviceClient
 
         /**
-         * Check if the Xposed module is currently active. This is set by YukiHookAPI when the
-         * module is properly loaded.
+         * Whether the Xposed module is currently active in the running process.
+         *
+         * After YukiHookAPI removal this is checked via a sentinel field that the Xposed framework
+         * sets to `true` when the module is loaded. The field is defined in [XposedModuleActive]
+         * and set by the hook entry class.
          */
         val isXposedModuleActive: Boolean
-            get() = com.highcapable.yukihookapi.YukiHookAPI.Status.isModuleActive
+            get() = XposedModuleActive.active
     }
+}
+
+/**
+ * Sentinel for module-active detection without YukiHookAPI.
+ *
+ * `XposedEntry.init` sets [active] to `true` via reflection when the module is loaded into a
+ * process. In the module app's own process this field stays `false` — the module app is never
+ * hooked into itself (libxposed API 100 guarantees this).
+ *
+ * This pattern replaces `YukiHookAPI.Status.isModuleActive`.
+ */
+object XposedModuleActive {
+    @Volatile @JvmField var active: Boolean = false
 }

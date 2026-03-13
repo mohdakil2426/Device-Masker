@@ -1,151 +1,180 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import android.content.SharedPreferences
+import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.type.java.StringClass
-import java.security.SecureRandom
-import java.util.UUID
+import com.astrixforge.devicemasker.common.generators.UUIDGenerator
+import com.astrixforge.devicemasker.xposed.PrefsHelper
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
 /**
- * Advertising Hooker - Spoofs advertising and tracking identifiers.
+ * Advertising Identifier Hooker — libxposed API 100 edition.
  *
- * Hooks for:
- * - Google Advertising ID
- * - GSF ID (Google Services Framework)
- * - Media DRM ID
+ * Spoofs advertising and tracking identifiers:
+ * - Google Advertising ID (AdvertisingIdClient.Info.getId())
+ * - GSF ID via Gservices.getString/getLong("android_id")
+ * - MediaDrm device unique ID (getPropertyByteArray("deviceUniqueId"))
  */
 object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
 
-    // SecureRandom for cryptographically secure fallback ID generation
-    private val secureRandom = SecureRandom()
+    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+        HookState.prefs = prefs
+        HookState.pkg = pkg
 
-    // Fallback values (thread-safe lazy) — generated once per process
-    private val fallbackAdvertisingId by lazy { UUID.randomUUID().toString() }
-    private val fallbackGsfId by lazy { generateHexId(16) }
-    private val fallbackMediaDrmId by lazy { generateHexId(64) }
-
-    override fun onHook() {
-        logStart()
-        hookAdvertisingIdClient()
-        hookGooglePlayServices()
-        hookMediaDrm()
-        recordSuccess()
+        hookAdvertisingIdClient(cl, xi)
+        hookGservices(cl, xi)
+        hookMediaDrm(cl, xi)
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ADVERTISING ID HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookAdvertisingIdClient() {
-        "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info".toClassOrNull()?.apply {
-            runCatching {
-                method {
-                        name = "getId"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            runCatching {
-                                result =
-                                    getSpoofValue(SpoofType.ADVERTISING_ID) {
-                                        fallbackAdvertisingId
-                                    }
-                            }
-                        }
-                    }
+    private fun hookAdvertisingIdClient(cl: ClassLoader, xi: XposedInterface) {
+        safeHook("AdvertisingIdClient.Info.getId()") {
+            val infoClass =
+                cl.loadClassOrNull(
+                    "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info"
+                ) ?: return@safeHook
+            infoClass.methodOrNull("getId")?.let { m ->
+                xi.hook(m, GetAdvertisingIdHooker::class.java)
+                xi.deoptimize(m)
             }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // GOOGLE PLAY SERVICES HOOKS
-    // ═══════════════════════════════════════════════════════════
+    private fun hookGservices(cl: ClassLoader, xi: XposedInterface) {
+        val gservicesClass = cl.loadClassOrNull("com.google.android.gsf.Gservices") ?: return
+        safeHook("Gservices.getString(ContentResolver, String)") {
+            // Method with ContentResolver + String key + default (3 params)
+            gservicesClass
+                .getDeclaredMethods()
+                .filter { it.name == "getString" && it.parameterCount == 3 }
+                .forEach { m ->
+                    m.isAccessible = true
+                    xi.hook(m, GetGsfStringHooker::class.java)
+                }
+        }
+        safeHook("Gservices.getLong(ContentResolver, String, long)") {
+            gservicesClass
+                .getDeclaredMethods()
+                .filter { it.name == "getLong" && it.parameterCount == 3 }
+                .forEach { m ->
+                    m.isAccessible = true
+                    xi.hook(m, GetGsfLongHooker::class.java)
+                }
+        }
+    }
 
-    private fun hookGooglePlayServices() {
-        "com.google.android.gsf.Gservices".toClassOrNull()?.apply {
-            runCatching {
-                method {
-                        name = "getString"
-                        paramCount = 2
-                    }
-                    .hook {
-                        after {
-                            runCatching {
-                                val key = args(1).string()
-                                if (key == "android_id") {
-                                    result = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
-                                }
-                            }
-                        }
-                    }
-            }
-
-            runCatching {
-                method {
-                        name = "getLong"
-                        paramCount = 3
-                    }
-                    .hook {
-                        after {
-                            runCatching {
-                                val key = args(1).string()
-                                if (key == "android_id") {
-                                    val spoofed = getSpoofValue(SpoofType.GSF_ID) { fallbackGsfId }
-                                    result = runCatching { spoofed.toLong(16) }.getOrElse { result }
-                                }
-                            }
-                        }
-                    }
+    private fun hookMediaDrm(cl: ClassLoader, xi: XposedInterface) {
+        safeHook("MediaDrm.getPropertyByteArray(String)") {
+            val drmClass = cl.loadClassOrNull("android.media.MediaDrm") ?: return@safeHook
+            drmClass.methodOrNull("getPropertyByteArray", String::class.java)?.let { m ->
+                xi.hook(m, GetMediaDrmIdHooker::class.java)
+                xi.deoptimize(m)
             }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // MEDIA DRM HOOKS
-    // ═══════════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────────────────────
+    // Shared state
+    // ─────────────────────────────────────────────────────────────
 
-    private fun hookMediaDrm() {
-        "android.media.MediaDrm".toClassOrNull()?.apply {
-            runCatching {
-                method {
-                        name = "getPropertyByteArray"
-                        param(StringClass)
-                    }
-                    .hook {
-                        after {
-                            runCatching {
-                                val property = args(0).string()
-                                if (property == "deviceUniqueId") {
-                                    val spoofed =
-                                        getSpoofValue(SpoofType.MEDIA_DRM_ID) { fallbackMediaDrmId }
-                                    result = hexToBytes(spoofed)
-                                }
-                            }
+    internal object HookState {
+        @Volatile var prefs: SharedPreferences? = null
+        @Volatile var pkg: String = ""
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // @XposedHooker callback classes
+    // ─────────────────────────────────────────────────────────────
+
+    class GetAdvertisingIdHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID) {
+                            UUIDGenerator.generateAdvertisingId()
                         }
-                    }
+                    reportSpoofEvent(pkg, SpoofType.ADVERTISING_ID)
+                } catch (t: Throwable) {
+                    Log.w("GetAdvertisingIdHooker", "after() failed: ${t.message}")
+                }
             }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // HELPERS
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Generates a cryptographically secure random hex ID of the given length. Uses SecureRandom
-     * \u2014 NOT Kotlin's chars.random() which uses Random.Default.
-     */
-    private fun generateHexId(length: Int): String {
-        val chars = "0123456789abcdef"
-        val sb = StringBuilder(length)
-        val bytes = ByteArray(length)
-        secureRandom.nextBytes(bytes)
-        repeat(length) { i -> sb.append(chars[bytes[i].toInt().and(0xFF) % chars.length]) }
-        return sb.toString()
+    class GetGsfStringHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    // Args: (ContentResolver, String key, String default)
+                    val key = callback.args.getOrNull(1) as? String ?: return
+                    if (key != "android_id") return
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.GSF_ID) {
+                            UUIDGenerator.generateGSFId()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.GSF_ID)
+                } catch (t: Throwable) {
+                    Log.w("GetGsfStringHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
     }
 
-    private fun hexToBytes(hex: String): ByteArray {
-        return runCatching { hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
-            .getOrElse { ByteArray(32) }
+    class GetGsfLongHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    // Args: (ContentResolver, String key, long default)
+                    val key = callback.args.getOrNull(1) as? String ?: return
+                    if (key != "android_id") return
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    val spoofed =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.GSF_ID) {
+                            UUIDGenerator.generateGSFId()
+                        }
+                    // GSF ID must be returned as a Long (hex string → Long)
+                    val finalVal = runCatching { spoofed.toLong(16) }.getOrElse { callback.result as Long }
+                    callback.result = finalVal
+                    reportSpoofEvent(pkg, SpoofType.GSF_ID)
+                } catch (t: Throwable) {
+                    Log.w("GetGsfLongHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetMediaDrmIdHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val property = callback.args.firstOrNull() as? String ?: return
+                    if (property != "deviceUniqueId") return
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    val spoofed =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID) {
+                            UUIDGenerator.generateMediaDrmId()
+                        }
+                    callback.result = hexToBytes(spoofed)
+                    reportSpoofEvent(pkg, SpoofType.MEDIA_DRM_ID)
+                } catch (t: Throwable) {
+                    Log.w("GetMediaDrmIdHooker", "after() failed: ${t.message}")
+                }
+            }
+
+            private fun hexToBytes(hex: String): ByteArray =
+                runCatching { hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
+                    .getOrElse { ByteArray(32) }
+        }
     }
 }

@@ -6,7 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.data.models.SpoofType
+import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.ServiceClient
 import kotlinx.coroutines.delay
@@ -18,12 +18,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the Diagnostics screen.
+ * ViewModel for the Diagnostics screen — libxposed API 100 / Option B edition.
  *
- * Manages diagnostic results, anti-detection tests, and AIDL service status.
+ * Uses the diagnostics-only [ServiceClient] (post-migration):
+ * - `getHookedPackages()` — packages hooked this session
+ * - `getLogs()` — hook event log entries
+ * - `getSpoofEventCount()` — per-package spoof counter
+ * - `isAlive()` / `connectionState` — service health
  *
- * @param application Application for context access
- * @param repository The SpoofRepository for data access
+ * Config-related service methods (writeConfig, readConfig, etc.) have been removed. Config delivery
+ * is exclusively via RemotePreferences (libxposed API 100).
  */
 class DiagnosticsViewModel(application: Application, private val repository: SpoofRepository) :
     AndroidViewModel(application) {
@@ -31,13 +35,13 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
     private val _state = MutableStateFlow(DiagnosticsState())
     val state: StateFlow<DiagnosticsState> = _state.asStateFlow()
 
-    /** ServiceClient for AIDL communication with system_server */
+    /** Diagnostics-only AIDL service client. */
     private val serviceClient: ServiceClient = DeviceMaskerApp.serviceClient
 
     init {
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
 
-        // Observe service connection state
+        // Observe connection state live
         viewModelScope.launch {
             serviceClient.connectionState.collect { connectionState ->
                 _state.update {
@@ -51,10 +55,11 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         runDiagnostics()
     }
 
+    /** Pull-to-refresh: re-run all diagnostics and reload service data. */
     fun refresh() {
         _state.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
-            delay(500) // Minimum visible refresh time
+            delay(400) // Minimum visible refresh duration
             runDiagnostics()
             _state.update { it.copy(isRefreshing = false) }
         }
@@ -62,7 +67,6 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
 
     private fun runDiagnostics() {
         viewModelScope.launch {
-            // Run all diagnostics in parallel
             val diagnosticResults = runDiagnosticTests()
             val antiDetectionResults = runAntiDetectionTests()
             refreshServiceStatus()
@@ -77,27 +81,33 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         }
     }
 
-    /** Refreshes the AIDL service status by connecting and querying stats. */
+    /**
+     * Refreshes the diagnostics service status.
+     *
+     * Connects if not already connected, then loads:
+     * - Hooked packages count
+     * - Recent hook log entries
+     *
+     * If the service is unavailable, the UI shows "Service unavailable" gracefully — spoofing
+     * continues via RemotePreferences regardless.
+     */
     private suspend fun refreshServiceStatus() {
-        // Try to connect if not already connected
         if (!serviceClient.isConnected) {
             serviceClient.connect()
         }
 
         if (serviceClient.isConnected) {
-            val version = serviceClient.getServiceVersion()
-            val uptime = serviceClient.getServiceUptime()
-            val hookedCount = serviceClient.getHookedAppCount()
+            val hookedPackages = serviceClient.getHookedPackages()
+            val recentLogs = serviceClient.getLogs(maxCount = 50)
 
             _state.update {
                 it.copy(
                     serviceStatus =
                         it.serviceStatus.copy(
                             connectionState = ServiceClient.ConnectionState.CONNECTED,
-                            version = version,
-                            uptimeMs = uptime,
-                            hookedAppCount = hookedCount,
-                        )
+                            hookedAppCount = hookedPackages.size,
+                        ),
+                    hookLogs = recentLogs,
                 )
             }
         } else {
@@ -106,20 +116,17 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
                     serviceStatus =
                         it.serviceStatus.copy(
                             connectionState = ServiceClient.ConnectionState.ERROR,
-                            version = null,
-                            uptimeMs = 0L,
                             hookedAppCount = 0,
-                        )
+                        ),
+                    hookLogs = emptyList(),
                 )
             }
         }
     }
 
     private suspend fun runDiagnosticTests(): List<DiagnosticResult> {
-        // Get current spoofed group using suspend function (avoids runBlocking)
         val group = repository.activeGroup.first()
 
-        // Get device group preset info if set
         val presetId = group?.getValue(SpoofType.DEVICE_PROFILE)
         val presetInfo =
             presetId?.let { com.astrixforge.devicemasker.common.DeviceProfilePreset.findById(it) }
@@ -127,19 +134,18 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
         val context = getApplication<Application>()
 
         return listOf(
-            // Device Identifiers
+            // Android ID
             DiagnosticResult(
                 type = SpoofType.ANDROID_ID,
                 realValue =
-                    try {
-                        @Suppress("HardwareIds")
-                        Settings.Secure.getString(
-                            context.contentResolver,
-                            Settings.Secure.ANDROID_ID,
-                        )
-                    } catch (_: Exception) {
-                        null
-                    },
+                    runCatching {
+                            @Suppress("HardwareIds")
+                            Settings.Secure.getString(
+                                context.contentResolver,
+                                Settings.Secure.ANDROID_ID,
+                            )
+                        }
+                        .getOrNull(),
                 spoofedValue = group?.getValue(SpoofType.ANDROID_ID),
                 isActive = group?.isTypeEnabled(SpoofType.ANDROID_ID) == true,
                 isSpoofed = group?.getValue(SpoofType.ANDROID_ID) != null,
@@ -161,35 +167,32 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
                 nameRes = R.string.diagnostics_test_stack_trace,
                 descriptionRes = R.string.diagnostics_test_stack_trace_desc,
                 isPassed =
-                    try {
-                        val stackTrace = Thread.currentThread().stackTrace
-                        stackTrace.none { it.className.contains("xposed", ignoreCase = true) }
-                    } catch (_: Exception) {
-                        false
-                    },
+                    runCatching {
+                            Thread.currentThread().stackTrace.none {
+                                it.className.contains("xposed", ignoreCase = true)
+                            }
+                        }
+                        .getOrElse { false },
             ),
             AntiDetectionTest(
                 nameRes = R.string.diagnostics_test_class_loading,
                 descriptionRes = R.string.diagnostics_test_class_loading_desc,
                 isPassed =
-                    try {
-                        Class.forName("de.robv.android.xposed.XposedBridge")
-                        false
-                    } catch (_: ClassNotFoundException) {
-                        true
-                    } catch (_: Exception) {
-                        false
-                    },
+                    runCatching {
+                            Class.forName("de.robv.android.xposed.XposedBridge")
+                            false
+                        }
+                        .getOrElse { true },
             ),
             AntiDetectionTest(
                 nameRes = R.string.diagnostics_test_native_hiding,
                 descriptionRes = R.string.diagnostics_test_native_hiding_desc,
-                isPassed = true, // Assume success if module is active
+                isPassed = true,
             ),
             AntiDetectionTest(
                 nameRes = R.string.diagnostics_test_package_hiding,
                 descriptionRes = R.string.diagnostics_test_package_hiding_desc,
-                isPassed = true, // Assume success if module is active
+                isPassed = true,
             ),
         )
     }

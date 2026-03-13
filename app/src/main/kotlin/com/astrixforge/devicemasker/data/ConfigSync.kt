@@ -2,110 +2,154 @@ package com.astrixforge.devicemasker.data
 
 import android.content.Context
 import com.astrixforge.devicemasker.common.JsonConfig
+import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 import timber.log.Timber
 
 /**
- * Syncs JsonConfig to XposedPrefs for cross-process access.
+ * Syncs [JsonConfig] to [XposedPrefs] / `getRemotePreferences()` for live cross-process delivery.
  *
- * The UI uses JsonConfig (group-based, JSON file). But hooks need XSharedPreferences with per-app
- * keys. This class bridges the gap.
+ * The UI stores configuration as a group-based [JsonConfig] (JSON file). Hooks read flat per-app
+ * [SharedPreferences] keys via `getRemotePreferences()`. This object bridges the gap.
  *
- * ## Sync Flow:
+ * ## Sync Flow (libxposed API 100):
  * ```
- * UI Change → ConfigManager → JsonConfig (file) → ConfigSync → XposedPrefs
- *                                                       ↓
- *                                            MODE_WORLD_READABLE
- *                                                       ↓
- *                                            XSharedPreferences (read by hooks)
+ * UI Change → ConfigManager → JsonConfig → ConfigSync.syncFromConfig()
+ *                                                ↓
+ *                                         XposedPrefs.getPrefs()?.edit()
+ *                                                ↓
+ *                                      XposedService.getRemotePreferences()
+ *                                                ↓
+ *                                         LSPosed (live — no app restart needed)
+ *                                                ↓
+ *                                         getRemotePreferences() in hooks
  * ```
  *
- * ## Important Notes:
- * - XSharedPreferences CACHES values in hooked apps
- * - Config changes will NOT be visible until the target app restarts
- * - The config version bump is for debugging only, not live reload
+ * **Null-safety:** If the module is not active (LSPosed not running), [XposedPrefs.getPrefs]
+ * returns `null` and all writes are silently no-op'd. Config is still persisted locally via
+ * [ConfigManager]'s JSON file and will sync on next module activation.
  *
  * Call [syncFromConfig] whenever the config changes in the UI.
  */
 object ConfigSync {
 
+    private const val TAG = "ConfigSync"
+
     /**
-     * Syncs everything from JsonConfig to XposedPrefs. This should be called after any config
-     * change in the UI.
+     * Syncs everything from [config] to [XposedPrefs] (RemotePreferences).
      *
-     * @param context Application context
-     * @param config The JsonConfig to sync from
+     * Context parameter retained for API compatibility, but no longer used for prefs I/O.
+     *
+     * @param context Unused after migration — retained for call-site compatibility
+     * @param config The [JsonConfig] to sync
      */
-    fun syncFromConfig(context: Context, config: JsonConfig) {
-        val xprefs = XposedPrefs(context)
+    fun syncFromConfig(@Suppress("UNUSED_PARAMETER") context: Context, config: JsonConfig) {
+        val editor = XposedPrefs.getPrefs()?.edit()
+        if (editor == null) {
+            Timber.tag(TAG).d("XposedService not connected — config will sync on next activation")
+            return
+        }
 
-        Timber.d("Syncing config to XposedPrefs...")
+        Timber.tag(TAG).d("Syncing config to RemotePreferences...")
 
-        // Sync global settings
-        xprefs.isModuleEnabled = config.isModuleEnabled
+        // Master switch
+        editor.putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, config.isModuleEnabled)
 
         // Sync each group's apps
         for (group in config.groups.values) {
             for (packageName in group.assignedApps) {
-                // App enabled = group enabled
-                xprefs.setAppEnabled(packageName, group.isEnabled)
+                val appEnabled = config.isModuleEnabled && group.isEnabled
+                editor.putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
 
-                if (!group.isEnabled) continue
-
-                // Sync each spoof type
+                // Sync each spoof type for this package
                 for (type in SpoofType.entries) {
-                    val isEnabled = group.isTypeEnabled(type)
-                    val value = if (isEnabled) group.getValue(type) else null
+                    val typeEnabled = appEnabled && group.isTypeEnabled(type)
+                    val value = if (typeEnabled) group.getValue(type) else null
 
-                    xprefs.setSpoofTypeEnabled(packageName, type, isEnabled)
-                    xprefs.setSpoofValue(packageName, type, value)
+                    editor.putBoolean(
+                        SharedPrefsKeys.getSpoofEnabledKey(packageName, type),
+                        typeEnabled,
+                    )
+
+                    if (value != null) {
+                        editor.putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
+                    } else {
+                        editor.remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                    }
                 }
             }
         }
 
-        // Bump version for debugging (NOT for live reload - won't work)
-        xprefs.notifyConfigChanged()
-
-        Timber.d("Config synced to XposedPrefs (version: ${xprefs.configVersion})")
-        Timber.d("Note: Target apps must restart to see changes (XSharedPreferences caches)")
+        editor.apply()
+        Timber.tag(TAG).d("Config synced to RemotePreferences — live delivery active")
     }
 
     /**
-     * Quick sync for a single app. Use when only one app's config changed.
+     * Quick sync for a single package.
      *
-     * @param context Application context
-     * @param config The JsonConfig to sync from
+     * @param context Unused after migration — retained for call-site compatibility
+     * @param config The [JsonConfig] to sync from
      * @param packageName The package to sync
      */
-    fun syncApp(context: Context, config: JsonConfig, packageName: String) {
-        val xprefs = XposedPrefs(context)
-
-        val group = config.getGroupForApp(packageName)
-        if (group == null) {
-            // App not in any group - disable it
-            xprefs.setAppEnabled(packageName, false)
+    fun syncApp(
+        @Suppress("UNUSED_PARAMETER") context: Context,
+        config: JsonConfig,
+        packageName: String,
+    ) {
+        val editor = XposedPrefs.getPrefs()?.edit()
+        if (editor == null) {
+            Timber.tag(TAG).d("XposedService not connected — skipping syncApp for $packageName")
             return
         }
 
-        xprefs.setAppEnabled(packageName, group.isEnabled)
-
-        for (type in SpoofType.entries) {
-            val isEnabled = group.isTypeEnabled(type)
-            val value = if (isEnabled) group.getValue(type) else null
-
-            xprefs.setSpoofTypeEnabled(packageName, type, isEnabled)
-            xprefs.setSpoofValue(packageName, type, value)
+        val group = config.getGroupForApp(packageName)
+        if (group == null) {
+            editor.putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false).apply()
+            Timber.tag(TAG).d("App $packageName removed from spoofing (no group)")
+            return
         }
 
-        xprefs.notifyConfigChanged()
-        Timber.d("App $packageName synced to XposedPrefs")
+        val appEnabled = config.isModuleEnabled && group.isEnabled
+        editor.putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
+
+        for (type in SpoofType.entries) {
+            val typeEnabled = appEnabled && group.isTypeEnabled(type)
+            val value = if (typeEnabled) group.getValue(type) else null
+
+            editor.putBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), typeEnabled)
+
+            if (value != null) {
+                editor.putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
+            } else {
+                editor.remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+            }
+        }
+
+        editor.apply()
+        Timber.tag(TAG).d("App $packageName synced to RemotePreferences")
     }
 
-    /** Clears all settings for a package from XposedPrefs. */
-    fun clearApp(context: Context, packageName: String) {
-        val xprefs = XposedPrefs(context)
-        xprefs.clearAppSettings(packageName)
-        xprefs.notifyConfigChanged()
-        Timber.d("App $packageName cleared from XposedPrefs")
+    /**
+     * Clears all stored spoof keys for a package from [XposedPrefs].
+     *
+     * @param context Unused after migration — retained for call-site compatibility
+     * @param packageName The package to clear
+     */
+    fun clearApp(@Suppress("UNUSED_PARAMETER") context: Context, packageName: String) {
+        val editor = XposedPrefs.getPrefs()?.edit()
+        if (editor == null) {
+            Timber.tag(TAG).d("XposedService not connected — skipping clearApp for $packageName")
+            return
+        }
+
+        editor.remove(SharedPrefsKeys.getAppEnabledKey(packageName))
+
+        for (type in SpoofType.entries) {
+            editor.remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
+            editor.remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+        }
+
+        editor.apply()
+        Timber.tag(TAG).d("App $packageName cleared from RemotePreferences")
     }
 }

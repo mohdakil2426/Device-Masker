@@ -13,6 +13,7 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 ## Project Goals
 
 ### Primary Goals
+
 1. **Comprehensive Device Spoofing**: Spoof 24+ device identifiers including IMEI, Serial, MAC, Android ID, GSF ID, Advertising ID, Build properties, and location data
 2. **Robust Anti-Detection**: Prevent target apps from detecting Xposed/LSPosed hooks through stack trace filtering, ClassLoader interception, and /proc/maps hiding
 3. **Per-App Configuration**: Allow users to enable/disable spoofing per app and assign different groups to different apps
@@ -20,25 +21,27 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 5. **Valid Value Generation**: Generate spoofed values that pass validation (Luhn-valid IMEI, unicast MAC, realistic fingerprints)
 
 ### Secondary Goals
+
 1. Group import/export for backup
 2. Diagnostics screen for verifying spoofing
 3. Detailed logging for troubleshooting
 
 ## Success Criteria
 
-| Criteria | Measurement | Status |
-|----------|-------------|--------|
-| Module Recognition | Appears in LSPosed Manager correctly | ✅ Complete |
-| IMEI Spoofing | IMEI checker apps show spoofed value | ✅ Complete |
-| Anti-Detection | RootBeer/SafetyNet Helper don't detect hooks | ✅ Complete |
-| UI Polish | Smooth animations, responsive layout | ✅ Complete |
-| Compatibility | Works on Android 8.0-16 (API 26-36) | ✅ Complete |
-| Value Validity | All generated values pass format validation | ✅ Complete |
-| Cross-Process Config | XSharedPreferences reliably shares config | ✅ Complete (Dec 24, 2025) |
+| Criteria             | Measurement                                            | Status                     |
+| -------------------- | ------------------------------------------------------ | -------------------------- |
+| Module Recognition   | Appears in LSPosed Manager correctly                   | ✅ Complete                |
+| IMEI Spoofing        | IMEI checker apps show spoofed value                   | ✅ Complete                |
+| Anti-Detection       | RootBeer/SafetyNet Helper don't detect hooks           | ✅ Complete                |
+| UI Polish            | Smooth animations, responsive layout                   | ✅ Complete                |
+| Compatibility        | Works on Android 8.0-16 (API 26-36)                    | ✅ Complete                |
+| Value Validity       | All generated values pass format validation            | ✅ Complete                |
+| Cross-Process Config | Hybrid AIDL + RemotePreferences reliably shares config | ✅ Complete (Mar 13, 2026) |
 
 ## Scope Definition
 
 ### ✅ IN SCOPE
+
 - **Device Spoofing**: IMEI, IMSI, Serial Number, Hardware ID, Device ID
 - **Network Spoofing**: MAC Address (WiFi + Bluetooth), SSID, Carrier Info
 - **Advertising Spoofing**: GSF ID, Advertising ID, Media DRM ID, Android ID
@@ -49,12 +52,13 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 - **Data Management**: Group Management, Per-App Configuration
 
 ### ❌ OUT OF SCOPE (External Modules)
-| Feature | Recommended Module |
-|---------|-------------------|
-| Root Detection Bypass | Shamiko, Zygisk-Next |
-| SafetyNet Bypass | Play Integrity Fix (PIF) |
-| Play Integrity Bypass | Tricky Store, PIF |
-| Bootloader Status | Not bypassable (hardware) |
+
+| Feature                   | Recommended Module              |
+| ------------------------- | ------------------------------- |
+| Root Detection Bypass     | Shamiko, Zygisk-Next            |
+| SafetyNet Bypass          | Play Integrity Fix (PIF)        |
+| Play Integrity Bypass     | Tricky Store, PIF               |
+| Bootloader Status         | Not bypassable (hardware)       |
 | Banking App Compatibility | Combination of external modules |
 
 ## Target Users
@@ -66,14 +70,14 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 
 ## Project Timeline
 
-| Phase | Description | Duration |
-|-------|-------------|----------|
-| Phase 1 | Core Infrastructure | Week 1-2 |
+| Phase   | Description           | Duration |
+| ------- | --------------------- | -------- |
+| Phase 1 | Core Infrastructure   | Week 1-2 |
 | Phase 2 | Device Spoofing Hooks | Week 2-3 |
-| Phase 3 | Anti-Detection Layer | Week 3-4 |
-| Phase 4 | Data Management | Week 4-5 |
-| Phase 5 | User Interface | Week 5-7 |
-| Phase 6 | Testing & Polish | Week 7-8 |
+| Phase 3 | Anti-Detection Layer  | Week 3-4 |
+| Phase 4 | Data Management       | Week 4-5 |
+| Phase 5 | User Interface        | Week 5-7 |
+| Phase 6 | Testing & Polish      | Week 7-8 |
 
 **Total Estimated Duration**: 8 weeks (part-time) or 4 weeks (full-time)
 
@@ -88,6 +92,7 @@ Device Masker focuses exclusively on spoofing and anti-detection. Root hiding, S
 This module is for **educational and security research purposes only**. Users are responsible for ensuring compliance with applicable laws and terms of service.
 
 **NOT for use in**:
+
 - Fraudulent transactions
 - Bypassing security for unauthorized access
 - Violating terms of service

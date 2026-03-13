@@ -19,17 +19,19 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
- * Config Manager - Manages application configuration.
+ * Config Manager — manages application configuration (libxposed API 100 edition).
  *
  * Responsibilities:
- * 1. Load/save configuration from/to local JSON file
- * 2. Sync configuration to XposedPrefs for cross-process access
- * 3. Provide StateFlow for UI reactivity
+ * 1. Load/save configuration from/to local JSON file (filesDir/config.json)
+ * 2. Sync configuration to [ModulePreferences] via [ConfigSync] for live cross-process delivery
+ * 3. Provide [StateFlow] for UI reactivity
  * 4. CRUD operations for groups and app configs
  *
- * Data Flow:
- * - Read: Local file → ConfigManager → UI StateFlow
- * - Write: UI → ConfigManager → Local file + XposedPrefs (for hooks)
+ * Config save path (post-migration):
+ * - UI → ConfigManager → local file + ConfigSync → ModulePreferences (live to hooks)
+ *
+ * No AIDL service calls: config delivery uses [XposedPrefs]/[ModulePreferences] exclusively. The
+ * AIDL service ([ServiceClient]) is diagnostics-only (hook event counts + logs).
  */
 object ConfigManager {
 
@@ -103,47 +105,30 @@ object ConfigManager {
         scope.launch { saveConfigInternal(_config.value) }
     }
 
-    /** Internal save method. */
+    /**
+     * Internal save method.
+     *
+     * Write path (post-migration):
+     * 1. Write JSON to local file (backup / UI reload)
+     * 2. Sync flattened per-app keys to [ModulePreferences] via [ConfigSync] → LSPosed delivers
+     *    these live to hooks via `getRemotePreferences()`
+     *
+     * No AIDL service write — config delivery is exclusively via [ModulePreferences].
+     */
     private suspend fun saveConfigInternal(config: JsonConfig) {
         withContext(Dispatchers.IO) {
             try {
-                val json = config.toJsonString()
-
-                // Save to local file
-                configFile.writeText(json)
+                // 1. Persist raw JSON locally as a backup and for UI reload on next launch
+                configFile.writeText(config.toJsonString())
                 Timber.tag(TAG).d("Config saved to local file")
 
-                // Sync to XposedPrefs for cross-process access (legacy fallback)
-                // This enables hooked apps to read the config via XSharedPreferences
+                // 2. Flatten per-app keys into ModulePreferences (live delivery to hooks)
                 ConfigSync.syncFromConfig(appContext, config)
-                Timber.tag(TAG).d("Config synced to XposedPrefs")
-
-                // NEW: Sync to AIDL service for real-time updates
-                // This enables immediate config changes without app restart
-                syncToAidlService(json)
+                Timber.tag(TAG).d("Config synced to ModulePreferences")
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Failed to save config")
             }
         }
-    }
-
-    /**
-     * Syncs configuration to the AIDL service in system_server.
-     *
-     * This provides real-time config updates when the service is available. Falls back silently if
-     * service is not connected.
-     */
-    private suspend fun syncToAidlService(json: String) {
-        runCatching {
-                val serviceClient = com.astrixforge.devicemasker.DeviceMaskerApp.serviceClient
-                if (serviceClient.isConnected) {
-                    serviceClient.writeConfig(json)
-                    Timber.tag(TAG).d("Config synced to AIDL service")
-                } else {
-                    Timber.tag(TAG).d("AIDL service not connected, skipping sync")
-                }
-            }
-            .onFailure { e -> Timber.tag(TAG).w(e, "Failed to sync to AIDL service") }
     }
 
     /** Updates the configuration and saves. */

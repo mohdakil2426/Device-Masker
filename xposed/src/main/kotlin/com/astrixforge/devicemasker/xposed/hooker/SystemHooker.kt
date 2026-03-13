@@ -1,133 +1,158 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import android.content.SharedPreferences
+import android.util.Log
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
-import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.type.java.StringClass
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.AfterHookCallback
+import java.lang.reflect.Field
 
 /**
- * System Hooker - Spoofs Build.* and SystemProperties using DeviceProfilePreset.
+ * System Hooker — spoofs Build.* static fields and SystemProperties using DeviceProfilePreset.
  *
- * This hooker applies a complete, consistent device profile rather than individual Build fields,
- * ensuring all values match and avoiding detection.
+ * ## Strategy change: field mutation + method hooks
+ *
+ * YukiHookAPI version: directly mutated Build static fields at hook time (`field {
+ * }.get().set(...)`). This was unreliable because ART may have already constant-folded the field
+ * values into app code.
+ *
+ * libxposed API 100 version:
+ * 1. Directly modify the static fields on Build class (same as before, catches early reads)
+ * 2. Hook SystemProperties.get() to intercept later reads via reflection/system property queries
+ *
+ * Additionally, Build.getSerial() is **not** hooked here — it's handled by DeviceHooker to maintain
+ * the clear separation: DeviceHooker owns hardware identifiers, SystemHooker owns device model /
+ * fingerprint metadata.
  */
 object SystemHooker : BaseSpoofHooker("SystemHooker") {
 
-    private fun getActivePreset(): DeviceProfilePreset? {
-        val presetId =
-            PrefsHelper.getSpoofValue(prefs, packageName, SpoofType.DEVICE_PROFILE) { "" }
-        if (presetId.isEmpty()) return null
-        return DeviceProfilePreset.findById(presetId)
+    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+        HookState.prefs = prefs
+        HookState.pkg = pkg
+        HookState.xi = xi
+
+        // Get the device profile preset once — it's constant for the lifetime of this process
+        val presetId = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
+        if (presetId.isEmpty()) return
+        val preset = DeviceProfilePreset.findById(presetId) ?: return
+
+        HookState.preset = preset
+
+        applyBuildFieldOverrides(cl, preset)
+        hookSystemProperties(cl, xi, preset)
     }
 
-    override fun onHook() {
-        logStart()
-        hookBuildFields()
-        hookSystemProperties()
-        recordSuccess()
-    }
+    // ─────────────────────────────────────────────────────────────
+    // Direct Build static field mutation
+    // ─────────────────────────────────────────────────────────────
 
-    // ═══════════════════════════════════════════════════════════
-    // BUILD FIELDS HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookBuildFields() {
-        val preset = getActivePreset() ?: return
-
-        if (!isValidFingerprint(preset.fingerprint)) {
-            logWarn("Invalid fingerprint format in preset '${preset.name}', skipping")
-            return
-        }
-
-        "android.os.Build".toClass().apply {
-            val fieldMappings =
-                mapOf(
-                    "FINGERPRINT" to preset.fingerprint,
-                    "MODEL" to preset.model,
-                    "MANUFACTURER" to preset.manufacturer,
-                    "BRAND" to preset.brand,
-                    "DEVICE" to preset.device,
-                    "PRODUCT" to preset.product,
-                    "BOARD" to preset.board,
-                )
-
-            fieldMappings.forEach { (fieldName, spoofedValue) ->
+    private fun applyBuildFieldOverrides(cl: ClassLoader, preset: DeviceProfilePreset) {
+        val buildClass = cl.loadClassOrNull("android.os.Build") ?: return
+        val fieldMappings =
+            mapOf(
+                "FINGERPRINT" to preset.fingerprint,
+                "MODEL" to preset.model,
+                "MANUFACTURER" to preset.manufacturer,
+                "BRAND" to preset.brand,
+                "DEVICE" to preset.device,
+                "PRODUCT" to preset.product,
+                "BOARD" to preset.board,
+                "HARDWARE" to preset.board,
+                "TAGS" to "release-keys",
+                "TYPE" to "user",
+            )
+        fieldMappings.forEach { (fieldName, value) ->
+            if (value.isNotEmpty()) {
                 runCatching {
-                    val currentValue = field { name = fieldName }.get().string()
-                    if (spoofedValue.isNotEmpty() && spoofedValue != currentValue) {
-                        field { name = fieldName }.get().set(spoofedValue)
-                        logDebug("Set Build.$fieldName to $spoofedValue")
+                        val f: Field = buildClass.getDeclaredField(fieldName)
+                        f.isAccessible = true
+                        f.set(null, value)
                     }
+                    .onFailure { t ->
+                        Log.w("SystemHooker", "Could not set Build.$fieldName: ${t.message}")
+                    }
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // SystemProperties.get() hooks (catches reads via reflection / JNI path)
+    // ─────────────────────────────────────────────────────────────
+
+    private fun hookSystemProperties(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset,
+    ) {
+        val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return
+
+        val propertyMappings = buildMap {
+            put("ro.build.fingerprint", preset.fingerprint)
+            put("ro.product.model", preset.model)
+            put("ro.product.manufacturer", preset.manufacturer)
+            put("ro.product.brand", preset.brand)
+            put("ro.product.device", preset.device)
+            put("ro.product.name", preset.product)
+            put("ro.product.board", preset.board)
+            put("ro.build.product", preset.product)
+            put("ro.vendor.product.model", preset.model)
+            put("ro.vendor.product.brand", preset.brand)
+            put("ro.vendor.product.device", preset.device)
+            put("ro.vendor.product.manufacturer", preset.manufacturer)
+            put("ro.vendor.product.name", preset.product)
+            put("ro.bootimage.build.fingerprint", preset.fingerprint)
+            put("ro.system.build.fingerprint", preset.fingerprint)
+            put("ro.vendor.build.fingerprint", preset.fingerprint)
+        }
+        HookState.propertyMappings = propertyMappings
+
+        safeHook("SystemProperties.get(String)") {
+            spClass.methodOrNull("get", String::class.java)?.let { m ->
+                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("SystemProperties.get(String, String)") {
+            spClass.methodOrNull("get", String::class.java, String::class.java)?.let { m ->
+                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Shared state
+    // ─────────────────────────────────────────────────────────────
+
+    internal object HookState {
+        @Volatile var prefs: SharedPreferences? = null
+        @Volatile var pkg: String = ""
+        @Volatile var xi: XposedInterface? = null
+        @Volatile var preset: DeviceProfilePreset? = null
+        @Volatile var propertyMappings: Map<String, String> = emptyMap()
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // @XposedHooker callback class
+    // ─────────────────────────────────────────────────────────────
+
+    class GetSystemPropertyHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val key = callback.args.firstOrNull() as? String ?: return
+                    val mapped =
+                        HookState.propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return
+                    val pkg = HookState.pkg
+                    callback.result = mapped
+                    reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                } catch (t: Throwable) {
+                    Log.w("GetSystemPropertyHooker", "after() failed: ${t.message}")
                 }
             }
-
-            DualLog.info(tag, "Applied device profile '${preset.name}' to Build fields")
-        }
-    }
-
-    private fun isValidFingerprint(fingerprint: String): Boolean {
-        if (fingerprint.isEmpty()) return false
-        val slashCount = fingerprint.count { it == '/' }
-        val colonCount = fingerprint.count { it == ':' }
-        if (slashCount < 4 || colonCount < 2) return false
-        val validEndings = listOf("user/release-keys", "userdebug/release-keys", "eng/test-keys")
-        return validEndings.any { fingerprint.endsWith(it) }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // SYSTEM PROPERTIES HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookSystemProperties() {
-        val preset = getActivePreset() ?: return
-
-        "android.os.SystemProperties".toClassOrNull()?.apply {
-            val propertyMappings =
-                mapOf(
-                    "ro.build.fingerprint" to preset.fingerprint,
-                    "ro.product.model" to preset.model,
-                    "ro.product.manufacturer" to preset.manufacturer,
-                    "ro.product.brand" to preset.brand,
-                    "ro.product.device" to preset.device,
-                    "ro.product.name" to preset.product,
-                    "ro.product.board" to preset.board,
-                    "ro.build.product" to preset.product,
-                    "ro.vendor.product.model" to preset.model,
-                    "ro.vendor.product.brand" to preset.brand,
-                    "ro.vendor.product.device" to preset.device,
-                    "ro.vendor.product.manufacturer" to preset.manufacturer,
-                    "ro.vendor.product.name" to preset.product,
-                    "ro.bootimage.build.fingerprint" to preset.fingerprint,
-                    "ro.system.build.fingerprint" to preset.fingerprint,
-                    "ro.vendor.build.fingerprint" to preset.fingerprint,
-                )
-
-            method {
-                    name = "get"
-                    param(StringClass)
-                }
-                .hook {
-                    after {
-                        val key = args(0).string()
-                        propertyMappings[key]?.takeIf { it.isNotEmpty() }?.let { result = it }
-                    }
-                }
-
-            method {
-                    name = "get"
-                    param(StringClass, StringClass)
-                }
-                .hook {
-                    after {
-                        val key = args(0).string()
-                        propertyMappings[key]?.takeIf { it.isNotEmpty() }?.let { result = it }
-                    }
-                }
-
-            DualLog.info(tag, "Applied device profile '${preset.name}' to SystemProperties")
         }
     }
 }

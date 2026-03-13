@@ -13,47 +13,36 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
- * Client for communicating with DeviceMaskerService running in system_server.
+ * Client for the Device Masker diagnostics service running in `system_server`.
  *
- * This client connects to the service via ContentProvider (ServiceBridge) and provides a simplified
- * API for UI components to use. It handles connection management, retry logic, and exposes
- * connection state as a StateFlow.
+ * **Post-migration scope (Option B):**
+ * - Config delivery: **removed** — use [XposedPrefs] / [ModulePreferences] exclusively
+ * - Diagnostics reads: `getSpoofEventCount`, `getHookedPackages`, `getLogs`, `clearDiagnostics`
+ * - Health check: `isAlive`, `connectionState` [StateFlow]
  *
- * Usage:
- * ```kotlin
- * val client = ServiceClient(context)
- * client.connect()
+ * This client is non-fatal: if the service is unavailable, [DiagnosticsViewModel] shows "Service
+ * unavailable" and spoofing continues unaffected via RemotePreferences.
  *
- * if (client.isConnected.value) {
- *     client.writeConfig(jsonConfig)
- *     val stats = client.getHookedAppCount()
- * }
+ * Connection is established via the [ServiceBridge] ContentProvider which is dynamically registered
+ * by [SystemServiceHooker] in `system_server` at boot.
  *
- * client.disconnect()
- * ```
- *
- * @param context Application context for ContentResolver access
+ * @param context Application context for [ContentResolver] access
  */
 class ServiceClient(private val context: Context) {
 
     companion object {
         private const val TAG = "ServiceClient"
 
-        /** ContentProvider authority (must match ServiceBridge) */
+        /** ContentProvider authority — must match [ServiceBridge.AUTHORITY]. */
         private const val AUTHORITY = "com.astrixforge.devicemasker.service"
 
-        /** URI for accessing the ServiceBridge */
         private val CONTENT_URI = Uri.parse("content://$AUTHORITY")
 
-        /** Method names matching ServiceBridge */
         private const val METHOD_GET_BINDER = "getBinder"
         private const val METHOD_PING = "ping"
-
-        /** Bundle keys matching ServiceBridge */
         private const val KEY_BINDER = "binder"
         private const val KEY_ALIVE = "alive"
 
-        /** Retry configuration */
         private const val MAX_RETRIES = 3
         private const val INITIAL_RETRY_DELAY_MS = 500L
     }
@@ -62,14 +51,11 @@ class ServiceClient(private val context: Context) {
     // CONNECTION STATE
     // ═══════════════════════════════════════════════════════════
 
-    /** Current service reference (null if disconnected) */
     @Volatile private var service: IDeviceMaskerService? = null
 
-    /** Connection state as observable flow */
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    /** Convenience property for checking connection */
     val isConnected: Boolean
         get() = _connectionState.value == ConnectionState.CONNECTED && service != null
 
@@ -78,66 +64,63 @@ class ServiceClient(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Connects to the DeviceMaskerService via ContentProvider.
+     * Connects to the diagnostics service via [ServiceBridge] ContentProvider.
      *
-     * This method fetches the service binder from the ServiceBridge ContentProvider and converts it
-     * to the AIDL interface. It includes retry logic with exponential backoff for robustness.
+     * Includes up to [MAX_RETRIES] attempts with exponential backoff. Connection is verified by
+     * calling [IDeviceMaskerService.isAlive].
      *
-     * @return true if connection successful, false otherwise
+     * @return `true` if connection succeeded, `false` otherwise
      */
     suspend fun connect(): Boolean =
         withContext(Dispatchers.IO) {
-            if (isConnected) {
-                Timber.d("Already connected")
-                return@withContext true
-            }
+            if (isConnected) return@withContext true
 
             _connectionState.value = ConnectionState.CONNECTING
-
             var retryDelay = INITIAL_RETRY_DELAY_MS
 
             repeat(MAX_RETRIES) { attempt ->
                 runCatching {
                         val binder = getBinder()
                         if (binder != null) {
-                            service = IDeviceMaskerService.Stub.asInterface(binder)
-
-                            // Verify connection by pinging the service
-                            if (service?.isServiceAlive == true) {
+                            val svc = IDeviceMaskerService.Stub.asInterface(binder)
+                            if (svc.isAlive) {
+                                service = svc
                                 _connectionState.value = ConnectionState.CONNECTED
                                 Timber.i(
-                                    "Connected to DeviceMaskerService (v${service?.serviceVersion})"
+                                    "[$TAG] Connected to DeviceMaskerService v${DeviceMaskerService.VERSION}"
                                 )
                                 return@withContext true
                             }
                         }
                     }
                     .onFailure { e ->
-                        Timber.w("Connection attempt ${attempt + 1} failed: ${e.message}")
+                        Timber.w("[$TAG] Connection attempt ${attempt + 1} failed: ${e.message}")
                     }
 
                 if (attempt < MAX_RETRIES - 1) {
                     delay(retryDelay)
-                    retryDelay *= 2 // Exponential backoff
+                    retryDelay *= 2
                 }
             }
 
             _connectionState.value = ConnectionState.ERROR
-            Timber.e("Failed to connect after $MAX_RETRIES attempts")
-            return@withContext false
+            Timber.e(
+                "[$TAG] Failed to connect after $MAX_RETRIES attempts — diagnostics unavailable"
+            )
+            false
         }
 
-    /** Disconnects from the service. */
+    /** Disconnects from the service and resets state. */
     fun disconnect() {
         service = null
         _connectionState.value = ConnectionState.DISCONNECTED
-        Timber.d("Disconnected from DeviceMaskerService")
+        Timber.d("[$TAG] Disconnected from DeviceMaskerService")
     }
 
     /**
-     * Pings the service to check if it's still alive.
+     * Pings the ContentProvider to verify the service is still reachable.
      *
-     * @return true if service responds, false otherwise
+     * @return `true` if service responds, `false` otherwise
      */
     suspend fun ping(): Boolean =
         withContext(Dispatchers.IO) {
@@ -149,89 +132,32 @@ class ServiceClient(private val context: Context) {
         }
 
     // ═══════════════════════════════════════════════════════════
-    // CONFIGURATION OPERATIONS
+    // DIAGNOSTICS READS (no config methods post-migration)
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Writes complete configuration to the service.
+     * Gets the total spoof event count for a specific package this session.
      *
-     * @param json JSON string of the configuration
-     * @return true if successful, false otherwise
+     * @param packageName Target app package name
+     * @return Event count, or 0 if not connected / no data
      */
-    suspend fun writeConfig(json: String): Boolean =
+    suspend fun getSpoofEventCount(packageName: String): Int =
         withContext(Dispatchers.IO) {
-            ensureConnected {
-                service?.writeConfig(json)
-                Timber.d("Config written to service")
-                true
-            } ?: false
+            ensureConnected { service?.getSpoofEventCount(packageName) ?: 0 } ?: 0
         }
 
     /**
-     * Reads current configuration from the service.
+     * Gets all packages that have had hooks registered this boot session.
      *
-     * @return Configuration JSON string, or null if failed
+     * @return List of package names, or empty if not connected
      */
-    suspend fun readConfig(): String? =
-        withContext(Dispatchers.IO) { ensureConnected { service?.readConfig() } }
-
-    /** Forces the service to reload configuration from disk. */
-    suspend fun reloadConfig(): Boolean =
+    suspend fun getHookedPackages(): List<String> =
         withContext(Dispatchers.IO) {
-            ensureConnected {
-                service?.reloadConfig()
-                true
-            } ?: false
+            ensureConnected { service?.hookedPackages ?: emptyList() } ?: emptyList()
         }
-
-    // ═══════════════════════════════════════════════════════════
-    // QUERY OPERATIONS
-    // ═══════════════════════════════════════════════════════════
-
-    /** Checks if the module is globally enabled. */
-    suspend fun isModuleEnabled(): Boolean =
-        withContext(Dispatchers.IO) {
-            ensureConnected { service?.isModuleEnabled ?: false } ?: false
-        }
-
-    /** Checks if spoofing is enabled for a specific app. */
-    suspend fun isAppEnabled(packageName: String): Boolean =
-        withContext(Dispatchers.IO) {
-            ensureConnected { service?.isAppEnabled(packageName) ?: false } ?: false
-        }
-
-    /** Gets a spoof value for an app. */
-    suspend fun getSpoofValue(packageName: String, key: String): String? =
-        withContext(Dispatchers.IO) { ensureConnected { service?.getSpoofValue(packageName, key) } }
-
-    // ═══════════════════════════════════════════════════════════
-    // STATISTICS OPERATIONS
-    // ═══════════════════════════════════════════════════════════
-
-    /** Gets the filter count for a specific app. */
-    suspend fun getFilterCount(packageName: String): Int =
-        withContext(Dispatchers.IO) {
-            ensureConnected { service?.getFilterCount(packageName) ?: 0 } ?: 0
-        }
-
-    /** Gets the total number of hooked apps. */
-    suspend fun getHookedAppCount(): Int =
-        withContext(Dispatchers.IO) { ensureConnected { service?.hookedAppCount ?: 0 } ?: 0 }
-
-    /** Gets service uptime in milliseconds. */
-    suspend fun getServiceUptime(): Long =
-        withContext(Dispatchers.IO) { ensureConnected { service?.serviceUptime ?: 0L } ?: 0L }
-
-    /** Gets service version string. */
-    suspend fun getServiceVersion(): String? =
-        withContext(Dispatchers.IO) { ensureConnected { service?.serviceVersion } }
-
-    // ═══════════════════════════════════════════════════════════
-    // LOGGING OPERATIONS
-    // ═══════════════════════════════════════════════════════════
 
     /**
-     * Gets recent log entries from the service.
+     * Gets recent log entries from the service (newest last).
      *
      * @param maxCount Maximum number of entries to return
      * @return List of formatted log entries
@@ -241,56 +167,60 @@ class ServiceClient(private val context: Context) {
             ensureConnected { service?.getLogs(maxCount) ?: emptyList() } ?: emptyList()
         }
 
-    /** Clears all log entries in the service. */
-    suspend fun clearLogs(): Boolean =
+    /**
+     * Clears all diagnostic data in the service (logs, counts, hooked packages).
+     *
+     * @return `true` if successful, `false` if not connected
+     */
+    suspend fun clearDiagnostics(): Boolean =
         withContext(Dispatchers.IO) {
             ensureConnected {
-                service?.clearLogs()
+                service?.clearDiagnostics()
                 true
             } ?: false
         }
+
+    /**
+     * Health check — verifies the service binder is responding.
+     *
+     * @return `true` if service responds, `false` otherwise
+     */
+    suspend fun isAlive(): Boolean =
+        withContext(Dispatchers.IO) { ensureConnected { service?.isAlive ?: false } ?: false }
 
     // ═══════════════════════════════════════════════════════════
     // INTERNAL HELPERS
     // ═══════════════════════════════════════════════════════════
 
-    /** Gets the service binder from ContentProvider. */
-    private fun getBinder(): IBinder? {
-        return runCatching {
+    private fun getBinder(): IBinder? =
+        runCatching {
                 val bundle =
                     context.contentResolver.call(CONTENT_URI, METHOD_GET_BINDER, null, null)
                 bundle?.getBinder(KEY_BINDER)
             }
             .getOrNull()
-    }
 
     /**
-     * Ensures we're connected before executing an operation.
-     *
-     * If not connected, attempts to reconnect once.
+     * Ensures we're connected before executing [block]. Attempts a single synchronous reconnect if
+     * not connected. Returns `null` if connection fails.
      */
     private inline fun <T> ensureConnected(block: () -> T): T? {
         if (!isConnected) {
-            // Try to reconnect synchronously (caller should already be on IO dispatcher)
             runCatching {
                 val binder = getBinder()
                 if (binder != null) {
-                    service = IDeviceMaskerService.Stub.asInterface(binder)
-                    if (service?.isServiceAlive == true) {
+                    val svc = IDeviceMaskerService.Stub.asInterface(binder)
+                    if (svc.isAlive) {
+                        service = svc
                         _connectionState.value = ConnectionState.CONNECTED
                     }
                 }
             }
         }
-
-        return if (isConnected) {
-            runCatching { block() }.getOrNull()
-        } else {
-            null
-        }
+        return if (isConnected) runCatching { block() }.getOrNull() else null
     }
 
-    /** Connection state enum for UI observation. */
+    /** Observable connection state for UI. */
     enum class ConnectionState {
         DISCONNECTED,
         CONNECTING,
@@ -298,3 +228,6 @@ class ServiceClient(private val context: Context) {
         ERROR,
     }
 }
+
+/** Convenience alias so xposed module version is accessible from app-side. */
+private val DeviceMaskerService = com.astrixforge.devicemasker.xposed.service.DeviceMaskerService

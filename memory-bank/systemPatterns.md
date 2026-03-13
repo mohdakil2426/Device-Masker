@@ -8,22 +8,22 @@
 ┌────────────────────────────────────────────────────────────────┐
 │                    LSPosed Framework (External)                │
 └───────────────────────────────┬────────────────────────────────┘
-                                │ Loads module via xposed_init
+                                │ Loads module via java_init.list
 ┌────────────────────────────────────────────────────────────────┐
-│  :app  (UI + HookEntry)                                        │
-│  HookEntry(@InjectYukiHookWithXposed) ──► delegates XposedEntry│
-│  ConfigManager ──► AIDL ServiceClient ──► system_server        │
-│  ConfigManager ──► ConfigSync ──► XposedPrefs (fallback write) │
+│  :app  (UI)                                                    │
+│  MainActivity ──► NavHost (M3 Expressive)                      │
+│  ConfigManager ──► RemotePreferences (libxposed-service)       │
+│  ServiceClient ──► AIDL (oneway diagnostics)                   │
 ├────────────────────────────────────────────────────────────────┤
 │  :common  (Shared Contract)                                    │
 │  IDeviceMaskerService.aidl │ SharedPrefsKeys │ SpoofType       │
 │  JsonConfig │ SpoofGroup │ DeviceProfilePreset │ generators/   │
 ├────────────────────────────────────────────────────────────────┤
 │  :xposed  (Hook Layer)                                         │
-│  XposedEntry: loadSystem{SystemServiceHooker}                  │
-│               loadApp{AntiDetect → Device → Network → ...}     │
-│  DeviceMaskerService (system_server AIDL impl)                 │
-│  BaseSpoofHooker: AIDL-first ──► XSharedPreferences fallback   │
+│  XposedEntry: onPackageLoaded / onSystemServerLoaded           │
+│  DeviceMaskerService (system_server AIDL impl - diagnostics)   │
+│  BaseSpoofHooker: RemotePreferences-first ──► AIDL fallback    │
+│  DeoptimizeManager: Bypasses ART inlining for consistent hooks │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,31 +54,36 @@ UI saves config
   ▼
 ConfigManager (app)
   ├── Writes config.json (local persistence)
-  ├── ConfigSync → XposedPrefs (fallback, cached, needs app restart)
-  └── ServiceClient → AIDL → DeviceMaskerService (system_server, real-time)
+  └── XposedServiceHelper ──► RemotePreferences (libxposed-service provider)
                                       │
-                                      │ Hooker queries
+                                      │ Hooker queries (no restart needed)
                                       ▼
                           BaseSpoofHooker.getSpoofValue()
-                            ├── 1st: service.getSpoofValue() ← real-time
-                            └── 2nd: XSharedPreferences ← fallback
+                            ├── 1st: RemotePreferences (cached by LSPosed)
+                            └── 2nd: AIDL fallback (diagnostics reporting)
 ```
 
 ### Hybrid getSpoofValue() — Core Pattern
 
 ```kotlin
-// BaseSpoofHooker.kt — Every hooker inherits this
-protected fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
-    // Primary: AIDL service (real-time, no restart needed)
-    service?.let { svc ->
-        runCatching {
-            svc.getSpoofValue(packageName, type.name)
-                ?.takeIf { it.isNotBlank() }
-                ?.let { incrementFilterCount(); return it }
+// BaseSpoofHooker.kt — Shared logic for all hookers
+protected fun safeHook(xi: XposedInterface, target: String, block: () -> Unit) {
+    runCatching {
+        block()
+    }.onFailure { DualLog.warn(TAG, "Hook reservation failed: $target", it) }
+}
+
+// In hooker callbacks
+@JvmStatic
+fun after(callback: AfterHookCallback) {
+    runCatching {
+        val prefs = HookState.prefs ?: return
+        val pkg = HookState.pkg
+        callback.result = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.IMEI) {
+            IMEIGenerator.generate()
         }
-    }
-    // Fallback: XSharedPreferences (cached, needs target app restart)
-    return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
+        reportSpoofEvent(pkg, SpoofType.IMEI)
+    }.onFailure { DualLog.warn(TAG, "after() failed", it) }
 }
 ```
 
@@ -139,35 +144,43 @@ override fun onHook() {
 Every hook callback **must** follow this exact double-`runCatching` structure:
 
 ```kotlin
-// ✅ CORRECT
-"android.telephony.TelephonyManager".toClassOrNull()?.apply {
-    runCatching {                               // Outer: method lookup failure won't crash hooker
-        method { name = "getImei"; emptyParam() }.hook {
-            after {
-                runCatching {                   // Inner: hook body error won't crash target app
-                    result = getSpoofValue(SpoofType.IMEI) { fallbackImei }
+// ✅ CORRECT (API 100)
+safeHook(xi, "TelephonyManager.getImei()") {
+    tmClass.methodOrNull("getImei")?.let { m ->
+        xi.hook(m, GetImeiHooker::class.java)
+        xi.deoptimize(m) // ⚠️ Prevent bypass
+    }
+}
+
+class GetImeiHooker : XposedInterface.Hooker {
+    companion object {
+        @JvmStatic fun after(callback: AfterHookCallback) {
+            runCatching {
+                val prefs = HookState.prefs ?: return
+                callback.result = PrefsHelper.getSpoofValue(prefs, HookState.pkg, SpoofType.IMEI) {
+                    IMEIGenerator.generate()
                 }
-            }
+            }.onFailure { DualLog.warn("GetImeiHooker", "Failed to spoof IMEI", it) }
         }
     }
 }
 
-// ❌ WRONG — bare after{} + toClass() = crash risk
-"android.telephony.TelephonyManager".toClass().apply {   // throws if class missing
-    method { name = "getImei" }.hook {
-        after { result = getSpoofValue(SpoofType.IMEI) { fallbackImei } }  // unprotected
+// ❌ WRONG — no deoptimize + bare calls = bypass risk + crash risk
+xi.hook(m, object : XposedInterface.Hooker {
+    @JvmStatic fun after(c: AfterHookCallback) {
+        c.result = "123" // Could crash if c.result type mismatch or prefs null
     }
-}
+})
 ```
 
-| Rule                                            | Consequence if violated                                     |
-| ----------------------------------------------- | ----------------------------------------------------------- |
-| `toClassOrNull()` not `toClass()`               | `ClassNotFoundException` on older Android versions          |
-| Outer `runCatching` around `.hook{}`            | Method lookup crash kills the hooker init                   |
-| Inner `runCatching` inside `after/before {}`    | Any exception crashes the target app                        |
-| `exception.throwToApp()` as Throwable extension | Compile error — wrong API call syntax                       |
-| `SecureRandom` in ALL generators                | `java.util.Random` / `chars.random()` are not cryptographic |
-| Try-catch ALL code in `system_server`           | Any uncaught exception → **bootloop**                       |
+| Rule                                         | Consequence if violated                                     |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| `toClassOrNull()` not `toClass()`            | `ClassNotFoundException` on older Android versions          |
+| Outer `runCatching` around `.hook{}`         | Method lookup crash kills the hooker init                   |
+| Inner `runCatching` inside `after/before {}` | Any exception crashes the target app                        |
+| `throwAndSkip` / `returnAndSkip`             | Wrong method names for skipping hooks                       |
+| `SecureRandom` in ALL generators             | `java.util.Random` / `chars.random()` are not cryptographic |
+| Try-catch ALL code in `system_server`        | Any uncaught exception → **bootloop**                       |
 
 ---
 

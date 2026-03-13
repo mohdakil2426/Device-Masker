@@ -1,17 +1,17 @@
 package com.astrixforge.devicemasker.common.generators
 
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import java.security.SecureRandom
 
 /**
- * IMEI Generator with Luhn checksum validation.
+ * IMEI Generator with Luhn checksum validation and TAC-aware preset support.
  *
  * IMEI Structure (15 digits):
- * - TAC (Type Allocation Code): 8 digits - Identifies device manufacturer/model
- * - Serial Number: 6 digits - Unique device identifier
- * - Check Digit: 1 digit - Luhn checksum for validation
- *
- * This generator creates valid IMEI numbers that pass Luhn validation using realistic TAC prefixes
- * from major manufacturers.
+ * - TAC (Type Allocation Code): 8 digits — identifies device type globally. **Fraud detection SDKs
+ *   cross-reference the TAC against `Build.MODEL`.** A mismatch immediately flags the device as
+ *   spoofed. Use [generateForPreset] when a device profile is set.
+ * - Serial Number (SNR): 6 digits — random per-device identifier
+ * - Check Digit: 1 digit — Luhn checksum for ITU-T E.212 validation
  */
 object IMEIGenerator {
 
@@ -207,6 +207,49 @@ object IMEIGenerator {
         val checkDigit = calculateLuhnCheckDigit(imeiWithoutCheck)
 
         return imeiWithoutCheck + checkDigit
+    }
+
+    /**
+     * Generates a IMEI correlated to the given [DeviceProfilePreset].
+     *
+     * Uses one of the preset's [DeviceProfilePreset.tacPrefixes] as the TAC, ensuring the generated
+     * IMEI matches what would be expected for the claimed device model.
+     *
+     * This closes the TAC-mismatch detection gap documented in the spec.
+     *
+     * @param preset The active device profile preset
+     * @return A valid 15-digit IMEI starting with one of the preset's TAC prefixes
+     */
+    fun generateForPreset(preset: DeviceProfilePreset): String {
+        val tac =
+            if (preset.tacPrefixes.isNotEmpty()) {
+                preset.tacPrefixes[secureRandom.nextInt(preset.tacPrefixes.size)]
+            } else {
+                // Fallback: pick from global list filtered by manufacturer
+                generate(preset.manufacturer)
+                    .take(8) // Extract the TAC that was chosen
+                    .also {
+                        return generate(preset.manufacturer)
+                    }
+            }
+        return generateWithTac(tac)
+    }
+
+    /**
+     * Generates a valid IMEI from an explicit 8-digit TAC prefix.
+     *
+     * @param tac 8-digit Type Allocation Code string
+     * @return Valid 15-digit IMEI
+     * @throws IllegalArgumentException if [tac] is not exactly 8 digits
+     */
+    fun generateWithTac(tac: String): String {
+        require(tac.length == 8 && tac.all { it.isDigit() }) {
+            "TAC must be exactly 8 decimal digits, got: '$tac'"
+        }
+        val serial = buildString { repeat(6) { append(secureRandom.nextInt(10)) } }
+        val partial = tac + serial
+        val checkDigit = calculateLuhnCheckDigit(partial)
+        return partial + checkDigit
     }
 
     /**

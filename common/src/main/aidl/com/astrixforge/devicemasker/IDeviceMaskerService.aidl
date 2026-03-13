@@ -2,119 +2,78 @@
 package com.astrixforge.devicemasker;
 
 /**
- * AIDL interface for Device Masker service running in system_server.
- * Provides real-time configuration updates and centralized logging.
+ * AIDL interface for Device Masker diagnostics service (Option B — libxposed API 100).
  *
- * This service is registered at boot time by SystemServiceHooker and
- * exposed via ServiceBridge ContentProvider for UI app communication.
+ * Config delivery has been moved entirely to RemotePreferences (libxposed API 100).
+ * This service is now DIAGNOSTICS ONLY — hooks report events to it, and the UI reads
+ * aggregated statistics and log entries.
+ *
+ * Methods removed (replaced by RemotePreferences):
+ *   writeConfig, readConfig, reloadConfig,
+ *   isModuleEnabled, isAppEnabled, getSpoofValue
+ *
+ * Hook → service calls MUST be oneway (fire-and-forget, non-blocking, ~5μs).
+ * UI → service reads are synchronous (blocking, always called from IO coroutines).
  */
 interface IDeviceMaskerService {
 
-    // ==================== Configuration ====================
+    // ═══ REPORTING — called from hook callbacks  ═══
+    // ALL must be oneway: hook callbacks must not block waiting for system_server.
 
     /**
-     * Write complete configuration as JSON string.
-     * The service will parse, validate, and persist the config.
-     * @param json JSON representation of JsonConfig
+     * Report that a spoof event occurred for a package.
+     * Called after each successful hook interception — MUST NOT BLOCK.
+     * @param packageName  Target app package name
+     * @param spoofType    SpoofType enum name (e.g. "IMEI", "ANDROID_ID")
      */
-    void writeConfig(in String json);
+    oneway void reportSpoofEvent(in String packageName, in String spoofType);
 
     /**
-     * Read current configuration as JSON string.
-     * @return JSON representation of current JsonConfig
+     * Report a structured log entry from a hook.
+     * Called from hook callbacks — MUST NOT BLOCK.
+     * @param tag      Log tag (e.g. "DeviceHooker")
+     * @param message  Log message
+     * @param level    Android log priority: Log.DEBUG=3, Log.INFO=4, Log.WARN=5, Log.ERROR=6
      */
-    String readConfig();
+    oneway void reportLog(in String tag, in String message, int level);
 
     /**
-     * Force reload configuration from disk.
-     * Useful after external modifications or for recovery.
+     * Report that hooks were registered for a package this session.
+     * Called once per package load from XposedEntry.onPackageLoaded().
+     * @param packageName  The loaded package
      */
-    void reloadConfig();
+    oneway void reportPackageHooked(in String packageName);
 
-    // ==================== Query Methods ====================
+    // ═══ READS — called by DiagnosticsViewModel on the IO dispatcher ═══
 
     /**
-     * Check if the module is globally enabled.
-     * @return true if module is enabled in settings
+     * Get the total number of spoof events recorded for a specific package this session.
+     * @param packageName  Target app package name
+     * @return  Event count, or 0 if no hooks fired yet
      */
-    boolean isModuleEnabled();
+    int getSpoofEventCount(in String packageName);
 
     /**
-     * Check if spoofing is enabled for a specific app.
-     * @param packageName target app package name
-     * @return true if app has spoofing enabled
+     * Get all packages that have had hooks registered this session.
+     * @return  List of package names
      */
-    boolean isAppEnabled(in String packageName);
+    List<String> getHookedPackages();
 
     /**
-     * Get a specific spoof value for an app.
-     * @param packageName target app package name
-     * @param key spoof type key (e.g., "IMEI", "MAC_ADDRESS")
-     * @return spoofed value, or null if not configured
-     */
-    String getSpoofValue(in String packageName, in String key);
-
-    // ==================== Statistics ====================
-
-    /**
-     * Increment the filter count for an app.
-     * Called by hookers when a value is successfully spoofed.
-     * @param packageName target app package name
-     */
-    void incrementFilterCount(in String packageName);
-
-    /**
-     * Get the filter count for an app.
-     * @param packageName target app package name
-     * @return number of times values were spoofed for this app
-     */
-    int getFilterCount(in String packageName);
-
-    /**
-     * Get the total number of apps with active hooks.
-     * @return count of hooked apps
-     */
-    int getHookedAppCount();
-
-    // ==================== Logging ====================
-
-    /**
-     * Log a message to the centralized service log.
-     * @param tag log tag (typically hooker name)
-     * @param message log message
-     * @param level log level: 0=INFO, 1=WARN, 2=ERROR, 3=DEBUG
-     */
-    void log(in String tag, in String message, int level);
-
-    /**
-     * Get recent log entries.
-     * @param maxCount maximum number of entries to return
-     * @return list of formatted log entries
+     * Get recent log entries (newest last).
+     * @param maxCount  Maximum entries to return (capped at 500 internally)
+     * @return  List of formatted log strings
      */
     List<String> getLogs(int maxCount);
 
     /**
-     * Clear all log entries.
+     * Clear all diagnostic data: logs, spoof counts, hooked package set.
      */
-    void clearLogs();
-
-    // ==================== Control ====================
+    void clearDiagnostics();
 
     /**
-     * Check if the service is alive and responding.
-     * @return always true if reachable
+     * Health check — always returns true if the service is reachable.
+     * Used by DiagnosticsViewModel to display service connection status.
      */
-    boolean isServiceAlive();
-
-    /**
-     * Get the service version string.
-     * @return version string (e.g., "1.0.0")
-     */
-    String getServiceVersion();
-
-    /**
-     * Get service uptime in milliseconds.
-     * @return milliseconds since service initialization
-     */
-    long getServiceUptime();
+    boolean isAlive();
 }

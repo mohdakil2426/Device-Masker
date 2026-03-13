@@ -1,371 +1,532 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import android.content.SharedPreferences
+import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.utils.ValueGenerators
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.type.java.IntType
-import com.highcapable.yukihookapi.hook.type.java.StringClass
+import com.astrixforge.devicemasker.common.generators.IMEIGenerator
+import com.astrixforge.devicemasker.common.generators.IMSIGenerator
+import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
+import com.astrixforge.devicemasker.common.generators.SerialGenerator
+import com.astrixforge.devicemasker.common.generators.DeviceHardwareGenerator
+import com.astrixforge.devicemasker.xposed.PrefsHelper
+import com.astrixforge.devicemasker.xposed.XposedEntry
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
 /**
- * Device Identifier Hooker - Spoofs hardware and device identifiers.
+ * Device Identifier Hooker — libxposed API 100 edition.
  *
- * Hooks TelephonyManager, Build class, and Settings.Secure to spoof:
- * - IMEI, IMSI, ICCID (device & SIM identifiers)
- * - Serial number
- * - Android ID
+ * Hooks TelephonyManager, Build.getSerial(), and Settings.Secure.getString() to spoof:
+ * - IMEI (getDeviceId, getImei — both no-arg and slot-indexed variants)
+ * - IMSI / SubscriberId (getSubscriberId)
+ * - ICCID (getSimSerialNumber)
+ * - Serial number (Build.getSerial(), SystemProperties ro.serialno)
+ * - Android ID (Settings.Secure "android_id")
+ * - SIM country ISO, network country ISO, operator names, MCC/MNC
+ * - Phone number (getLine1Number)
+ *
+ * ## Key improvements over YukiHookAPI version
+ * 1. `deoptimize()` called after every hook — bypasses ART inlining on heavily-used getters
+ * 2. Individual `safeHook()` per method — one OEM missing a signature cannot cascade failures
+ * 3. RemotePreferences read in @AfterInvocation — always reflects latest UI configuration
+ * 4. `loadClassOrNull()` used everywhere — isolated renderer processes don't crash
+ *
+ * ## @XposedHooker companion object pattern
+ * Because @BeforeInvocation/@AfterInvocation methods must be static (JVM @JvmStatic), all shared
+ * state is in the companion object marked @Volatile for thread safety.
  */
 object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
 
-    // Cached class references
-    private val telephonyClass by lazy { "android.telephony.TelephonyManager".toClass() }
-    private val subscriptionInfoClass by lazy {
-        "android.telephony.SubscriptionInfo".toClassOrNull()
+    /**
+     * Registers all TelephonyManager, Build, and Settings.Secure hooks. Called once per target
+     * process from [XposedEntry.onPackageLoaded].
+     *
+     * @param cl The target app's ClassLoader
+     * @param xi The XposedInterface hook engine
+     * @param prefs RemotePreferences for this process (live, no restart needed)
+     * @param pkg The target app's package name
+     */
+    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+        // Publish state to companion objects of @XposedHooker inner classes
+        // These are process-local — each process gets its own DeviceHooker instance + companion
+        // state
+        HookState.prefs = prefs
+        HookState.pkg = pkg
+        HookState.xi = xi
+
+        hookTelephonyManager(cl, xi)
+        hookBuildSerial(cl, xi)
+        hookSettingsSecure(cl, xi)
+        hookSystemProperties(cl, xi)
     }
 
-    // Fallback values (thread-safe lazy)
-    private val fallbackImei by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { ValueGenerators.imei() }
-    private val fallbackSerial by
-        lazy(LazyThreadSafetyMode.SYNCHRONIZED) { ValueGenerators.serial() }
-    private val fallbackAndroidId by
-        lazy(LazyThreadSafetyMode.SYNCHRONIZED) { ValueGenerators.androidId() }
+    // ─────────────────────────────────────────────────────────────
+    // Telephony Manager hooks
+    // ─────────────────────────────────────────────────────────────
 
-    override fun onHook() {
-        logStart()
-        hookTelephonyManager()
-        hookSubscriptionInfo()
-        hookBuildClass()
-        hookSettingsSecure()
-        recordSuccess()
-    }
+    private fun hookTelephonyManager(cl: ClassLoader, xi: XposedInterface) {
+        val tm = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
+        val intClass = Int::class.javaPrimitiveType!!
 
-    // ═══════════════════════════════════════════════════════════
-    // TELEPHONY MANAGER HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookTelephonyManager() {
-        // Cache spoof values at registration time
-        val cachedImei = getSpoofValue(SpoofType.IMEI) { fallbackImei }
-        val cachedImsi = getSpoofValue(SpoofType.IMSI) { ValueGenerators.imsi() }
-        val cachedIccid = getSpoofValue(SpoofType.ICCID) { ValueGenerators.iccid() }
-
-        telephonyClass.apply {
-            // getDeviceId() overloads
-            method {
-                    name = "getDeviceId"
-                    emptyParam()
-                }
-                .hook { replaceAny { cachedImei } }
-            method {
-                    name = "getDeviceId"
-                    param(IntType)
-                }
-                .hook { replaceAny { cachedImei } }
-
-            // getImei() overloads
-            method {
-                    name = "getImei"
-                    emptyParam()
-                }
-                .hook { replaceAny { cachedImei } }
-            method {
-                    name = "getImei"
-                    param(IntType)
-                }
-                .hook { replaceAny { cachedImei } }
-
-            // getSubscriberId (IMSI) overloads
-            method {
-                    name = "getSubscriberId"
-                    emptyParam()
-                }
-                .hook { replaceAny { cachedImsi } }
-            runCatching {
-                method {
-                        name = "getSubscriberId"
-                        param(IntType)
-                    }
-                    .hook { replaceAny { cachedImsi } }
+        // getDeviceId() — no-arg (deprecated, still used by legacy apps)
+        safeHook("getDeviceId()") {
+            tm.methodOrNull("getDeviceId")?.let { m ->
+                xi.hook(m, GetImeiHooker::class.java)
+                xi.deoptimize(m)
             }
-
-            // getSimSerialNumber (ICCID) overloads
-            method {
-                    name = "getSimSerialNumber"
-                    emptyParam()
-                }
-                .hook { after { result = cachedIccid } }
-            runCatching {
-                method {
-                        name = "getSimSerialNumber"
-                        param(IntType)
-                    }
-                    .hook { after { result = cachedIccid } }
+        }
+        // getDeviceId(int slot) — slot-indexed
+        safeHook("getDeviceId(int)") {
+            tm.methodOrNull("getDeviceId", intClass)?.let { m ->
+                xi.hook(m, GetImeiHooker::class.java)
+                xi.deoptimize(m)
             }
-
-            // SIM Hooks
-            method {
-                    name = "getSimCountryIso"
-                    emptyParam()
-                }
-                .hook { after { result = getSpoofValue(SpoofType.SIM_COUNTRY_ISO) { "us" } } }
-            runCatching {
-                method {
-                        name = "getSimCountryIso"
-                        param(IntType)
-                    }
-                    .hook { after { result = getSpoofValue(SpoofType.SIM_COUNTRY_ISO) { "us" } } }
+        }
+        // getImei() — no-arg (API 26+)
+        safeHook("getImei()") {
+            tm.methodOrNull("getImei")?.let { m ->
+                xi.hook(m, GetImeiHooker::class.java)
+                xi.deoptimize(m)
             }
-
-            method {
-                    name = "getNetworkCountryIso"
-                    emptyParam()
-                }
-                .hook { after { result = getSpoofValue(SpoofType.NETWORK_COUNTRY_ISO) { "us" } } }
-            runCatching {
-                method {
-                        name = "getNetworkCountryIso"
-                        param(IntType)
-                    }
-                    .hook {
-                        after { result = getSpoofValue(SpoofType.NETWORK_COUNTRY_ISO) { "us" } }
-                    }
+        }
+        // getImei(int slot) — slot-indexed (API 26+)
+        safeHook("getImei(int)") {
+            tm.methodOrNull("getImei", intClass)?.let { m ->
+                xi.hook(m, GetImeiHooker::class.java)
+                xi.deoptimize(m)
             }
-
-            method {
-                    name = "getSimOperatorName"
-                    emptyParam()
-                }
-                .hook {
-                    after { result = getSpoofValue(SpoofType.SIM_OPERATOR_NAME) { "Carrier" } }
-                }
-            runCatching {
-                method {
-                        name = "getSimOperatorName"
-                        param(IntType)
-                    }
-                    .hook {
-                        after { result = getSpoofValue(SpoofType.SIM_OPERATOR_NAME) { "Carrier" } }
-                    }
+        }
+        // getSubscriberId() — IMSI, no-arg
+        safeHook("getSubscriberId()") {
+            tm.methodOrNull("getSubscriberId")?.let { m ->
+                xi.hook(m, GetImsiHooker::class.java)
+                xi.deoptimize(m)
             }
-
-            method {
-                    name = "getNetworkOperator"
-                    emptyParam()
-                }
-                .hook { after { result = getSpoofValue(SpoofType.NETWORK_OPERATOR) { "310260" } } }
-            runCatching {
-                method {
-                        name = "getNetworkOperator"
-                        param(IntType)
-                    }
-                    .hook {
-                        after { result = getSpoofValue(SpoofType.NETWORK_OPERATOR) { "310260" } }
-                    }
+        }
+        // getSubscriberId(int slot) — slot-indexed
+        safeHook("getSubscriberId(int)") {
+            tm.methodOrNull("getSubscriberId", intClass)?.let { m ->
+                xi.hook(m, GetImsiHooker::class.java)
+                xi.deoptimize(m)
             }
-
-            method {
-                    name = "getSimOperator"
-                    emptyParam()
-                }
-                .hook { after { result = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" } } }
-            runCatching {
-                method {
-                        name = "getSimOperator"
-                        param(IntType)
-                    }
-                    .hook {
-                        after { result = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" } }
-                    }
+        }
+        // getSimSerialNumber() — ICCID, no-arg
+        safeHook("getSimSerialNumber()") {
+            tm.methodOrNull("getSimSerialNumber")?.let { m ->
+                xi.hook(m, GetIccidHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getSimSerialNumber(int slot)
+        safeHook("getSimSerialNumber(int)") {
+            tm.methodOrNull("getSimSerialNumber", intClass)?.let { m ->
+                xi.hook(m, GetIccidHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getSimCountryIso() — SIM country code
+        safeHook("getSimCountryIso()") {
+            tm.methodOrNull("getSimCountryIso")?.let { m ->
+                xi.hook(m, GetSimCountryIsoHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("getSimCountryIso(int)") {
+            tm.methodOrNull("getSimCountryIso", intClass)?.let { m ->
+                xi.hook(m, GetSimCountryIsoHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getNetworkCountryIso()
+        safeHook("getNetworkCountryIso()") {
+            tm.methodOrNull("getNetworkCountryIso")?.let { m ->
+                xi.hook(m, GetNetworkCountryIsoHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("getNetworkCountryIso(int)") {
+            tm.methodOrNull("getNetworkCountryIso", intClass)?.let { m ->
+                xi.hook(m, GetNetworkCountryIsoHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getSimOperatorName() — carrier display name
+        safeHook("getSimOperatorName()") {
+            tm.methodOrNull("getSimOperatorName")?.let { m ->
+                xi.hook(m, GetSimOperatorNameHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("getSimOperatorName(int)") {
+            tm.methodOrNull("getSimOperatorName", intClass)?.let { m ->
+                xi.hook(m, GetSimOperatorNameHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getSimOperator() — MCC+MNC string
+        safeHook("getSimOperator()") {
+            tm.methodOrNull("getSimOperator")?.let { m ->
+                xi.hook(m, GetMccMncHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("getSimOperator(int)") {
+            tm.methodOrNull("getSimOperator", intClass)?.let { m ->
+                xi.hook(m, GetMccMncHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getNetworkOperator() — PLMN string
+        safeHook("getNetworkOperator()") {
+            tm.methodOrNull("getNetworkOperator")?.let { m ->
+                xi.hook(m, GetNetworkOperatorHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("getNetworkOperator(int)") {
+            tm.methodOrNull("getNetworkOperator", intClass)?.let { m ->
+                xi.hook(m, GetNetworkOperatorHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        // getLine1Number() — phone number
+        safeHook("getLine1Number()") {
+            tm.methodOrNull("getLine1Number")?.let { m ->
+                xi.hook(m, GetLine1NumberHooker::class.java)
+                xi.deoptimize(m)
             }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SUBSCRIPTION INFO HOOKS (Dual-SIM support)
-    // ═══════════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────────────────────
+    // Build.getSerial() hook
+    // ─────────────────────────────────────────────────────────────
 
-    private fun hookSubscriptionInfo() {
-        subscriptionInfoClass?.apply {
-            runCatching {
-                method {
-                        name = "getCountryIso"
-                        emptyParam()
-                    }
-                    .hook { after { result = getSpoofValue(SpoofType.SIM_COUNTRY_ISO) { "us" } } }
-            }
-            runCatching {
-                method {
-                        name = "getCarrierName"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            result =
-                                getSpoofValue(SpoofType.CARRIER_NAME) { "Carrier" } as CharSequence
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getDisplayName"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            result =
-                                getSpoofValue(SpoofType.CARRIER_NAME) { "Carrier" } as CharSequence
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getMcc"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
-                            result = mccMnc.take(3).toIntOrNull() ?: 310
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getMnc"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
-                            result = mccMnc.drop(3).toIntOrNull() ?: 260
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getMccString"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
-                            result = mccMnc.take(3)
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getMncString"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            val mccMnc = getSpoofValue(SpoofType.CARRIER_MCC_MNC) { "310260" }
-                            result = mccMnc.drop(3)
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getIccId"
-                        emptyParam()
-                    }
-                    .hook {
-                        after {
-                            result = getSpoofValue(SpoofType.ICCID) { ValueGenerators.iccid() }
-                        }
-                    }
-            }
-            runCatching {
-                method {
-                        name = "getNumber"
-                        emptyParam()
-                    }
-                    .hook {
-                        after { result = getSpoofValue(SpoofType.PHONE_NUMBER) { "+1234567890" } }
-                    }
-            }
-        } ?: logDebug("SubscriptionInfo class not available")
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // BUILD CLASS HOOKS
-    // ═══════════════════════════════════════════════════════════
-
-    private fun hookBuildClass() {
-        runCatching {
-            "android.os.Build".toClass().apply {
-                method {
-                        name = "getSerial"
-                        modifiers { isStatic }
-                    }
-                    .hook { after { result = getSpoofValue(SpoofType.SERIAL) { fallbackSerial } } }
+    private fun hookBuildSerial(cl: ClassLoader, xi: XposedInterface) {
+        safeHook("Build.getSerial()") {
+            val buildClass = cl.loadClassOrNull("android.os.Build") ?: return@safeHook
+            buildClass.methodOrNull("getSerial")?.let { m ->
+                xi.hook(m, GetSerialHooker::class.java)
+                xi.deoptimize(m)
             }
         }
-        hookSystemProperties()
     }
 
-    private fun hookSystemProperties() {
-        "android.os.SystemProperties".toClassOrNull()?.apply {
-            val serialKeys = listOf("ro.serialno", "ro.boot.serialno", "ril.serialnumber")
+    // ─────────────────────────────────────────────────────────────
+    // Settings.Secure.getString() hook (intercepts android_id reads)
+    // ─────────────────────────────────────────────────────────────
 
-            method {
-                    name = "get"
-                    param(StringClass)
-                }
-                .hook {
-                    after {
-                        val key = args(0).string()
-                        if (key in serialKeys) {
-                            result = getSpoofValue(SpoofType.SERIAL) { fallbackSerial }
-                        }
-                    }
-                }
-
-            method {
-                    name = "get"
-                    param(StringClass, StringClass)
-                }
-                .hook {
-                    after {
-                        val key = args(0).string()
-                        if (key in serialKeys) {
-                            result = getSpoofValue(SpoofType.SERIAL) { fallbackSerial }
-                        }
-                    }
+    private fun hookSettingsSecure(cl: ClassLoader, xi: XposedInterface) {
+        safeHook("Settings.Secure.getString()") {
+            val secureClass =
+                cl.loadClassOrNull("android.provider.Settings\$Secure") ?: return@safeHook
+            val resolverClass =
+                cl.loadClassOrNull("android.content.ContentResolver") ?: return@safeHook
+            secureClass.methodOrNull("getString", resolverClass, String::class.java)?.let { m ->
+                xi.hook(m, GetSettingsSecureStringHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("Settings.Secure.getStringForUser()") {
+            val secureClass =
+                cl.loadClassOrNull("android.provider.Settings\$Secure") ?: return@safeHook
+            val resolverClass =
+                cl.loadClassOrNull("android.content.ContentResolver") ?: return@safeHook
+            secureClass
+                .methodOrNull(
+                    "getStringForUser",
+                    resolverClass,
+                    String::class.java,
+                    Int::class.javaPrimitiveType!!,
+                )
+                ?.let { m ->
+                    xi.hook(m, GetSettingsSecureStringHooker::class.java)
+                    xi.deoptimize(m)
                 }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SETTINGS SECURE HOOKS
-    // ═══════════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────────────────────
+    // SystemProperties.get() — intercepts ro.serialno reads
+    // ─────────────────────────────────────────────────────────────
 
-    private fun hookSettingsSecure() {
-        "android.provider.Settings\$Secure".toClass().apply {
-            method {
-                    name = "getString"
-                    param("android.content.ContentResolver".toClass(), StringClass)
-                }
-                .hook {
-                    after {
-                        if (args(1).string() == "android_id") {
-                            result = getSpoofValue(SpoofType.ANDROID_ID) { fallbackAndroidId }
-                        }
-                    }
-                }
+    private fun hookSystemProperties(cl: ClassLoader, xi: XposedInterface) {
+        safeHook("SystemProperties.get(String)") {
+            val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
+            spClass.methodOrNull("get", String::class.java)?.let { m ->
+                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+        safeHook("SystemProperties.get(String, String)") {
+            val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
+            spClass.methodOrNull("get", String::class.java, String::class.java)?.let { m ->
+                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.deoptimize(m)
+            }
+        }
+    }
 
-            runCatching {
-                method {
-                        name = "getStringForUser"
-                        param("android.content.ContentResolver".toClass(), StringClass, IntType)
-                    }
-                    .hook {
-                        after {
-                            if (args(1).string() == "android_id") {
-                                result = getSpoofValue(SpoofType.ANDROID_ID) { fallbackAndroidId }
-                            }
+    // ─────────────────────────────────────────────────────────────
+    // Shared hook state — @Volatile for thread safety
+    // Set once per process at hook registration time (XposedEntry.onPackageLoaded)
+    // ─────────────────────────────────────────────────────────────
+
+    internal object HookState {
+        @Volatile var prefs: SharedPreferences? = null
+        @Volatile var pkg: String = ""
+        @Volatile var xi: XposedInterface? = null
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // @XposedHooker inner classes — one per unique callback behavior
+    // @JvmStatic required — libxposed API 100 calls these via JVM static dispatch
+    // ─────────────────────────────────────────────────────────────
+
+    class GetImeiHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.IMEI) {
+                            IMEIGenerator.generate()
                         }
-                    }
+                    reportSpoofEvent(pkg, SpoofType.IMEI)
+                } catch (t: Throwable) {
+                    Log.w("GetImeiHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetImsiHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.IMSI) {
+                            IMSIGenerator.generate()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.IMSI)
+                } catch (t: Throwable) {
+                    Log.w("GetImsiHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetIccidHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.ICCID) {
+                            ICCIDGenerator.generate()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.ICCID)
+                } catch (t: Throwable) {
+                    Log.w("GetIccidHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSimCountryIsoHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) {
+                            "us"
+                        }
+                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
+                } catch (t: Throwable) {
+                    Log.w("GetSimCountryIsoHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetNetworkCountryIsoHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(
+                            prefs,
+                            pkg,
+                            SpoofType.NETWORK_COUNTRY_ISO,
+                        ) {
+                            "us"
+                        }
+                    reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                } catch (t: Throwable) {
+                    Log.w("GetNetworkCountryIsoHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSimOperatorNameHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(
+                            prefs,
+                            pkg,
+                            SpoofType.SIM_OPERATOR_NAME,
+                        ) {
+                            "Carrier"
+                        }
+                    reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
+                } catch (t: Throwable) {
+                    Log.w("GetSimOperatorNameHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetMccMncHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) {
+                            "310260"
+                        }
+                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                } catch (t: Throwable) {
+                    Log.w("GetMccMncHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetNetworkOperatorHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(
+                            prefs,
+                            pkg,
+                            SpoofType.NETWORK_OPERATOR,
+                        ) {
+                            "310260"
+                        }
+                    reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
+                } catch (t: Throwable) {
+                    Log.w("GetNetworkOperatorHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetLine1NumberHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) {
+                            com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator.generate()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
+                } catch (t: Throwable) {
+                    Log.w("GetLine1NumberHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSerialHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SERIAL) {
+                            SerialGenerator.generate()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.SERIAL)
+                } catch (t: Throwable) {
+                    Log.w("GetSerialHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSettingsSecureStringHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    // args[1] is the key name; check for "android_id"
+                    val key = callback.args.getOrNull(1) as? String ?: return
+                    if (key != "android_id") return
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) {
+                            com.astrixforge.devicemasker.common.generators.UUIDGenerator.generateAndroidId()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
+                } catch (t: Throwable) {
+                    Log.w("GetSettingsSecureStringHooker", "after() failed: ${t.message}")
+                }
+            }
+        }
+    }
+
+    class GetSystemPropertyHooker : XposedInterface.Hooker {
+        private companion object {
+            // SystemProperties keys that leak real serial number
+            private val SERIAL_KEYS = setOf("ro.serialno", "ro.boot.serialno", "ril.serialnumber")
+
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    val key = callback.args.firstOrNull() as? String ?: return
+                    if (key !in SERIAL_KEYS) return
+                    val prefs = HookState.prefs ?: return
+                    val pkg = HookState.pkg
+                    callback.result =
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SERIAL) {
+                            SerialGenerator.generate()
+                        }
+                    reportSpoofEvent(pkg, SpoofType.SERIAL)
+                } catch (t: Throwable) {
+                    Log.w("GetSystemPropertyHooker", "after() failed: ${t.message}")
+                }
             }
         }
     }

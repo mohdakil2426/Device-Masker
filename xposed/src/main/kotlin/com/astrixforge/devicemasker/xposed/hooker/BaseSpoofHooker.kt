@@ -1,185 +1,150 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import com.astrixforge.devicemasker.IDeviceMaskerService
+import android.content.SharedPreferences
+import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.HookMetrics
 import com.astrixforge.devicemasker.xposed.PrefsHelper
-import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.astrixforge.devicemasker.xposed.XposedEntry
+import java.lang.reflect.Method
 
 /**
- * Base hooker with common functionality shared across all spoof hookers.
+ * Base class for all Device Masker spoof hookers — libxposed API 100 edition.
  *
- * Supports HYBRID configuration delivery:
- * 1. **AIDL Service (Primary)** - Real-time config from DeviceMaskerService
- * 2. **XSharedPreferences (Fallback)** - Cached config when service unavailable
+ * ## Design contract
  *
- * Provides:
- * - Centralized spoof value retrieval (service or prefs)
- * - Consistent logging with DualLog + service logging
- * - Metrics recording with HookMetrics
- * - Filter count tracking via service
+ * Each hooker is a stateless Kotlin `object` that extends this class. The lifecycle is:
+ * 1. XposedEntry.onPackageLoaded() calls `Hooker.hook(cl, xi, prefs, pkg)`
+ * 2. `hook()` calls [safeHook] for each method it wants to intercept
+ * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook()`, then `xi.deoptimize()`
+ * 4. The @XposedHooker inner class handles the actual callback in @BeforeInvocation/ *
  *
- * Usage (Legacy - objects):
+ * ## Why no instance state
+ *
+ * libxposed API 100 creates a NEW XposedModule instance per target process. Hooker objects are
+ * registered once per process load and their callbacks fire on whatever thread the target app uses.
+ * Shared state lives in `companion object` / `@Volatile` fields of the @XposedHooker class.
+ *
+ * ## Hook safety pattern
+ *
+ * Every single method hook must be in its own [safeHook] block. One failed method lookup (e.g.,
+ * `getImei(int)` absent on some OEM firmware) must NOT prevent other hooks from registering. This
+ * is the API 100 replacement for the YukiHookAPI outer `runCatching` pattern.
+ *
  * ```kotlin
- * object MyHooker : BaseSpoofHooker("MyHooker") {
- *     override fun onHook() {
- *         logStart()
- *         // Hook logic using getSpoofValue()
- *         recordSuccess()
+ * object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
+ *     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+ *         val tmClass = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
+ *         // Each method in its own safeHook — one failure cannot cascade
+ *         safeHook("getImei") {
+ *             val m = tmClass.methodOrNull("getImei") ?: return@safeHook
+ *             xi.hook(m, GetImeiHooker::class.java)
+ *             xi.deoptimize(m)   // bypass ART inlining — CRITICAL for guaranteed delivery
+ *         }
+ *     }
+ *
+ *      *     class GetImeiHooker : XposedInterface.Hooker {
+ *         companion object {
+ *             @Volatile var prefs: SharedPreferences? = null
+ *             @Volatile var pkg: String = ""
+ *
+ *             @JvmStatic
+ *              *             fun after(callback: AfterHookCallback) {
+ *                 val p = prefs ?: return
+ *                 callback.result = PrefsHelper.getSpoofValue(p, pkg, SpoofType.IMEI) {
+ *                     IMEIGenerator.generate()
+ *                 }
+ *             }
+ *         }
  *     }
  * }
  * ```
- *
- * @param tag The log tag for this hooker
  */
-abstract class BaseSpoofHooker(protected val tag: String) : YukiBaseHooker() {
-
-    // ═══════════════════════════════════════════════════════════
-    // SERVICE ACCESS
-    // ═══════════════════════════════════════════════════════════
+abstract class BaseSpoofHooker(protected val tag: String) {
 
     /**
-     * Gets the DeviceMaskerService if available.
+     * Wraps a single hook registration in a try-catch.
      *
-     * This is a cached reference obtained once per hooker instance. Returns null if service is not
-     * initialized (fallback to prefs).
-     */
-    protected val service: IDeviceMaskerService? by lazy {
-        runCatching {
-                if (DeviceMaskerService.isInitialized()) {
-                    DeviceMaskerService.getInstance()
-                } else {
-                    null
-                }
-            }
-            .getOrNull()
-    }
-
-    /** Returns true if AIDL service is available for config queries. */
-    protected val isServiceAvailable: Boolean
-        get() = service != null
-
-    // ═══════════════════════════════════════════════════════════
-    // SPOOF VALUE RETRIEVAL (Hybrid)
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Gets a spoof value using hybrid approach (service first, then prefs).
+     * If the block throws for any reason (class not found, method not found, hook engine error),
+     * the error is logged via XposedEntry.instance.log() and execution continues with the next
+     * hook. This ensures one missing method on an OEM firmware never silently skips ALL subsequent
+     * hooks.
      *
-     * @param type The type of value to spoof
-     * @param fallback Generator function if no configured value exists
-     * @return The configured spoof value or generated fallback
+     * @param methodName Human-readable name for the method (used in error logs only)
+     * @param block The hook registration code: resolve method → xi.hook() → xi.deoptimize()
      */
-    protected fun getSpoofValue(type: SpoofType, fallback: () -> String): String {
-        // Try service first (real-time config)
-        service?.let { svc ->
+    protected fun safeHook(methodName: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (t: Throwable) {
+            // Log to DualLog buffer AND to logcat
+            Log.w(tag, "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}")
             runCatching {
-                svc.getSpoofValue(packageName, type.name)?.let { value ->
-                    if (value.isNotBlank()) {
-                        incrementFilterCount()
-                        return value
-                    }
-                }
+                XposedEntry.instance.log(
+                    android.util.Log.WARN,
+                    tag,
+                    "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}",
+                    null,
+                )
             }
         }
-
-        // Fallback to XSharedPreferences
-        return PrefsHelper.getSpoofValue(prefs, packageName, type, fallback)
     }
 
     /**
-     * Gets a spoof value ONLY from the AIDL service.
-     *
-     * @param key The spoof type key (e.g., SpoofType.IMEI.name)
-     * @return The value from service, or null if unavailable
+     * Loads a class from this ClassLoader, returning null if not found. Safe for use in any process
+     * — isolated renderers, webview sandboxes, etc. may not have all Android classes in their
+     * ClassLoader.
      */
-    protected fun getSpoofValueFromService(key: String): String? {
-        return runCatching { service?.getSpoofValue(packageName, key) }.getOrNull()
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // STATISTICS & LOGGING
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Increments the filter count for this package via service.
-     *
-     * Called automatically when a spoof value is returned from getSpoofValue(). Safe to call even
-     * if service is unavailable.
-     */
-    protected fun incrementFilterCount() {
-        runCatching { service?.incrementFilterCount(packageName) }
-    }
-
-    /** Logs the start of hook registration for this package. */
-    protected fun logStart() {
-        val configSource = if (isServiceAvailable) "service" else "prefs"
-        logDebug("Starting hooks for: $packageName (config: $configSource)")
-    }
-
-    /** Records successful hook initialization in metrics. */
-    protected fun recordSuccess() {
-        HookMetrics.recordSuccess(tag, "initialization")
-    }
-
-    /**
-     * Records a hook failure in metrics.
-     *
-     * @param methodName Name of the method that failed to hook
-     */
-    protected fun recordFailure(methodName: String) {
-        HookMetrics.recordFailure(tag, methodName)
-    }
-
-    /** Logs a debug message with the hooker's tag. */
-    protected fun logDebug(message: String) {
-        DualLog.debug(tag, message)
-        logToService(message, LOG_LEVEL_DEBUG)
-    }
-
-    /** Logs an info message with the hooker's tag. */
-    protected fun logInfo(message: String) {
-        DualLog.info(tag, message)
-        logToService(message, LOG_LEVEL_INFO)
-    }
-
-    /** Logs a warning message with the hooker's tag. */
-    protected fun logWarn(message: String, throwable: Throwable? = null) {
-        if (throwable != null) {
-            DualLog.warn(tag, message, throwable)
-        } else {
-            DualLog.warn(tag, message)
+    protected fun ClassLoader.loadClassOrNull(name: String): Class<*>? =
+        try {
+            loadClass(name)
+        } catch (_: ClassNotFoundException) {
+            null
         }
-        logToService(message, LOG_LEVEL_WARN)
-    }
-
-    /** Logs an error message with the hooker's tag. */
-    protected fun logError(message: String, throwable: Throwable? = null) {
-        if (throwable != null) {
-            DualLog.error(tag, message, throwable)
-        } else {
-            DualLog.error(tag, message)
-        }
-        logToService(message, LOG_LEVEL_ERROR)
-    }
 
     /**
-     * Logs a message to the centralized service log.
-     *
-     * @param message Log message
-     * @param level Log level (0=INFO, 1=WARN, 2=ERROR, 3=DEBUG)
+     * Looks up a declared method by name and exact parameter types, returning null if missing.
+     * Automatically makes the method accessible for reflection. Safe for OEM firmware variations
+     * (e.g., `getImei(int)` may be absent on some devices).
      */
-    private fun logToService(message: String, level: Int) {
-        runCatching { service?.log(tag, message, level) }
-    }
+    protected fun Class<*>.methodOrNull(name: String, vararg params: Class<*>): Method? =
+        try {
+            getDeclaredMethod(name, *params).also { it.isAccessible = true }
+        } catch (_: NoSuchMethodException) {
+            null
+        }
 
-    companion object {
-        // Log levels matching IDeviceMaskerService.log()
-        private const val LOG_LEVEL_INFO = 0
-        private const val LOG_LEVEL_WARN = 1
-        private const val LOG_LEVEL_ERROR = 2
-        private const val LOG_LEVEL_DEBUG = 3
+    /**
+     * Gets a spoof value from RemotePreferences for a given type. Delegates to PrefsHelper which
+     * understands the SharedPrefsKeys key format.
+     *
+     * @param prefs The RemotePreferences for this process (from XposedEntry.getRemotePreferences)
+     * @param pkg The target app's package name
+     * @param type The SpoofType being spoofed
+     * @param fallback Generator called if no value is configured in prefs
+     */
+    protected fun getSpoofValue(
+        prefs: SharedPreferences,
+        pkg: String,
+        type: SpoofType,
+        fallback: () -> String,
+    ): String = PrefsHelper.getSpoofValue(prefs, pkg, type, fallback)
+
+    /**
+     * Checks if a spoof type is explicitly enabled for a package in RemotePreferences. Returns
+     * false if the key is not present (spoof type defaults to disabled).
+     */
+    protected fun isSpoofTypeEnabled(
+        prefs: SharedPreferences,
+        pkg: String,
+        type: SpoofType,
+    ): Boolean = PrefsHelper.isSpoofTypeEnabled(prefs, pkg, type)
+
+    /**
+     * Reports a successful spoof event to the diagnostics-only AIDL service. Fire-and-forget — if
+     * the service is unavailable, this call fails silently. Hooker @AfterInvocation callbacks
+     * should call this after returning a spoofed value.
+     */
+    protected fun reportSpoofEvent(pkg: String, type: SpoofType) {
+        runCatching { XposedEntry.instance.reportSpoofEvent(pkg, type.name) }
     }
 }

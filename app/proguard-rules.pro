@@ -1,7 +1,9 @@
 # =============================================================================
 # Device Masker — R8 / ProGuard Rules (app module)
+# libxposed API 100 edition — YukiHookAPI / KavaRef rules REMOVED.
+#
 # Applied by R8 during assembleRelease.
-# Uses proguard-android-optimize.txt as the base (set in build.gradle.kts).
+# Base: proguard-android-optimize.txt (set in app/build.gradle.kts).
 # Consumer rules from :common and :xposed are merged automatically by AGP.
 # =============================================================================
 
@@ -14,85 +16,62 @@
 -keepattributes Exceptions
 -keepattributes InnerClasses
 
-# Annotations are required by kotlinx.serialization, Compose, and YukiHookAPI
+# Annotations are required by kotlinx.serialization, Compose, and libxposed
 -keepattributes *Annotation*
 -keepattributes RuntimeVisibleAnnotations
 -keepattributes RuntimeInvisibleAnnotations
 -keepattributes AnnotationDefault
 
 # =============================================================================
-# YUKIHOOKAPI — Keep everything the hooking framework needs
+# LIBXPOSED SERVICE — ModulePreferences / ContentProvider in :app process
+# Used by XposedPrefs.init() and XposedPrefs.getPrefs() at runtime.
 # =============================================================================
--keep class com.highcapable.yukihookapi.** { *; }
--keep interface com.highcapable.yukihookapi.** { *; }
--keepclassmembers class com.highcapable.yukihookapi.** { *; }
--dontwarn com.highcapable.yukihookapi.**
+-keep class io.github.libxposed.service.** { *; }
+-keep interface io.github.libxposed.service.** { *; }
+-keepclassmembers class io.github.libxposed.service.** { *; }
+-dontwarn io.github.libxposed.**
+
+# ModulePreferencesProvider is declared in AndroidManifest.xml
+-keep class io.github.libxposed.service.ModulePreferencesProvider { *; }
 
 # =============================================================================
-# KAVAREF — Reflection engine required by YukiHookAPI 1.3.x
+# DEVICE MASKER — Application class (referenced in AndroidManifest)
 # =============================================================================
--keep class com.highcapable.kavaref.** { *; }
--keep interface com.highcapable.kavaref.** { *; }
--keepclassmembers class com.highcapable.kavaref.** { *; }
--dontwarn com.highcapable.kavaref.**
-
-# Suppress missing class stubs that R8 complains about in full mode
--dontwarn java.lang.reflect.AnnotatedType
--dontwarn java.lang.reflect.AnnotatedElement
--dontwarn java.lang.invoke.MethodHandles$Lookup
-
-# =============================================================================
-# XPOSED / LSPOSED FRAMEWORK — Keep interface implementations
-# =============================================================================
--keep class de.robv.android.xposed.** { *; }
--keep interface de.robv.android.xposed.** { *; }
--keep class * implements de.robv.android.xposed.IXposedHookLoadPackage { *; }
--keep class * implements de.robv.android.xposed.IXposedHookZygoteInit { *; }
--keep class * implements de.robv.android.xposed.IXposedHookInitPackageResources { *; }
--keep class io.github.lsposed.** { *; }
--dontwarn de.robv.android.xposed.**
--dontwarn io.github.lsposed.**
-
-# =============================================================================
-# DEVICE MASKER — Hook entry points (keep for YukiHookAPI KSP generation)
-# =============================================================================
-# Hook entry point in :app — KSP-generated class name follows YukiHookAPI pattern
--keep class com.astrixforge.devicemasker.hook.HookEntry { *; }
--keep class com.astrixforge.devicemasker.hook.HookEntry_YukiHookXposedInit { *; }
-
-# Generated init class by KSP (YukiHookAPI creates this at compile time)
--keep class com.astrixforge.devicemasker.**_YukiHookXposedInit { *; }
-
-# Application class (referenced in AndroidManifest)
 -keep class com.astrixforge.devicemasker.DeviceMaskerApp { *; }
+-keep class com.astrixforge.devicemasker.XposedModuleActive { *; }
 
 # =============================================================================
-# DEVICE MASKER — Service layer (AIDL Binder + ContentProvider bridge)
+# DEVICE MASKER — Service layer
+# ServiceClient communicates via AIDL to the diagnostics service in system_server.
+# ConfigManager (app-side) manages StateFlow config, handles JSON file + ModulePreferences sync.
 # =============================================================================
-# ServiceClient connects to the AIDL service in system_server
 -keep class com.astrixforge.devicemasker.service.ServiceClient { *; }
-# ServiceProvider is a ContentProvider referenced in AndroidManifest
--keep class com.astrixforge.devicemasker.service.ServiceProvider { *; }
-# ConfigManager (app-side) manages StateFlow config
 -keep class com.astrixforge.devicemasker.service.ConfigManager { *; }
 
-# =============================================================================
-# DEVICE MASKER — Data models (app module)
-# =============================================================================
-# InstalledApp and TypeAliases used in LazyColumn / AppScopeRepository
--keep class com.astrixforge.devicemasker.data.models.** { *; }
+# XposedPrefs wraps ModulePreferences write path; keep for ConfigSync calls
+-keep class com.astrixforge.devicemasker.data.XposedPrefs { *; }
+-keepclassmembers class com.astrixforge.devicemasker.data.XposedPrefs {
+    public static *;
+}
+
+# ConfigSync flattens JsonConfig into per-app ModulePreferences keys
+-keep class com.astrixforge.devicemasker.data.ConfigSync { *; }
+-keepclassmembers class com.astrixforge.devicemasker.data.ConfigSync {
+    public static *;
+}
 
 # =============================================================================
-# AIDL — Keep generated AIDL Binder/IInterface classes
-# AIDL classes are generated by the build system and referenced by string names
+# AIDL — Keep generated Binder/IInterface classes
+# The AIDL aidlInterface plugin generates IDeviceMaskerService.Stub / .Proxy.
+# These are accessed via binder reflection by ServiceClient.asInterface().
 # =============================================================================
--keep class com.astrixforge.devicemasker.common.aidl.** { *; }
--keep interface com.astrixforge.devicemasker.common.aidl.** { *; }
+-keep interface com.astrixforge.devicemasker.IDeviceMaskerService { *; }
+-keep class com.astrixforge.devicemasker.IDeviceMaskerService$Stub { *; }
+-keep class com.astrixforge.devicemasker.IDeviceMaskerService$Stub$Proxy { *; }
+-keepclassmembers class com.astrixforge.devicemasker.IDeviceMaskerService$** { *; }
+
+# Generic Binder keep rule — covers all AIDL stubs in any package
 -keep class * implements android.os.IInterface { *; }
-
-# Binder infrastructure used by AIDL proxies/stubs
--keep class android.os.Binder { *; }
--keep class android.os.IBinder { *; }
 -keepclassmembers class * extends android.os.Binder {
     public static ** asInterface(android.os.IBinder);
     public android.os.IBinder asBinder();
@@ -101,28 +80,20 @@
 # =============================================================================
 # KOTLINX SERIALIZATION — Compiler-generated serializers
 # =============================================================================
--keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
 -dontnote kotlinx.serialization.SerializationKt
 
-# Keep @Serializable classes and their generated serializer companions
 -keepclassmembers @kotlinx.serialization.Serializable class ** {
     *** Companion;
     *** INSTANCE;
     kotlinx.serialization.KSerializer serializer(...);
 }
-
-# Keep serializer factory method on companion objects (covers named companions)
 -keepclasseswithmembers class ** {
     kotlinx.serialization.KSerializer serializer(...);
 }
-
-# Keep generated $$serializer classes (inner class holding the descriptor)
 -keep class **$$serializer { *; }
 
-# Keep Kotlin object singletons (e.g. SharedPrefsKeys, generators, Constants)
-# R8 full mode can strip the INSTANCE field from objects that appear unreferenced.
-# Note: ProGuard/R8 uses 'class' for all types — there is no 'object' specifier.
+# Keep Kotlin object singletons (SharedPrefsKeys, generators, ConfigSync, etc.)
 -keepclassmembers class com.astrixforge.devicemasker.** {
     public static final *** INSTANCE;
 }
@@ -143,34 +114,32 @@
 -dontwarn kotlinx.coroutines.**
 
 # =============================================================================
-# JETPACK COMPOSE — Runtime and reflection helpers
+# JETPACK COMPOSE
 # =============================================================================
 -dontwarn androidx.compose.**
-
-# Keep Compose runtime's remember and lambda classes
 -keepclassmembers class androidx.compose.runtime.** {
     *;
 }
 
 # =============================================================================
-# DATASTORE (Preferences) — No Protobuf rules needed (only Proto DataStore does)
-# =============================================================================
--dontwarn androidx.datastore.**
-
-# =============================================================================
-# NAVIGATION COMPOSE — Type-safe navigation arguments
+# NAVIGATION COMPOSE
 # =============================================================================
 -keepnames class * extends androidx.navigation.NavArgs
 
 # =============================================================================
-# HIDDEN API BYPASS
+# DATASTORE
+# =============================================================================
+-dontwarn androidx.datastore.**
+
+# =============================================================================
+# HIDDEN API BYPASS — org.lsposed.hiddenapibypass
 # =============================================================================
 -keep class org.lsposed.hiddenapibypass.** { *; }
 -dontwarn org.lsposed.hiddenapibypass.**
 
 # =============================================================================
-# TIMBER LOGGING — Strip verbose/debug/info logs in release builds
-# -assumenosideeffects tells R8 these calls have no side effects and can be removed
+# TIMBER LOGGING — Strip verbose/debug/info calls in release builds
+# -assumenosideeffects tells R8 these calls have no observable side effects.
 # =============================================================================
 -assumenosideeffects class timber.log.Timber {
     public static void v(java.lang.String, java.lang.Object[]);
@@ -183,7 +152,7 @@
 -dontwarn org.jetbrains.annotations.**
 
 # =============================================================================
-# COIL 3 — Image loading for app icons
+# COIL 3 — App icon loading
 # =============================================================================
 -dontwarn io.coil3.**
 -keep class io.coil3.** { *; }
@@ -197,27 +166,31 @@
 -keepclassmembers class kotlin.Metadata {
     public <methods>;
 }
-
-# R8 full mode: Keep Kotlin function types used by coroutines/lambdas
 -keepclassmembers class kotlin.jvm.functions.** { *; }
 
 # =============================================================================
-# GENERAL ANDROID — Keep fundamental Android classes
+# GENERAL ANDROID — Fundamental classes referenced by AndroidManifest
 # =============================================================================
-# Activities declared in manifest
 -keep public class * extends android.app.Activity
-# Services declared in manifest (e.g. ContentProvider bridge)
 -keep public class * extends android.app.Service
 -keep public class * extends android.content.ContentProvider
 -keep public class * extends android.content.BroadcastReceiver
 
-# Parcelable creators
 -keepclassmembers class * implements android.os.Parcelable {
     public static final ** CREATOR;
 }
 
-# Enum methods required by Android internals
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
+
+# =============================================================================
+# SUPPRESS LEGACY XPOSED WARNINGS
+# libxposed API jar stubs may transitively reference legacy classes.
+# =============================================================================
+-dontwarn de.robv.android.xposed.**
+-dontwarn io.github.lsposed.**
+-dontnote java.lang.reflect.AnnotatedType
+-dontnote java.lang.reflect.AnnotatedElement
+-dontnote java.lang.invoke.MethodHandles$Lookup

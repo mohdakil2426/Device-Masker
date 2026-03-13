@@ -30,19 +30,21 @@
         <!-- LSPosed/Xposed Module Metadata -->
         <!-- CRITICAL: These MUST be inside <application> tag! -->
         <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- LSPosed/Xposed Module Metadata — backward-compat tags kept for older LSPosed versions -->
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
+        <!-- Updated to API 100 for libxposed modern API (LSPosed 1.9.0+, we require 1.10.2+) -->
         <meta-data
             android:name="xposedminversion"
-            android:value="93" />
+            android:value="100" />
         <meta-data
             android:name="xposeddescription"
             android:value="@string/xposed_description" />
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposed_scope" />
-        <!-- CRITICAL: Required for XSharedPreferences cross-process access -->
+        <!-- Required for RemotePreferences cross-process bridge (libxposed API 100) -->
         <meta-data
             android:name="xposedsharedprefs"
             android:value="true" />
@@ -69,6 +71,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- libxposed-service ModulePreferencesProvider — bridges RemotePreferences.
+             LSPosed queries this ContentProvider to read module preferences in hooked processes.
+             Required when using io.github.libxposed:service and XposedInterface.getRemotePreferences(). -->
+        <provider
+            android:name="io.github.libxposed.service.XposedProvider"
+            android:authorities="${applicationId}.XposedService"
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
 
     </application>
 

@@ -469,6 +469,15 @@ Before closing any task, confirm ALL of the following:
 | **google-developer-knowledge** | **1st**  | Android SDK, Jetpack Compose, Material 3, Firebase, Google APIs, Chrome, TensorFlow |
 | **context7**                   | 2nd      | YukiHookAPI, kotlinx, all non-Google libraries                                      |
 
+### Official Documentation & Repositories (`context7`)
+
+- **LibXposed**:
+  - [API Reference](https://libxposed.github.io/api/)
+  - [API](https://github.com/libxposed/api)
+  - [Helper](https://github.com/libxposed/helper)
+  - [Service](https://github.com/libxposed/service)
+  - [Example](https://github.com/libxposed/example)
+
 ---
 
 ## Skills

@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
+    // KSP plugin removed — YukiHookAPI KSP processor no longer needed with libxposed API 100
 }
 
 // Use JVM 17 for better Android/Xposed compatibility
@@ -77,7 +77,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-        aidl = true // Enable AIDL for IPC with xposed module
+        // AIDL still enabled in :app for the diagnostics-only service (Option B architecture)
+        // The AIDL interface is reduced to 8 methods — hook event reporting and log aggregation
+        // only
+        aidl = true
     }
 
     // CRITICAL: Prevent synthetic lambda classes that cause ClassNotFoundException in Xposed
@@ -95,7 +98,8 @@ android {
             excludes += "META-INF/NOTICE.txt"
             // Kotlin module files can duplicate across transitive deps
             excludes += "**/*.kotlin_module"
-            // YukiHookAPI assets must NOT be excluded
+            // libxposed META-INF/xposed/ resources must NOT be excluded (handled in :xposed
+            // sources)
         }
         // Ensure all module classes are in the primary dex for Xposed class loading
         dex { useLegacyPackaging = true }
@@ -161,14 +165,14 @@ dependencies {
     implementation(libs.navigation.compose)
 
     // ═══════════════════════════════════════════════════════════
-    // YUKIHOOKAPI (Modern Kotlin Hook Framework)
+    // libxposed SERVICE — Write RemotePreferences from the UI
+    // interface: provides XposedServiceHelper, XposedService classes (compile + runtime)
+    // service:   provides the ContentProvider implementation that LSPosed uses to deliver prefs
+    // The hook-side reads via XposedInterface.getRemotePreferences() in :xposed.
     // ═══════════════════════════════════════════════════════════
-    implementation(libs.yukihookapi.api)
-    implementation(libs.kavaref.core)
-    implementation(libs.kavaref.extension)
+    implementation(libs.libxposed.iface)
+    implementation(libs.libxposed.service)
     implementation(libs.hiddenapibypass)
-    ksp(libs.yukihookapi.ksp.xposed)
-    compileOnly(libs.xposed.api) // Provided at runtime by Xposed framework
 
     // ═══════════════════════════════════════════════════════════
     // DATA STORAGE

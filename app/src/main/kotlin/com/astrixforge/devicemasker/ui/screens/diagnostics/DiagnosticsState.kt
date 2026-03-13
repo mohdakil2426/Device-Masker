@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.ui.screens.diagnostics
 
-import com.astrixforge.devicemasker.data.models.SpoofType
+import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.service.ServiceClient
 
 /** UI state for the Diagnostics screen. */
@@ -11,6 +11,7 @@ data class DiagnosticsState(
     val diagnosticResults: List<DiagnosticResult> = emptyList(),
     val antiDetectionResults: List<AntiDetectionTest> = emptyList(),
     val serviceStatus: ServiceStatus = ServiceStatus(),
+    val hookLogs: List<String> = emptyList(),
 )
 
 /** Status information about the AIDL service running in system_server. */
