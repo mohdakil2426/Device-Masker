@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.SIMConfig
+import com.astrixforge.devicemasker.common.util.*
 
 /**
  * Generates complete, correlated SIM card values.
@@ -26,7 +27,7 @@ object SIMGenerator {
      */
     fun generate(carrier: Carrier? = null): SIMConfig {
         // Select carrier (random if not specified)
-        val selectedCarrier = carrier ?: Carrier.random()
+        val selectedCarrier = carrier ?: Carrier.nextSecureRandom()
 
         // Generate all values using the SAME carrier
         // SIMConfig.create() automatically populates derived fields
@@ -48,7 +49,7 @@ object SIMGenerator {
         val carriers = Carrier.getByCountry(countryIso)
         require(carriers.isNotEmpty()) { "No carriers found for country: $countryIso" }
 
-        return generate(carriers.random())
+        return generate(carriers.secureRandom())
     }
 
     /**
@@ -57,7 +58,7 @@ object SIMGenerator {
      * @return SIMConfig from a random India carrier (Airtel, Jio, Vi, BSNL)
      */
     fun generateForIndia(): SIMConfig {
-        return generate(Carrier.randomIndia())
+        return generate(Carrier.nextSecureRandomIndia())
     }
 
     /**
@@ -69,6 +70,6 @@ object SIMGenerator {
     fun generateForCarrier(carrierName: String): SIMConfig? {
         val carriers = Carrier.getByName(carrierName)
         if (carriers.isEmpty()) return null
-        return generate(carriers.random())
+        return generate(carriers.secureRandom())
     }
 }

@@ -3,11 +3,10 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
 import com.astrixforge.devicemasker.common.generators.IMEIGenerator
 import com.astrixforge.devicemasker.common.generators.IMSIGenerator
-import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
 import com.astrixforge.devicemasker.common.generators.SerialGenerator
-import com.astrixforge.devicemasker.common.generators.DeviceHardwareGenerator
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import com.astrixforge.devicemasker.xposed.XposedEntry
 import io.github.libxposed.api.XposedInterface
@@ -348,9 +347,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) {
-                            "us"
-                        }
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
                     reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
                 } catch (t: Throwable) {
                     Log.w("GetSimCountryIsoHooker", "after() failed: ${t.message}")
@@ -367,11 +364,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     callback.result =
-                        PrefsHelper.getSpoofValue(
-                            prefs,
-                            pkg,
-                            SpoofType.NETWORK_COUNTRY_ISO,
-                        ) {
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO) {
                             "us"
                         }
                     reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
@@ -390,11 +383,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     callback.result =
-                        PrefsHelper.getSpoofValue(
-                            prefs,
-                            pkg,
-                            SpoofType.SIM_OPERATOR_NAME,
-                        ) {
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME) {
                             "Carrier"
                         }
                     reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
@@ -432,11 +421,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     callback.result =
-                        PrefsHelper.getSpoofValue(
-                            prefs,
-                            pkg,
-                            SpoofType.NETWORK_OPERATOR,
-                        ) {
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR) {
                             "310260"
                         }
                     reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
@@ -456,7 +441,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val pkg = HookState.pkg
                     callback.result =
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) {
-                            com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator.generate()
+                            com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
+                                .generate()
                         }
                     reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
                 } catch (t: Throwable) {
@@ -497,7 +483,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val pkg = HookState.pkg
                     callback.result =
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) {
-                            com.astrixforge.devicemasker.common.generators.UUIDGenerator.generateAndroidId()
+                            com.astrixforge.devicemasker.common.generators.UUIDGenerator
+                                .generateAndroidId()
                         }
                     reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
                 } catch (t: Throwable) {

@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.models.DeviceHardwareConfig
+import com.astrixforge.devicemasker.common.util.*
 
 /**
  * Generates complete, correlated device hardware values.
@@ -39,7 +40,7 @@ object DeviceHardwareGenerator {
      * @return DeviceHardwareConfig with random device
      */
     fun generate(): DeviceHardwareConfig {
-        val randomPreset = DeviceProfilePreset.PRESETS.random()
+        val randomPreset = DeviceProfilePreset.PRESETS.secureRandom()
         return generate(randomPreset)
     }
 

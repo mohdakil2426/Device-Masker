@@ -202,7 +202,7 @@ if ($totalFail -eq 0) {
     $lines.Add("")
     $lines.Add("  ACTION REQUIRED:")
     $lines.Add("    Search this file for '[FAIL]' to find each violation.")
-    $lines.Add("    Fix the root cause. Re-run .\docs\run-audit.ps1 until all checks pass.")
+    $lines.Add("    Fix the root cause. Re-run .\scripts\run-audit.ps1 until all checks pass.")
 }
 
 $lines.Add("")

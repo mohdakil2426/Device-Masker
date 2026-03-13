@@ -119,12 +119,13 @@ object LogManager {
             if (!serviceClient.isConnected) {
                 serviceClient.connect()
             }
-            
-            val logs = if (serviceClient.isConnected) {
-                serviceClient.getLogs(500)
-            } else {
-                emptyList()
-            }
+
+            val logs =
+                if (serviceClient.isConnected) {
+                    serviceClient.getLogs(500)
+                } else {
+                    emptyList()
+                }
 
             if (logs.isNotEmpty()) {
                 builder.appendLine("Total Entries: ${logs.size}")
@@ -174,9 +175,7 @@ object LogManager {
         builder.appendLine(
             "Version          : ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
         )
-        builder.appendLine(
-            "Build Type       : ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}"
-        )
+        builder.appendLine("Build Type       : ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}")
         builder.appendLine()
 
         builder.appendLine("[DEVICE INFO]")

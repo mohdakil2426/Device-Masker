@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.common.models
 
+import com.astrixforge.devicemasker.common.util.*
 import kotlinx.serialization.Serializable
 
 /**
@@ -315,19 +316,19 @@ data class Carrier(
         }
 
         /** Get a random carrier. */
-        fun random(): Carrier {
-            return ALL_CARRIERS.random()
+        fun nextSecureRandom(): Carrier {
+            return ALL_CARRIERS.secureRandom()
         }
 
         /** Get a random carrier from a specific country. */
-        fun randomFromCountry(countryIso: String): Carrier? {
-            return getByCountry(countryIso).randomOrNull()
+        fun nextSecureRandomFromCountry(countryIso: String): Carrier? {
+            return getByCountry(countryIso).let { if (it.isEmpty()) null else it.secureRandom() }
         }
 
         /** Get India carriers only. */
         fun indiaCarriers(): List<Carrier> = getByCountry("IN")
 
         /** Get a random India carrier. */
-        fun randomIndia(): Carrier = indiaCarriers().random()
+        fun nextSecureRandomIndia(): Carrier = indiaCarriers().secureRandom()
     }
 }

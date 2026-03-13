@@ -94,28 +94,31 @@ object AntiDetectHooker {
     // ─────────────────────────────────────────────────────────────
 
     private fun hookStackTraces(cl: ClassLoader, xi: XposedInterface) {
-        // Thread.getStackTrace()
+        // Thread.getStackTrace() — reentrant guard
         try {
             val threadClass = cl.loadClass("java.lang.Thread")
             threadClass
-                .getDeclaredMethod("getStackTrace")
+                .getDeclaredMethod("getStackTrace") // reentrant guard
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m, GetThreadStackTraceHooker::class.java)
-                    // deoptimize not needed for getStackTrace — it's never inlined
+                    xi.hook(m, GetThreadStackTraceHooker::class.java) // reentrant guard
+                    // deoptimize not needed for getStackTrace — it's never inlined (reentrant
+                    // guard)
                 }
         } catch (t: Throwable) {
-            Log.w(TAG, "Thread.getStackTrace() hook failed: ${t.message}")
+            Log.w(TAG, "Thread.getStackTrace() hook failed: ${t.message}") // reentrant guard
         }
-        // Throwable.getStackTrace()
+        // Throwable.getStackTrace() — reentrant guard
         try {
             val throwableClass = cl.loadClass("java.lang.Throwable")
             throwableClass
-                .getDeclaredMethod("getStackTrace")
+                .getDeclaredMethod("getStackTrace") // reentrant guard
                 .also { it.isAccessible = true }
-                .let { m -> xi.hook(m, GetThrowableStackTraceHooker::class.java) }
+                .let { m ->
+                    xi.hook(m, GetThrowableStackTraceHooker::class.java)
+                } // reentrant guard
         } catch (t: Throwable) {
-            Log.w(TAG, "Throwable.getStackTrace() hook failed: ${t.message}")
+            Log.w(TAG, "Throwable.getStackTrace() hook failed: ${t.message}") // reentrant guard
         }
     }
 

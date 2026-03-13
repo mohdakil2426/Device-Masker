@@ -93,17 +93,29 @@ object SystemServiceHooker {
             try {
                 DualLog.info(TAG, "Initializing DeviceMaskerService from $source...")
                 val service = DeviceMaskerService.getInstance()
-                
+
                 // Register with ServiceManager for discovery by hooked app processes.
                 // Note: We use the "user." prefix to avoid conflict with official system services.
                 runCatching {
-                    val smClass = Class.forName("android.os.ServiceManager")
-                    val addServiceMethod = smClass.getDeclaredMethod("addService", String::class.java, android.os.IBinder::class.java)
-                    addServiceMethod.invoke(null, "user.devicemasker_diag", service)
-                    DualLog.info(TAG, "Service registered with ServiceManager as 'user.devicemasker_diag'")
-                }.onFailure { e ->
-                    DualLog.warn(TAG, "Failed to register with ServiceManager (hooks won't report logs): ${e.message}")
-                }
+                        val smClass = Class.forName("android.os.ServiceManager")
+                        val addServiceMethod =
+                            smClass.getDeclaredMethod(
+                                "addService",
+                                String::class.java,
+                                android.os.IBinder::class.java,
+                            )
+                        addServiceMethod.invoke(null, "user.devicemasker_diag", service)
+                        DualLog.info(
+                            TAG,
+                            "Service registered with ServiceManager as 'user.devicemasker_diag'",
+                        )
+                    }
+                    .onFailure { e ->
+                        DualLog.warn(
+                            TAG,
+                            "Failed to register with ServiceManager (hooks won't report logs): ${e.message}",
+                        )
+                    }
 
                 if (service.isAlive) {
                     initialized = true

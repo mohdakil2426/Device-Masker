@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.common.models
 
-import java.security.SecureRandom
+import com.astrixforge.devicemasker.common.util.*
 import kotlinx.serialization.Serializable
 
 /**
@@ -18,7 +18,6 @@ data class LocationConfig(
     val longitude: Double, // GPS longitude within country bounds
 ) {
     companion object {
-        private val secureRandom = SecureRandom()
 
         /**
          * GPS coordinate bounds by country (minLat, maxLat, minLon, maxLon). Major cities/populated
@@ -230,10 +229,10 @@ data class LocationConfig(
          * @return LocationConfig with matching timezone, locale, and GPS within country bounds
          */
         fun generate(country: String? = null): LocationConfig {
-            val selectedCountry = country ?: COUNTRY_TIMEZONES.keys.random()
+            val selectedCountry = country ?: COUNTRY_TIMEZONES.keys.secureRandom()
             val timezones = COUNTRY_TIMEZONES[selectedCountry] ?: listOf("UTC")
             val locales = COUNTRY_LOCALES[selectedCountry] ?: listOf("en_US")
-            val gpsBounds = COUNTRY_GPS_BOUNDS[selectedCountry]?.random()
+            val gpsBounds = COUNTRY_GPS_BOUNDS[selectedCountry]?.secureRandom()
 
             // Generate coordinates within country bounds, or random if no bounds defined
             val (lat, lon) =
@@ -253,8 +252,8 @@ data class LocationConfig(
 
             return LocationConfig(
                 country = selectedCountry,
-                timezone = timezones.random(),
-                locale = locales.random(),
+                timezone = timezones.secureRandom(),
+                locale = locales.secureRandom(),
                 latitude = lat,
                 longitude = lon,
             )

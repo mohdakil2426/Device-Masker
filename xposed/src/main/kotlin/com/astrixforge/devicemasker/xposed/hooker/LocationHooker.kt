@@ -117,11 +117,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     val pkg = HookState.pkg
                     val current = (callback.result as? Double) ?: 0.0
                     val spoofed =
-                        PrefsHelper.getSpoofValue(
-                            prefs,
-                            pkg,
-                            SpoofType.LOCATION_LATITUDE,
-                        ) {
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) {
                             current.toString()
                         }
                     val finalVal = spoofed.toDoubleOrNull() ?: current
@@ -143,11 +139,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     val pkg = HookState.pkg
                     val current = (callback.result as? Double) ?: 0.0
                     val spoofed =
-                        PrefsHelper.getSpoofValue(
-                            prefs,
-                            pkg,
-                            SpoofType.LOCATION_LONGITUDE,
-                        ) {
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) {
                             current.toString()
                         }
                     val finalVal = spoofed.toDoubleOrNull() ?: current
@@ -172,17 +164,17 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) { "" }
                     val lonStr =
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) { "" }
-                    
+
                     var changed = false
-                    latStr.toDoubleOrNull()?.let { 
-                        location.latitude = it 
+                    latStr.toDoubleOrNull()?.let {
+                        location.latitude = it
                         changed = true
                     }
-                    lonStr.toDoubleOrNull()?.let { 
-                        location.longitude = it 
+                    lonStr.toDoubleOrNull()?.let {
+                        location.longitude = it
                         changed = true
                     }
-                    
+
                     if (changed) reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
                 } catch (t: Throwable) {
                     Log.w("GetLastKnownLocationHooker", "after() failed: ${t.message}")
@@ -198,8 +190,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                 try {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
-                    val tzId =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
+                    val tzId = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
                     if (tzId.isNotBlank()) {
                         callback.result = java.util.TimeZone.getTimeZone(tzId)
                         reportSpoofEvent(pkg, SpoofType.TIMEZONE)
@@ -218,8 +209,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                 try {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
-                    val tzId =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
+                    val tzId = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
                     if (tzId.isNotBlank()) {
                         callback.result = tzId
                         reportSpoofEvent(pkg, SpoofType.TIMEZONE)
@@ -239,8 +229,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     val current = callback.result as? java.util.Locale ?: return
-                    val localeStr =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
+                    val localeStr = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
                     if (localeStr.isNotBlank()) {
                         callback.result =
                             runCatching { buildLocale(localeStr) }.getOrElse { current }
@@ -260,8 +249,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                 try {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
-                    val localeStr =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
+                    val localeStr = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
                     if (localeStr.isNotBlank()) {
                         callback.result = localeStr
                         reportSpoofEvent(pkg, SpoofType.LOCALE)

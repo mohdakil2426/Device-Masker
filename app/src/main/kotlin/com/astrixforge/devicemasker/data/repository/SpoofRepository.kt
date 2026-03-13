@@ -16,6 +16,7 @@ import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.DeviceHardwareConfig
 import com.astrixforge.devicemasker.common.models.LocationConfig
 import com.astrixforge.devicemasker.common.models.SIMConfig
+import com.astrixforge.devicemasker.common.util.secureRandom
 import com.astrixforge.devicemasker.service.ConfigManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -173,7 +174,7 @@ class SpoofRepository(private val context: Context) {
      */
     fun regenerateSIMValueOnly(type: SpoofType): String {
         // Get the current carrier from cache, or generate new config if no cache
-        val currentCarrier = cachedSIMConfig?.carrier ?: Carrier.random()
+        val currentCarrier = cachedSIMConfig?.carrier ?: Carrier.nextSecureRandom()
 
         // Generate ONLY the specific value using the SAME carrier
         return when (type) {
@@ -240,14 +241,14 @@ class SpoofRepository(private val context: Context) {
 
             // System
             SpoofType.DEVICE_PROFILE ->
-                com.astrixforge.devicemasker.common.DeviceProfilePreset.PRESETS.random().id
+                com.astrixforge.devicemasker.common.DeviceProfilePreset.PRESETS.secureRandom().id
 
             // Location (independent coordinates)
             SpoofType.LOCATION_LATITUDE ->
-                String.format(java.util.Locale.US, "%.6f", (-90.0..90.0).random())
+                String.format(java.util.Locale.US, "%.6f", (-90.0..90.0).secureRandom())
 
             SpoofType.LOCATION_LONGITUDE ->
-                String.format(java.util.Locale.US, "%.6f", (-180.0..180.0).random())
+                String.format(java.util.Locale.US, "%.6f", (-180.0..180.0).secureRandom())
 
             else -> throw IllegalArgumentException("Unknown independent type: $type")
         }
@@ -417,15 +418,15 @@ class SpoofRepository(private val context: Context) {
                 { "\"${randomFamilyName()}_WiFi\"" },
                 { "\"${randomFamilyName()}_5G\"" },
             )
-        return patterns.random()()
+        return patterns.secureRandom()()
     }
 
     private fun randomHex(length: Int) = buildString {
-        repeat(length) { append("0123456789ABCDEF".random()) }
+        repeat(length) { append("0123456789ABCDEF".secureRandom()) }
     }
 
     private fun randomDigits(length: Int) = buildString {
-        repeat(length) { append((0..9).random()) }
+        repeat(length) { append((0..9).secureRandom()) }
     }
 
     private fun randomFamilyName(): String {
@@ -442,11 +443,7 @@ class SpoofRepository(private val context: Context) {
                 "Moore",
                 "Taylor",
             )
-        return names.random()
-    }
-
-    private fun ClosedFloatingPointRange<Double>.random(): Double {
-        return start + (endInclusive - start) * kotlin.random.Random.nextDouble()
+        return names.secureRandom()
     }
 
     // ═══════════════════════════════════════════════════════════

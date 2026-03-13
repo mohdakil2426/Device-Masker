@@ -1,0 +1,108 @@
+Reusing configuration cache.
+> Task :common:preBuild UP-TO-DATE
+> Task :common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :xposed:preBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :xposed:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :common:preDebugBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :xposed:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :common:writeDebugAarMetadata UP-TO-DATE
+> Task :common:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :xposed:writeDebugAarMetadata UP-TO-DATE
+> Task :xposed:processDebugNavigationResources UP-TO-DATE
+> Task :common:processDebugNavigationResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :common:generateDebugBuildConfig UP-TO-DATE
+> Task :common:javaPreCompileDebug UP-TO-DATE
+> Task :xposed:generateDebugResValues UP-TO-DATE
+> Task :xposed:javaPreCompileDebug UP-TO-DATE
+> Task :common:processDebugManifest UP-TO-DATE
+> Task :xposed:processDebugManifest UP-TO-DATE
+> Task :common:extractDeepLinksDebug UP-TO-DATE
+> Task :common:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :common:generateDebugResources UP-TO-DATE
+> Task :xposed:generateDebugResources UP-TO-DATE
+> Task :xposed:extractDeepLinksDebug UP-TO-DATE
+> Task :xposed:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :common:packageDebugResources UP-TO-DATE
+> Task :xposed:packageDebugResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :common:parseDebugLocalResources UP-TO-DATE
+> Task :xposed:compileDebugLibraryResources UP-TO-DATE
+> Task :common:compileDebugLibraryResources UP-TO-DATE
+> Task :xposed:parseDebugLocalResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :common:generateDebugRFile UP-TO-DATE
+> Task :xposed:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :common:compileDebugAidl UP-TO-DATE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :common:compileDebugKotlin FAILED
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/DeviceHardwareGenerator.kt:5:67 Cannot access 'val secureRandom: SecureRandom': it is private in 'com.astrixforge.devicemasker.common.util.SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/DeviceHardwareGenerator.kt:43:56 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:4:67 Cannot access 'val secureRandom: SecureRandom': it is private in 'com.astrixforge.devicemasker.common.util.SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:202:38 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:209:52 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:247:59 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:248:40 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:250:33 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:253:46 Unresolved reference 'buildIdPrefixes'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:256:23 Unresolved reference 'brand'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:256:39 Unresolved reference 'product'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:256:57 Unresolved reference 'device'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:259:31 Unresolved reference 'brand'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:260:32 Unresolved reference 'device'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:261:33 Unresolved reference 'product'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:262:31 Unresolved reference 'model'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:263:38 Unresolved reference 'manufacturer'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:270:31 Unresolved reference 'device'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:271:34 Unresolved reference 'device'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/MACGenerator.kt:3:67 Cannot access 'val secureRandom: SecureRandom': it is private in 'com.astrixforge.devicemasker.common.util.SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/MACGenerator.kt:98:58 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/MACGenerator.kt:99:50 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:4:67 Cannot access 'val secureRandom: SecureRandom': it is private in 'com.astrixforge.devicemasker.common.util.SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:195:53 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:243:38 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:247:27 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:302:42 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:306:27 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/SIMGenerator.kt:5:67 Cannot access 'val secureRandom: SecureRandom': it is private in 'com.astrixforge.devicemasker.common.util.SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/SIMGenerator.kt:52:34 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/SIMGenerator.kt:73:34 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/Carrier.kt:3:67 Cannot access 'val secureRandom: SecureRandom': it is private in 'com.astrixforge.devicemasker.common.util.SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/Carrier.kt:320:33 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/Carrier.kt:325:82 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/Carrier.kt:332:64 Unresolved reference 'secureRandom'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:21:36 Unresolved reference 'SecureRandom'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s
+43 actionable tasks: 1 executed, 42 up-to-date
+Configuration cache entry reused.

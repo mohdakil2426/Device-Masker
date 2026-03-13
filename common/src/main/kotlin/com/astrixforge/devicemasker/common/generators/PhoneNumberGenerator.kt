@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.models.Carrier
+import com.astrixforge.devicemasker.common.util.*
 import java.security.SecureRandom
 
 /**
@@ -191,7 +192,7 @@ object PhoneNumberGenerator {
      * @return Phone number with random country code
      */
     fun generate(): String {
-        val countryCode = COUNTRY_PHONE_LENGTH.keys.random()
+        val countryCode = COUNTRY_PHONE_LENGTH.keys.secureRandom()
 
         return if (countryCode == "1") {
             // US/Canada: use realistic area code
@@ -239,11 +240,11 @@ object PhoneNumberGenerator {
      * Uses real area codes from major US states.
      */
     private fun generateUSPhoneNumber(): String {
-        val areaCode = US_AREA_CODES.random()
+        val areaCode = US_AREA_CODES.secureRandom()
 
         // Exchange code (can't start with 0 or 1 per NANP rules)
         val exchange = buildString {
-            append((2..9).random())
+            append((2..9).secureRandom())
             repeat(2) { append(secureRandom.nextInt(10)) }
         }
 
@@ -298,11 +299,11 @@ object PhoneNumberGenerator {
                 "709", // Newfoundland
             )
 
-        val areaCode = canadianAreaCodes.random()
+        val areaCode = canadianAreaCodes.secureRandom()
 
         // Exchange code (can't start with 0 or 1)
         val exchange = buildString {
-            append((2..9).random())
+            append((2..9).secureRandom())
             repeat(2) { append(secureRandom.nextInt(10)) }
         }
 

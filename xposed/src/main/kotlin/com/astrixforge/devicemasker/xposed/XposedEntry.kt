@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed
 
 import android.util.Log
+import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.xposed.hooker.AdvertisingHooker
 import com.astrixforge.devicemasker.xposed.hooker.AntiDetectHooker
 import com.astrixforge.devicemasker.xposed.hooker.DeviceHooker
@@ -136,10 +137,10 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
                 }
 
         // Master kill-switch — if module is disabled globally, skip all hooks
-        if (!prefs.getBoolean("module_enabled", true)) return
+        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return
 
         // Per-app toggle — only hook apps that the user explicitly enabled
-        if (!prefs.getBoolean("app_enabled_$pkg", false)) return
+        if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(pkg), false)) return
 
         val cl = param.classLoader
 
@@ -189,14 +190,12 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         }
     }
 
-    /**
-     * Cached reference to the diagnostics service binder.
-     */
-    @Volatile private var diagnosticService: com.astrixforge.devicemasker.IDeviceMaskerService? = null
+    /** Cached reference to the diagnostics service binder. */
+    @Volatile
+    private var diagnosticService: com.astrixforge.devicemasker.IDeviceMaskerService? = null
 
     /**
      * Retrieves the diagnostics service binder.
-     *
      * - In system_server: returns the local instance directly (no IPC).
      * - In target apps: performs a ServiceManager lookup for "user.devicemasker_diag".
      */
@@ -217,7 +216,8 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
                     val getServiceMethod =
                         smClass.getDeclaredMethod("getService", String::class.java)
                     val binder =
-                        getServiceMethod.invoke(null, "user.devicemasker_diag") as? android.os.IBinder
+                        getServiceMethod.invoke(null, "user.devicemasker_diag")
+                            as? android.os.IBinder
                     binder?.let {
                         com.astrixforge.devicemasker.IDeviceMaskerService.Stub.asInterface(it)
                     }

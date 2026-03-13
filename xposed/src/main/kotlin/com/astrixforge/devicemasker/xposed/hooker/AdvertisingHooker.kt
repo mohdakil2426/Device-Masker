@@ -142,7 +142,8 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                             UUIDGenerator.generateGSFId()
                         }
                     // GSF ID must be returned as a Long (hex string → Long)
-                    val finalVal = runCatching { spoofed.toLong(16) }.getOrElse { callback.result as Long }
+                    val finalVal =
+                        runCatching { spoofed.toLong(16) }.getOrElse { callback.result as Long }
                     callback.result = finalVal
                     reportSpoofEvent(pkg, SpoofType.GSF_ID)
                 } catch (t: Throwable) {

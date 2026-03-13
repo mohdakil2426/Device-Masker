@@ -149,9 +149,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) {
-                            "us"
-                        }
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
                     reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
                 } catch (t: Throwable) {
                     Log.w("SubGetCountryIsoHooker", "after() failed: ${t.message}")

@@ -2,12 +2,12 @@
 
 ## Overall Status
 
-| Metric                | Value                                                                                  |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| **Project Phase**     | libxposed API 100 Migration — Local Dependency Publishing ⏳                           |
-| **Active Changes**    | 1 (`libxposed-api100-migration`)                                                       |
-| **Archived Changes**  | 12                                                                                     |
-| **Last Major Update** | March 13, 2026 — Refactored all hookers to use advanced generators & report events. ✅ |
+| Metric                | Value                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| **Project Phase**     | libxposed API 100 Migration — Local Dependency Publishing ⏳                          |
+| **Active Changes**    | 1 (`libxposed-api100-migration`)                                                      |
+| **Archived Changes**  | 12                                                                                    |
+| **Last Major Update** | March 13, 2026 — Resolved all 15 audit failures and refactored SecureRandom usage. ✅ |
 
 ---
 
@@ -27,6 +27,8 @@
 | Advanced Generators Logic   | ✅     | Integrated IMEIGenerator, IMSIGenerator, MACGenerator, etc.        |
 | Spoof Event Reporting       | ✅     | Added `reportSpoofEvent(pkg, type)` to all hookers                 |
 | `ValueGenerators.kt`        | ✅     | **Deleted** — all usage replaced by advanced generators in :common |
+| `SecureRandomUtils.kt`      | ✅     | Refactored to top-level extensions; resolved A03/A04 failures.     |
+| `Audit Failures (15/15)`    | ✅     | All A01-A10 and B01-B05 checks now passing.                        |
 | `libxposed-service`         | 🔴     | Build failing due to Java version & SDK path. Publication pending. |
 
 ### YukiHookAPI Elimination — Verification

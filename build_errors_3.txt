@@ -1,0 +1,124 @@
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :xposed:preBuild UP-TO-DATE
+> Task :xposed:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :common:preBuild UP-TO-DATE
+> Task :common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :common:preDebugBuild UP-TO-DATE
+> Task :xposed:preDebugBuild UP-TO-DATE
+> Task :common:writeDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :common:generateDebugResValues UP-TO-DATE
+> Task :xposed:processDebugNavigationResources UP-TO-DATE
+> Task :xposed:writeDebugAarMetadata UP-TO-DATE
+> Task :common:processDebugNavigationResources UP-TO-DATE
+> Task :xposed:generateDebugResValues UP-TO-DATE
+> Task :common:generateDebugBuildConfig UP-TO-DATE
+> Task :common:processDebugManifest UP-TO-DATE
+> Task :common:javaPreCompileDebug UP-TO-DATE
+> Task :xposed:processDebugManifest UP-TO-DATE
+> Task :xposed:mapDebugSourceSetPaths UP-TO-DATE
+> Task :xposed:generateDebugResources UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :common:extractDeepLinksDebug UP-TO-DATE
+> Task :common:generateDebugResources UP-TO-DATE
+> Task :xposed:javaPreCompileDebug UP-TO-DATE
+> Task :xposed:extractDeepLinksDebug UP-TO-DATE
+> Task :common:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :xposed:packageDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :common:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :xposed:compileDebugLibraryResources UP-TO-DATE
+> Task :xposed:parseDebugLocalResources UP-TO-DATE
+> Task :common:compileDebugLibraryResources UP-TO-DATE
+> Task :common:parseDebugLocalResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :xposed:generateDebugRFile UP-TO-DATE
+> Task :common:generateDebugRFile UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :common:compileDebugAidl UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :common:compileDebugKotlin FAILED
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/DeviceHardwareGenerator.kt:5:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:3:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/FingerprintGenerator.kt:4:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/MACGenerator.kt:3:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/PhoneNumberGenerator.kt:4:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/generators/SIMGenerator.kt:5:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/Carrier.kt:3:49 Unresolved reference 'SecureRandomUtils'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:240:17 Operator call 'component1()' is ambiguous for destructuring of type 'uninferred ERROR CLASS: Cannot infer argument for type parameter K'. Applicable candidates:
+fun <T> Array<out T>.component1(): T
+fun ByteArray.component1(): Byte
+fun ShortArray.component1(): Short
+fun IntArray.component1(): Int
+fun LongArray.component1(): Long
+fun FloatArray.component1(): Float
+fun DoubleArray.component1(): Double
+fun BooleanArray.component1(): Boolean
+fun CharArray.component1(): Char
+fun <T> List<T>.component1(): T
+fun <K, V> Map.Entry<K, V>.component1(): K
+fun UIntArray.component1(): UInt
+fun ULongArray.component1(): ULong
+fun UByteArray.component1(): UByte
+fun UShortArray.component1(): UShort
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:240:17 Operator call 'component2()' is ambiguous for destructuring of type 'uninferred ERROR CLASS: Cannot infer argument for type parameter K'. Applicable candidates:
+fun <T> Array<out T>.component2(): T
+fun ByteArray.component2(): Byte
+fun ShortArray.component2(): Short
+fun IntArray.component2(): Int
+fun LongArray.component2(): Long
+fun FloatArray.component2(): Float
+fun DoubleArray.component2(): Double
+fun BooleanArray.component2(): Boolean
+fun CharArray.component2(): Char
+fun <T> List<T>.component2(): T
+fun <K, V> Map.Entry<K, V>.component2(): V
+fun UIntArray.component2(): UInt
+fun ULongArray.component2(): ULong
+fun UByteArray.component2(): UByte
+fun UShortArray.component2(): UShort
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:240:17 Inapplicable candidate(s): fun <K> WHEN_CALL(vararg branches: K): K
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:244:33 Unresolved reference 'secureRandomInstance'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:248:33 Unresolved reference 'secureRandomInstance'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:249:30 Cannot infer type for type parameter 'A'. Specify it explicitly.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:249:30 Cannot infer type for type parameter 'B'. Specify it explicitly.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:249:30 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun <A, B> A.to(that: B): Pair<A, B>
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:252:38 Unresolved reference 'secureRandomInstance'.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:252:73 Cannot infer type for type parameter 'A'. Specify it explicitly.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:252:73 Cannot infer type for type parameter 'B'. Specify it explicitly.
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:252:73 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun <A, B> A.to(that: B): Pair<A, B>
+e: file:///C:/Users/akila/OneDrive/Desktop/OSS/MobileApps/Spoofer/devicemasker/common/src/main/kotlin/com/astrixforge/devicemasker/common/models/LocationConfig.kt:253:43 Unresolved reference 'secureRandomInstance'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s
+43 actionable tasks: 1 executed, 42 up-to-date
+Configuration cache entry reused.

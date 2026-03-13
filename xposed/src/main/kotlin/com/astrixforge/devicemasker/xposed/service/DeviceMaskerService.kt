@@ -166,6 +166,13 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
             logs.pollFirst()
         }
         // Mirror to logcat for debugging (non-fatal if logcat is unavailable)
-        runCatching { Log.println(level, tag, message) }
+        runCatching {
+            when (level) {
+                Log.ERROR -> Log.e(tag, message)
+                Log.WARN -> Log.w(tag, message)
+                Log.INFO -> Log.i(tag, message)
+                else -> Log.d(tag, message)
+            }
+        }
     }
 }

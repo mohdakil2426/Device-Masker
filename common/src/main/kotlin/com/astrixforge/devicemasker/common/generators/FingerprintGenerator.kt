@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
-import kotlin.random.Random
+import com.astrixforge.devicemasker.common.util.*
 
 /**
  * Build Fingerprint Generator for system property spoofing.
@@ -198,14 +198,14 @@ object FingerprintGenerator {
 
     /** Generates a random build fingerprint. */
     fun generate(): String {
-        val device = DEVICE_DATABASE.random()
+        val device = DEVICE_DATABASE.secureRandom()
         return generateForDevice(device, "14")
     }
 
     /** Generates a fingerprint for a specific device configuration. */
     @Suppress("SameParameterValue") // Parameter for future extensibility
     private fun generateForDevice(device: DeviceConfig, androidVersion: String): String {
-        val buildIdPrefix = device.buildIdPrefixes.random()
+        val buildIdPrefix = device.buildIdPrefixes.secureRandom()
         val buildId = generateBuildId(buildIdPrefix)
         val incremental = generateIncremental()
 
@@ -218,17 +218,17 @@ object FingerprintGenerator {
      * Format: PREFIX.YYMMDD.NUM (e.g., TQ3A.230901.001)
      */
     private fun generateBuildId(prefix: String): String {
-        val year = Random.nextInt(23, 26)
-        val month = Random.nextInt(1, 13)
-        val day = Random.nextInt(1, 29)
-        val build = Random.nextInt(1, 10)
+        val year = nextInt(3) + 23 // Range 23-25
+        val month = nextInt(12) + 1 // Range 1-12
+        val day = nextInt(28) + 1 // Range 1-28
+        val build = nextInt(9) + 1 // Range 1-9
 
         return "%s.%02d%02d%02d.%03d".format(prefix, year, month, day, build)
     }
 
     /** Generates a realistic incremental build number. */
     private fun generateIncremental(): String {
-        return (Random.nextLong(1000000, 9999999)).toString()
+        return (nextInt(9000000) + 1000000).toString()
     }
 
     /**
@@ -243,12 +243,13 @@ object FingerprintGenerator {
                         it.brand.equals(manufacturer, ignoreCase = true) ||
                             it.manufacturer.equals(manufacturer, ignoreCase = true)
                     }
-                    .randomOrNull() ?: DEVICE_DATABASE.random()
+                    .let { if (it.isEmpty()) null else it.secureRandom() }
+                    ?: DEVICE_DATABASE.secureRandom()
             } else {
-                DEVICE_DATABASE.random()
+                DEVICE_DATABASE.secureRandom()
             }
 
-        val buildId = generateBuildId(device.buildIdPrefixes.random())
+        val buildId = generateBuildId(device.buildIdPrefixes.secureRandom())
         val incremental = generateIncremental()
         val fingerprint =
             "${device.brand}/${device.product}/${device.device}:14/$buildId/$incremental:user/release-keys"

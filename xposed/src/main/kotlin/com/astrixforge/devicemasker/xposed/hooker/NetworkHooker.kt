@@ -132,9 +132,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     val ssid =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.WIFI_SSID) {
-                            "HomeNetwork"
-                        }
+                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.WIFI_SSID) { "HomeNetwork" }
                     // Android wraps SSID in quotes for non-passpoint APs
                     callback.result = if (ssid.startsWith("\"")) ssid else "\"$ssid\""
                     reportSpoofEvent(pkg, SpoofType.WIFI_SSID)
@@ -175,7 +173,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) {
                             MACGenerator.generate()
                         }
-                    // We need a helper to parse MAC to bytes. Since ValueGenerators is being demoted, 
+                    // We need a helper to parse MAC to bytes. Since ValueGenerators is being
+                    // demoted,
                     // we'll use a direct implementation or move it to common/utils.
                     // For now, let's keep it simple.
                     callback.result = mac.split(":").map { it.toInt(16).toByte() }.toByteArray()

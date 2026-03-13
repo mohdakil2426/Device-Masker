@@ -111,9 +111,9 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                                 }
                                 .getOrDefault(true)
                         }
-                    
+
                     if (sensors.size != (callback.result as List<*>).size) {
-                         reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                        reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                     }
                 } catch (t: Throwable) {
                     Log.w("GetSensorListHooker", "after() failed: ${t.message}")

@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
+import com.astrixforge.devicemasker.common.util.*
 import java.security.SecureRandom
 
 /**
@@ -94,8 +95,8 @@ object MACGenerator {
      */
     fun generateForManufacturer(manufacturer: String): String {
         val oui =
-            MANUFACTURER_OUIS[manufacturer.lowercase()]?.random()
-                ?: MANUFACTURER_OUIS["generic"]?.random()
+            MANUFACTURER_OUIS[manufacturer.lowercase()]?.secureRandom()
+                ?: MANUFACTURER_OUIS["generic"]?.secureRandom()
                 ?: return generate()
 
         // Generate the last 3 octets randomly
