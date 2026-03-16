@@ -22,7 +22,7 @@ libxposed-service = "100-1.0.0"
 hiddenapibypass = "6.1"
 
 # Data
-datastore = "1.2.0"
+datastore = "1.2.1"
 serializationJson = "1.10.0"
 coroutines = "1.10.2"
 
