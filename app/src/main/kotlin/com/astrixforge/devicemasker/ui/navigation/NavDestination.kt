@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.astrixforge.devicemasker.R
 
 /**
  * Navigation routes as constants. Using simple string routes to avoid sealed class initialization
@@ -43,7 +44,7 @@ object NavRoutes {
 /** Navigation item data class for bottom navigation. */
 data class NavItem(
     val route: String,
-    val label: String,
+    val labelRes: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
 )
@@ -58,19 +59,19 @@ val bottomNavItems: List<NavItem> =
     listOf(
         NavItem(
             route = NavRoutes.HOME,
-            label = "Home",
+            labelRes = R.string.bottom_nav_home,
             selectedIcon = Icons.Filled.Home,
             unselectedIcon = Icons.Outlined.Home,
         ),
         NavItem(
             route = NavRoutes.GROUPS,
-            label = "Groups",
+            labelRes = R.string.bottom_nav_groups,
             selectedIcon = Icons.Filled.Groups,
             unselectedIcon = Icons.Outlined.Groups,
         ),
         NavItem(
             route = NavRoutes.SETTINGS,
-            label = "Settings",
+            labelRes = R.string.bottom_nav_settings,
             selectedIcon = Icons.Filled.Settings,
             unselectedIcon = Icons.Outlined.Settings,
         ),

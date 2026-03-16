@@ -28,6 +28,18 @@
     <string name="home_no_groups_available">No groups available</string>
     <string name="home_quick_actions">Quick Actions</string>
     <string name="home_action_configure">Configure</string>
+    <string name="home_loading_dashboard">Loading dashboard…</string>
+    <string name="home_select_group">Select group</string>
+    <string name="home_view_group">View group</string>
+    <string name="home_selected">Selected</string>
+    <string name="home_group_selector_desc">Open group selector</string>
+    <string name="home_group_status_default">Default group</string>
+    <string name="home_group_created">Created %1$s</string>
+    <string name="home_default_badge">Default</string>
+    <string name="home_action_set_default">Set as default</string>
+    <string name="home_action_edit">Edit</string>
+    <string name="home_action_view_details">View details</string>
+
 
     <!-- Groups Screen -->
     <string name="group_screen_title">Groups</string>
@@ -44,9 +56,28 @@
         their default settings.</string>
     <string name="group_import_groups">Import Groups</string>
     <string name="group_export_groups">Export Groups</string>
+    <string name="group_name_example">e.g., Samsung</string>
+    <string name="group_description_example">e.g., For banking apps</string>
+    <string name="group_name_length">%1$d/%2$d</string>
+    <string name="group_build_created_label">Created %1$s</string>
+    <string name="group_action_set_default">Set as default</string>
+    <string name="group_action_edit">Edit group</string>
+    <string name="group_action_delete">Delete group</string>
+    <string name="group_status_selected">Selected</string>
+    <string name="group_empty_title">No groups found</string>
+    <string name="group_empty_subtitle">Create a group to start assigning spoofed identities.</string>
+
 
     <!-- Actions -->
     <string name="action_more_options">More options</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_build_type">Build Type</string>
+    <string name="settings_build_type_debug">Debug</string>
+    <string name="settings_build_type_release">Release</string>
+    <string name="settings_module_info">Module Info</string>
+    <string name="settings_module_info_value">libxposed API 100 • LSPosed module</string>
+    <string name="settings_export_logs_share_chooser">Share Logs</string>
 
     <!-- Settings Screen -->
     <string name="settings_title">Settings</string>
@@ -60,11 +91,10 @@
     <string name="settings_debug_logging">Debug logging</string>
     <string name="settings_debug_description">Enable verbose logging for debugging</string>
     <string name="settings_export_logs">Export Logs</string>
-    <string name="settings_export_logs_description">Save debug logs to Downloads folder</string>
-    <string name="settings_export_logs_success">Logs exported successfully (%1$d entries)\n\nSaved
-        to: %2$s</string>
+    <string name="settings_export_logs_description">Save or share in-memory diagnostics logs</string>
+    <string name="settings_export_logs_success">Logs exported successfully (%1$d entries)&#10;&#10;Saved to: %2$s</string>
     <string name="settings_export_logs_no_logs">No logs available to export</string>
-    <string name="settings_export_logs_error">Failed to export logs: %s</string>
+    <string name="settings_export_logs_error">Failed to export logs: %1$s</string>
     <string name="settings_exporting">Exporting…</string>
     <string name="settings_export_sheet_title">Export Options</string>
     <string name="settings_export_save">Save to Device</string>
@@ -113,8 +143,1637 @@
 
     <!-- Config Sync Info -->
     <string name="diagnostics_config_sync_title">Configuration Sync</string>
-    <string name="diagnostics_config_sync_desc">Config changes require target app restart to take
-        effect. This is a limitation of Android\'s cross-process SharedPreferences mechanism.</string>
+    <string name="diagnostics_config_sync_desc">Configuration updates apply immediately when the live module service is available. If the service is unavailable, the app falls back to cached preferences and some target apps may need a restart.</string>
+    <string name="diagnostics_back">Back</string>
+    <string name="diagnostics_info_card">Configuration sync details</string>
+    <string name="diagnostics_status_card">Module status</string>
+    <string name="diagnostics_anti_detection_section">Anti-detection test results</string>
+    <string name="diagnostics_category_section">%1$s diagnostics</string>
+    <string name="diagnostics_expand">Expand section</string>
+    <string name="diagnostics_collapse">Collapse section</string>
+
+    <string name="picker_country_title">Select Country</string>
+    <string name="picker_country_search">Search countries…</string>
+    <string name="picker_timezone_title">Select Timezone</string>
+    <string name="picker_timezone_search">Search timezones…</string>
+    <string name="picker_selected">Selected</string>
+    <string name="picker_current_selection">Current selection</string>
+
+    <string name="action_save_to_device">Save to device</string>
+    <string name="action_share_logs">Share logs</string>
+    <string name="action_open">Open</string>
+    <string name="action_toggle">Toggle</string>
+    <string name="action_select">Select</string>
+    <string name="action_checkbox_selected">Selected</string>
+    <string name="action_checkbox_not_selected">Not selected</string>
+    <string name="action_enabled">Enabled</string>
+    <string name="action_disabled">Disabled</string>
+    <string name="action_expanded">Expanded</string>
+    <string name="action_collapsed">Collapsed</string>
+    <string name="action_double_tap">Double tap to activate</string>
+    <string name="action_expand_hint">Double tap to expand or collapse</string>
+    <string name="action_open_group">Open group details</string>
+    <string name="action_open_diagnostics">Open diagnostics</string>
+    <string name="action_view_module_info">View module info</string>
+    <string name="action_group_card">Group card</string>
+    <string name="action_settings_section">Settings section</string>
+    <string name="action_quick_actions">Quick actions</string>
+    <string name="action_app_assignment">App assignment</string>
+    <string name="action_bottom_sheet_title">Actions</string>
+    <string name="action_sheet_option">Action option</string>
+    <string name="action_theme_mode">Theme mode</string>
+    <string name="action_section_state">%1$s, %2$s</string>
+    <string name="action_assignment_state">%1$s, %2$s</string>
+    <string name="action_group_row_state">%1$s, %2$s, %3$s</string>
+    <string name="action_module_info_description">libxposed API 100 and LSPosed compatibility details</string>
+    <string name="action_module_info_unavailable">Module information only</string>
+    <string name="app_item_locked">Assigned to another group</string>
+    <string name="app_item_icon">App icon</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_groups">Groups</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_tab">%1$s tab</string>
+    <string name="nav_current_tab">Current tab: %1$s</string>
+    <string name="nav_open_tab">Open %1$s tab</string>
+    <string name="nav_group_spoofing_back">Back to groups</string>
+
+    <string name="loading_indicator">Loading</string>
+    <string name="loading_indicator_with_label">Loading %1$s</string>
+
+    <string name="quick_action_group_description">Quick actions</string>
+    <string name="quick_action_button">%1$s action</string>
+
+    <string name="animated_section_toggle">%1$s section</string>
+    <string name="animated_section_state">%1$s, %2$s</string>
+
+    <string name="country_code_format">+%1$s</string>
+
+    <string name="settings_logs_exported">Logs exported (%1$d lines)&#10;&#10;Saved to: %2$s</string>
+    <string name="settings_logs_export_failed">Failed: %1$s</string>
+    <string name="settings_export_disabled">Export in progress</string>
+    <string name="settings_module_info_placeholder">Module information</string>
+    <string name="settings_about_build_type_release">Release</string>
+
+    <string name="group_row_description">%1$s, %2$s, %3$s</string>
+    <string name="group_compact_description">%1$s, %2$s</string>
+    <string name="group_card_status_enabled">Enabled</string>
+    <string name="group_card_status_disabled">Disabled</string>
+    <string name="group_card_action_open">Open group</string>
+    <string name="group_card_default_badge_desc">Default group</string>
+    <string name="group_card_icon_desc">Group icon</string>
+    <string name="group_card_switch">Enable group</string>
+    <string name="group_card_actions">Group actions</string>
+    <string name="group_card_apps_created">%1$s • %2$s</string>
+    <string name="group_card_default">Default</string>
+    <string name="group_card_created">Created %1$s</string>
+    <string name="group_card_view">View group</string>
+    <string name="group_card_set_default">Set as default</string>
+    <string name="group_card_edit">Edit group</string>
+    <string name="group_card_delete">Delete group</string>
+    <string name="group_card_selected">Selected</string>
+    <string name="group_card_not_selected">Not selected</string>
+    <string name="group_card_pull_refresh_removed">Groups update automatically. Pull to refresh is unavailable.</string>
+    <string name="group_import_action">Import groups</string>
+    <string name="group_export_action">Export groups</string>
+    <string name="group_create_hint">Create group</string>
+    <string name="group_default_badge">Default</string>
+    <string name="group_dialog_name_label">Group name</string>
+    <string name="group_dialog_description_label">Description</string>
+    <string name="group_screen_fab">Create group</string>
+    <string name="group_screen_actions">Group list actions</string>
+
+    <string name="about_module_info_value">libxposed API 100 • LSPosed module</string>
+    <string name="about_build_type_release">Release</string>
+    <string name="about_build_type_debug">Debug</string>
+    <string name="about_module_info_title">Module Info</string>
+    <string name="about_build_type_title">Build Type</string>
+    <string name="about_module_info_desc">Current module runtime information</string>
+    <string name="about_module_info_read_only">Read-only module info</string>
+    <string name="settings_debug_logs">Diagnostics logs</string>
+    <string name="settings_export_logs_action">Export logs</string>
+    <string name="settings_diagnostics_action">Diagnostics</string>
+
+    <string name="screen_header_back">Back</string>
+    <string name="screen_header_back_to_groups">Back to groups</string>
+
+    <string name="semantics_decorative_icon">Decorative icon</string>
+    <string name="semantics_selected">Selected</string>
+    <string name="semantics_not_selected">Not selected</string>
+    <string name="semantics_on">On</string>
+    <string name="semantics_off">Off</string>
+
+    <string name="dialog_picker_search">Search</string>
+    <string name="dialog_picker_result">Result</string>
+
+    <string name="diagnostics_module_status">Module status</string>
+    <string name="diagnostics_section_summary">%1$s, %2$s</string>
+    <string name="diagnostics_section_open">Open %1$s section</string>
+    <string name="diagnostics_back_to_settings">Back to settings</string>
+    <string name="diagnostics_test_result">%1$s, %2$s</string>
+    <string name="diagnostics_status_success">Spoofed</string>
+    <string name="diagnostics_status_failure">Not spoofed</string>
+    <string name="diagnostics_status_inactive">Inactive</string>
+    <string name="diagnostics_real_value">Real value</string>
+    <string name="diagnostics_spoofed_value">Spoofed value</string>
+    <string name="diagnostics_unknown_value">Unknown</string>
+    <string name="diagnostics_scroll_hint">Pull down to refresh</string>
+
+    <string name="settings_snackbar_logs_exported">Logs exported (%1$d lines)&#10;&#10;Saved to: %2$s</string>
+    <string name="settings_snackbar_export_failed">Failed: %1$s</string>
+    <string name="settings_snackbar_no_logs">No logs available to export</string>
+
+    <string name="content_status_card">Module status</string>
+    <string name="content_group_selector">Group selector</string>
+    <string name="content_quick_actions">Quick actions</string>
+    <string name="content_group_list">Groups list</string>
+    <string name="content_settings_row">Settings row</string>
+    <string name="content_action_row">Action row</string>
+    <string name="content_expandable_section">Expandable section</string>
+    <string name="content_country_picker">Country picker</string>
+    <string name="content_timezone_picker">Timezone picker</string>
+    <string name="content_diagnostics_card">Diagnostics card</string>
+    <string name="content_info_card">Information card</string>
+    <string name="content_bottom_sheet">Bottom sheet</string>
+    <string name="content_pull_to_refresh">Pull to refresh</string>
+    <string name="content_bottom_navigation">Bottom navigation</string>
+    <string name="content_module_info">Module information</string>
+    <string name="content_build_type">Build type</string>
+    <string name="content_loading_overlay">Loading overlay</string>
+
+    <string name="group_app_selected_state">Assigned</string>
+    <string name="group_app_unselected_state">Not assigned</string>
+    <string name="group_app_locked_state">Locked</string>
+    <string name="group_app_toggle_assignment">Toggle app assignment</string>
+    <string name="group_app_checkbox">Assign app</string>
+    <string name="group_app_card">App assignment card</string>
+
+    <string name="export_sheet_title">Export options</string>
+    <string name="export_sheet_option">Export option</string>
+
+    <string name="motion_reduce_enabled">Reduced motion enabled</string>
+    <string name="motion_reduce_disabled">Reduced motion disabled</string>
+
+    <string name="group_card_state_summary">%1$s, %2$s, %3$s</string>
+    <string name="settings_section_summary">%1$s section</string>
+
+    <string name="picker_country_item">%1$s, %2$s</string>
+    <string name="picker_timezone_item">%1$s, %2$s, %3$s</string>
+    <string name="picker_choose_timezone">Choose timezone</string>
+    <string name="picker_choose_country">Choose country</string>
+
+    <string name="action_close">Close</string>
+    <string name="action_go_back">Go back</string>
+    <string name="action_refresh">Refresh</string>
+
+    <string name="settings_about_module_info_desc">Current module runtime information</string>
+    <string name="settings_about_build_type_desc">Current app build variant</string>
+
+    <string name="home_status_card_desc">Module status and toggle</string>
+    <string name="home_quick_actions_desc">Quick actions</string>
+    <string name="home_group_selector_action">Open group selector</string>
+    <string name="home_group_view_action">Open group details</string>
+
+    <string name="diagnostics_info_card_desc">Live config sync information</string>
+    <string name="diagnostics_module_card_desc">Current module state</string>
+
+    <string name="group_dialog_title_create">Create New Group</string>
+    <string name="group_dialog_title_edit">Edit Group</string>
+    <string name="group_dialog_title_delete">Delete Group</string>
+    <string name="group_dialog_delete_message">Delete this group? This action cannot be undone. All assigned apps will use their default settings.</string>
+
+    <string name="picker_search_country_label">Search countries</string>
+    <string name="picker_search_timezone_label">Search timezones</string>
+
+    <string name="screen_groups_title">Groups</string>
+    <string name="screen_settings_title">Settings</string>
+    <string name="screen_diagnostics_title">Diagnostics</string>
+    <string name="screen_home_title">Home</string>
+
+    <string name="section_anti_detection">Anti-detection</string>
+    <string name="section_group_actions">Group actions</string>
+
+    <string name="settings_export_logs_busy">Exporting…</string>
+    <string name="settings_export_logs_idle">Ready to export logs</string>
+
+    <string name="group_card_apps_info">%1$s, %2$s</string>
+
+    <string name="group_card_status">Group status</string>
+
+    <string name="picker_region_separator">•</string>
+
+    <string name="settings_export_logs_destination">Choose where to save your logs</string>
+    <string name="settings_module_info_click_hint">No action available</string>
+    <string name="diagnostics_config_live">Live updates available</string>
+    <string name="diagnostics_config_fallback">Fallback may require restart</string>
+
+    <string name="group_list_auto_updates">Groups update automatically</string>
+    <string name="group_list_no_manual_refresh">Manual refresh removed</string>
+
+    <string name="app_assignment_locked">Assigned to another group</string>
+    <string name="app_assignment_available">Available for assignment</string>
+
+    <string name="status_enabled">Enabled</string>
+    <string name="status_disabled">Disabled</string>
+    <string name="status_default">Default</string>
+
+    <string name="dialog_close">Close dialog</string>
+    <string name="dialog_cancel">Cancel dialog</string>
+    <string name="dialog_confirm">Confirm</string>
+    <string name="dialog_select_item">Select item</string>
+
+    <string name="nav_destination_groups">Groups</string>
+    <string name="nav_destination_settings">Settings</string>
+    <string name="nav_destination_home">Home</string>
+
+    <string name="settings_export_sheet_desc">Choose how to export diagnostics logs</string>
+    <string name="settings_about_section">About</string>
+    <string name="settings_debug_section">Debug</string>
+    <string name="settings_appearance_section">Appearance</string>
+
+    <string name="group_card_delete_disabled">Default group cannot be deleted</string>
+    <string name="group_card_default_set">Already default group</string>
+
+    <string name="home_no_group_selected">No group selected</string>
+    <string name="home_group_selected">Selected group</string>
+
+    <string name="diagnostics_item_result">%1$s result</string>
+    <string name="diagnostics_card_action_none">No action</string>
+
+    <string name="settings_about_module_runtime">Module runtime</string>
+    <string name="settings_about_build_variant">Build variant</string>
+
+    <string name="section_count_format">%1$s, %2$s</string>
+
+    <string name="action_current">Current</string>
+    <string name="action_choose">Choose</string>
+    <string name="action_unavailable">Unavailable</string>
+    <string name="action_read_only">Read only</string>
+
+    <string name="content_group_card">Group card</string>
+    <string name="content_app_item">App item</string>
+    <string name="content_settings_item">Settings item</string>
+    <string name="content_quick_action_group">Quick action group</string>
+
+    <string name="content_animated_section">Animated section</string>
+
+    <string name="picker_none_found">No results found</string>
+    <string name="picker_search_results">Search results</string>
+
+    <string name="settings_log_export_success_title">Logs exported</string>
+    <string name="settings_log_export_error_title">Export failed</string>
+
+    <string name="group_create_new_subtitle">Create a group to start assigning spoofed identities.</string>
+    <string name="group_created">Created %1$s</string>
+
+    <string name="settings_module_info_read_only">Read-only information</string>
+
+    <string name="home_group_button">Group selection</string>
+    <string name="home_group_dropdown">Group dropdown</string>
+
+    <string name="diagnostics_header_back">Back</string>
+    <string name="diagnostics_header_subtitle">Pull down to refresh</string>
+
+    <string name="group_actions_menu">Group actions</string>
+    <string name="settings_logs_action">Logs</string>
+    <string name="settings_diagnostics_open">Open diagnostics</string>
+
+    <string name="home_configure_action">Configure spoofing</string>
+    <string name="home_regenerate_action">Regenerate all values</string>
+
+    <string name="group_card_more_info">More information</string>
+
+    <string name="home_group_disabled">Disabled</string>
+    <string name="home_group_enabled">Enabled</string>
+
+    <string name="settings_module_info_button">Module info</string>
+    <string name="settings_module_info_no_action">Module info only</string>
+
+    <string name="diagnostics_pull_to_refresh_hint">Pull down to refresh</string>
+    <string name="diagnostics_refresh_disabled">Refresh unavailable</string>
+
+    <string name="home_quick_actions_label">Quick Actions</string>
+    <string name="home_stats_protected_apps">Protected Apps</string>
+    <string name="home_stats_masked_ids">Masked IDs</string>
+
+    <string name="group_card_open_hint">Open group details</string>
+    <string name="group_card_switch_hint">Toggle group enabled state</string>
+
+    <string name="action_sheet">Action sheet</string>
+    <string name="settings_export_logs_sheet">Log export options</string>
+
+    <string name="settings_export_logs_cta">Export Logs</string>
+    <string name="settings_diagnostics_cta">Diagnostics</string>
+
+    <string name="status_module_active">Module Active</string>
+    <string name="status_module_inactive">Module Inactive</string>
+
+    <string name="picker_selected_state">Selected</string>
+    <string name="picker_not_selected_state">Not selected</string>
+
+    <string name="group_card_semantics">Group details</string>
+    <string name="settings_clickable_semantics">Open setting</string>
+    <string name="settings_switch_semantics">Setting toggle</string>
+    <string name="bottom_nav_semantics">Bottom navigation</string>
+    <string name="bottom_nav_item_semantics">Navigation item</string>
+    <string name="bottom_nav_selected_semantics">Selected navigation item</string>
+    <string name="bottom_nav_unselected_semantics">Navigation item not selected</string>
+
+    <string name="module_info_semantics">Module information</string>
+    <string name="build_type_semantics">Build type</string>
+
+    <string name="action_sheet_dismiss">Dismiss</string>
+    <string name="picker_dismiss">Dismiss picker</string>
+
+    <string name="diagnostics_section_toggle">Toggle section</string>
+    <string name="diagnostics_card_read_only">Read-only information</string>
+
+    <string name="group_refresh_disabled_message">Groups refresh automatically.</string>
+    <string name="group_list_description">List of spoof groups</string>
+    <string name="settings_list_description">List of settings</string>
+    <string name="home_list_description">Home dashboard</string>
+    <string name="diagnostics_list_description">Diagnostics list</string>
+
+    <string name="dialog_search_label">Search</string>
+    <string name="dialog_results_label">Results</string>
+
+    <string name="group_card_default_label">Default group</string>
+    <string name="group_card_apps_label">Assigned apps</string>
+    <string name="group_card_created_label">Creation date</string>
+
+    <string name="settings_export_logs_subtitle">Save or share in-memory diagnostics logs</string>
+    <string name="settings_diagnostics_subtitle">Check module health and hook status</string>
+
+    <string name="settings_about_version_desc">App version</string>
+    <string name="settings_about_module_desc">Module runtime</string>
+    <string name="settings_about_build_desc">Build variant</string>
+
+    <string name="animated_section_expand_desc">Expand section</string>
+    <string name="animated_section_collapse_desc">Collapse section</string>
+
+    <string name="group_dialog_placeholder_name">e.g., Samsung</string>
+    <string name="group_dialog_placeholder_description">e.g., For banking apps</string>
+
+    <string name="diagnostics_config_sync_title_short">Config Sync</string>
+    <string name="diagnostics_info_title">Info</string>
+
+    <string name="settings_logs_share">Share logs</string>
+    <string name="settings_logs_save">Save logs</string>
+
+    <string name="settings_export_logs_format">text/plain</string>
+
+    <string name="home_open_group_menu">Open group menu</string>
+    <string name="home_open_group_details">Open selected group details</string>
+
+    <string name="settings_theme_mode_choose">Choose theme mode</string>
+    <string name="settings_theme_mode_current">Current theme mode</string>
+
+    <string name="group_action_import">Import groups</string>
+    <string name="group_action_export">Export groups</string>
+
+    <string name="diagnostics_module_state">Current module state</string>
+    <string name="diagnostics_config_state">Configuration sync state</string>
+
+    <string name="picker_country_state">Country selection</string>
+    <string name="picker_timezone_state">Timezone selection</string>
+
+    <string name="action_export">Export</string>
+    <string name="action_import">Import</string>
+    <string name="action_edit_group">Edit group</string>
+    <string name="action_delete_group">Delete group</string>
+    <string name="action_set_default_group">Set as default</string>
+
+    <string name="bottom_nav_home">Home</string>
+    <string name="bottom_nav_groups">Groups</string>
+    <string name="bottom_nav_settings">Settings</string>
+
+    <string name="group_card_disabled_alpha">Disabled appearance</string>
+    <string name="group_card_enabled_alpha">Enabled appearance</string>
+
+    <string name="diagnostics_status_badge">Diagnostic status</string>
+    <string name="diagnostics_value_column">Diagnostic value</string>
+
+    <string name="group_empty_state">No groups found</string>
+    <string name="group_empty_state_cta">Create a group to start assigning spoofed identities.</string>
+
+    <string name="settings_module_info_summary">libxposed API 100 • LSPosed module</string>
+
+    <string name="group_card_role">Button</string>
+    <string name="settings_item_role">Button</string>
+    <string name="quick_action_role">Button</string>
+    <string name="app_assignment_role">Checkbox</string>
+    <string name="section_role">Expandable</string>
+    <string name="nav_role">Tab</string>
+
+    <string name="settings_export_logs_summary">Save or share in-memory diagnostics logs</string>
+    <string name="diagnostics_summary">Module health and spoofing checks</string>
+
+    <string name="status_active">Active</string>
+    <string name="status_inactive">Inactive</string>
+
+    <string name="settings_debug_logging_title">Debug logging</string>
+    <string name="settings_debug_logging_summary">Enable verbose logging for debugging</string>
+
+    <string name="settings_theme_mode_summary">Choose how the app theme is applied</string>
+    <string name="settings_dynamic_colors_summary">Material You dynamic colors</string>
+    <string name="settings_amoled_summary">Pure black for OLED screens</string>
+
+    <string name="picker_search_hint_country">Search countries…</string>
+    <string name="picker_search_hint_timezone">Search timezones…</string>
+
+    <string name="home_selected_group">Selected group</string>
+    <string name="home_group_menu">Group selector</string>
+
+    <string name="diagnostics_refresh_hint">Pull to refresh</string>
+    <string name="diagnostics_refresh_action">Refresh diagnostics</string>
+
+    <string name="group_card_open_action">Open group details</string>
+    <string name="group_card_set_default_action">Set as default</string>
+    <string name="group_card_edit_action">Edit group</string>
+    <string name="group_card_delete_action">Delete group</string>
+
+    <string name="settings_about_module_value">libxposed API 100 • LSPosed module</string>
+    <string name="settings_about_build_value_debug">Debug</string>
+    <string name="settings_about_build_value_release">Release</string>
+
+    <string name="bottom_nav_item_current">Current destination</string>
+    <string name="bottom_nav_item_open">Open destination</string>
+
+    <string name="home_action_group">Group action</string>
+    <string name="home_action_regenerate_label">Regenerate</string>
+
+    <string name="content_no_action">No action</string>
+
+    <string name="settings_module_info_readonly">Read-only module information</string>
+    <string name="group_card_default_state">Default group</string>
+    <string name="group_card_non_default_state">Custom group</string>
+    <string name="group_card_assigned_apps_state">%1$d assigned apps</string>
+
+    <string name="settings_export_logs_in_progress">Export in progress</string>
+    <string name="settings_export_logs_ready">Ready</string>
+
+    <string name="group_list_heading">Groups</string>
+    <string name="settings_list_heading">Settings</string>
+    <string name="home_list_heading">Home</string>
+    <string name="diagnostics_list_heading">Diagnostics</string>
+
+    <string name="nav_detail_back">Navigate back</string>
+    <string name="nav_back_to_settings">Back to settings</string>
+    <string name="nav_back_to_groups">Back to groups</string>
+
+    <string name="diagnostics_card_title">Diagnostics</string>
+    <string name="info_card_title">Information</string>
+
+    <string name="group_card_summary_format">%1$s, %2$s, %3$s</string>
+    <string name="settings_click_item_summary">%1$s, %2$s</string>
+
+    <string name="home_status_summary">%1$s, %2$s</string>
+    <string name="home_group_summary">%1$s, %2$s</string>
+
+    <string name="picker_country_summary">%1$s, %2$s</string>
+    <string name="picker_timezone_summary">%1$s, %2$s, %3$s</string>
+
+    <string name="settings_export_logs_picker_title">Export logs</string>
+    <string name="settings_export_logs_picker_desc">Choose how to export logs</string>
+
+    <string name="animated_section_content">Section content</string>
+    <string name="animated_section_header">Section header</string>
+
+    <string name="group_dialog_delete_warning_full">This action cannot be undone. All assigned apps will use their default settings.</string>
+
+    <string name="state_selected">Selected</string>
+    <string name="state_not_selected">Not selected</string>
+    <string name="state_enabled">Enabled</string>
+    <string name="state_disabled">Disabled</string>
+    <string name="state_expanded">Expanded</string>
+    <string name="state_collapsed">Collapsed</string>
+    <string name="state_default">Default</string>
+    <string name="state_custom">Custom</string>
+
+    <string name="group_status_default">Default</string>
+    <string name="group_status_custom">Custom</string>
+
+    <string name="picker_item_selected">Current selection</string>
+    <string name="picker_item_not_selected">Available option</string>
+
+    <string name="settings_about_module_title">Module Info</string>
+    <string name="settings_about_build_title">Build Type</string>
+    <string name="settings_about_version_title">Version</string>
+
+    <string name="group_create_action">Create group</string>
+    <string name="group_edit_action">Save group</string>
+    <string name="group_delete_action">Delete group</string>
+
+    <string name="status_chip_success">Spoofed</string>
+    <string name="status_chip_warning">Not Spoofed</string>
+    <string name="status_chip_inactive">Inactive</string>
+
+    <string name="diagnostics_value_real">Real</string>
+    <string name="diagnostics_value_spoofed">Spoofed</string>
+    <string name="diagnostics_value_unknown">Unknown</string>
+
+    <string name="loading_dashboard">Loading dashboard</string>
+    <string name="loading_settings">Loading settings</string>
+    <string name="loading_diagnostics">Loading diagnostics</string>
+
+    <string name="settings_bottom_sheet_title">Export Options</string>
+    <string name="settings_bottom_sheet_save">Save to Device</string>
+    <string name="settings_bottom_sheet_share">Share</string>
+
+    <string name="home_open_group">Open group</string>
+    <string name="home_select_group_action">Select group</string>
+
+    <string name="group_card_action_row">Group actions</string>
+    <string name="group_card_badge_default">Default</string>
+
+    <string name="settings_info_read_only">Read-only information</string>
+    <string name="settings_open_diagnostics">Open diagnostics</string>
+
+    <string name="picker_search_action">Search</string>
+    <string name="picker_choose_action">Choose option</string>
+
+    <string name="group_card_summary">Group summary</string>
+    <string name="settings_section_card">Settings section card</string>
+
+    <string name="diagnostics_section_card">Diagnostics section card</string>
+    <string name="diagnostics_info_card_summary">Configuration updates status</string>
+
+    <string name="group_screen_no_refresh">Groups update automatically</string>
+    <string name="group_screen_refresh_removed">Pull to refresh removed</string>
+
+    <string name="group_card_content">Group information</string>
+    <string name="app_list_item_content">App information</string>
+
+    <string name="bottom_nav_content">Bottom navigation</string>
+    <string name="bottom_nav_item_content">Navigation item</string>
+
+    <string name="settings_export_logs_sheet_title">Export options</string>
+    <string name="settings_export_logs_sheet_save">Save to device</string>
+    <string name="settings_export_logs_sheet_share">Share logs</string>
+
+    <string name="group_card_creation_date">Created %1$s</string>
+    <string name="group_card_assigned_apps">%1$d apps</string>
+
+    <string name="home_status_indicator">Protection status</string>
+    <string name="home_enable_toggle">Module enabled</string>
+
+    <string name="diagnostics_result_title">Result</string>
+    <string name="diagnostics_result_status">Status</string>
+
+    <string name="settings_module_runtime_value">libxposed API 100 • LSPosed module</string>
+
+    <string name="home_group_current">Current group</string>
+
+    <string name="action_open_details">Open details</string>
+    <string name="action_view">View</string>
+
+    <string name="screen_back">Back</string>
+    <string name="screen_back_to_settings">Back to settings</string>
+
+    <string name="group_list_menu">Group list options</string>
+    <string name="group_list_import">Import groups</string>
+    <string name="group_list_export">Export groups</string>
+
+    <string name="picker_list">Selection list</string>
+    <string name="picker_item">Selection item</string>
+
+    <string name="settings_loading">Exporting logs</string>
+    <string name="settings_idle">Idle</string>
+
+    <string name="group_card_desc">Group details and actions</string>
+    <string name="settings_item_desc">Setting and action</string>
+    <string name="quick_action_desc">Quick action</string>
+
+    <string name="animated_section_desc">Expandable content section</string>
+    <string name="dialog_picker_desc">Picker dialog</string>
+
+    <string name="settings_export_logs_help">Save or share in-memory diagnostics logs</string>
+
+    <string name="status_text_active">Protection Active</string>
+    <string name="status_text_disabled">Protection Disabled</string>
+    <string name="status_text_not_injected">Module Not Injected</string>
+
+    <string name="group_card_title">Group</string>
+    <string name="settings_card_title">Settings</string>
+
+    <string name="diagnostics_card_title_short">Status</string>
+
+    <string name="app_assignment_title">App assignment</string>
+    <string name="app_assignment_checkbox_title">Assign app</string>
+
+    <string name="settings_theme_dialog_title">Theme Mode</string>
+    <string name="settings_theme_dialog_close">Close theme mode dialog</string>
+
+    <string name="group_create_dialog_title">Create New Group</string>
+    <string name="group_edit_dialog_title_label">Edit Group</string>
+    <string name="group_delete_dialog_title_label">Delete Group</string>
+
+    <string name="group_picker_state">Group selection state</string>
+    <string name="home_dashboard">Dashboard</string>
+
+    <string name="diagnostics_live_sync">Live sync</string>
+    <string name="diagnostics_cached_fallback">Cached fallback</string>
+
+    <string name="settings_share_logs_title">Share Logs</string>
+    <string name="settings_module_info_subtitle">libxposed API 100 • LSPosed module</string>
+
+    <string name="group_card_footer">Group metadata</string>
+    <string name="diagnostics_footer">Diagnostics details</string>
+
+    <string name="settings_about_footer">About details</string>
+
+    <string name="screen_home_subtitle">Module status and quick actions</string>
+    <string name="screen_groups_subtitle">Manage spoof groups</string>
+    <string name="screen_settings_subtitle">App preferences and diagnostics</string>
+    <string name="screen_diagnostics_subtitle">Module health and spoofing checks</string>
+
+    <string name="group_card_enabled_state">Group enabled</string>
+    <string name="group_card_disabled_state">Group disabled</string>
+
+    <string name="picker_search_empty">No matching results</string>
+
+    <string name="settings_about_module_runtime_title">Module runtime</string>
+    <string name="settings_about_build_variant_title">Build variant</string>
+
+    <string name="home_group_view_button">View selected group</string>
+    <string name="home_group_select_button">Select a group</string>
+
+    <string name="settings_open_module_info">View module info</string>
+
+    <string name="diagnostics_header">Diagnostics header</string>
+    <string name="groups_header">Groups header</string>
+    <string name="settings_header">Settings header</string>
+
+    <string name="home_status_header">Status</string>
+    <string name="home_groups_header">Group</string>
+    <string name="home_actions_header">Actions</string>
+
+    <string name="quick_actions_header">Quick Actions</string>
+    <string name="group_actions_header">Group Actions</string>
+
+    <string name="settings_appearance_header">Appearance</string>
+    <string name="settings_debug_header">Debug</string>
+    <string name="settings_about_header">About</string>
+
+    <string name="diagnostics_anti_detection_header">Anti-Detection</string>
+
+    <string name="group_card_open_row">Open group row</string>
+    <string name="settings_open_row">Open settings row</string>
+
+    <string name="sheet_action_save">Save</string>
+    <string name="sheet_action_share">Share</string>
+
+    <string name="state_live">Live</string>
+    <string name="state_fallback">Fallback</string>
+
+    <string name="settings_section_click_feedback">Section touch feedback</string>
+    <string name="diagnostics_card_no_action">Read-only card</string>
+
+    <string name="group_card_compact">Compact group card</string>
+    <string name="group_card_full">Full group card</string>
+
+    <string name="home_card_status">Status card</string>
+    <string name="home_card_group">Group card</string>
+    <string name="home_card_actions">Actions card</string>
+
+    <string name="settings_export_option_save">Save to device</string>
+    <string name="settings_export_option_share">Share logs</string>
+
+    <string name="dialog_picker_title_country">Select Country</string>
+    <string name="dialog_picker_title_timezone">Select Timezone</string>
+
+    <string name="diagnostics_header_back_button">Back</string>
+    <string name="group_screen_fab_label">Create group</string>
+
+    <string name="settings_snackbar_title">Settings message</string>
+
+    <string name="diagnostics_real_column">Real</string>
+    <string name="diagnostics_spoofed_column">Spoofed</string>
+
+    <string name="app_item_package_name">Package name</string>
+    <string name="app_item_assignment_status">Assignment status</string>
+
+    <string name="settings_item_chevron">Open</string>
+    <string name="animated_section_chevron">Expand or collapse</string>
+
+    <string name="module_status_active">Module Active</string>
+    <string name="module_status_inactive">Module Inactive</string>
+
+    <string name="settings_log_export_message">Choose how to export logs</string>
+    <string name="group_create_description">Create a group to start assigning spoofed identities.</string>
+
+    <string name="home_status_toggle">Protection toggle</string>
+
+    <string name="group_card_date_format">Created %1$s</string>
+
+    <string name="status_yes">Yes</string>
+    <string name="status_no">No</string>
+
+    <string name="group_card_assigned">Assigned</string>
+    <string name="group_card_unassigned">Unassigned</string>
+
+    <string name="settings_module_info_state">Read-only</string>
+
+    <string name="diagnostics_value_label_real">Real</string>
+    <string name="diagnostics_value_label_spoofed">Spoofed</string>
+
+    <string name="picker_checkmark">Selected option</string>
+    <string name="bottom_nav_indicator">Selected destination indicator</string>
+
+    <string name="settings_section_label">Settings section</string>
+    <string name="group_section_label">Group section</string>
+    <string name="diagnostics_section_label">Diagnostics section</string>
+
+    <string name="card_read_only">Read only</string>
+    <string name="card_interactive">Interactive</string>
+
+    <string name="settings_logs_destination_dynamic">User-selected destination</string>
+    <string name="diagnostics_sync_live_desc">Configuration updates apply immediately when live service is available.</string>
+    <string name="diagnostics_sync_fallback_desc">Fallback may require target app restart.</string>
+
+    <string name="groups_auto_sync_desc">Groups list updates automatically from repository flow.</string>
+
+    <string name="home_loading_label">Loading Dashboard...</string>
+
+    <string name="group_card_default_title">Default</string>
+    <string name="group_card_actions_title">Actions</string>
+    <string name="settings_module_info_title_read_only">Module info</string>
+
+    <string name="picker_list_country">Countries</string>
+    <string name="picker_list_timezone">Timezones</string>
+
+    <string name="diagnostics_card_module">Module status</string>
+    <string name="diagnostics_card_sync">Config sync</string>
+
+    <string name="settings_export_logs_note">In-memory diagnostics logs only</string>
+    <string name="settings_module_info_note">Read-only information</string>
+
+    <string name="group_card_summary_apps">%1$d assigned apps</string>
+    <string name="group_card_summary_created">Created %1$s</string>
+
+    <string name="animated_section_summary">%1$s section, %2$s</string>
+    <string name="quick_action_summary">%1$s quick action</string>
+
+    <string name="screen_back_label">Back</string>
+    <string name="settings_diagnostics_label">Diagnostics</string>
+    <string name="settings_export_logs_label">Export Logs</string>
+
+    <string name="settings_module_info_label">Module Info</string>
+    <string name="settings_build_type_label">Build Type</string>
+
+    <string name="group_app_lock">Locked</string>
+    <string name="group_app_assign">Assign</string>
+
+    <string name="bottom_nav_destination">Navigation destination</string>
+    <string name="bottom_nav_selected">Selected destination</string>
+
+    <string name="diagnostics_result_semantics">Diagnostic result</string>
+    <string name="status_badge_semantics">Status badge</string>
+    <string name="value_column_semantics">Value column</string>
+
+    <string name="settings_section_container">Settings card</string>
+    <string name="group_card_container">Group card</string>
+    <string name="action_bottom_sheet_container">Action sheet</string>
+
+    <string name="picker_search_country_placeholder">Search countries...</string>
+    <string name="picker_search_timezone_placeholder">Search timezones...</string>
+
+    <string name="diagnostics_open_section">Open section</string>
+    <string name="diagnostics_close_section">Close section</string>
+
+    <string name="home_group_selector_title">Select Group</string>
+    <string name="home_group_selector_subtitle">Current group</string>
+
+    <string name="settings_section_interactive">Interactive section</string>
+    <string name="settings_section_read_only">Read-only section</string>
+
+    <string name="group_refresh_info">Automatic updates enabled</string>
+
+    <string name="screen_diagnostics_back">Back to settings</string>
+    <string name="screen_group_spoofing_back">Back to groups</string>
+
+    <string name="settings_export_logs_chooser">Share Logs</string>
+
+    <string name="group_card_summary_default">Default group</string>
+    <string name="group_card_summary_custom">Custom group</string>
+
+    <string name="content_back_button">Back button</string>
+    <string name="content_switch">Switch</string>
+    <string name="content_checkbox">Checkbox</string>
+    <string name="content_button">Button</string>
+
+    <string name="diagnostics_status_success_text">Spoofed</string>
+    <string name="diagnostics_status_failure_text">Not Spoofed</string>
+
+    <string name="group_card_group_name">Group name</string>
+    <string name="group_card_group_description">Group description</string>
+    <string name="group_card_group_metadata">Group metadata</string>
+
+    <string name="settings_about_read_only">Read-only info</string>
+
+    <string name="picker_country_phone_code">Phone code</string>
+    <string name="picker_timezone_offset">Offset</string>
+    <string name="picker_timezone_region">Region</string>
+
+    <string name="home_group_no_selection">No Group</string>
+    <string name="home_group_disabled_tag_text">Disabled</string>
+
+    <string name="settings_export_logs_summary_note">Save or share in-memory diagnostics logs</string>
+    <string name="settings_module_info_summary_note">libxposed API 100 • LSPosed module</string>
+
+    <string name="diagnostics_pull_hint">Pull down to refresh</string>
+    <string name="group_list_dynamic">Live-updating group list</string>
+
+    <string name="status_badge_success">Spoofed</string>
+    <string name="status_badge_warning">Not Spoofed</string>
+    <string name="status_badge_inactive">Inactive</string>
+
+    <string name="settings_export_logs_destination_note">Save to a location you choose</string>
+    <string name="settings_export_logs_share_note">Share logs via another app</string>
+
+    <string name="group_dialog_counter">%1$d/%2$d</string>
+    <string name="group_dialog_create">Create</string>
+    <string name="group_dialog_save">Save</string>
+    <string name="group_dialog_delete">Delete</string>
+
+    <string name="group_card_selected_indicator">Selected</string>
+    <string name="home_group_selected_indicator">Selected</string>
+
+    <string name="bottom_nav_label_home">Home</string>
+    <string name="bottom_nav_label_groups">Groups</string>
+    <string name="bottom_nav_label_settings">Settings</string>
+
+    <string name="diagnostics_label_real">Real</string>
+    <string name="diagnostics_label_spoofed">Spoofed</string>
+
+    <string name="settings_theme_follow_system_summary">Follow system dark/light mode settings</string>
+
+    <string name="settings_export_logs_read_only">No logs available</string>
+
+    <string name="group_card_description_format">%1$s, %2$s, %3$s</string>
+
+    <string name="home_quick_action_configure">Configure</string>
+    <string name="home_quick_action_regenerate">Regenerate</string>
+
+    <string name="picker_timezone_display">%1$s, %2$s, %3$s</string>
+    <string name="picker_country_display">%1$s, +%2$s</string>
+
+    <string name="settings_logs_snackbar_success">Logs exported (%1$d lines)&#10;&#10;Saved to: %2$s</string>
+    <string name="settings_logs_snackbar_error">Failed: %1$s</string>
+    <string name="settings_logs_snackbar_empty">No logs available to export</string>
+
+    <string name="groups_no_refresh_hint">Groups update automatically</string>
+    <string name="groups_refresh_removed_hint">Pull-to-refresh removed</string>
+
+    <string name="diagnostics_live_service">Live service</string>
+    <string name="diagnostics_cached_preferences">Cached preferences</string>
+
+    <string name="settings_module_info_runtime">libxposed API 100</string>
+    <string name="settings_module_info_framework">LSPosed module</string>
+
+    <string name="group_dialog_name_example">e.g., Samsung</string>
+    <string name="group_dialog_description_example">e.g., For banking apps</string>
+
+    <string name="group_card_created_format">Created %1$s</string>
+    <string name="settings_export_logs_format_label">Text file</string>
+
+    <string name="home_group_open_button">View Group</string>
+    <string name="home_group_select_button_label">Select Group</string>
+
+    <string name="diagnostics_back_label">Back</string>
+    <string name="group_back_label">Back</string>
+
+    <string name="action_sheet_action">Action</string>
+    <string name="section_header">Section header</string>
+    <string name="section_content">Section content</string>
+
+    <string name="app_item_label">App</string>
+    <string name="app_item_lock_label">Locked</string>
+    <string name="app_item_checkbox_label">Assign app</string>
+
+    <string name="group_card_enable_label">Enable group</string>
+    <string name="group_card_open_label">Open group</string>
+
+    <string name="settings_about_version_value">Version %1$s</string>
+
+    <string name="loading_dashboard_label">Loading dashboard…</string>
+
+    <string name="diagnostics_pull_to_refresh_label">Pull down to refresh</string>
+
+    <string name="settings_module_info_static">Read-only module information</string>
+    <string name="group_list_reactive">Reactive list updates</string>
+    <string name="group_list_manual_refresh_removed">No manual refresh</string>
+
+    <string name="status_desc_active">Protection Active</string>
+    <string name="status_desc_disabled">Protection Disabled</string>
+    <string name="status_desc_not_injected">Module Not Injected</string>
+
+    <string name="settings_export_logs_save_desc_dynamic">Save logs to a file on your device</string>
+    <string name="settings_export_logs_share_desc_dynamic">Share logs via another app</string>
+
+    <string name="action_default">Default</string>
+    <string name="action_edit_item">Edit</string>
+    <string name="action_delete_item">Delete</string>
+
+    <string name="diagnostics_card_semantics">Diagnostics information</string>
+    <string name="config_sync_card_semantics">Configuration sync information</string>
+
+    <string name="settings_about_module_static">Module information</string>
+    <string name="group_card_compact_selected">Selected group</string>
+
+    <string name="home_group_disabled_badge">Disabled</string>
+
+    <string name="screen_subtitle_groups">Manage spoof groups</string>
+    <string name="screen_subtitle_settings">App preferences and diagnostics</string>
+    <string name="screen_subtitle_diagnostics">Module health and spoofing checks</string>
+
+    <string name="group_card_assigned_apps_format">%1$d apps</string>
+    <string name="group_card_created_on">Created %1$s</string>
+
+    <string name="picker_item_selected_state">Selected</string>
+    <string name="picker_item_unselected_state">Not selected</string>
+
+    <string name="settings_module_info_hint">No additional action</string>
+
+    <string name="nav_item_selected">Selected</string>
+    <string name="nav_item_unselected">Not selected</string>
+
+    <string name="settings_about_version_label">Version</string>
+
+    <string name="settings_export_logs_destination_dynamic_desc">Choose where to save your logs</string>
+    <string name="diagnostics_config_sync_live_desc_short">Live updates when service is available</string>
+    <string name="diagnostics_config_sync_fallback_desc_short">Fallback may require restart</string>
+
+    <string name="group_empty_subtitle_action">Create group</string>
+
+    <string name="quick_action_button_label">Quick action button</string>
+    <string name="animated_section_button_label">Expandable section button</string>
+
+    <string name="status_chip_label">Status</string>
+    <string name="value_label">Value</string>
+
+    <string name="settings_export_logs_picker_action">Create export file</string>
+    <string name="settings_export_logs_share_action">Share logs</string>
+
+    <string name="group_card_selected_state_label">Selected</string>
+    <string name="group_card_unselected_state_label">Not selected</string>
+
+    <string name="settings_about_module_subtitle">Current module runtime information</string>
+    <string name="settings_about_build_subtitle">Current app build variant</string>
+
+    <string name="group_dialog_input_name">Group name input</string>
+    <string name="group_dialog_input_description">Group description input</string>
+
+    <string name="app_item_assignment_toggle">Toggle assignment</string>
+    <string name="app_item_locked_to_group">Assigned to %1$s</string>
+
+    <string name="bottom_nav_open_home">Open Home tab</string>
+    <string name="bottom_nav_open_groups">Open Groups tab</string>
+    <string name="bottom_nav_open_settings">Open Settings tab</string>
+
+    <string name="home_group_view_label">View Group</string>
+    <string name="home_group_select_label">Select Group</string>
+
+    <string name="home_loading_text">Loading Dashboard...</string>
+
+    <string name="diagnostics_header_subtitle_refresh">Pull down to refresh</string>
+    <string name="config_sync_immediate">Configuration updates apply immediately when the live module service is available.</string>
+    <string name="config_sync_restart_fallback">If the service is unavailable, cached preferences may require a target app restart.</string>
+
+    <string name="settings_module_info_architecture">libxposed API 100 • LSPosed module</string>
+
+    <string name="group_auto_updates">Groups update automatically from repository changes.</string>
+    <string name="group_no_pull_refresh">Manual pull-to-refresh is not shown.</string>
+
+    <string name="group_card_summary_enabled">Enabled</string>
+    <string name="group_card_summary_disabled">Disabled</string>
+
+    <string name="settings_logs_bottom_sheet">Log export options</string>
+    <string name="settings_logs_bottom_sheet_save">Save to device</string>
+    <string name="settings_logs_bottom_sheet_share">Share logs</string>
+
+    <string name="home_group_selector_semantics">Group selector card</string>
+    <string name="home_status_semantics">Status card</string>
+    <string name="home_quick_actions_semantics">Quick actions section</string>
+
+    <string name="app_list_item_semantics">App assignment row</string>
+    <string name="group_card_semantics_label">Group row</string>
+
+    <string name="section_expand">Expand</string>
+    <string name="section_collapse">Collapse</string>
+
+    <string name="settings_about_module_read_only">Read-only module info</string>
+    <string name="settings_about_build_read_only">Read-only build info</string>
+
+    <string name="picker_dialog_country_semantics">Country picker dialog</string>
+    <string name="picker_dialog_timezone_semantics">Timezone picker dialog</string>
+
+    <string name="settings_export_logs_note_dynamic">Save or share in-memory diagnostics logs</string>
+    <string name="settings_module_info_note_dynamic">libxposed API 100 • LSPosed module</string>
+
+    <string name="group_empty_state_subtitle">Create a group to start assigning spoofed identities.</string>
+    <string name="home_group_current_selection">Current group selection</string>
+
+    <string name="group_card_footer_semantics">Group metadata and actions</string>
+    <string name="diagnostics_card_footer_semantics">Diagnostic values</string>
+
+    <string name="settings_about_footer_semantics">About information</string>
+
+    <string name="diagnostics_config_sync_live">Live updates available</string>
+    <string name="diagnostics_config_sync_fallback">Fallback may require restart</string>
+
+    <string name="settings_module_info_action_none">No action available</string>
+    <string name="group_refresh_disabled_note">Groups update automatically</string>
+
+    <string name="loading_dashboard_accessible">Loading dashboard</string>
+
+    <string name="nav_home_tab">Home tab</string>
+    <string name="nav_groups_tab">Groups tab</string>
+    <string name="nav_settings_tab">Settings tab</string>
+
+    <string name="settings_export_logs_result_success">Logs exported (%1$d lines)&#10;&#10;Saved to: %2$s</string>
+    <string name="settings_export_logs_result_error">Failed: %1$s</string>
+
+    <string name="group_name_counter">%1$d/%2$d</string>
+
+    <string name="section_state">%1$s</string>
+    <string name="selection_state">%1$s</string>
+    <string name="toggle_state">%1$s</string>
+
+    <string name="picker_country_code">+%1$s</string>
+    <string name="picker_timezone_parts">%1$s • %2$s</string>
+
+    <string name="settings_module_info_libxposed">libxposed API 100</string>
+    <string name="settings_module_info_lsposed">LSPosed module</string>
+
+    <string name="group_card_created_summary">Created %1$s</string>
+    <string name="group_card_apps_summary">%1$d apps</string>
+
+    <string name="diagnostics_header_refresh_hint">Pull down to refresh</string>
+
+    <string name="settings_export_logs_destination_removed">No fixed destination</string>
+
+    <string name="settings_module_info_updated">libxposed API 100 • LSPosed module</string>
+
+    <string name="group_list_real_time">Reactive group updates</string>
+    <string name="group_list_manual_refresh_hidden">Manual refresh hidden</string>
+
+    <string name="home_group_select_desc">Choose the active group</string>
+    <string name="home_group_view_desc">Open the selected group</string>
+
+    <string name="settings_export_logs_desc_dynamic">Save or share in-memory diagnostics logs</string>
+
+    <string name="diagnostics_config_desc_live">Immediate when live service is available</string>
+    <string name="diagnostics_config_desc_fallback">Fallback may require restart</string>
+
+    <string name="about_module_info_runtime">libxposed API 100 • LSPosed module</string>
+
+    <string name="groups_screen_empty_subtitle">Create a group to start assigning spoofed identities.</string>
+
+    <string name="screen_back_to_groups_label">Back to groups</string>
+    <string name="screen_back_to_settings_label">Back to settings</string>
+
+    <string name="settings_export_logs_sheet_label">Export options</string>
+
+    <string name="content_module_status">Module status content</string>
+    <string name="content_config_sync">Config sync content</string>
+
+    <string name="settings_logs_destination_label">User-selected file destination</string>
+
+    <string name="group_assignments_label">Assignments</string>
+
+    <string name="bottom_nav_action">Navigate</string>
+    <string name="group_card_action">Group action</string>
+
+    <string name="diagnostics_card_action">Diagnostics action</string>
+
+    <string name="picker_search_country_content">Country search</string>
+    <string name="picker_search_timezone_content">Timezone search</string>
+
+    <string name="group_card_click_hint">Open group details</string>
+    <string name="settings_item_click_hint">Open setting</string>
+
+    <string name="settings_about_module_caption">Current module runtime information</string>
+    <string name="settings_about_build_caption">Current app build variant</string>
+
+    <string name="group_card_caption">Group summary and actions</string>
+    <string name="diagnostics_card_caption">Diagnostics summary</string>
+
+    <string name="home_status_caption">Protection status and toggle</string>
+    <string name="home_group_caption">Active group and actions</string>
+    <string name="home_actions_caption">Quick actions</string>
+
+    <string name="picker_country_caption">Choose a country</string>
+    <string name="picker_timezone_caption">Choose a timezone</string>
+
+    <string name="group_dialog_caption">Edit group details</string>
+    <string name="theme_dialog_caption">Choose theme mode</string>
+
+    <string name="settings_export_caption">Choose how to export logs</string>
+
+    <string name="nav_item_caption">Navigation destination</string>
+
+    <string name="group_card_summary_caption">Group summary</string>
+    <string name="group_card_actions_caption">Group actions</string>
+
+    <string name="diagnostics_values_caption">Real and spoofed values</string>
+
+    <string name="settings_about_caption">About app and module</string>
+
+    <string name="group_card_default_caption">Default group</string>
+
+    <string name="loading_caption">Loading</string>
+
+    <string name="status_caption">Status</string>
+
+    <string name="value_caption">Value</string>
+
+    <string name="section_caption">Section</string>
+
+    <string name="dialog_caption">Dialog</string>
+
+    <string name="sheet_caption">Bottom sheet</string>
+
+    <string name="button_caption">Button</string>
+
+    <string name="switch_caption">Switch</string>
+
+    <string name="checkbox_caption">Checkbox</string>
+
+    <string name="tab_caption">Tab</string>
+
+    <string name="list_caption">List</string>
+
+    <string name="card_caption">Card</string>
+
+    <string name="icon_caption">Icon</string>
+
+    <string name="home_loading_dashboard_caption">Loading dashboard</string>
+
+    <string name="diagnostics_read_only">Read-only diagnostics</string>
+
+    <string name="settings_about_read_only_caption">Read-only about information</string>
+
+    <string name="group_auto_update_caption">Automatic updates</string>
+
+    <string name="settings_export_dynamic_caption">Dynamic destination export</string>
+
+    <string name="module_info_updated_caption">Updated module info</string>
+
+    <string name="screen_heading_home">Home</string>
+    <string name="screen_heading_groups">Groups</string>
+    <string name="screen_heading_settings">Settings</string>
+    <string name="screen_heading_diagnostics">Diagnostics</string>
+
+    <string name="section_heading_quick_actions">Quick Actions</string>
+    <string name="section_heading_appearance">Appearance</string>
+    <string name="section_heading_debug">Debug</string>
+    <string name="section_heading_about">About</string>
+
+    <string name="home_loading_dashboard_ellipsis">Loading dashboard…</string>
+
+    <string name="settings_export_user_destination">User-selected destination</string>
+
+    <string name="config_sync_live_service">Live service available</string>
+    <string name="config_sync_cached_service">Cached fallback</string>
+
+    <string name="groups_flow_updates">Repository flow updates automatically</string>
+
+    <string name="settings_module_info_runtime_updated">libxposed API 100 • LSPosed module</string>
+
+    <string name="home_group_label_current">Current group</string>
+
+    <string name="screen_back_generic">Back</string>
+
+    <string name="bottom_nav_current">Current tab</string>
+
+    <string name="group_card_actions_row">Actions row</string>
+
+    <string name="diagnostics_card_values">Values</string>
+
+    <string name="settings_logs_export_title">Export Logs</string>
+
+    <string name="theme_mode_value">%1$s</string>
+
+    <string name="picker_selection_current">Current selection</string>
+
+    <string name="group_card_summary_meta">%1$s • %2$s</string>
+
+    <string name="screen_subtitle_generic">Details</string>
+
+    <string name="home_group_disabled_state">Disabled</string>
+    <string name="home_group_default_state">Default</string>
+
+    <string name="diagnostics_refresh_subtitle">Pull down to refresh</string>
+
+    <string name="settings_export_state_busy">Busy</string>
+    <string name="settings_export_state_idle">Idle</string>
+
+    <string name="settings_build_type_value_release">Release</string>
+    <string name="settings_build_type_value_debug">Debug</string>
+
+    <string name="module_info_value">libxposed API 100 • LSPosed module</string>
+
+    <string name="group_card_summary_text">%1$s, %2$s, %3$s</string>
+
+    <string name="settings_logs_sheet_desc">Choose how to export in-memory diagnostics logs</string>
+
+    <string name="picker_flag">Flag</string>
+
+    <string name="diagnostics_real_mono">Real value</string>
+    <string name="diagnostics_spoofed_mono">Spoofed value</string>
+
+    <string name="groups_auto_updates_text">Groups update automatically from repository changes.</string>
+    <string name="groups_refresh_removed_text">Manual refresh is removed.</string>
+
+    <string name="module_info_read_only_text">Module info only</string>
+
+    <string name="settings_export_destination_note">No fixed Downloads destination</string>
+
+    <string name="nav_open_home">Open home</string>
+    <string name="nav_open_groups">Open groups</string>
+    <string name="nav_open_settings">Open settings</string>
+
+    <string name="settings_export_logs_content_desc">Export logs</string>
+    <string name="settings_diagnostics_content_desc">Diagnostics</string>
+
+    <string name="group_card_content_desc">Group</string>
+    <string name="app_item_content_desc">App</string>
+
+    <string name="quick_action_content_desc">Quick action</string>
+    <string name="section_content_desc">Expandable section</string>
+
+    <string name="screen_back_content_desc">Back</string>
+
+    <string name="status_chip_content_desc">Status</string>
+
+    <string name="value_column_content_desc">Value column</string>
+
+    <string name="bottom_nav_content_desc">Bottom navigation</string>
+
+    <string name="settings_about_content_desc">About information</string>
+
+    <string name="config_sync_content_desc">Config sync information</string>
+
+    <string name="home_group_content_desc">Group selector</string>
+
+    <string name="home_status_content_desc">Status card</string>
+    <string name="home_actions_content_desc">Quick actions</string>
+
+    <string name="groups_header_content_desc">Groups</string>
+    <string name="settings_header_content_desc">Settings</string>
+    <string name="diagnostics_header_content_desc">Diagnostics</string>
+
+    <string name="picker_country_content_desc">Country picker</string>
+    <string name="picker_timezone_content_desc">Timezone picker</string>
+
+    <string name="settings_logs_sheet_content_desc">Export options</string>
+
+    <string name="group_auto_update_content_desc">Automatic updates</string>
+
+    <string name="module_info_content_desc">Module information</string>
+
+    <string name="settings_build_type_content_desc">Build type</string>
+
+    <string name="home_loading_content_desc">Loading dashboard</string>
+
+    <string name="diagnostics_read_only_content_desc">Read-only diagnostics</string>
+
+    <string name="groups_refresh_removed_content_desc">Manual refresh removed</string>
+
+    <string name="screen_subtitle_home">Module status and quick actions</string>
+
+    <string name="settings_about_module_updated">libxposed API 100 • LSPosed module</string>
+
+    <string name="picker_search_country_hint">Search countries…</string>
+    <string name="picker_search_timezone_hint">Search timezones…</string>
+
+
+    <string name="settings_about_read_only_text">Read-only info</string>
+
+    <string name="groups_empty_text">No groups found</string>
+    <string name="groups_empty_help">Create a group to start assigning spoofed identities.</string>
+
+    <string name="status_active_text">Active</string>
+    <string name="status_inactive_text">Inactive</string>
+
+    <string name="action_label_open">Open</string>
+    <string name="action_label_toggle">Toggle</string>
+    <string name="action_label_select">Select</string>
+
+    <string name="picker_selected_label">Selected</string>
+    <string name="picker_current_label">Current selection</string>
+
+    <string name="diagnostics_pull_label">Pull down to refresh</string>
+
+    <string name="group_card_default_text">Default</string>
+    <string name="group_card_disabled_text">Disabled</string>
+
+    <string name="home_view_group_text">View Group</string>
+    <string name="home_select_group_text">Select Group</string>
+
+    <string name="settings_module_info_text">Module Info</string>
+    <string name="settings_build_type_text">Build Type</string>
+
+    <string name="group_name_length_text">%1$d/%2$d</string>
+
+    <string name="settings_export_logs_no_fixed_destination">No fixed destination</string>
+
+    <string name="groups_screen_auto_updates">Groups update automatically</string>
+
+    <string name="config_sync_live_text">Live updates</string>
+    <string name="config_sync_fallback_text">Fallback restart path</string>
+
+    <string name="module_info_runtime_text">libxposed API 100 • LSPosed module</string>
+
+    <string name="settings_export_logs_reworded">Save or share in-memory diagnostics logs</string>
+
+    <string name="home_loading_dashboard_text">Loading dashboard…</string>
+
+    <string name="diagnostics_back_text">Back</string>
+
+    <string name="screen_back_text">Back</string>
+
+    <string name="quick_actions_text">Quick Actions</string>
+
+    <string name="group_created_text">Created %1$s</string>
+
+    <string name="settings_logs_success_text">Logs exported (%1$d lines)&#10;&#10;Saved to: %2$s</string>
+
+    <string name="group_card_summary_row">%1$s • %2$s</string>
+
+    <string name="picker_country_row">%1$s +%2$s</string>
+    <string name="picker_timezone_row">%1$s %2$s %3$s</string>
+
+    <string name="settings_export_logs_sheet_reworded">Export options</string>
+
+    <string name="group_card_role_desc">Open group</string>
+
+    <string name="bottom_nav_role_desc">Navigation tab</string>
+
+    <string name="settings_clickable_role_desc">Open setting</string>
+
+    <string name="app_item_role_desc">Toggle assignment</string>
+
+    <string name="animated_section_role_desc">Toggle section</string>
+
+    <string name="diagnostics_result_role_desc">Read result</string>
+
+    <string name="home_status_role_desc">Status</string>
+
+    <string name="home_group_role_desc">Group selector</string>
+
+    <string name="home_action_role_desc">Quick action</string>
+
+    <string name="settings_about_role_desc">Read-only info</string>
+
+    <string name="group_auto_update_role_desc">Automatic updates</string>
+
+    <string name="config_sync_role_desc">Config sync</string>
+
+    <string name="settings_export_role_desc">Export logs</string>
+
+    <string name="dialog_picker_role_desc">Picker</string>
+
+    <string name="sheet_action_role_desc">Action option</string>
+
+    <string name="picker_search_role_desc">Search</string>
+
+    <string name="status_badge_role_desc">Status badge</string>
+
+    <string name="value_column_role_desc">Value column</string>
+
+    <string name="back_button_role_desc">Back button</string>
+
+    <string name="fab_role_desc">Create group</string>
+
+    <string name="switch_role_desc">Switch</string>
+
+    <string name="checkbox_role_desc">Checkbox</string>
+
+    <string name="button_role_desc">Button</string>
+
+    <string name="tab_role_desc">Tab</string>
+
+    <string name="card_role_desc">Card</string>
+
+    <string name="list_role_desc">List</string>
+
+    <string name="dialog_role_desc">Dialog</string>
+
+    <string name="sheet_role_desc">Bottom sheet</string>
+
+    <string name="loading_role_desc">Loading</string>
+
+    <string name="text_role_desc">Text</string>
+
+    <string name="icon_role_desc">Icon</string>
+
+    <string name="groups_state_live">Live updates</string>
+    <string name="groups_state_no_manual_refresh">No manual refresh</string>
+
+    <string name="settings_export_destination_live">User-selected destination</string>
+
+    <string name="module_info_state_current">Current module info</string>
+
+    <string name="group_card_open_current">Open current group</string>
+
+    <string name="diagnostics_refresh_current">Refresh diagnostics</string>
+
+    <string name="settings_export_current">Export logs</string>
+
+    <string name="picker_select_current">Select item</string>
+
+    <string name="home_group_current_state">Current group</string>
+
+    <string name="group_card_current_state">Current group state</string>
+
+    <string name="section_current_state">Current section state</string>
+
+    <string name="nav_current_state">Current navigation state</string>
+
+    <string name="app_assignment_current_state">Current assignment state</string>
+
+    <string name="dialog_current_state">Dialog state</string>
+
+    <string name="sheet_current_state">Sheet state</string>
+
+    <string name="status_current_state">Status state</string>
+
+    <string name="picker_current_state">Picker state</string>
+
+    <string name="settings_current_state">Settings state</string>
+
+    <string name="diagnostics_current_state">Diagnostics state</string>
+
+    <string name="home_current_state">Home state</string>
+
+    <string name="groups_current_state">Groups state</string>
+
+    <string name="about_current_state">About state</string>
+
+    <string name="export_current_state">Export state</string>
+
+    <string name="motion_current_state">Motion state</string>
+
+    <string name="refresh_current_state">Refresh state</string>
+
+    <string name="selection_current_state">Selection state</string>
+
+    <string name="toggle_current_state">Toggle state</string>
+
+    <string name="button_current_state">Button state</string>
+
+    <string name="screen_current_state">Screen state</string>
+
+    <string name="list_current_state">List state</string>
+
+    <string name="card_current_state">Card state</string>
+
+    <string name="text_current_state">Text state</string>
+
+    <string name="icon_current_state">Icon state</string>
+
+    <string name="status_module_current">Module Active</string>
+    <string name="status_module_current_inactive">Module Inactive</string>
+
+    <string name="settings_module_info_final">libxposed API 100 • LSPosed module</string>
+    <string name="groups_empty_final">Create a group to start assigning spoofed identities.</string>
+
+    <string name="home_loading_final">Loading dashboard…</string>
+
+    <string name="group_card_created_final">Created %1$s</string>
+
+    <string name="diagnostics_config_sync_final">Configuration updates apply immediately when the live module service is available. If the service is unavailable, the app falls back to cached preferences and some target apps may need a restart.</string>
+
+    <string name="settings_export_logs_final">Save or share in-memory diagnostics logs</string>
+
+    <string name="settings_build_type_final">Build Type</string>
+
+    <string name="settings_module_info_final_title">Module Info</string>
+
+    <string name="picker_country_final">Select Country</string>
+    <string name="picker_timezone_final">Select Timezone</string>
+
+    <string name="diagnostics_back_final">Back</string>
+
+    <string name="nav_home_final">Home</string>
+    <string name="nav_groups_final">Groups</string>
+    <string name="nav_settings_final">Settings</string>
+
+    <string name="quick_actions_final">Quick actions</string>
+
+    <string name="group_card_default_final">Default</string>
+
+    <string name="status_selected_final">Selected</string>
+    <string name="status_enabled_final">Enabled</string>
+    <string name="status_expanded_final">Expanded</string>
+
+    <string name="action_open_final">Open</string>
+    <string name="action_toggle_final">Toggle</string>
+    <string name="action_select_final">Select</string>
+
+    <string name="screen_back_final">Back</string>
+
+    <string name="settings_export_logs_no_logs_final">No logs available to export</string>
+    <string name="settings_export_logs_error_final">Failed: %1$s</string>
+
+    <string name="settings_export_logs_success_final">Logs exported (%1$d lines)&#10;&#10;Saved to: %2$s</string>
+
+    <string name="group_name_counter_final">%1$d/%2$d</string>
+
+    <string name="picker_country_code_final">+%1$s</string>
+
+    <string name="group_card_summary_final">%1$s • %2$s</string>
+
+    <string name="home_loading_dashboard_final">Loading dashboard…</string>
+
+    <string name="module_info_runtime_final">libxposed API 100 • LSPosed module</string>
+
+    <string name="groups_auto_updates_final">Groups update automatically from repository changes.</string>
+
+    <string name="settings_export_destination_final">Choose where to save your logs</string>
+
+    <string name="diagnostics_pull_final">Pull down to refresh</string>
+
+    <string name="group_create_subtitle_final">Create a group to start assigning spoofed identities.</string>
+
+    <string name="home_view_group_final">View Group</string>
+    <string name="home_select_group_final">Select Group</string>
+
+    <string name="bottom_nav_home_final">Home</string>
+    <string name="bottom_nav_groups_final">Groups</string>
+    <string name="bottom_nav_settings_final">Settings</string>
+
+    <string name="dialog_cancel_final">Cancel</string>
+    <string name="dialog_delete_final">Delete</string>
+    <string name="dialog_save_final">Save</string>
+    <string name="dialog_create_final">Create</string>
+
+    <string name="picker_selected_final">Selected</string>
+
+    <string name="status_spoofed_final">Spoofed</string>
+    <string name="status_not_spoofed_final">Not Spoofed</string>
+    <string name="status_inactive_final">Inactive</string>
+
+    <string name="diagnostics_real_final">Real</string>
+    <string name="diagnostics_spoofed_final">Spoofed</string>
+    <string name="diagnostics_unknown_final">Unknown</string>
+
+    <string name="screen_title_home_final">Home</string>
+    <string name="screen_title_groups_final">Groups</string>
+    <string name="screen_title_settings_final">Settings</string>
+    <string name="screen_title_diagnostics_final">Diagnostics</string>
+
+    <string name="section_title_quick_actions_final">Quick Actions</string>
+
+    <string name="settings_about_module_info_final">Module Info</string>
+    <string name="settings_about_build_type_final_title">Build Type</string>
+
+    <string name="group_card_open_final">Open group</string>
+
+    <string name="settings_export_options_final">Export options</string>
+
+    <string name="group_card_created_value_final">Created %1$s</string>
+
+    <string name="app_assignment_locked_final">Assigned to another group</string>
+
+    <string name="group_card_selected_final">Selected</string>
+
+    <string name="screen_back_to_settings_final">Back to settings</string>
+    <string name="screen_back_to_groups_final">Back to groups</string>
+
+    <string name="settings_export_share_final">Share Logs</string>
+
+    <string name="home_loading_accessible_final">Loading dashboard</string>
+
+    <string name="group_actions_final">Group actions</string>
+
+    <string name="section_expand_final">Expand section</string>
+    <string name="section_collapse_final">Collapse section</string>
+
+    <string name="home_status_final">Module status and toggle</string>
+    <string name="home_group_final">Group selector</string>
+    <string name="home_actions_final">Quick actions</string>
+
+    <string name="settings_export_final">Export logs</string>
+    <string name="settings_diagnostics_final">Diagnostics</string>
+
+    <string name="picker_country_search_final">Search countries…</string>
+    <string name="picker_timezone_search_final">Search timezones…</string>
+
+    <string name="module_status_final">Module status</string>
+    <string name="config_sync_final">Configuration sync details</string>
+
+    <string name="settings_module_info_read_only_final">Read-only module info</string>
+
+    <string name="groups_manual_refresh_removed_final">Manual refresh removed</string>
+    <string name="groups_updates_auto_final">Groups update automatically</string>
+
+    <string name="export_destination_final">User-selected destination</string>
+
+    <string name="motion_reduce_final">Reduced motion</string>
+
+    <string name="done_placeholder">done</string>
 
     <string name="group_spoofing_back">Back</string>
     <string name="group_spoofing_title">Group</string>

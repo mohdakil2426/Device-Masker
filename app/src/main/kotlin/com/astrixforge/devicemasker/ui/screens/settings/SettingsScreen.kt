@@ -104,6 +104,15 @@ fun SettingsScreen(
     val saveDesc = stringResource(R.string.settings_export_save_desc)
     val shareTitle = stringResource(R.string.settings_export_share)
     val shareDesc = stringResource(R.string.settings_export_share_desc)
+    val buildTypeValue =
+        stringResource(
+            if (BuildConfig.DEBUG) {
+                R.string.settings_build_type_debug
+            } else {
+                R.string.settings_build_type_release
+            }
+        )
+    val moduleInfoValue = stringResource(R.string.settings_module_info_value)
 
     val isSystemDark = isSystemInDarkTheme()
     val isDarkModeActive =
@@ -120,24 +129,25 @@ fun SettingsScreen(
             uri?.let { onExportLogsToUri(it) }
         }
 
-    // Handle export result
-    LaunchedEffect(exportResult) {
+    val exportMessage =
         when (exportResult) {
-            is ExportResult.Success -> {
-                val message =
-                    "Logs exported (${exportResult.lineCount} lines)\n\nSaved to: ${exportResult.filePath}"
-                snackbarHostState.showSnackbar(message)
-                onClearExportResult()
-            }
-            is ExportResult.NoLogs -> {
-                snackbarHostState.showSnackbar(exportNoLogsMessage)
-                onClearExportResult()
-            }
-            is ExportResult.Error -> {
-                snackbarHostState.showSnackbar("Failed: ${exportResult.message}")
-                onClearExportResult()
-            }
-            null -> {}
+            is ExportResult.Success ->
+                stringResource(
+                    R.string.settings_export_logs_success,
+                    exportResult.lineCount,
+                    exportResult.filePath,
+                )
+            is ExportResult.NoLogs -> exportNoLogsMessage
+            is ExportResult.Error ->
+                stringResource(R.string.settings_export_logs_error, exportResult.message)
+            null -> null
+        }
+
+    // Handle export result
+    LaunchedEffect(exportMessage) {
+        exportMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            onClearExportResult()
         }
     }
 
@@ -149,6 +159,8 @@ fun SettingsScreen(
             dynamicColors = dynamicColors,
             isExportingLogs = isExportingLogs,
             isDarkModeActive = isDarkModeActive,
+            buildTypeValue = buildTypeValue,
+            moduleInfoValue = moduleInfoValue,
             onThemeModeClick = { showThemeModeDialog = true },
             onAmoledDarkModeChange = onAmoledDarkModeChange,
             onDynamicColorChange = onDynamicColorChange,
@@ -211,6 +223,8 @@ private fun SettingsScreenContent(
     dynamicColors: Boolean,
     isExportingLogs: Boolean,
     isDarkModeActive: Boolean,
+    buildTypeValue: String,
+    moduleInfoValue: String,
     onThemeModeClick: () -> Unit,
     onAmoledDarkModeChange: (Boolean) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
@@ -318,17 +332,16 @@ private fun SettingsScreenContent(
 
                 SettingsInfoItem(
                     icon = Icons.Outlined.Code,
-                    title = "Build Type",
-                    value = if (BuildConfig.DEBUG) "Debug" else "Release (Beta)",
+                    title = stringResource(id = R.string.settings_build_type),
+                    value = buildTypeValue,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                SettingsClickableItem(
+                SettingsInfoItem(
                     icon = Icons.Outlined.Tune,
-                    title = "Module Info",
-                    description = "YukiHookAPI 1.3.1 • LSPosed Module",
-                    onClick = {},
+                    title = stringResource(id = R.string.settings_module_info),
+                    value = moduleInfoValue,
                 )
             }
         }

@@ -93,7 +93,7 @@ fun ExpressiveRefreshIndicator(
     val alpha by
         animateFloatAsState(
             targetValue = if (showIndicator) 1f else 0f,
-            animationSpec = AppMotion.Effect.Alpha,
+            animationSpec = AppMotion.spatial(AppMotion.Effect.Alpha, AppMotion.ReducedAlpha),
             label = "indicatorAlpha",
         )
 
@@ -101,7 +101,7 @@ fun ExpressiveRefreshIndicator(
     val offset by
         animateFloatAsState(
             targetValue = if (isRefreshing) 64f else (progress * 64f),
-            animationSpec = AppMotion.Spatial.Standard,
+            animationSpec = AppMotion.spatial(AppMotion.Spatial.Standard, AppMotion.ReducedAlpha),
             label = "indicatorOffset",
         )
 

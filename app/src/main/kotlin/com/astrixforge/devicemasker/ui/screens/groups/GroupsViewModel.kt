@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,14 +28,6 @@ class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
             repository.getAllGroups().collect { groups ->
                 _state.update { it.copy(groups = groups, isLoading = false) }
             }
-        }
-    }
-
-    fun refresh() {
-        _state.update { it.copy(isRefreshing = true) }
-        viewModelScope.launch {
-            delay(1000) // Simulate refresh
-            _state.update { it.copy(isRefreshing = false) }
         }
     }
 

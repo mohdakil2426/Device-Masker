@@ -22,9 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 
 /**
@@ -112,6 +115,7 @@ private fun ActionItemRow(
         modifier =
             modifier
                 .fillMaxWidth()
+                .semantics(mergeDescendants = true) {}
                 .clickable(onClick = onClick)
                 .padding(vertical = 14.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -151,19 +155,19 @@ private fun ActionItemRow(
 private fun ActionBottomSheetPreview() {
     DeviceMaskerTheme {
         ActionBottomSheet(
-            title = "Export Logs",
+            title = stringResource(R.string.settings_export_sheet_title),
             actions =
                 listOf(
                     ActionItem(
                         icon = Icons.Outlined.Save,
-                        title = "Save to Device",
-                        description = "Save logs to a file on your device",
+                        title = stringResource(R.string.settings_export_save),
+                        description = stringResource(R.string.settings_export_save_desc),
                         onClick = {},
                     ),
                     ActionItem(
                         icon = Icons.Outlined.Share,
-                        title = "Share",
-                        description = "Share logs via another app",
+                        title = stringResource(R.string.settings_export_share),
+                        description = stringResource(R.string.settings_export_share_desc),
                         onClick = {},
                     ),
                 ),

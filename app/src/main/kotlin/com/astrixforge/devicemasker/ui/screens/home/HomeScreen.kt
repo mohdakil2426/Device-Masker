@@ -200,7 +200,9 @@ fun HomeScreenContent(
         }
 
         AnimatedLoadingOverlay(isLoading = isLoading) {
-            ExpressiveLoadingIndicatorWithLabel(label = "Loading Dashboard...")
+            ExpressiveLoadingIndicatorWithLabel(
+                label = stringResource(R.string.home_loading_dashboard)
+            )
         }
     }
 }
@@ -223,7 +225,12 @@ private fun StatusCard(
     val scale by
         animateFloatAsState(
             targetValue = if (isXposedActive && isModuleEnabled) 1f else 0.95f,
-            animationSpec = AppMotion.Spatial.Expressive,
+            animationSpec =
+                if (AppMotion.shouldReduceMotion()) {
+                    AppMotion.ReducedAlpha
+                } else {
+                    AppMotion.Spatial.Expressive
+                },
             label = "cardScale",
         )
 
@@ -355,7 +362,12 @@ private fun GroupSelectorCard(
     val rotationAngle by
         animateFloatAsState(
             targetValue = if (dropdownExpanded) 180f else 0f,
-            animationSpec = AppMotion.FastSpring,
+            animationSpec =
+                if (AppMotion.shouldReduceMotion()) {
+                    AppMotion.ReducedAlpha
+                } else {
+                    AppMotion.Spatial.Snappy
+                },
             label = "dropdownRotation",
         )
 
@@ -403,14 +415,14 @@ private fun GroupSelectorCard(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = "Select Group",
+                        contentDescription = stringResource(R.string.home_select_group),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.rotate(rotationAngle),
                     )
                     CompactExpressiveIconButton(
                         onClick = onClick,
                         icon = Icons.Outlined.Visibility,
-                        contentDescription = "View Group",
+                        contentDescription = stringResource(R.string.home_view_group),
                     )
                 }
             }
@@ -469,7 +481,8 @@ private fun GroupSelectorCard(
                                         if (group.id == selectedGroup?.id) {
                                             Icon(
                                                 imageVector = Icons.Filled.Check,
-                                                contentDescription = "Selected",
+                                                contentDescription =
+                                                    stringResource(R.string.home_selected),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(20.dp),
                                             )

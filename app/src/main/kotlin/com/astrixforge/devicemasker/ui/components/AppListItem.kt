@@ -25,6 +25,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,10 +48,16 @@ fun AppListItem(
     modifier: Modifier = Modifier,
 ) {
     val isDisabled = assignedToOtherGroupName != null
+    val assignedState = stringResource(R.string.group_app_selected_state)
+    val unassignedState = stringResource(R.string.group_app_unselected_state)
 
     ExpressiveCard(
         onClick = { onToggle(!isAssigned) },
-        modifier = modifier.alpha(if (isDisabled) 0.6f else 1f),
+        modifier =
+            modifier.alpha(if (isDisabled) 0.6f else 1f).semantics {
+                role = Role.Checkbox
+                stateDescription = if (isAssigned) assignedState else unassignedState
+            },
         isSelected = isAssigned,
         enabled = !isDisabled,
         shape = MaterialTheme.shapes.small,
@@ -74,7 +85,7 @@ fun AppListItem(
                         if (isDisabled) {
                             stringResource(
                                 id = R.string.group_spoofing_assigned_to,
-                                assignedToOtherGroupName ?: "",
+                                assignedToOtherGroupName,
                             )
                         } else {
                             app.packageName
@@ -99,7 +110,11 @@ fun AppListItem(
                     modifier = Modifier.size(24.dp),
                 )
             } else {
-                Checkbox(checked = isAssigned, onCheckedChange = onToggle)
+                Checkbox(
+                    checked = isAssigned,
+                    onCheckedChange = onToggle,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
             }
         }
     }
@@ -112,7 +127,7 @@ private fun AppIcon(app: InstalledApp, modifier: Modifier = Modifier) {
     if (bitmap != null) {
         Image(
             bitmap = bitmap.asImageBitmap(),
-            contentDescription = app.label,
+            contentDescription = null,
             modifier = modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
         )
     } else {

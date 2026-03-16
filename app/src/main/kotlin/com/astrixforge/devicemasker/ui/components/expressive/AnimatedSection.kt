@@ -25,8 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 
@@ -63,17 +67,25 @@ fun AnimatedSection(
     countColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val expandedState = stringResource(R.string.state_expanded)
+    val collapsedState = stringResource(R.string.state_collapsed)
+    val expandDescription = stringResource(R.string.section_expand_final)
+    val collapseDescription = stringResource(R.string.section_collapse_final)
+
     // Spring-animated rotation for expand icon
     val iconRotation by
         animateFloatAsState(
             targetValue = if (isExpanded) 180f else 0f,
-            animationSpec = AppMotion.Spatial.Standard,
+            animationSpec = AppMotion.spatial(AppMotion.Spatial.Standard, AppMotion.ReducedAlpha),
             label = "expandIconRotation",
         )
 
     ExpressiveCard(
         onClick = { onExpandChange(!isExpanded) },
-        modifier = modifier.fillMaxWidth(),
+        modifier =
+            modifier.fillMaxWidth().semantics {
+                stateDescription = if (isExpanded) expandedState else collapsedState
+            },
         shape = MaterialTheme.shapes.large,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
@@ -119,7 +131,7 @@ fun AnimatedSection(
                 // Expand/collapse indicator with animated icon
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    contentDescription = if (isExpanded) collapseDescription else expandDescription,
                     modifier = Modifier.padding(12.dp).rotate(iconRotation),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -128,8 +140,8 @@ fun AnimatedSection(
             // Animated content with spring physics
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(animationSpec = AppMotion.Spatial.StandardIntSize),
-                exit = shrinkVertically(animationSpec = AppMotion.Spatial.StandardIntSize),
+                enter = expandVertically(animationSpec = AppMotion.ReducedIntSize),
+                exit = shrinkVertically(animationSpec = AppMotion.ReducedIntSize),
             ) {
                 Column(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),

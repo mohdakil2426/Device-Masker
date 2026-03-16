@@ -26,6 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -70,6 +73,8 @@ fun GroupCard(
     onEnableChange: (Boolean) -> Unit = {},
 ) {
     val contentAlpha = if (isEnabled) 1f else 0.5f
+    val groupEnabledState = stringResource(R.string.group_card_enabled_state)
+    val groupDisabledState = stringResource(R.string.group_card_disabled_state)
 
     val cardShape =
         animatedRoundedCornerShape(
@@ -79,7 +84,10 @@ fun GroupCard(
 
     ExpressiveCard(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier =
+            modifier.fillMaxWidth().semantics {
+                stateDescription = if (isEnabled) groupEnabledState else groupDisabledState
+            },
         shape = cardShape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
@@ -167,7 +175,11 @@ fun GroupCard(
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "Created ${formatDate(group.createdAt)}",
+                        text =
+                            stringResource(
+                                R.string.group_card_created,
+                                formatDate(group.createdAt),
+                            ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
@@ -179,7 +191,7 @@ fun GroupCard(
                         CompactExpressiveIconButton(
                             onClick = onSetDefault,
                             icon = Icons.Default.Star,
-                            contentDescription = "Set as Default",
+                            contentDescription = stringResource(R.string.group_card_set_default),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -187,7 +199,7 @@ fun GroupCard(
                     CompactExpressiveIconButton(
                         onClick = onEdit,
                         icon = Icons.Default.Edit,
-                        contentDescription = "Edit",
+                        contentDescription = stringResource(R.string.group_card_edit),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
@@ -195,7 +207,7 @@ fun GroupCard(
                         CompactExpressiveIconButton(
                             onClick = onDelete,
                             icon = Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = stringResource(R.string.group_card_delete),
                             tint = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -218,7 +230,7 @@ private fun DefaultBadge(modifier: Modifier = Modifier) {
                 .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = "Default",
+            text = stringResource(R.string.group_card_default),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onPrimary,
         )
@@ -287,7 +299,7 @@ fun CompactGroupCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.group_card_selected),
                     tint = StatusActive,
                     modifier = Modifier.size(20.dp),
                 )

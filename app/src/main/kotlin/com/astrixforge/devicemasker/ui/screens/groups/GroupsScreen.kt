@@ -32,7 +32,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +56,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -124,19 +122,9 @@ fun GroupsScreen(
             }
         }
 
-    var isRefreshing by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isRefreshing) {
-        if (isRefreshing) {
-            delay(1000) // Simulate refresh
-            isRefreshing = false
-        }
-    }
-
     GroupsScreenContent(
         groups = state.groups,
-        isRefreshing = isRefreshing,
-        onRefresh = { isRefreshing = true },
+        isRefreshing = state.isRefreshing,
         onGroupClick = onGroupClick,
         onCreateGroup = { showCreateDialog = true },
         onEditGroup = { showEditDialog = it },
@@ -198,7 +186,6 @@ fun GroupsScreen(
 fun GroupsScreenContent(
     groups: List<SpoofGroup>,
     isRefreshing: Boolean,
-    onRefresh: () -> Unit,
     onGroupClick: (SpoofGroup) -> Unit,
     onCreateGroup: () -> Unit,
     onEditGroup: (SpoofGroup) -> Unit,
@@ -214,7 +201,7 @@ fun GroupsScreenContent(
     val expandedFab by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
 
     Box(modifier = modifier.fillMaxSize()) {
-        ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh) {
+        ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = {}) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -343,7 +330,7 @@ fun CreateGroupDialog(
                     value = name,
                     onValueChange = { if (it.length <= maxNameLength) name = it },
                     label = { Text(stringResource(id = R.string.group_name_hint)) },
-                    placeholder = { Text("e.g., Samsung") },
+                    placeholder = { Text(stringResource(id = R.string.group_name_example)) },
                     singleLine = true,
                     isError = nameExists,
                     supportingText = {
@@ -353,7 +340,13 @@ fun CreateGroupDialog(
                                 color = MaterialTheme.colorScheme.error,
                             )
                         } else {
-                            Text("${name.length}/$maxNameLength")
+                            Text(
+                                stringResource(
+                                    id = R.string.group_name_length,
+                                    name.length,
+                                    maxNameLength,
+                                )
+                            )
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -363,7 +356,7 @@ fun CreateGroupDialog(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text(stringResource(id = R.string.group_description_hint)) },
-                    placeholder = { Text("e.g., For banking apps") },
+                    placeholder = { Text(stringResource(id = R.string.group_description_example)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -473,7 +466,6 @@ private fun GroupsScreenContentPreview() {
                     SpoofGroup.createNew("Pixel 9 Pro"),
                 ),
             isRefreshing = false,
-            onRefresh = {},
             onGroupClick = {},
             onCreateGroup = {},
             onEditGroup = {},
@@ -490,7 +482,6 @@ private fun GroupsScreenEmptyPreview() {
         GroupsScreenContent(
             groups = emptyList(),
             isRefreshing = false,
-            onRefresh = {},
             onGroupClick = {},
             onCreateGroup = {},
             onEditGroup = {},

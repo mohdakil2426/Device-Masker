@@ -16,12 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -31,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.astrixforge.devicemasker.DeviceMaskerApp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.SettingsDataStore
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.ShareableLogResult
@@ -49,6 +52,8 @@ import com.astrixforge.devicemasker.ui.screens.settings.SettingsScreen
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
+import com.astrixforge.devicemasker.ui.theme.LocalMotionPolicy
+import com.astrixforge.devicemasker.ui.theme.rememberMotionPolicy
 import timber.log.Timber
 
 /**
@@ -74,58 +79,62 @@ class MainActivity : ComponentActivity() {
             val repository = remember { SpoofRepository.getInstance(applicationContext) }
 
             // Collect theme settings from SettingsDataStore
-            val themeMode by settingsStore.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
-            val amoledMode by settingsStore.amoledMode.collectAsState(initial = true)
-            val dynamicColors by settingsStore.dynamicColors.collectAsState(initial = true)
+            val themeMode by
+                settingsStore.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+            val amoledMode by
+                settingsStore.amoledMode.collectAsStateWithLifecycle(initialValue = true)
+            val dynamicColors by
+                settingsStore.dynamicColors.collectAsStateWithLifecycle(initialValue = true)
+            val motionPolicy = rememberMotionPolicy()
 
-            // Determine actual dark state for edge-to-edge styling
-            // isSystemInDarkTheme() is evaluated here in composition context
-            val isSystemDark = isSystemInDarkTheme()
-            val isDarkModeActive =
-                when (themeMode) {
-                    ThemeMode.SYSTEM -> isSystemDark
-                    ThemeMode.LIGHT -> false
-                    ThemeMode.DARK -> true
+            CompositionLocalProvider(LocalMotionPolicy provides motionPolicy) {
+                // Determine actual dark state for edge-to-edge styling
+                val isSystemDark = isSystemInDarkTheme()
+                val isDarkModeActive =
+                    when (themeMode) {
+                        ThemeMode.SYSTEM -> isSystemDark
+                        ThemeMode.LIGHT -> false
+                        ThemeMode.DARK -> true
+                    }
+
+                val activity = this@MainActivity
+                DisposableEffect(isDarkModeActive) {
+                    activity.enableEdgeToEdge(
+                        statusBarStyle =
+                            if (isDarkModeActive) {
+                                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                            } else {
+                                SystemBarStyle.light(
+                                    android.graphics.Color.TRANSPARENT,
+                                    android.graphics.Color.TRANSPARENT,
+                                )
+                            },
+                        navigationBarStyle =
+                            if (isDarkModeActive) {
+                                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                            } else {
+                                SystemBarStyle.light(
+                                    android.graphics.Color.TRANSPARENT,
+                                    android.graphics.Color.TRANSPARENT,
+                                )
+                            },
+                    )
+                    onDispose {}
                 }
 
-            // Update edge-to-edge styling when theme changes
-            val activity = this@MainActivity
-            DisposableEffect(isDarkModeActive) {
-                activity.enableEdgeToEdge(
-                    statusBarStyle =
-                        if (isDarkModeActive) {
-                            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                        } else {
-                            SystemBarStyle.light(
-                                android.graphics.Color.TRANSPARENT,
-                                android.graphics.Color.TRANSPARENT,
-                            )
-                        },
-                    navigationBarStyle =
-                        if (isDarkModeActive) {
-                            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                        } else {
-                            SystemBarStyle.light(
-                                android.graphics.Color.TRANSPARENT,
-                                android.graphics.Color.TRANSPARENT,
-                            )
-                        },
-                )
-                onDispose {}
-            }
-
-            DeviceMaskerTheme(
-                themeMode = themeMode,
-                amoledBlack = amoledMode,
-                dynamicColor = dynamicColors,
-            ) {
-                DeviceMaskerMainApp(
-                    repository = repository,
-                    settingsStore = settingsStore,
+                DeviceMaskerTheme(
                     themeMode = themeMode,
-                    amoledMode = amoledMode,
-                    dynamicColors = dynamicColors,
-                )
+                    amoledBlack = amoledMode,
+                    dynamicColor = dynamicColors,
+                ) {
+                    DeviceMaskerMainApp(
+                        repository = repository,
+                        settingsStore = settingsStore,
+                        themeMode = themeMode,
+                        amoledMode = amoledMode,
+                        dynamicColors = dynamicColors,
+                    )
+                }
             }
         }
     }
@@ -178,28 +187,28 @@ fun DeviceMaskerMainApp(
                 fadeIn(animationSpec = spring()) +
                     slideIntoContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                        animationSpec = AppMotion.DefaultSpringOffset,
+                        animationSpec = AppMotion.ReducedOffset,
                     )
             },
             exitTransition = {
                 fadeOut(animationSpec = spring()) +
                     slideOutOfContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                        animationSpec = AppMotion.DefaultSpringOffset,
+                        animationSpec = AppMotion.ReducedOffset,
                     )
             },
             popEnterTransition = {
                 fadeIn(animationSpec = spring()) +
                     slideIntoContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.End,
-                        animationSpec = AppMotion.DefaultSpringOffset,
+                        animationSpec = AppMotion.ReducedOffset,
                     )
             },
             popExitTransition = {
                 fadeOut(animationSpec = spring()) +
                     slideOutOfContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.End,
-                        animationSpec = AppMotion.DefaultSpringOffset,
+                        animationSpec = AppMotion.ReducedOffset,
                     )
             },
         ) {
@@ -218,7 +227,9 @@ fun DeviceMaskerMainApp(
             composable(NavRoutes.SETTINGS) {
                 val application = (context.applicationContext as android.app.Application)
                 val settingsViewModel = viewModel { SettingsViewModel(application, settingsStore) }
-                val settingsState by settingsViewModel.state.collectAsState()
+                val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
+                val shareLogsChooserTitle =
+                    stringResource(R.string.settings_export_logs_share_chooser)
 
                 SettingsScreen(
                     themeMode = themeMode,
@@ -251,11 +262,11 @@ fun DeviceMaskerMainApp(
                                         Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
                                             putExtra(Intent.EXTRA_STREAM, result.uri)
-                                            putExtra(Intent.EXTRA_SUBJECT, "Device Masker Logs")
+                                            putExtra(Intent.EXTRA_SUBJECT, shareLogsChooserTitle)
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
                                     context.startActivity(
-                                        Intent.createChooser(shareIntent, "Share Logs")
+                                        Intent.createChooser(shareIntent, shareLogsChooserTitle)
                                     )
                                 }
                                 is ShareableLogResult.NoLogs -> {

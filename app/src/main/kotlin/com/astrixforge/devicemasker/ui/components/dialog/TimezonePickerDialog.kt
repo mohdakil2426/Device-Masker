@@ -29,6 +29,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
@@ -90,9 +95,17 @@ fun TimezonePickerDialog(
     var searchQuery by remember { mutableStateOf("") }
     val filteredTimezones = remember(searchQuery) { TimezoneEntry.search(searchQuery) }
 
+    val selectedState = stringResource(R.string.picker_selected_state)
+    val notSelectedState = stringResource(R.string.picker_not_selected_state)
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Select Timezone", style = MaterialTheme.typography.headlineSmall) },
+        title = {
+            Text(
+                text = stringResource(R.string.content_timezone_picker),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        },
         text = {
             Column {
                 // Search field
@@ -100,7 +113,7 @@ fun TimezonePickerDialog(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search timezones...") },
+                    placeholder = { Text(stringResource(R.string.picker_search_timezone_hint)) },
                     leadingIcon = {
                         Icon(imageVector = Icons.Filled.Search, contentDescription = null)
                     },
@@ -120,6 +133,11 @@ fun TimezonePickerDialog(
                         Row(
                             modifier =
                                 Modifier.fillMaxWidth()
+                                    .semantics {
+                                        role = Role.Button
+                                        stateDescription =
+                                            if (isSelected) selectedState else notSelectedState
+                                    }
                                     .clickable { onTimezoneSelected(timezone.id) }
                                     .padding(vertical = 12.dp, horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -150,6 +168,7 @@ fun TimezonePickerDialog(
                                         text = "•",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.clearAndSetSemantics {},
                                     )
                                     Text(
                                         text = timezone.region,
@@ -162,7 +181,8 @@ fun TimezonePickerDialog(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = null,
+                                    modifier = Modifier.clearAndSetSemantics {},
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
                             }
