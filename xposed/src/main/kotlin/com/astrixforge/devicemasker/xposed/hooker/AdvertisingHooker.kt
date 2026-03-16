@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.UUIDGenerator
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -99,7 +99,7 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.ADVERTISING_ID)
                 } catch (t: Throwable) {
-                    Log.w("GetAdvertisingIdHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetAdvertisingIdHooker", "after() failed", t)
                 }
             }
         }
@@ -121,7 +121,7 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.GSF_ID)
                 } catch (t: Throwable) {
-                    Log.w("GetGsfStringHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetGsfStringHooker", "after() failed", t)
                 }
             }
         }
@@ -147,7 +147,7 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     callback.result = finalVal
                     reportSpoofEvent(pkg, SpoofType.GSF_ID)
                 } catch (t: Throwable) {
-                    Log.w("GetGsfLongHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetGsfLongHooker", "after() failed", t)
                 }
             }
         }
@@ -169,7 +169,7 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     callback.result = hexToBytes(spoofed)
                     reportSpoofEvent(pkg, SpoofType.MEDIA_DRM_ID)
                 } catch (t: Throwable) {
-                    Log.w("GetMediaDrmIdHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetMediaDrmIdHooker", "after() failed", t)
                 }
             }
 

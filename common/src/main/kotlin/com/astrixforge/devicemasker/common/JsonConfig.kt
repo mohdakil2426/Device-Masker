@@ -13,9 +13,8 @@ import kotlinx.serialization.json.Json
  * - All spoof groups
  * - Per-app configurations
  *
- * The configuration is serialized to JSON and stored both:
- * - In the app's data directory (for UI persistence)
- * - In /data/system/devicemasker/ (for xposed module access)
+ * The configuration is serialized to JSON for UI persistence. Runtime hook delivery is flattened
+ * into RemotePreferences by the app-side config sync layer.
  *
  * @property version Configuration format version for migrations
  * @property isModuleEnabled Global module enable/disable switch
@@ -190,16 +189,28 @@ data class JsonConfig(
         }
 
         /**
+         * Parses a JSON string into a [JsonConfig], preserving parse failures for callers that need
+         * to surface recovery or logging decisions.
+         */
+        fun parseCatching(json: String?): Result<JsonConfig> =
+            runCatching {
+                require(!json.isNullOrBlank()) { "Config JSON must not be blank" }
+                parse(json)
+            }
+
+        /**
          * Safely parses a JSON string, returning a default config on failure.
          *
          * @param json The JSON string to parse
+         * @param onFailure Optional callback for surfacing parse failures to the caller
          * @return Parsed JsonConfig or default on error
          */
-        fun parseOrDefault(json: String?): JsonConfig {
-            if (json.isNullOrBlank()) return createDefault()
-            return try {
-                parse(json)
-            } catch (e: Exception) {
+        fun parseOrDefault(
+            json: String?,
+            onFailure: ((Throwable) -> Unit)? = null,
+        ): JsonConfig {
+            return parseCatching(json).getOrElse { error ->
+                onFailure?.invoke(error)
                 createDefault()
             }
         }

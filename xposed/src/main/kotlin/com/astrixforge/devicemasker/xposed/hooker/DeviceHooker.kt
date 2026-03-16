@@ -1,14 +1,13 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
 import com.astrixforge.devicemasker.common.generators.IMEIGenerator
 import com.astrixforge.devicemasker.common.generators.IMSIGenerator
 import com.astrixforge.devicemasker.common.generators.SerialGenerator
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
-import com.astrixforge.devicemasker.xposed.XposedEntry
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
@@ -295,7 +294,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.IMEI)
                 } catch (t: Throwable) {
-                    Log.w("GetImeiHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetImeiHooker", "after() failed", t)
                 }
             }
         }
@@ -314,7 +313,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.IMSI)
                 } catch (t: Throwable) {
-                    Log.w("GetImsiHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetImsiHooker", "after() failed", t)
                 }
             }
         }
@@ -333,7 +332,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.ICCID)
                 } catch (t: Throwable) {
-                    Log.w("GetIccidHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetIccidHooker", "after() failed", t)
                 }
             }
         }
@@ -350,7 +349,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
                     reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
                 } catch (t: Throwable) {
-                    Log.w("GetSimCountryIsoHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSimCountryIsoHooker", "after() failed", t)
                 }
             }
         }
@@ -369,7 +368,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
                 } catch (t: Throwable) {
-                    Log.w("GetNetworkCountryIsoHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetNetworkCountryIsoHooker", "after() failed", t)
                 }
             }
         }
@@ -388,7 +387,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
                 } catch (t: Throwable) {
-                    Log.w("GetSimOperatorNameHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSimOperatorNameHooker", "after() failed", t)
                 }
             }
         }
@@ -407,7 +406,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                 } catch (t: Throwable) {
-                    Log.w("GetMccMncHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetMccMncHooker", "after() failed", t)
                 }
             }
         }
@@ -426,7 +425,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
                 } catch (t: Throwable) {
-                    Log.w("GetNetworkOperatorHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetNetworkOperatorHooker", "after() failed", t)
                 }
             }
         }
@@ -446,7 +445,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
                 } catch (t: Throwable) {
-                    Log.w("GetLine1NumberHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetLine1NumberHooker", "after() failed", t)
                 }
             }
         }
@@ -465,7 +464,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.SERIAL)
                 } catch (t: Throwable) {
-                    Log.w("GetSerialHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSerialHooker", "after() failed", t)
                 }
             }
         }
@@ -488,7 +487,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
                 } catch (t: Throwable) {
-                    Log.w("GetSettingsSecureStringHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSettingsSecureStringHooker", "after() failed", t)
                 }
             }
         }
@@ -512,7 +511,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.SERIAL)
                 } catch (t: Throwable) {
-                    Log.w("GetSystemPropertyHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSystemPropertyHooker", "after() failed", t)
                 }
             }
         }

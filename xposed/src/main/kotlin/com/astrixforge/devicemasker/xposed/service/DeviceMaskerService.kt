@@ -2,9 +2,9 @@ package com.astrixforge.devicemasker.xposed.service
 
 import android.util.Log
 import com.astrixforge.devicemasker.IDeviceMaskerService
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger
  * - `DiagnosticsViewModel` shows "Service unavailable" gracefully — non-fatal
  *
  * @see com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
- * @see com.astrixforge.devicemasker.xposed.service.ServiceBridge
  */
 @Suppress("TooManyFunctions") // AIDL interface requires all 8 methods
 class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
@@ -80,7 +79,8 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
     /** Packages that have had hooks registered during this boot session. */
     private val hookedPackages = ConcurrentHashMap.newKeySet<String>()
 
-    private val logDateFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
+    private val logDateFmt: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
     // ═══════════════════════════════════════════════════════════
     // REPORTING — oneway calls from hooked processes (non-blocking)
@@ -159,7 +159,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
                 Log.INFO -> "I"
                 else -> "D"
             }
-        val entry = "[${logDateFmt.format(Date())}] $levelStr/$tag: $message"
+        val entry = "[${logDateFmt.format(Instant.now())}] $levelStr/$tag: $message"
         logs.addLast(entry)
         // Ring-buffer: trim oldest entries when over capacity
         while (logs.size > MAX_LOGS) {

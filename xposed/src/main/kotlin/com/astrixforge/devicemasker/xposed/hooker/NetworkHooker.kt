@@ -1,12 +1,13 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.MACGenerator
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
+import java.net.NetworkInterface
 
 /**
  * Network Identifier Hooker — libxposed API 100 edition.
@@ -118,7 +119,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                 } catch (t: Throwable) {
-                    Log.w("GetWifiMacHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetWifiMacHooker", "after() failed", t)
                 }
             }
         }
@@ -137,7 +138,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                     callback.result = if (ssid.startsWith("\"")) ssid else "\"$ssid\""
                     reportSpoofEvent(pkg, SpoofType.WIFI_SSID)
                 } catch (t: Throwable) {
-                    Log.w("GetSsidHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSsidHooker", "after() failed", t)
                 }
             }
         }
@@ -156,7 +157,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.WIFI_BSSID)
                 } catch (t: Throwable) {
-                    Log.w("GetBssidHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetBssidHooker", "after() failed", t)
                 }
             }
         }
@@ -167,6 +168,14 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
             @JvmStatic
             fun after(callback: AfterHookCallback) {
                 try {
+                    val networkInterface = callback.thisObject as? NetworkInterface ?: return
+                    val interfaceName = networkInterface.name ?: return
+                    if (!interfaceName.startsWith("wlan", ignoreCase = true) &&
+                        !interfaceName.startsWith("wifi", ignoreCase = true) &&
+                        !interfaceName.startsWith("p2p", ignoreCase = true)
+                    ) {
+                        return
+                    }
                     val prefs = HookState.prefs ?: return
                     val pkg = HookState.pkg
                     val mac =
@@ -180,7 +189,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                     callback.result = mac.split(":").map { it.toInt(16).toByte() }.toByteArray()
                     reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                 } catch (t: Throwable) {
-                    Log.w("GetHardwareAddressHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetHardwareAddressHooker", "after() failed", t)
                 }
             }
         }
@@ -199,7 +208,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.BLUETOOTH_MAC)
                 } catch (t: Throwable) {
-                    Log.w("GetBluetoothMacHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetBluetoothMacHooker", "after() failed", t)
                 }
             }
         }
@@ -218,7 +227,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                 } catch (t: Throwable) {
-                    Log.w("GetCarrierNameHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetCarrierNameHooker", "after() failed", t)
                 }
             }
         }
@@ -237,7 +246,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                 } catch (t: Throwable) {
-                    Log.w("GetCarrierMccMncHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetCarrierMccMncHooker", "after() failed", t)
                 }
             }
         }

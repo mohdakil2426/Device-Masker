@@ -1,10 +1,10 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
 import com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -135,7 +135,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.ICCID)
                 } catch (t: Throwable) {
-                    Log.w("SubGetIccIdHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetIccIdHooker", "after() failed", t)
                 }
             }
         }
@@ -152,7 +152,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                         PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
                     reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
                 } catch (t: Throwable) {
-                    Log.w("SubGetCountryIsoHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetCountryIsoHooker", "after() failed", t)
                 }
             }
         }
@@ -171,7 +171,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                 } catch (t: Throwable) {
-                    Log.w("SubGetCarrierNameHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetCarrierNameHooker", "after() failed", t)
                 }
             }
         }
@@ -191,7 +191,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                     callback.result = mccMnc.take(3).toIntOrNull() ?: 310
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                 } catch (t: Throwable) {
-                    Log.w("SubGetMccHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetMccHooker", "after() failed", t)
                 }
             }
         }
@@ -211,7 +211,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                     callback.result = mccMnc.drop(3).toIntOrNull() ?: 260
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                 } catch (t: Throwable) {
-                    Log.w("SubGetMncHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetMncHooker", "after() failed", t)
                 }
             }
         }
@@ -231,7 +231,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                     callback.result = mccMnc.take(3)
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                 } catch (t: Throwable) {
-                    Log.w("SubGetMccStringHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetMccStringHooker", "after() failed", t)
                 }
             }
         }
@@ -251,7 +251,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                     callback.result = mccMnc.drop(3)
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                 } catch (t: Throwable) {
-                    Log.w("SubGetMncStringHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetMncStringHooker", "after() failed", t)
                 }
             }
         }
@@ -270,7 +270,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                         }
                     reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
                 } catch (t: Throwable) {
-                    Log.w("SubGetPhoneNumberHooker", "after() failed: ${t.message}")
+                    DualLog.warn("SubGetPhoneNumberHooker", "after() failed", t)
                 }
             }
         }

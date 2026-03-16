@@ -19,6 +19,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerLoadedParam
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Device Masker entry point for libxposed API 100.
@@ -71,6 +72,8 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         @Volatile
         lateinit var instance: XposedEntry
             private set
+
+        private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     }
 
     init {
@@ -121,6 +124,18 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         // Skip own app and critical system processes
         if (pkg in SKIP_PACKAGES) return
 
+        // libxposed can invoke onPackageLoaded() multiple times for the same process.
+        // We hook once for the process' first package to keep process-global hook state stable.
+        if (!param.isFirstPackage) {
+            log(
+                Log.DEBUG,
+                TAG,
+                "Skipping secondary package load for process-stable hooks: $pkg",
+                null,
+            )
+            return
+        }
+
         // Obtain live RemotePreferences from LSPosed.
         // These reflect the latest values written by the module app — no restart needed.
         // getRemotePreferences() is fast (cached by LSPosed) and safe to call per-package load.
@@ -143,6 +158,11 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(pkg), false)) return
 
         val cl = param.classLoader
+        val classLoaderKey = System.identityHashCode(cl)
+        if (!hookedClassLoaders.add(classLoaderKey)) {
+            log(Log.DEBUG, TAG, "Hooks already registered for classloader of $pkg", null)
+            return
+        }
 
         // ═══════════════════════════════════════════════════════════
         // HOOK ORDER IS CRITICAL — do not reorder
@@ -244,5 +264,9 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
      */
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
         runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
+    }
+
+    fun reportLog(tag: String, message: String, level: Int) {
+        runCatching { getService()?.reportLog(tag, message, level) }
     }
 }

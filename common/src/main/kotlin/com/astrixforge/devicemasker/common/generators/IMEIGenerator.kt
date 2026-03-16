@@ -221,17 +221,10 @@ object IMEIGenerator {
      * @return A valid 15-digit IMEI starting with one of the preset's TAC prefixes
      */
     fun generateForPreset(preset: DeviceProfilePreset): String {
-        val tac =
-            if (preset.tacPrefixes.isNotEmpty()) {
-                preset.tacPrefixes[secureRandom.nextInt(preset.tacPrefixes.size)]
-            } else {
-                // Fallback: pick from global list filtered by manufacturer
-                generate(preset.manufacturer)
-                    .take(8) // Extract the TAC that was chosen
-                    .also {
-                        return generate(preset.manufacturer)
-                    }
-            }
+        if (preset.tacPrefixes.isEmpty()) {
+            return generate(preset.manufacturer)
+        }
+        val tac = preset.tacPrefixes[secureRandom.nextInt(preset.tacPrefixes.size)]
         return generateWithTac(tac)
     }
 

@@ -432,6 +432,7 @@ Target app calls Thread.currentThread().stackTrace
 6. **Skip critical packages** — `android`, `com.android.systemui`, `com.android.phone` in `loadApp`.
 7. **Use `runCatching {}` in all hook callbacks** — never crash target apps. Inner + outer wrapping.
 8. **Use `ThreadLocal` re-entrance guards** — prevent infinite recursion in stack trace hooks.
+9. **Only register app hooks for `isFirstPackage`** — libxposed may invoke `onPackageLoaded()` more than once per process, and later package loads must not overwrite process-global hook state.
 
 ### Configuration Rules
 

@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -71,7 +71,7 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
                         f.set(null, value)
                     }
                     .onFailure { t ->
-                        Log.w("SystemHooker", "Could not set Build.$fieldName: ${t.message}")
+                        DualLog.warn("SystemHooker", "Could not set Build.$fieldName", t)
                     }
             }
         }
@@ -150,7 +150,7 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
                     callback.result = mapped
                     reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                 } catch (t: Throwable) {
-                    Log.w("GetSystemPropertyHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSystemPropertyHooker", "after() failed", t)
                 }
             }
         }

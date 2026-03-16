@@ -1,13 +1,9 @@
 package com.astrixforge.devicemasker.xposed
 
 import android.util.Log
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * Dual Logger — Logs to both Android Logcat and an internal ring buffer.
+ * Dual Logger — logs to Android logcat and mirrors structured entries to the diagnostics service.
  *
  * ## Migration note (libxposed API 100)
  *
@@ -16,8 +12,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  * process logcat output and displays it in its log screen, so all logs remain visible in LSPosed
  * Manager as before.
  *
- * The internal ring buffer (logBuffer) is retained for the diagnostics-only AIDL service —
- * DiagnosticsViewModel reads these logs via the service's `getLogs()` call.
+ * Structured logs are also forwarded to the diagnostics AIDL service when it is available so the
+ * UI sees the same failures that reach logcat.
  *
  * Usage:
  * ```kotlin
@@ -29,12 +25,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 @Suppress("unused") // Logging utility — all methods are API surface
 object DualLog {
 
-    private const val MAX_LOGS = 1000
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
-
-    /** Internal ring buffer for diagnostics log export via AIDL service. */
-    val logBuffer: CopyOnWriteArrayList<String> = CopyOnWriteArrayList()
-
     // ═══════════════════════════════════════════════════════════
     // LOGGING METHODS
     // ═══════════════════════════════════════════════════════════
@@ -42,67 +32,50 @@ object DualLog {
     /** Debug level log — for detailed debugging info. */
     fun debug(tag: String, message: String) {
         Log.d(tag, message)
-        addToBuffer("D", tag, message)
+        report("D", tag, message, Log.DEBUG)
     }
 
     /** Info level log — for important events. */
     fun info(tag: String, message: String) {
         Log.i(tag, message)
-        addToBuffer("I", tag, message)
+        report("I", tag, message, Log.INFO)
     }
 
     /** Warning level log — for recoverable issues. */
     fun warn(tag: String, message: String) {
         Log.w(tag, message)
-        addToBuffer("W", tag, message)
+        report("W", tag, message, Log.WARN)
     }
 
     /** Warning level log with exception. */
     fun warn(tag: String, message: String, throwable: Throwable) {
-        Log.w(tag, "$message: ${throwable.message}")
-        addToBuffer("W", tag, "$message: ${throwable.message}")
+        val fullMessage = "$message: ${throwable.message}"
+        Log.w(tag, fullMessage, throwable)
+        report("W", tag, fullMessage, Log.WARN)
     }
 
     /** Error level log — for failures. */
     fun error(tag: String, message: String) {
         Log.e(tag, message)
-        addToBuffer("E", tag, message)
+        report("E", tag, message, Log.ERROR)
     }
 
     /** Error level log with exception. */
     fun error(tag: String, message: String, throwable: Throwable) {
         Log.e(tag, message, throwable)
-        addToBuffer("E", tag, "$message: ${throwable.message}")
-        throwable.stackTrace.take(5).forEach { element -> addToBuffer("E", tag, "  at $element") }
+        report("E", tag, "$message: ${throwable.message}", Log.ERROR)
+        throwable.stackTrace.take(5).forEach { element ->
+            report("E", tag, "  at $element", Log.ERROR)
+        }
     }
-
-    // ═══════════════════════════════════════════════════════════
-    // BUFFER MANAGEMENT
-    // ═══════════════════════════════════════════════════════════
-
-    /** Gets all logs as array (for AIDL diagnostics export). */
-    fun getLogs(): Array<String> = logBuffer.toTypedArray()
-
-    /** Clears all logs. */
-    fun clearLogs() {
-        logBuffer.clear()
-    }
-
-    /** Gets current log count. */
-    fun getLogCount(): Int = logBuffer.size
 
     // ═══════════════════════════════════════════════════════════
     // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════
 
-    private fun addToBuffer(level: String, tag: String, message: String) {
-        val timestamp = dateFormat.format(Date())
-        val entry = "[$timestamp][$level][$tag] $message"
-        logBuffer.add(entry)
-        // Trim buffer if too large (ring buffer semantics)
-        while (logBuffer.size > MAX_LOGS) {
-            logBuffer.removeAt(0)
-        }
+    private fun report(level: String, tag: String, message: String, priority: Int) {
+        val entry = "[$level][$tag] $message"
+        runCatching { XposedEntry.instance.reportLog(tag, entry, priority) }
     }
 }
 

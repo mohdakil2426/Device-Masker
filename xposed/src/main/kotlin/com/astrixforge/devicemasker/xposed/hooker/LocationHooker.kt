@@ -2,8 +2,8 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import android.location.Location
-import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -124,7 +124,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     callback.result = finalVal
                     if (finalVal != current) reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
                 } catch (t: Throwable) {
-                    Log.w("GetLatitudeHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetLatitudeHooker", "after() failed", t)
                 }
             }
         }
@@ -146,7 +146,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     callback.result = finalVal
                     if (finalVal != current) reportSpoofEvent(pkg, SpoofType.LOCATION_LONGITUDE)
                 } catch (t: Throwable) {
-                    Log.w("GetLongitudeHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetLongitudeHooker", "after() failed", t)
                 }
             }
         }
@@ -177,7 +177,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
 
                     if (changed) reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
                 } catch (t: Throwable) {
-                    Log.w("GetLastKnownLocationHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetLastKnownLocationHooker", "after() failed", t)
                 }
             }
         }
@@ -196,7 +196,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         reportSpoofEvent(pkg, SpoofType.TIMEZONE)
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetTimeZoneDefaultHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetTimeZoneDefaultHooker", "after() failed", t)
                 }
             }
         }
@@ -215,7 +215,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         reportSpoofEvent(pkg, SpoofType.TIMEZONE)
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetTimeZoneIdHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetTimeZoneIdHooker", "after() failed", t)
                 }
             }
         }
@@ -236,7 +236,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         reportSpoofEvent(pkg, SpoofType.LOCALE)
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetLocaleDefaultHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetLocaleDefaultHooker", "after() failed", t)
                 }
             }
         }
@@ -255,7 +255,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         reportSpoofEvent(pkg, SpoofType.LOCALE)
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetLocaleToStringHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetLocaleToStringHooker", "after() failed", t)
                 }
             }
         }

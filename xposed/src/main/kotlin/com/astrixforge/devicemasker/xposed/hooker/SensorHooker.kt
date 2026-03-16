@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -116,7 +116,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                         reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetSensorListHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSensorListHooker", "after() failed", t)
                 }
             }
         }
@@ -132,7 +132,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                         callback.result = preset.manufacturer
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetSensorVendorHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSensorVendorHooker", "after() failed", t)
                 }
             }
         }
@@ -146,7 +146,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     val version = callback.result as? Int ?: return
                     if (version > 3) callback.result = 1
                 } catch (t: Throwable) {
-                    Log.w("GetSensorVersionHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSensorVersionHooker", "after() failed", t)
                 }
             }
         }
@@ -165,7 +165,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     }
                     callback.result = name
                 } catch (t: Throwable) {
-                    Log.w("GetSensorNameHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetSensorNameHooker", "after() failed", t)
                 }
             }
         }

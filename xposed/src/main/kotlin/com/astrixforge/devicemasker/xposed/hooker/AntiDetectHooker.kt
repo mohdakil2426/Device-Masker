@@ -3,7 +3,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
-import android.util.Log
+import android.content.pm.ResolveInfo
 import com.astrixforge.devicemasker.xposed.DualLog
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -83,6 +83,7 @@ object AntiDetectHooker {
 
         hookStackTraces(cl, xi)
         hookClassLoaderLoadClass(cl, xi)
+        hookClassForName(cl, xi)
         hookProcMaps(cl, xi)
         hookPackageManager(cl, xi)
 
@@ -106,7 +107,7 @@ object AntiDetectHooker {
                     // guard)
                 }
         } catch (t: Throwable) {
-            Log.w(TAG, "Thread.getStackTrace() hook failed: ${t.message}") // reentrant guard
+            DualLog.warn(TAG, "Thread.getStackTrace() hook failed", t) // reentrant guard
         }
         // Throwable.getStackTrace() — reentrant guard
         try {
@@ -118,7 +119,7 @@ object AntiDetectHooker {
                     xi.hook(m, GetThrowableStackTraceHooker::class.java)
                 } // reentrant guard
         } catch (t: Throwable) {
-            Log.w(TAG, "Throwable.getStackTrace() hook failed: ${t.message}") // reentrant guard
+            DualLog.warn(TAG, "Throwable.getStackTrace() hook failed", t) // reentrant guard
         }
     }
 
@@ -129,12 +130,44 @@ object AntiDetectHooker {
     private fun hookClassLoaderLoadClass(cl: ClassLoader, xi: XposedInterface) {
         try {
             val classLoaderClass = cl.loadClass("java.lang.ClassLoader")
-            classLoaderClass
-                .getDeclaredMethod("loadClass", String::class.java)
-                .also { it.isAccessible = true }
-                .let { m -> xi.hook(m, LoadClassHooker::class.java) }
+            classLoaderClass.declaredMethods
+                .filter {
+                    it.name == "loadClass" &&
+                        (it.parameterTypes.contentEquals(arrayOf(String::class.java)) ||
+                            it.parameterTypes.contentEquals(
+                                arrayOf(String::class.java, Boolean::class.javaPrimitiveType!!)
+                            ))
+                }
+                .forEach { method ->
+                    method.isAccessible = true
+                    xi.hook(method, LoadClassHooker::class.java)
+                }
         } catch (t: Throwable) {
-            Log.w(TAG, "ClassLoader.loadClass() hook failed: ${t.message}")
+            DualLog.warn(TAG, "ClassLoader.loadClass() hook failed", t)
+        }
+    }
+
+    private fun hookClassForName(cl: ClassLoader, xi: XposedInterface) {
+        try {
+            val classClass = cl.loadClass("java.lang.Class")
+            classClass.declaredMethods
+                .filter {
+                    it.name == "forName" &&
+                        (it.parameterTypes.contentEquals(arrayOf(String::class.java)) ||
+                            it.parameterTypes.contentEquals(
+                                arrayOf(
+                                    String::class.java,
+                                    Boolean::class.javaPrimitiveType!!,
+                                    ClassLoader::class.java,
+                                )
+                            ))
+                }
+                .forEach { method ->
+                    method.isAccessible = true
+                    xi.hook(method, LoadClassHooker::class.java)
+                }
+        } catch (t: Throwable) {
+            DualLog.warn(TAG, "Class.forName() hook failed", t)
         }
     }
 
@@ -150,7 +183,7 @@ object AntiDetectHooker {
                 .also { it.isAccessible = true }
                 .let { m -> xi.hook(m, ReadLineHooker::class.java) }
         } catch (t: Throwable) {
-            Log.w(TAG, "BufferedReader.readLine() hook failed: ${t.message}")
+            DualLog.warn(TAG, "BufferedReader.readLine() hook failed", t)
         }
     }
 
@@ -183,7 +216,7 @@ object AntiDetectHooker {
                 .also { it.isAccessible = true }
                 .let { m -> xi.hook(m, GetApplicationInfoHooker::class.java) }
         } catch (t: Throwable) {
-            Log.w(TAG, "getApplicationInfo hook failed: ${t.message}")
+            DualLog.warn(TAG, "getApplicationInfo hook failed", t)
         }
 
         // getInstalledPackages(int)
@@ -193,7 +226,7 @@ object AntiDetectHooker {
                 .also { it.isAccessible = true }
                 .let { m -> xi.hook(m, GetInstalledPackagesHooker::class.java) }
         } catch (t: Throwable) {
-            Log.w(TAG, "getInstalledPackages hook failed: ${t.message}")
+            DualLog.warn(TAG, "getInstalledPackages hook failed", t)
         }
 
         // getInstalledApplications(int)
@@ -203,7 +236,20 @@ object AntiDetectHooker {
                 .also { it.isAccessible = true }
                 .let { m -> xi.hook(m, GetInstalledApplicationsHooker::class.java) }
         } catch (t: Throwable) {
-            Log.w(TAG, "getInstalledApplications hook failed: ${t.message}")
+            DualLog.warn(TAG, "getInstalledApplications hook failed", t)
+        }
+
+        try {
+            pmClass
+                .getDeclaredMethod(
+                    "queryIntentActivities",
+                    android.content.Intent::class.java,
+                    Int::class.javaPrimitiveType!!,
+                )
+                .also { it.isAccessible = true }
+                .let { m -> xi.hook(m, QueryIntentActivitiesHooker::class.java) }
+        } catch (t: Throwable) {
+            DualLog.warn(TAG, "queryIntentActivities hook failed", t)
         }
     }
 
@@ -256,7 +302,7 @@ object AntiDetectHooker {
                     val stack = callback.result as? Array<StackTraceElement> ?: return
                     callback.result = filterStackTrace(stack)
                 } catch (t: Throwable) {
-                    Log.w("GetThreadStackTraceHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetThreadStackTraceHooker", "after() failed", t)
                 }
             }
         }
@@ -271,7 +317,7 @@ object AntiDetectHooker {
                     val stack = callback.result as? Array<StackTraceElement> ?: return
                     callback.result = filterStackTrace(stack)
                 } catch (t: Throwable) {
-                    Log.w("GetThrowableStackTraceHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetThrowableStackTraceHooker", "after() failed", t)
                 }
             }
         }
@@ -288,7 +334,7 @@ object AntiDetectHooker {
                         callback.throwAndSkip(ClassNotFoundException(className))
                     }
                 } catch (t: Throwable) {
-                    Log.w("LoadClassHooker", "before() failed: ${t.message}")
+                    DualLog.warn("LoadClassHooker", "before() failed", t)
                 }
             }
         }
@@ -305,7 +351,7 @@ object AntiDetectHooker {
                         callback.result = ""
                     }
                 } catch (t: Throwable) {
-                    Log.w("ReadLineHooker", "after() failed: ${t.message}")
+                    DualLog.warn("ReadLineHooker", "after() failed", t)
                 }
             }
         }
@@ -323,7 +369,7 @@ object AntiDetectHooker {
                         )
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetPackageInfoHooker", "before() failed: ${t.message}")
+                    DualLog.warn("GetPackageInfoHooker", "before() failed", t)
                 }
             }
         }
@@ -341,7 +387,7 @@ object AntiDetectHooker {
                         )
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetApplicationInfoHooker", "before() failed: ${t.message}")
+                    DualLog.warn("GetApplicationInfoHooker", "before() failed", t)
                 }
             }
         }
@@ -360,7 +406,7 @@ object AntiDetectHooker {
                         }
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetInstalledPackagesHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetInstalledPackagesHooker", "after() failed", t)
                 }
             }
         }
@@ -379,7 +425,25 @@ object AntiDetectHooker {
                         }
                     }
                 } catch (t: Throwable) {
-                    Log.w("GetInstalledApplicationsHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetInstalledApplicationsHooker", "after() failed", t)
+                }
+            }
+        }
+    }
+
+    class QueryIntentActivitiesHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    @Suppress("UNCHECKED_CAST")
+                    val infos = callback.result as? MutableList<ResolveInfo> ?: return
+                    infos.removeAll { info ->
+                        val packageName = info.activityInfo?.packageName ?: return@removeAll false
+                        HookState.hiddenPackages.any { packageName.equals(it, ignoreCase = true) }
+                    }
+                } catch (t: Throwable) {
+                    DualLog.warn("QueryIntentActivitiesHooker", "after() failed", t)
                 }
             }
         }

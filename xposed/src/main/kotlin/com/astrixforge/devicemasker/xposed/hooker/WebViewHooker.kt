@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
@@ -103,7 +103,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
                     callback.result = spoofed
                     if (spoofed != ua) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                 } catch (t: Throwable) {
-                    android.util.Log.w("GetUserAgentStringHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetUserAgentStringHooker", "after() failed", t)
                 }
             }
         }
@@ -122,7 +122,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
                         reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                     }
                 } catch (t: Throwable) {
-                    android.util.Log.w("SetUserAgentStringHooker", "before() failed: ${t.message}")
+                    DualLog.warn("SetUserAgentStringHooker", "before() failed", t)
                 }
             }
         }
@@ -140,7 +140,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
                     callback.result = spoofed
                     if (spoofed != ua) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                 } catch (t: Throwable) {
-                    android.util.Log.w("GetDefaultUserAgentHooker", "after() failed: ${t.message}")
+                    DualLog.warn("GetDefaultUserAgentHooker", "after() failed", t)
                 }
             }
         }

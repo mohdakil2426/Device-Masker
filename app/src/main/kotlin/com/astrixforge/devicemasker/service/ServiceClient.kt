@@ -1,16 +1,15 @@
 package com.astrixforge.devicemasker.service
 
 import android.content.Context
-import android.net.Uri
 import android.os.IBinder
 import com.astrixforge.devicemasker.IDeviceMaskerService
-import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 import timber.log.Timber
 
 /**
@@ -24,25 +23,17 @@ import timber.log.Timber
  * This client is non-fatal: if the service is unavailable, [DiagnosticsViewModel] shows "Service
  * unavailable" and spoofing continues unaffected via RemotePreferences.
  *
- * Connection is established via the [ServiceBridge] ContentProvider which is dynamically registered
- * by [SystemServiceHooker] in `system_server` at boot.
+ * Connection is established directly through `android.os.ServiceManager` to avoid stale bridge
+ * code in the xposed layer.
  *
- * @param context Application context for [ContentResolver] access
+ * @param context Application context retained for lifecycle parity with the rest of the app
  */
 class ServiceClient(private val context: Context) {
 
     companion object {
         private const val TAG = "ServiceClient"
 
-        /** ContentProvider authority — must match [ServiceBridge.AUTHORITY]. */
-        private const val AUTHORITY = "com.astrixforge.devicemasker.service"
-
-        private val CONTENT_URI: Uri = "content://$AUTHORITY".toUri()
-
-        private const val METHOD_GET_BINDER = "getBinder"
-        private const val METHOD_PING = "ping"
-        private const val KEY_BINDER = "binder"
-        private const val KEY_ALIVE = "alive"
+        private const val SERVICE_NAME = "user.devicemasker_diag"
 
         private const val MAX_RETRIES = 3
         private const val INITIAL_RETRY_DELAY_MS = 500L
@@ -65,7 +56,7 @@ class ServiceClient(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Connects to the diagnostics service via [ServiceBridge] ContentProvider.
+     * Connects to the diagnostics service via `android.os.ServiceManager`.
      *
      * Includes up to [MAX_RETRIES] attempts with exponential backoff. Connection is verified by
      * calling [IDeviceMaskerService.isAlive].
@@ -124,13 +115,7 @@ class ServiceClient(private val context: Context) {
      * @return `true` if service responds, `false` otherwise
      */
     suspend fun ping(): Boolean =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                    val bundle = context.contentResolver.call(CONTENT_URI, METHOD_PING, null, null)
-                    bundle?.getBoolean(KEY_ALIVE, false) ?: false
-                }
-                .getOrElse { false }
-        }
+        withContext(Dispatchers.IO) { ensureConnected { service?.isAlive ?: false } ?: false }
 
     // ═══════════════════════════════════════════════════════════
     // DIAGNOSTICS READS (no config methods post-migration)
@@ -154,7 +139,7 @@ class ServiceClient(private val context: Context) {
      */
     suspend fun getHookedPackages(): List<String> =
         withContext(Dispatchers.IO) {
-            ensureConnected { service?.hookedPackages ?: emptyList() } ?: emptyList()
+            ensureConnected { service?.getHookedPackages() ?: emptyList() } ?: emptyList()
         }
 
     /**
@@ -195,9 +180,11 @@ class ServiceClient(private val context: Context) {
 
     private fun getBinder(): IBinder? =
         runCatching {
-                val bundle =
-                    context.contentResolver.call(CONTENT_URI, METHOD_GET_BINDER, null, null)
-                bundle?.getBinder(KEY_BINDER)
+                HiddenApiBypass.addHiddenApiExemptions("Landroid/os/ServiceManager;")
+                val serviceManagerClass = Class.forName("android.os.ServiceManager")
+                val getServiceMethod =
+                    serviceManagerClass.getDeclaredMethod("getService", String::class.java)
+                getServiceMethod.invoke(null, SERVICE_NAME) as? IBinder
             }
             .getOrNull()
 

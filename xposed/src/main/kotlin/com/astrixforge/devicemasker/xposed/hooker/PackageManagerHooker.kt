@@ -3,7 +3,8 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
-import android.util.Log
+import android.content.pm.ResolveInfo
+import com.astrixforge.devicemasker.xposed.DualLog
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.AfterHookCallback
 import io.github.libxposed.api.XposedInterface.BeforeHookCallback
@@ -66,6 +67,11 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                 xi.hook(m, GetInstalledApplicationsHooker::class.java)
             }
         }
+        safeHook("ApplicationPackageManager.queryIntentActivities(Intent, int)") {
+            pmClass
+                .methodOrNull("queryIntentActivities", android.content.Intent::class.java, intPrimitive)
+                ?.let { m -> xi.hook(m, QueryIntentActivitiesHooker::class.java) }
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -84,7 +90,7 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                         )
                     }
                 } catch (t: Throwable) {
-                    Log.w("PMGetPackageInfoHooker", "before() failed: ${t.message}")
+                    DualLog.warn("PMGetPackageInfoHooker", "before() failed", t)
                 }
             }
         }
@@ -102,7 +108,7 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                         )
                     }
                 } catch (t: Throwable) {
-                    Log.w("PMGetApplicationInfoHooker", "before() failed: ${t.message}")
+                    DualLog.warn("PMGetApplicationInfoHooker", "before() failed", t)
                 }
             }
         }
@@ -117,7 +123,7 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                     val packages = callback.result as? MutableList<PackageInfo> ?: return
                     packages.removeAll { it.packageName == SELF_PACKAGE }
                 } catch (t: Throwable) {
-                    Log.w("PMGetInstalledPackagesHooker", "after() failed: ${t.message}")
+                    DualLog.warn("PMGetInstalledPackagesHooker", "after() failed", t)
                 }
             }
         }
@@ -132,7 +138,22 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                     val apps = callback.result as? MutableList<ApplicationInfo> ?: return
                     apps.removeAll { it.packageName == SELF_PACKAGE }
                 } catch (t: Throwable) {
-                    Log.w("PMGetInstalledApplicationsHooker", "after() failed: ${t.message}")
+                    DualLog.warn("PMGetInstalledApplicationsHooker", "after() failed", t)
+                }
+            }
+        }
+    }
+
+    class QueryIntentActivitiesHooker : XposedInterface.Hooker {
+        companion object {
+            @JvmStatic
+            fun after(callback: AfterHookCallback) {
+                try {
+                    @Suppress("UNCHECKED_CAST")
+                    val activities = callback.result as? MutableList<ResolveInfo> ?: return
+                    activities.removeAll { it.activityInfo?.packageName == SELF_PACKAGE }
+                } catch (t: Throwable) {
+                    DualLog.warn("PMQueryIntentActivitiesHooker", "after() failed", t)
                 }
             }
         }

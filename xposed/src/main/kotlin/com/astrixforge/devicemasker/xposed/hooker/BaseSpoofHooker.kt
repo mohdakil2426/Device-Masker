@@ -1,8 +1,8 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
-import android.util.Log
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import com.astrixforge.devicemasker.xposed.XposedEntry
 import java.lang.reflect.Method
@@ -16,13 +16,14 @@ import java.lang.reflect.Method
  * 1. XposedEntry.onPackageLoaded() calls `Hooker.hook(cl, xi, prefs, pkg)`
  * 2. `hook()` calls [safeHook] for each method it wants to intercept
  * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook()`, then `xi.deoptimize()`
- * 4. The @XposedHooker inner class handles the actual callback in @BeforeInvocation/ *
+ * 4. The hooker callback class handles the actual callback via static `before` / `after` methods.
  *
  * ## Why no instance state
  *
  * libxposed API 100 creates a NEW XposedModule instance per target process. Hooker objects are
  * registered once per process load and their callbacks fire on whatever thread the target app uses.
- * Shared state lives in `companion object` / `@Volatile` fields of the @XposedHooker class.
+ * Shared state must stay process-stable. `XposedEntry` registers hooks only for the first package
+ * loaded in a process to avoid later package loads corrupting process-global state.
  *
  * ## Hook safety pattern
  *
@@ -76,13 +77,13 @@ abstract class BaseSpoofHooker(protected val tag: String) {
         try {
             block()
         } catch (t: Throwable) {
-            // Log to DualLog buffer AND to logcat
-            Log.w(tag, "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}")
+            val message = "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}"
+            DualLog.warn(tag, message, t)
             runCatching {
                 XposedEntry.instance.log(
                     android.util.Log.WARN,
                     tag,
-                    "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}",
+                    message,
                     null,
                 )
             }

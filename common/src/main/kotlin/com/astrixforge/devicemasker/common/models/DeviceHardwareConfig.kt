@@ -46,5 +46,6 @@ data class DeviceHardwareConfig(
      * Note: Dual-SIM devices have 2 IMEIs, not IMEI + MEID. This is currently not implemented but
      * can be added later.
      */
-    val isDualSIM: Boolean = false // TODO: Add dual-SIM support
+    val isDualSIM: Boolean
+        get() = deviceProfile.simCount > 1
 }

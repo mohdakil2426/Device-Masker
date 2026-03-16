@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.util.Log
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedInterface
@@ -47,27 +46,19 @@ object SystemServiceHooker {
         // Fires when the system is fully ready to accept binders
         try {
             val amsClass = cl.loadClass("com.android.server.am.ActivityManagerService")
-            // systemReady() has varying number of parameters across Android versions (1-5)
-            // Try common signatures; skip if not found
-            listOf(
-                    emptyArray<Class<*>>(),
-                    arrayOf(Runnable::class.java),
-                    arrayOf(Runnable::class.java, Any::class.java),
-                )
-                .forEach { params ->
-                    try {
-                        val method = amsClass.getDeclaredMethod("systemReady", *params)
-                        method.isAccessible = true
-                        xi.hook(method, AmsSystemReadyHooker::class.java)
-                        DualLog.info(TAG, "AMS.systemReady(${params.size} params) hook registered")
-                        return@forEach
-                    } catch (_: NoSuchMethodException) {
-                        // This signature doesn't exist on this Android version — try next
-                    }
+            amsClass.declaredMethods
+                .filter { it.name == "systemReady" && it.parameterCount in 0..5 }
+                .forEach { method ->
+                    method.isAccessible = true
+                    xi.hook(method, AmsSystemReadyHooker::class.java)
+                    DualLog.info(
+                        TAG,
+                        "AMS.systemReady(${method.parameterCount} params) hook registered",
+                    )
                 }
         } catch (t: Throwable) {
             // AMS hook unavailable — fall back to SystemServer.run() hook
-            Log.w(TAG, "AMS.systemReady() hook unavailable: ${t.message}")
+            DualLog.warn(TAG, "AMS.systemReady() hook unavailable", t)
         }
 
         // HOOK 2: SystemServer.run() — FALLBACK
@@ -78,7 +69,7 @@ object SystemServiceHooker {
             xi.hook(runMethod, SystemServerRunHooker::class.java)
             DualLog.info(TAG, "SystemServer.run() hook registered")
         } catch (t: Throwable) {
-            Log.w(TAG, "SystemServer.run() hook unavailable: ${t.message}")
+            DualLog.warn(TAG, "SystemServer.run() hook unavailable", t)
         }
     }
 
@@ -146,7 +137,7 @@ object SystemServiceHooker {
                 try {
                     initializeServiceSafely("AMS.systemReady")
                 } catch (t: Throwable) {
-                    Log.e(TAG, "AmsSystemReadyHooker.after() crashed: ${t.message}")
+                    DualLog.error(TAG, "AmsSystemReadyHooker.after() crashed", t)
                 }
             }
         }
@@ -159,7 +150,7 @@ object SystemServiceHooker {
                 try {
                     initializeServiceSafely("SystemServer.run")
                 } catch (t: Throwable) {
-                    Log.e(TAG, "SystemServerRunHooker.after() crashed: ${t.message}")
+                    DualLog.error(TAG, "SystemServerRunHooker.after() crashed", t)
                 }
             }
         }

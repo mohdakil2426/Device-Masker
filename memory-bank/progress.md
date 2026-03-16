@@ -64,6 +64,22 @@ grep -rn 'import com.highcapable' xposed/src app/src --include='*.kt'
 | `gradle/libs.versions.toml`             | ✅     | Added libxposed-iface (avoids 'interface' Kotlin keyword collision).                                                                    |
 | `app/build.gradle.kts`                  | ✅     | Added libs.libxposed.iface dependency.                                                                                                  |
 
+### Audit Remediation Progress (Mar 16, 2026)
+
+| File / Change                           | Status | Notes                                                                                      |
+| --------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `xposed/XposedEntry.kt`                 | ✅     | `isFirstPackage` + classloader guard keep hook state process-stable.                       |
+| `xposed/DualLog.kt`                     | ✅     | Hook/service failures now forward to diagnostics `reportLog(...)`.                         |
+| `xposed/service/DeviceMaskerService.kt` | ✅     | Thread-safe `DateTimeFormatter` replaces shared `SimpleDateFormat`.                        |
+| `app/service/ServiceClient.kt`          | ✅     | Binder discovery moved from stale provider path to direct `ServiceManager` lookup.         |
+| `xposed/service/ServiceBridge.kt`       | ✅     | **Deleted** — dead bridge contract removed.                                                |
+| `xposed/assets/xposed_init`             | ✅     | **Deleted** — stale Yuki-era bootstrap metadata removed.                                   |
+| `xposed/hooker/AntiDetectHooker.kt`     | ✅     | Added alternate class-loading coverage and intent-query filtering.                         |
+| `xposed/hooker/NetworkHooker.kt`        | ✅     | `getHardwareAddress()` now respects interface type instead of spoofing every interface.    |
+| `xposed/hooker/SystemServiceHooker.kt`  | ✅     | `systemReady()` probing now matches the documented 0..5 overload range.                    |
+| `common/DeviceHardwareConfig.kt`        | ✅     | `isDualSIM` now reflects `DeviceProfilePreset.simCount`.                                   |
+| `common/generators/IMEIGenerator.kt`    | ✅     | Preset fallback simplified to an explicit, easier-to-reason-about path.                    |
+
 ### 🔴 ACTIVE BLOCKER: libxposed-service Compilation & Publication
 
 **Problem**: The migrated hookers (`AdvertisingHooker.kt`, etc.) have mostly been refactored for the static callback pattern taking `throwAndSkip(Throwable)` from `libxposed-api:100`. However, the local source for `libxposed-service` and `libxposed-interface` fails to build `publishToMavenLocal` due to Java version compatibility (`JavaVersion.VERSION_21` vs 17) and missing SDK setups inside the nested standalone `service` directory.

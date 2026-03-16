@@ -27,7 +27,7 @@ object DeviceHardwareGenerator {
     fun generate(deviceProfile: DeviceProfilePreset): DeviceHardwareConfig {
         return DeviceHardwareConfig(
             deviceProfile = deviceProfile,
-            imei = IMEIGenerator.generate(deviceProfile.manufacturer),
+            imei = IMEIGenerator.generateForPreset(deviceProfile),
             serial = SerialGenerator.generate(deviceProfile.manufacturer),
             wifiMAC = MACGenerator.generateWiFiMAC(deviceProfile.manufacturer),
             bluetoothMAC = MACGenerator.generateBluetoothMAC(), // Independent

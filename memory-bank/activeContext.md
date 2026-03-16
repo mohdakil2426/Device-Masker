@@ -182,6 +182,29 @@ val imei = if (preset != null) {
 }
 ```
 
+### Common + Xposed Audit Remediation (Mar 16, 2026)
+
+- `XposedEntry.onPackageLoaded()` now guards on `PackageLoadedParam.isFirstPackage` and skips
+  duplicate classloader registration so later package loads in the same process do not overwrite
+  process-global hook state.
+- Diagnostics logging is now consolidated through `IDeviceMaskerService.reportLog(...)`:
+  `DualLog` forwards structured failures into the service, and audited hooker callback failures
+  were migrated off plain `Log.w(...)`.
+- `DeviceMaskerService` timestamps now use `DateTimeFormatter` instead of shared
+  `SimpleDateFormat`, removing binder-thread formatting races.
+- Stale bootstrap/migration residue removed:
+  - `xposed/src/main/assets/xposed_init` deleted
+  - `xposed/service/ServiceBridge.kt` deleted
+  - app-side diagnostics binder discovery now goes straight through `ServiceManager`
+- Concrete audit gaps closed in code:
+  - `NetworkInterface.getHardwareAddress()` only spoofs Wi-Fi-like interfaces
+  - `AntiDetectHooker` covers `ClassLoader.loadClass(String, boolean)` and common
+    `Class.forName(...)` paths
+  - `PackageManagerHooker` now implements `queryIntentActivities(Intent, int)`
+  - `SystemServiceHooker` scans all `systemReady()` overloads with parameter counts 0..5
+  - `DeviceHardwareConfig.isDualSIM` now derives from preset `simCount`
+  - `IMEIGenerator.generateForPreset()` fallback path simplified
+
 ---
 
 ## ✅ COMPLETE (Previous Sessions)

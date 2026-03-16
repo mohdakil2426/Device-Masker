@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.Utils
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -87,5 +88,30 @@ class IMEIGeneratorTest {
 
         // A random number sequence is unlikely to be Luhn valid
         // (unless we got very lucky)
+    }
+
+    @Test
+    fun `generateForPreset uses preset TAC prefixes`() {
+        val preset = DeviceProfilePreset.PRESETS.first { it.tacPrefixes.isNotEmpty() }
+
+        repeat(50) {
+            val imei = IMEIGenerator.generateForPreset(preset)
+            assertTrue(Utils.isValidImei(imei), "Preset IMEI must be Luhn valid: $imei")
+            assertTrue(
+                imei.take(8) in preset.tacPrefixes,
+                "IMEI TAC should come from preset ${preset.id}, got ${imei.take(8)}",
+            )
+        }
+    }
+
+    @Test
+    fun `generateForPreset falls back to generic generation when preset has no TACs`() {
+        val presetWithoutTac = DeviceProfilePreset.PRESETS.first().copy(tacPrefixes = emptyList())
+
+        repeat(20) {
+            val imei = IMEIGenerator.generateForPreset(presetWithoutTac)
+            assertEquals(15, imei.length, "Fallback IMEI should be 15 digits")
+            assertTrue(Utils.isValidImei(imei), "Fallback IMEI must remain Luhn valid: $imei")
+        }
     }
 }

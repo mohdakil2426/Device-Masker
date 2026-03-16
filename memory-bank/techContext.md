@@ -121,6 +121,7 @@ org.gradle.parallel=true
 | **Android 16 Nav Crash**            | `NullPointerException` in `NavDestination.getRoute()` during recomposition | Use `object NavRoutes { const val HOME = "home" }` + `data class NavItem` — never sealed class objects |
 | **R8 full mode INSTANCE stripping** | Runtime `NullPointerException` on Kotlin `object` access                   | Add `-keepclassmembers class ** { public static final *** INSTANCE; }` in ProGuard                     |
 | **AIDL Stub stripped by R8**        | `ClassNotFoundException` at runtime for AIDL service                       | Keep `IDeviceMaskerService$Stub` and `$Stub$Proxy` explicitly                                          |
+| **Multi-package hook callbacks**    | Later `onPackageLoaded()` calls can corrupt process-global hook state      | Only register hooks when `PackageLoadedParam.isFirstPackage()` is true                                 |
 
 ---
 
@@ -169,7 +170,7 @@ devicemasker/
 │   ├── [root]              # XposedEntry.kt (XposedModule, onPackageLoaded/onSystemServerLoaded)
 │   │                       # DeoptimizeManager.kt · PrefsHelper.kt · DualLog.kt · PrefsKeys.kt
 │   ├── service/            # DeviceMaskerService (diagnostics AIDL)
-│   │                       # ServiceBridge (ContentProvider IPC binder bridge)
+│   │                       # Binder is discovered directly via ServiceManager from :app
 │   ├── hooker/             # BaseSpoofHooker (safeHook/loadClassOrNull/methodOrNull)
 │   │                       # AntiDetectHooker (LOAD FIRST — API 100, +ClassLoader hook)
 │   │                       # SystemServiceHooker (AMS + SystemServer boot hooks)
@@ -177,7 +178,7 @@ devicemasker/
 │   │                       # DeviceHooker · NetworkHooker · AdvertisingHooker · SystemHooker
 │   │                       # LocationHooker · SensorHooker · WebViewHooker
 │   │                       # SubscriptionHooker (NEW) · PackageManagerHooker (NEW)
-│   └── utils/              # DualLog (android.util.Log + ring buffer)
+│   └── utils/              # DualLog (android.util.Log + diagnostics forwarding)
 │
 ├── gradle.properties       # ⭐ R8 full mode · 4 GB heap · parallel · build cache
 ├── gradle/libs.versions.toml  # ⭐ All dependency versions (single source), libxposed API 100
