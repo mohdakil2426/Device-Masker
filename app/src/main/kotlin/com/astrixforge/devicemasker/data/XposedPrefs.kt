@@ -1,11 +1,12 @@
 package com.astrixforge.devicemasker.data
 
 import android.content.SharedPreferences
-import android.util.Log
+import androidx.core.content.edit
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
+import timber.log.Timber
 
 /**
  * Xposed Preferences Writer — libxposed API 100 / XposedService edition.
@@ -48,12 +49,12 @@ object XposedPrefs {
             object : XposedServiceHelper.OnServiceListener {
                 override fun onServiceBind(service: XposedService) {
                     xposedService = service
-                    Log.i(TAG, "XposedService connected (${service.frameworkName})")
+                    Timber.tag(TAG).i("XposedService connected (%s)", service.frameworkName)
                 }
 
                 override fun onServiceDied(service: XposedService) {
                     xposedService = null
-                    Log.w(TAG, "XposedService died")
+                    Timber.tag(TAG).w("XposedService died")
                 }
             }
         )
@@ -68,7 +69,7 @@ object XposedPrefs {
     fun getPrefs(): SharedPreferences? {
         return runCatching { xposedService?.getRemotePreferences(PREFS_GROUP) }
             .onFailure { e ->
-                Log.w(TAG, "getRemotePreferences failed (module inactive?): ${e.message}")
+                Timber.tag(TAG).w(e, "getRemotePreferences failed (module inactive?)")
             }
             .getOrNull()
     }
@@ -96,7 +97,7 @@ object XposedPrefs {
         getPrefs()?.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true) ?: true
 
     fun setModuleEnabled(enabled: Boolean) {
-        getPrefs()?.edit()?.putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, enabled)?.apply()
+        getPrefs()?.edit { putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, enabled) }
     }
 
     /** Debug logging flag. Default: `false`. */
@@ -104,7 +105,7 @@ object XposedPrefs {
         getPrefs()?.getBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, false) ?: false
 
     fun setDebugEnabled(enabled: Boolean) {
-        getPrefs()?.edit()?.putBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, enabled)?.apply()
+        getPrefs()?.edit { putBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, enabled) }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -112,27 +113,27 @@ object XposedPrefs {
     // ═══════════════════════════════════════════════════════════
 
     fun setAppEnabled(packageName: String, enabled: Boolean) {
-        getPrefs()?.edit()?.putBoolean(getAppEnabledKey(packageName), enabled)?.apply()
+        getPrefs()?.edit { putBoolean(getAppEnabledKey(packageName), enabled) }
     }
 
     fun isAppEnabled(packageName: String): Boolean =
         getPrefs()?.getBoolean(getAppEnabledKey(packageName), false) ?: false
 
     fun setSpoofTypeEnabled(packageName: String, type: SpoofType, enabled: Boolean) {
-        getPrefs()?.edit()?.putBoolean(getSpoofEnabledKey(packageName, type), enabled)?.apply()
+        getPrefs()?.edit { putBoolean(getSpoofEnabledKey(packageName, type), enabled) }
     }
 
     fun isSpoofTypeEnabled(packageName: String, type: SpoofType): Boolean =
         getPrefs()?.getBoolean(getSpoofEnabledKey(packageName, type), false) ?: false
 
     fun setSpoofValue(packageName: String, type: SpoofType, value: String?) {
-        val editor = getPrefs()?.edit() ?: return
-        if (value != null) {
-            editor.putString(getSpoofValueKey(packageName, type), value)
-        } else {
-            editor.remove(getSpoofValueKey(packageName, type))
+        getPrefs()?.edit {
+            if (value != null) {
+                putString(getSpoofValueKey(packageName, type), value)
+            } else {
+                remove(getSpoofValueKey(packageName, type))
+            }
         }
-        editor.apply()
     }
 
     fun getSpoofValue(packageName: String, type: SpoofType): String? =

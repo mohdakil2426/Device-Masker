@@ -126,7 +126,7 @@ fun SpoofValueCard(
                     CompactExpressiveIconButton(
                         onClick = onRegenerate,
                         icon = Icons.Default.Refresh,
-                        contentDescription = "Regenerate",
+                        contentDescription = stringResource(id = R.string.action_regenerate),
                         tint = MaterialTheme.colorScheme.primary,
                     )
 
@@ -135,7 +135,7 @@ fun SpoofValueCard(
                     CompactExpressiveIconButton(
                         onClick = { onEdit(identifier.value ?: "") },
                         icon = Icons.Default.Edit,
-                        contentDescription = "Edit",
+                        contentDescription = stringResource(id = R.string.action_edit_item),
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
@@ -143,7 +143,7 @@ fun SpoofValueCard(
                     CompactExpressiveIconButton(
                         onClick = onCopy,
                         icon = Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
+                        contentDescription = stringResource(id = R.string.action_copy),
                     )
                 }
             }
@@ -196,7 +196,7 @@ fun CompactSpoofValueCard(
             ExpressiveIconButton(
                 onClick = onRegenerate,
                 icon = Icons.Default.Refresh,
-                contentDescription = "Regenerate",
+                contentDescription = stringResource(id = R.string.action_regenerate),
                 enabled = enabled,
                 tint = MaterialTheme.colorScheme.primary,
             )

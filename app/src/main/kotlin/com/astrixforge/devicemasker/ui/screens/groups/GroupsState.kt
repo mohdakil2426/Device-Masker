@@ -7,7 +7,4 @@ data class GroupsState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val groups: List<SpoofGroup> = emptyList(),
-    val showCreateDialog: Boolean = false,
-    val showEditDialog: SpoofGroup? = null,
-    val showDeleteDialog: SpoofGroup? = null,
 )

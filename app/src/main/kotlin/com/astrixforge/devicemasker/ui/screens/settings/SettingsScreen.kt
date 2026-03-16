@@ -47,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,8 +95,8 @@ fun SettingsScreen(
     onNavigateToDiagnostics: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
 ) {
-    var showThemeModeDialog by remember { mutableStateOf(false) }
-    var showExportSheet by remember { mutableStateOf(false) }
+    var showThemeModeDialog by rememberSaveable { mutableStateOf(false) }
+    var showExportSheet by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val exportNoLogsMessage = stringResource(R.string.settings_export_logs_no_logs)

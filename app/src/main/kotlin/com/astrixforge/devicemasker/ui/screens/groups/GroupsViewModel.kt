@@ -31,26 +31,12 @@ class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
         }
     }
 
-    fun hideCreateDialog() {
-        _state.update { it.copy(showCreateDialog = false) }
-    }
-
-    fun hideEditDialog() {
-        _state.update { it.copy(showEditDialog = null) }
-    }
-
-    fun hideDeleteDialog() {
-        _state.update { it.copy(showDeleteDialog = null) }
-    }
-
     fun createGroup(name: String, description: String) {
         viewModelScope.launch { repository.createGroup(name, description) }
-        hideCreateDialog()
     }
 
     fun deleteGroup(groupId: String) {
         viewModelScope.launch { repository.deleteGroup(groupId) }
-        hideDeleteDialog()
     }
 
     fun setDefaultGroup(groupId: String) {
@@ -65,10 +51,12 @@ class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
      * Exports groups and returns data via callback. The screen handles file writing via
      * ActivityResultContract.
      */
-    fun exportGroups(onResult: (String) -> Unit) {
+    fun exportGroups(onResult: (Result<String>) -> Unit) {
         viewModelScope.launch {
-            val jsonData = repository.exportGroups()
-            onResult(jsonData)
+            runCatching { repository.exportGroups() }.fold(
+                onSuccess = { jsonData -> onResult(Result.success(jsonData)) },
+                onFailure = { error -> onResult(Result.failure(error)) },
+            )
         }
     }
 
@@ -76,8 +64,8 @@ class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
      * Imports groups from JSON string directly. The screen handles file reading via
      * ActivityResultContract.
      */
-    fun importGroups(jsonData: String) {
-        viewModelScope.launch { repository.importGroups(jsonData) }
+    fun importGroups(jsonData: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch { onResult(repository.importGroups(jsonData)) }
     }
 
     /** Updates an existing group. */

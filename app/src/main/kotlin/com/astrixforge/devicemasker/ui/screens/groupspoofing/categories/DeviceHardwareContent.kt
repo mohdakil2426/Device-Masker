@@ -20,10 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
@@ -118,7 +120,7 @@ fun DeviceHardwareCategoryContent(
                     CompactExpressiveIconButton(
                         onClick = { onRegenerate(SpoofType.DEVICE_PROFILE) },
                         icon = Icons.Filled.Refresh,
-                        contentDescription = "Regenerate",
+                        contentDescription = stringResource(id = R.string.action_regenerate),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -135,43 +137,43 @@ fun DeviceHardwareCategoryContent(
                     ) {
                         currentPreset?.let { preset ->
                             ReadOnlyValueRow(
-                                label = "Manufacturer",
+                                label = stringResource(id = R.string.group_spoofing_manufacturer),
                                 value = preset.manufacturer,
                                 onCopy = { onCopy(preset.manufacturer) },
                             )
                             ReadOnlyValueRow(
-                                label = "Brand",
+                                label = stringResource(id = R.string.group_spoofing_brand),
                                 value = preset.brand,
                                 onCopy = { onCopy(preset.brand) },
                             )
                             ReadOnlyValueRow(
-                                label = "Model",
+                                label = stringResource(id = R.string.group_spoofing_model),
                                 value = preset.model,
                                 onCopy = { onCopy(preset.model) },
                             )
                             ReadOnlyValueRow(
-                                label = "Device",
+                                label = stringResource(id = R.string.group_spoofing_device),
                                 value = preset.device,
                                 onCopy = { onCopy(preset.device) },
                             )
                             ReadOnlyValueRow(
-                                label = "Product",
+                                label = stringResource(id = R.string.group_spoofing_product),
                                 value = preset.product,
                                 onCopy = { onCopy(preset.product) },
                             )
                             ReadOnlyValueRow(
-                                label = "Board",
+                                label = stringResource(id = R.string.group_spoofing_board),
                                 value = preset.board,
                                 onCopy = { onCopy(preset.board) },
                             )
                             ReadOnlyValueRow(
-                                label = "Fingerprint",
+                                label = stringResource(id = R.string.group_spoofing_fingerprint),
                                 value = preset.fingerprint,
                                 onCopy = { onCopy(preset.fingerprint) },
                             )
                             if (preset.securityPatch.isNotBlank()) {
                                 ReadOnlyValueRow(
-                                    label = "Security Patch",
+                                    label = stringResource(id = R.string.group_spoofing_security_patch),
                                     value = preset.securityPatch,
                                     onCopy = { onCopy(preset.securityPatch) },
                                 )

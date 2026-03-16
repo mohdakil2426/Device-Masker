@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.data.repository
 import android.annotation.SuppressLint
 import android.content.Context
 import com.astrixforge.devicemasker.common.CorrelationGroup
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.DeviceHardwareGenerator
@@ -373,8 +374,7 @@ class SpoofRepository(private val context: Context) {
      */
     suspend fun updateGroupWithDeviceProfile(groupId: String, presetId: String) {
         val group = ConfigManager.getGroup(groupId) ?: return
-        val preset =
-            com.astrixforge.devicemasker.common.DeviceProfilePreset.findById(presetId) ?: return
+        val preset = DeviceProfilePreset.findById(presetId) ?: return
 
         // Generate hardware matching the device profile
         val hardwareConfig = DeviceHardwareGenerator.generate(preset)
@@ -384,6 +384,66 @@ class SpoofRepository(private val context: Context) {
         updatedGroup = updatedGroup.withValue(SpoofType.IMEI, hardwareConfig.imei)
         updatedGroup = updatedGroup.withValue(SpoofType.SERIAL, hardwareConfig.serial)
         updatedGroup = updatedGroup.withValue(SpoofType.WIFI_MAC, hardwareConfig.wifiMAC)
+
+        ConfigManager.updateGroup(updatedGroup)
+    }
+
+    /**
+     * Regenerates all spoof values in a group while preserving internal consistency between related
+     * identifiers.
+     */
+    suspend fun regenerateAllValues(groupId: String) {
+        val group = ConfigManager.getGroup(groupId) ?: return
+
+        val carrier = Carrier.nextSecureRandom()
+        val simConfig = SIMGenerator.generate(carrier)
+        val locationConfig = LocationConfig.generateForCarrier(carrier)
+        val deviceProfile = DeviceProfilePreset.PRESETS.secureRandom()
+        val hardwareConfig = DeviceHardwareGenerator.generate(deviceProfile)
+
+        cachedSIMConfig = simConfig
+        cachedLocationConfig = locationConfig
+        cachedDeviceHardwareConfig = hardwareConfig
+
+        var updatedGroup = group.copy(selectedCarrierMccMnc = carrier.mccMnc)
+        updatedGroup = updatedGroup.withValue(SpoofType.IMSI, simConfig.imsi)
+        updatedGroup = updatedGroup.withValue(SpoofType.ICCID, simConfig.iccid)
+        updatedGroup = updatedGroup.withValue(SpoofType.PHONE_NUMBER, simConfig.phoneNumber)
+        updatedGroup = updatedGroup.withValue(SpoofType.SIM_COUNTRY_ISO, simConfig.simCountryIso)
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.NETWORK_COUNTRY_ISO, simConfig.networkCountryIso)
+        updatedGroup = updatedGroup.withValue(SpoofType.CARRIER_NAME, simConfig.carrierName)
+        updatedGroup = updatedGroup.withValue(SpoofType.CARRIER_MCC_MNC, simConfig.mccMnc)
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.SIM_OPERATOR_NAME, simConfig.simOperatorName)
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.NETWORK_OPERATOR, simConfig.networkOperator)
+
+        updatedGroup = updatedGroup.withValue(SpoofType.TIMEZONE, locationConfig.timezone)
+        updatedGroup = updatedGroup.withValue(SpoofType.LOCALE, locationConfig.locale)
+        updatedGroup =
+            updatedGroup.withValue(
+                SpoofType.LOCATION_LATITUDE,
+                String.format(java.util.Locale.US, "%.6f", locationConfig.latitude),
+            )
+        updatedGroup =
+            updatedGroup.withValue(
+                SpoofType.LOCATION_LONGITUDE,
+                String.format(java.util.Locale.US, "%.6f", locationConfig.longitude),
+            )
+
+        updatedGroup = updatedGroup.withValue(SpoofType.DEVICE_PROFILE, deviceProfile.id)
+        updatedGroup = updatedGroup.withValue(SpoofType.IMEI, hardwareConfig.imei)
+        updatedGroup = updatedGroup.withValue(SpoofType.SERIAL, hardwareConfig.serial)
+        updatedGroup = updatedGroup.withValue(SpoofType.WIFI_MAC, hardwareConfig.wifiMAC)
+        updatedGroup = updatedGroup.withValue(SpoofType.BLUETOOTH_MAC, hardwareConfig.bluetoothMAC)
+        updatedGroup = updatedGroup.withValue(SpoofType.WIFI_SSID, generateRealisticSSID())
+        updatedGroup = updatedGroup.withValue(SpoofType.WIFI_BSSID, MACGenerator.generate())
+        updatedGroup = updatedGroup.withValue(SpoofType.ANDROID_ID, UUIDGenerator.generateAndroidId())
+        updatedGroup = updatedGroup.withValue(SpoofType.GSF_ID, UUIDGenerator.generateGSFId())
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.ADVERTISING_ID, UUIDGenerator.generateAdvertisingId())
+        updatedGroup = updatedGroup.withValue(SpoofType.MEDIA_DRM_ID, UUIDGenerator.generateMediaDrmId())
 
         ConfigManager.updateGroup(updatedGroup)
     }

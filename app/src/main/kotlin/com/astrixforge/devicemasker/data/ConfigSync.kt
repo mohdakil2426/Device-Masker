@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
@@ -44,43 +45,40 @@ object ConfigSync {
      * @param config The [JsonConfig] to sync
      */
     fun syncFromConfig(@Suppress("UNUSED_PARAMETER") context: Context, config: JsonConfig) {
-        val editor = XposedPrefs.getPrefs()?.edit()
-        if (editor == null) {
+        val prefs = XposedPrefs.getPrefs()
+        if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — config will sync on next activation")
             return
         }
 
         Timber.tag(TAG).d("Syncing config to RemotePreferences...")
 
-        // Master switch
-        editor.putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, config.isModuleEnabled)
+        prefs.edit {
+            // Master switch
+            putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, config.isModuleEnabled)
 
-        // Sync each group's apps
-        for (group in config.groups.values) {
-            for (packageName in group.assignedApps) {
-                val appEnabled = config.isModuleEnabled && group.isEnabled
-                editor.putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
+            // Sync each group's apps
+            for (group in config.groups.values) {
+                for (packageName in group.assignedApps) {
+                    val appEnabled = config.isModuleEnabled && group.isEnabled
+                    putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
 
-                // Sync each spoof type for this package
-                for (type in SpoofType.entries) {
-                    val typeEnabled = appEnabled && group.isTypeEnabled(type)
-                    val value = if (typeEnabled) group.getValue(type) else null
+                    // Sync each spoof type for this package
+                    for (type in SpoofType.entries) {
+                        val typeEnabled = appEnabled && group.isTypeEnabled(type)
+                        val value = if (typeEnabled) group.getValue(type) else null
 
-                    editor.putBoolean(
-                        SharedPrefsKeys.getSpoofEnabledKey(packageName, type),
-                        typeEnabled,
-                    )
+                        putBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), typeEnabled)
 
-                    if (value != null) {
-                        editor.putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
-                    } else {
-                        editor.remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                        if (value != null) {
+                            putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
+                        } else {
+                            remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                        }
                     }
                 }
             }
         }
-
-        editor.apply()
         Timber.tag(TAG).d("Config synced to RemotePreferences — live delivery active")
     }
 
@@ -96,36 +94,36 @@ object ConfigSync {
         config: JsonConfig,
         packageName: String,
     ) {
-        val editor = XposedPrefs.getPrefs()?.edit()
-        if (editor == null) {
+        val prefs = XposedPrefs.getPrefs()
+        if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — skipping syncApp for $packageName")
             return
         }
 
         val group = config.getGroupForApp(packageName)
         if (group == null) {
-            editor.putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false).apply()
+            prefs.edit { putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false) }
             Timber.tag(TAG).d("App $packageName removed from spoofing (no group)")
             return
         }
 
         val appEnabled = config.isModuleEnabled && group.isEnabled
-        editor.putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
+        prefs.edit {
+            putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
 
-        for (type in SpoofType.entries) {
-            val typeEnabled = appEnabled && group.isTypeEnabled(type)
-            val value = if (typeEnabled) group.getValue(type) else null
+            for (type in SpoofType.entries) {
+                val typeEnabled = appEnabled && group.isTypeEnabled(type)
+                val value = if (typeEnabled) group.getValue(type) else null
 
-            editor.putBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), typeEnabled)
+                putBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), typeEnabled)
 
-            if (value != null) {
-                editor.putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
-            } else {
-                editor.remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                if (value != null) {
+                    putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
+                } else {
+                    remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                }
             }
         }
-
-        editor.apply()
         Timber.tag(TAG).d("App $packageName synced to RemotePreferences")
     }
 
@@ -136,20 +134,20 @@ object ConfigSync {
      * @param packageName The package to clear
      */
     fun clearApp(@Suppress("UNUSED_PARAMETER") context: Context, packageName: String) {
-        val editor = XposedPrefs.getPrefs()?.edit()
-        if (editor == null) {
+        val prefs = XposedPrefs.getPrefs()
+        if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — skipping clearApp for $packageName")
             return
         }
 
-        editor.remove(SharedPrefsKeys.getAppEnabledKey(packageName))
+        prefs.edit {
+            remove(SharedPrefsKeys.getAppEnabledKey(packageName))
 
-        for (type in SpoofType.entries) {
-            editor.remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
-            editor.remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+            for (type in SpoofType.entries) {
+                remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
+                remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+            }
         }
-
-        editor.apply()
         Timber.tag(TAG).d("App $packageName cleared from RemotePreferences")
     }
 }

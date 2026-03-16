@@ -20,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
@@ -83,6 +85,7 @@ fun ToggleButton(
             animationSpec = spring(),
             label = "thumbColor",
         )
+    val density = LocalDensity.current
 
     val alpha = if (enabled) 1f else 0.5f
 
@@ -104,7 +107,7 @@ fun ToggleButton(
     ) {
         Box(
             modifier =
-                Modifier.offset(x = thumbOffset)
+                Modifier.offset { IntOffset(x = with(density) { thumbOffset.roundToPx() }, y = 0) }
                     .size(thumbSize)
                     .background(color = currentThumbColor.copy(alpha = alpha), shape = CircleShape)
         )
@@ -151,6 +154,7 @@ fun LargeToggleButton(
             animationSpec = spring(),
             label = "largeTrackColor",
         )
+    val density = LocalDensity.current
 
     val alpha = if (enabled) 1f else 0.5f
 
@@ -172,7 +176,7 @@ fun LargeToggleButton(
     ) {
         Box(
             modifier =
-                Modifier.offset(x = thumbOffset)
+                Modifier.offset { IntOffset(x = with(density) { thumbOffset.roundToPx() }, y = 0) }
                     .size(thumbSize)
                     .background(color = Color.White.copy(alpha = alpha), shape = CircleShape)
         )

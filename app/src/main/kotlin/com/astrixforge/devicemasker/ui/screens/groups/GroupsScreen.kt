@@ -29,6 +29,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,10 +86,13 @@ fun GroupsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf<SpoofGroup?>(null) }
-    var showDeleteDialog by remember { mutableStateOf<SpoofGroup?>(null) }
+    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
+    var editGroupId by rememberSaveable { mutableStateOf<String?>(null) }
+    var deleteGroupId by rememberSaveable { mutableStateOf<String?>(null) }
+    val editGroup = state.groups.find { it.id == editGroupId }
+    val deleteGroup = state.groups.find { it.id == deleteGroupId }
 
     // Export launcher - creates a JSON file
     val exportLauncher =
@@ -94,13 +100,31 @@ fun GroupsScreen(
             contract = ActivityResultContracts.CreateDocument("application/json")
         ) { uri: Uri? ->
             uri?.let {
-                viewModel.exportGroups { jsonData ->
+                viewModel.exportGroups { result ->
                     scope.launch {
-                        withContext(Dispatchers.IO) {
-                            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                                outputStream.write(jsonData.toByteArray())
-                            }
-                        }
+                        val message =
+                            result.fold(
+                                onSuccess = { jsonData ->
+                                    runCatching {
+                                            withContext(Dispatchers.IO) {
+                                                val outputStream =
+                                                    context.contentResolver.openOutputStream(uri)
+                                                checkNotNull(outputStream)
+                                                outputStream.use { it.write(jsonData.toByteArray()) }
+                                            }
+                                        }
+                                        .fold(
+                                            onSuccess = {
+                                                context.getString(R.string.group_export_success)
+                                            },
+                                            onFailure = {
+                                                context.getString(R.string.group_export_error)
+                                            },
+                                        )
+                                },
+                                onFailure = { context.getString(R.string.group_export_error) },
+                            )
+                        snackbarHostState.showSnackbar(message)
                     }
                 }
             }
@@ -112,32 +136,62 @@ fun GroupsScreen(
             uri: Uri? ->
             uri?.let {
                 scope.launch {
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                            val jsonData = inputStream.bufferedReader().readText()
-                            viewModel.importGroups(jsonData)
+                    val jsonResult =
+                        withContext(Dispatchers.IO) {
+                            runCatching {
+                                    val inputStream = context.contentResolver.openInputStream(uri)
+                                    checkNotNull(inputStream)
+                                    inputStream.bufferedReader().use { reader -> reader.readText() }
+                                }
+                                .getOrNull()
+                        }
+
+                    if (jsonResult.isNullOrBlank()) {
+                        snackbarHostState.showSnackbar(
+                            context.getString(R.string.group_import_empty_error)
+                        )
+                    } else {
+                        viewModel.importGroups(jsonResult) { success ->
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    context.getString(
+                                        if (success) {
+                                            R.string.group_import_success
+                                        } else {
+                                            R.string.group_import_error
+                                        }
+                                    )
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-    GroupsScreenContent(
-        groups = state.groups,
-        isRefreshing = state.isRefreshing,
-        onGroupClick = onGroupClick,
-        onCreateGroup = { showCreateDialog = true },
-        onEditGroup = { showEditDialog = it },
-        onDeleteGroup = { showDeleteDialog = it },
-        onSetDefault = { group -> viewModel.setDefaultGroup(group.id) },
-        onEnableChange = { group, enabled -> viewModel.setGroupEnabled(group.id, enabled) },
-        onExport = {
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-            exportLauncher.launch("devicemasker_groups_$timestamp.json")
-        },
-        onImport = { importLauncher.launch("application/json") },
-        modifier = modifier,
-    )
+    Box(modifier = modifier.fillMaxSize()) {
+        GroupsScreenContent(
+            groups = state.groups,
+            isRefreshing = state.isRefreshing,
+            onGroupClick = onGroupClick,
+            onCreateGroup = { showCreateDialog = true },
+            onEditGroup = { editGroupId = it.id },
+            onDeleteGroup = { deleteGroupId = it.id },
+            onSetDefault = { group -> viewModel.setDefaultGroup(group.id) },
+            onEnableChange = { group, enabled -> viewModel.setGroupEnabled(group.id, enabled) },
+            onExport = {
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                exportLauncher.launch("devicemasker_groups_$timestamp.json")
+            },
+            onImport = { importLauncher.launch("application/json") },
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+        )
+    }
 
     // Create Group Dialog
     if (showCreateDialog) {
@@ -152,10 +206,10 @@ fun GroupsScreen(
     }
 
     // Edit Group Dialog
-    showEditDialog?.let { group ->
+    editGroup?.let { group ->
         EditGroupDialog(
             group = group,
-            onDismiss = { showEditDialog = null },
+            onDismiss = { editGroupId = null },
             onSave = { name, description ->
                 viewModel.updateGroup(
                     group.copy(
@@ -164,18 +218,18 @@ fun GroupsScreen(
                         updatedAt = System.currentTimeMillis(),
                     )
                 )
-                showEditDialog = null
+                editGroupId = null
             },
         )
     }
 
     // Delete Confirmation Dialog
-    showDeleteDialog?.let { group ->
+    deleteGroup?.let { group ->
         DeleteGroupDialog(
-            onDismiss = { showDeleteDialog = null },
+            onDismiss = { deleteGroupId = null },
             onConfirm = {
                 viewModel.deleteGroup(group.id)
-                showDeleteDialog = null
+                deleteGroupId = null
             },
         )
     }

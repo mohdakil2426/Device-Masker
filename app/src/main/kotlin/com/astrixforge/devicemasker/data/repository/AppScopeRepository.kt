@@ -3,8 +3,6 @@ package com.astrixforge.devicemasker.data.repository
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import androidx.core.graphics.drawable.toBitmap
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,24 +74,12 @@ class AppScopeRepository(private val context: Context) {
                     ""
                 }
 
-            val iconBitmap = loadIconBitmap(appInfo)
-
             InstalledApp(
                 packageName = appInfo.packageName,
                 label = label,
                 isSystemApp = isSystem,
                 versionName = versionName,
-                iconBitmap = iconBitmap,
             )
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun loadIconBitmap(appInfo: ApplicationInfo): Bitmap? {
-        return try {
-            val drawable = packageManager.getApplicationIcon(appInfo)
-            drawable.toBitmap(width = ICON_SIZE, height = ICON_SIZE)
         } catch (_: Exception) {
             null
         }
@@ -101,9 +87,5 @@ class AppScopeRepository(private val context: Context) {
 
     fun invalidateCache() {
         isCacheValid = false
-    }
-
-    companion object {
-        private const val ICON_SIZE = 96
     }
 }

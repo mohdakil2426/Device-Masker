@@ -108,7 +108,10 @@ class HomeViewModel(private val repository: SpoofRepository) : ViewModel() {
      */
     fun regenerateAll(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            state.value.selectedGroup?.let { group -> repository.setActiveGroup(group.id) }
+            state.value.selectedGroup?.let { group ->
+                repository.setActiveGroup(group.id)
+                repository.regenerateAllValues(group.id)
+            }
             onComplete()
         }
     }

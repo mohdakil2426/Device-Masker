@@ -892,7 +892,7 @@
 
     <string name="groups_auto_sync_desc">Groups list updates automatically from repository flow.</string>
 
-    <string name="home_loading_label">Loading Dashboard...</string>
+    <string name="home_loading_label">Loading Dashboard…</string>
 
     <string name="group_card_default_title">Default</string>
     <string name="group_card_actions_title">Actions</string>
@@ -934,8 +934,8 @@
     <string name="group_card_container">Group card</string>
     <string name="action_bottom_sheet_container">Action sheet</string>
 
-    <string name="picker_search_country_placeholder">Search countries...</string>
-    <string name="picker_search_timezone_placeholder">Search timezones...</string>
+    <string name="picker_search_country_placeholder">Search countries…</string>
+    <string name="picker_search_timezone_placeholder">Search timezones…</string>
 
     <string name="diagnostics_open_section">Open section</string>
     <string name="diagnostics_close_section">Close section</string>
@@ -1133,7 +1133,7 @@
     <string name="home_group_view_label">View Group</string>
     <string name="home_group_select_label">Select Group</string>
 
-    <string name="home_loading_text">Loading Dashboard...</string>
+    <string name="home_loading_text">Loading Dashboard…</string>
 
     <string name="diagnostics_header_subtitle_refresh">Pull down to refresh</string>
     <string name="config_sync_immediate">Configuration updates apply immediately when the live module service is available.</string>
@@ -1802,6 +1802,7 @@
     <!-- Actions -->
     <string name="action_regenerate">Regenerate</string>
     <string name="action_regenerate_all">Regenerate All</string>
+    <string name="action_copy">Copy</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
@@ -1832,4 +1833,24 @@
     <!-- Misc -->
     <string name="label_choose_sim">Choose Sim</string>
     <string name="label_choose_location">Choose Location</string>
+    <string name="group_spoofing_country">Country</string>
+    <string name="group_spoofing_carrier">Carrier</string>
+    <string name="group_spoofing_timezone">Timezone</string>
+    <string name="group_spoofing_locale">Locale</string>
+    <string name="group_spoofing_manufacturer">Manufacturer</string>
+    <string name="group_spoofing_brand">Brand</string>
+    <string name="group_spoofing_model">Model</string>
+    <string name="group_spoofing_device">Device</string>
+    <string name="group_spoofing_product">Product</string>
+    <string name="group_spoofing_board">Board</string>
+    <string name="group_spoofing_fingerprint">Fingerprint</string>
+    <string name="group_spoofing_security_patch">Security Patch</string>
+    <string name="group_export_success">Groups exported successfully.</string>
+    <string name="group_export_error">Failed to export groups.</string>
+    <string name="group_import_success">Groups imported successfully.</string>
+    <string name="group_import_error">Failed to import groups.</string>
+    <string name="group_import_empty_error">Selected file is empty or unreadable.</string>
+    <string name="diagnostics_service_status_title">Service Status</string>
+    <string name="diagnostics_service_status_summary">Connection: %1$s • Hooked apps: %2$d</string>
+    <string name="diagnostics_recent_logs_title">Recent Hook Logs</string>
 </resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.IBinder
 import com.astrixforge.devicemasker.IDeviceMaskerService
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +37,7 @@ class ServiceClient(private val context: Context) {
         /** ContentProvider authority — must match [ServiceBridge.AUTHORITY]. */
         private const val AUTHORITY = "com.astrixforge.devicemasker.service"
 
-        private val CONTENT_URI = Uri.parse("content://$AUTHORITY")
+        private val CONTENT_URI: Uri = "content://$AUTHORITY".toUri()
 
         private const val METHOD_GET_BINDER = "getBinder"
         private const val METHOD_PING = "ping"

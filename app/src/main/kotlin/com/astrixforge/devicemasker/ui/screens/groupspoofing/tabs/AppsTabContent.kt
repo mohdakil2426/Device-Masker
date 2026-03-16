@@ -24,6 +24,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -50,7 +51,7 @@ fun AppsTabContent(
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var debouncedQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {

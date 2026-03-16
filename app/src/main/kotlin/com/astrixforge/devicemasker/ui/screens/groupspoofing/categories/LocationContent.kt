@@ -131,7 +131,10 @@ fun LocationCategoryContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Timezone", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = stringResource(id = R.string.group_spoofing_timezone),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
 
                         // Timezone button - opens dialog (same width as Country button: 200.dp)
                         ExpressiveOutlinedCard(
@@ -179,7 +182,10 @@ fun LocationCategoryContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Locale", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = stringResource(id = R.string.group_spoofing_locale),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
 
                         // Locale display (same style as Carrier dropdown, but disabled/read-only)
                         ExpressiveOutlinedCard(

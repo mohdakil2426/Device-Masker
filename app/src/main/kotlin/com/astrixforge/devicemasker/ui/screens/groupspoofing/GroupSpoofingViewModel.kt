@@ -46,12 +46,28 @@ class GroupSpoofingViewModel(private val repository: SpoofRepository, private va
     }
 
     fun setSelectedTab(tab: Int) {
-        _state.update { it.copy(selectedTab = tab) }
+        _state.update { current ->
+            if (current.selectedTab == tab) current else current.copy(selectedTab = tab)
+        }
     }
 
     fun regenerateValue(type: SpoofType) {
         val group = state.value.group ?: return
         viewModelScope.launch {
+            if (type == SpoofType.DEVICE_PROFILE) {
+                val nextPresetId = repository.generateValue(SpoofType.DEVICE_PROFILE)
+                repository.updateGroupWithDeviceProfile(group.id, nextPresetId)
+                return@launch
+            }
+
+            if (type.correlationGroup == CorrelationGroup.DEVICE_HARDWARE) {
+                val presetId =
+                    group.getValue(SpoofType.DEVICE_PROFILE)
+                        ?: repository.generateValue(SpoofType.DEVICE_PROFILE)
+                repository.updateGroupWithDeviceProfile(group.id, presetId)
+                return@launch
+            }
+
             // For SIM values: use regenerateSIMValueOnly to keep same carrier
             val newValue =
                 when (val correlationGroup = type.correlationGroup) {
@@ -73,6 +89,12 @@ class GroupSpoofingViewModel(private val repository: SpoofRepository, private va
     fun regenerateCategory(types: List<SpoofType>, isCorrelated: Boolean) {
         val group = state.value.group ?: return
         viewModelScope.launch {
+            if (types.contains(SpoofType.DEVICE_PROFILE)) {
+                val nextPresetId = repository.generateValue(SpoofType.DEVICE_PROFILE)
+                repository.updateGroupWithDeviceProfile(group.id, nextPresetId)
+                return@launch
+            }
+
             // Reset the cache for this correlation group first
             if (isCorrelated) {
                 val correlationGroup = types.firstOrNull()?.correlationGroup

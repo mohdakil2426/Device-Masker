@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +80,8 @@ fun DiagnosticsScreen(
         isXposedActive = state.isXposedActive,
         diagnosticResults = state.diagnosticResults,
         antiDetectionResults = state.antiDetectionResults,
+        serviceStatus = state.serviceStatus,
+        hookLogs = state.hookLogs,
         isRefreshing = state.isRefreshing,
         onRefresh = { viewModel.refresh() },
         onNavigateBack = onNavigateBack,
@@ -92,6 +95,8 @@ fun DiagnosticsContent(
     isXposedActive: Boolean,
     diagnosticResults: List<DiagnosticResult>,
     antiDetectionResults: List<AntiDetectionTest>,
+    serviceStatus: ServiceStatus = ServiceStatus(),
+    hookLogs: List<String> = emptyList(),
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onNavigateBack: () -> Unit,
@@ -117,7 +122,7 @@ fun DiagnosticsContent(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(id = R.string.group_spoofing_back),
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -142,6 +147,10 @@ fun DiagnosticsContent(
 
             // Config Sync Info Card
             item(key = "config_sync_info") { ConfigSyncInfoCard() }
+
+            item(key = "service_status") {
+                ServiceStatusCard(serviceStatus = serviceStatus, hookLogs = hookLogs)
+            }
 
             // Anti-Detection Section
             item(key = "anti_detection") { AntiDetectionSection(tests = antiDetectionResults) }
@@ -264,7 +273,7 @@ private fun ModuleStatusCard(isXposedActive: Boolean) {
  */
 @Composable
 private fun AntiDetectionSection(tests: List<AntiDetectionTest>) {
-    var isExpanded by remember { mutableStateOf(true) }
+    var isExpanded by rememberSaveable { mutableStateOf(true) }
     val passedCount = tests.count { it.isPassed }
 
     AnimatedSection(
@@ -334,7 +343,7 @@ private fun AntiDetectionTestItem(test: AntiDetectionTest) {
  */
 @Composable
 private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<DiagnosticResult>) {
-    var isExpanded by remember { mutableStateOf(true) }
+    var isExpanded by rememberSaveable(category.displayName) { mutableStateOf(true) }
 
     AnimatedSection(
         title = category.displayName,
@@ -351,6 +360,59 @@ private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<Dia
             DiagnosticResultItem(result = result)
             if (result != results.last()) {
                 Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServiceStatusCard(serviceStatus: ServiceStatus, hookLogs: List<String>) {
+    ExpressiveCard(
+        onClick = { /* Read-only diagnostics */ },
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = stringResource(id = R.string.diagnostics_service_status_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text =
+                    stringResource(
+                        id = R.string.diagnostics_service_status_summary,
+                        serviceStatus.connectionState.name,
+                        serviceStatus.hookedAppCount,
+                    ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (hookLogs.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(id = R.string.diagnostics_recent_logs_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                hookLogs.take(5).forEach { logLine ->
+                    Text(
+                        text = logLine,
+                        style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = FontFamily.Monospace
+                            ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
             }
         }
     }

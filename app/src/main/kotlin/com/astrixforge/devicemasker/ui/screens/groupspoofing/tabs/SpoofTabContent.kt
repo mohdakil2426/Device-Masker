@@ -14,8 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,24 +30,6 @@ import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.categories.CategorySection
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.model.UIDisplayCategory
-
-/**
- * Session-scoped state holder for category expansion. Persists across navigation but resets when
- * app is killed.
- */
-internal object CategoryExpansionState {
-    private val expandedCategories = mutableSetOf<String>()
-
-    fun isExpanded(categoryName: String): Boolean = categoryName in expandedCategories
-
-    fun toggle(categoryName: String) {
-        if (categoryName in expandedCategories) {
-            expandedCategories.remove(categoryName)
-        } else {
-            expandedCategories.add(categoryName)
-        }
-    }
-}
 
 /**
  * Spoof Values tab content for group spoofing screen.
@@ -67,9 +49,8 @@ fun SpoofTabContent(
     modifier: Modifier = Modifier,
 ) {
     val clipboardManager = LocalClipboardManager.current
-
-    // Use session-scoped state holder - triggers recomposition on change
-    var refreshTrigger by remember { mutableIntStateOf(0) }
+    var expandedCategories by
+        rememberSaveable(group?.id) { mutableStateOf(emptyList<String>()) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -104,17 +85,19 @@ fun SpoofTabContent(
         // Categories - organized by correlation groups
         UIDisplayCategory.entries.forEach { category ->
             item(key = "spoof_${category.name}") {
-                // Read from session state (refreshTrigger forces recomposition)
-                val isExpanded = CategoryExpansionState.isExpanded(category.name)
-                @Suppress("UNUSED_EXPRESSION") refreshTrigger // Use to trigger recomposition
+                val isExpanded = expandedCategories.contains(category.name)
 
                 CategorySection(
                     category = category,
                     group = group,
                     isExpanded = isExpanded,
                     onToggleExpand = {
-                        CategoryExpansionState.toggle(category.name)
-                        refreshTrigger++ // Trigger recomposition
+                        expandedCategories =
+                            if (isExpanded) {
+                                expandedCategories - category.name
+                            } else {
+                                expandedCategories + category.name
+                            }
                     },
                     onRegenerate = onRegenerate,
                     onRegenerateCategory = { onRegenerateCategory(category) },

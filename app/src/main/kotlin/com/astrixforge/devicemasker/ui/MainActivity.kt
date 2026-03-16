@@ -217,7 +217,7 @@ fun DeviceMaskerMainApp(
                 HomeScreen(
                     viewModel = homeViewModel,
                     onNavigateToSpoof = { navController.navigate(NavRoutes.GROUPS) },
-                    onRegenerateAll = { Timber.d("Regenerate all values requested") },
+                    onRegenerateAll = {},
                     onNavigateToGroup = { groupId ->
                         navController.navigate(NavRoutes.groupSpoofingRoute(groupId))
                     },

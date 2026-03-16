@@ -7,7 +7,6 @@ data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val amoledMode: Boolean = true,
     val dynamicColors: Boolean = true,
-    val showThemeModeDialog: Boolean = false,
     // Log export state
     val isExportingLogs: Boolean = false,
     val exportResult: ExportResult? = null,

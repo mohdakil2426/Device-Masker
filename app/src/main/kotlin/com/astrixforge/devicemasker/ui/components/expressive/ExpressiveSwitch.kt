@@ -31,8 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
@@ -210,6 +212,7 @@ fun ExpressiveSwitch(
             animationSpec = AppMotion.Spatial.Snappy,
             label = "switchScale",
         )
+    val density = LocalDensity.current
 
     // ═══════════════════════════════════════════════════════════════════════════
     // COMPOSABLE LAYOUT
@@ -239,7 +242,7 @@ fun ExpressiveSwitch(
         // Thumb
         Box(
             modifier =
-                Modifier.offset(x = thumbOffset, y = 0.dp)
+                Modifier.offset { IntOffset(x = with(density) { thumbOffset.roundToPx() }, y = 0) }
                     .size(thumbSize)
                     .background(color = thumbColor, shape = CircleShape),
             contentAlignment = Alignment.Center,

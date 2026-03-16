@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.service
 
 import android.content.Context
+import android.util.AtomicFile
 import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.DeviceIdentifier
 import com.astrixforge.devicemasker.common.JsonConfig
@@ -38,7 +39,7 @@ object ConfigManager {
     private const val TAG = "ConfigManager"
     private const val CONFIG_FILE_NAME = "config.json"
 
-    private lateinit var configFile: File
+    private lateinit var configFile: AtomicFile
     private lateinit var appContext: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -61,8 +62,8 @@ object ConfigManager {
         }
 
         appContext = context.applicationContext
-        configFile = File(context.filesDir, CONFIG_FILE_NAME)
-        Timber.tag(TAG).d("Config file: ${configFile.absolutePath}")
+        configFile = AtomicFile(File(context.filesDir, CONFIG_FILE_NAME))
+        Timber.tag(TAG).d("Config file: ${configFile.baseFile.absolutePath}")
 
         scope.launch {
             loadConfig()
@@ -78,8 +79,8 @@ object ConfigManager {
         withContext(Dispatchers.IO) {
             try {
                 // Try loading from local file first
-                if (configFile.exists()) {
-                    val json = configFile.readText()
+                if (configFile.baseFile.exists()) {
+                    val json = String(configFile.readFully())
                     val loadedConfig = JsonConfig.parse(json)
                     if (loadedConfig != null) {
                         _config.value = loadedConfig
@@ -119,7 +120,14 @@ object ConfigManager {
         withContext(Dispatchers.IO) {
             try {
                 // 1. Persist raw JSON locally as a backup and for UI reload on next launch
-                configFile.writeText(config.toJsonString())
+                val stream = configFile.startWrite()
+                try {
+                    stream.write(config.toJsonString().toByteArray())
+                    configFile.finishWrite(stream)
+                } catch (writeError: Exception) {
+                    configFile.failWrite(stream)
+                    throw writeError
+                }
                 Timber.tag(TAG).d("Config saved to local file")
 
                 // 2. Flatten per-app keys into ModulePreferences (live delivery to hooks)

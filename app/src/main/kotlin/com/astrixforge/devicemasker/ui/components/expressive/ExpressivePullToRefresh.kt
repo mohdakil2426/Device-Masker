@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
@@ -104,13 +106,14 @@ fun ExpressiveRefreshIndicator(
             animationSpec = AppMotion.spatial(AppMotion.Spatial.Standard, AppMotion.ReducedAlpha),
             label = "indicatorOffset",
         )
+    val density = LocalDensity.current
 
     if (showIndicator) {
         Surface(
             modifier =
                 modifier
                     .padding(top = 8.dp)
-                    .offset(y = offset.dp)
+                    .offset { IntOffset(x = 0, y = with(density) { offset.dp.roundToPx() }) }
                     .size(indicatorSize + 16.dp)
                     .alpha(alpha),
             shape = CircleShape,

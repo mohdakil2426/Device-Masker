@@ -24,9 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -66,13 +63,20 @@ fun GroupSpoofingScreen(
     val groups = state.groups
     val installedApps = state.installedApps
 
-    // Tab state
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val selectedTab = state.selectedTab
+    val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 2 })
 
     // Sync pager with tab
-    LaunchedEffect(selectedTab) { pagerState.animateScrollToPage(selectedTab) }
-    LaunchedEffect(pagerState.currentPage) { selectedTab = pagerState.currentPage }
+    LaunchedEffect(selectedTab) {
+        if (pagerState.currentPage != selectedTab) {
+            pagerState.animateScrollToPage(selectedTab)
+        }
+    }
+    LaunchedEffect(pagerState.currentPage) {
+        if (selectedTab != pagerState.currentPage) {
+            viewModel.setSelectedTab(pagerState.currentPage)
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().alpha(if (group == null) 0f else 1f)) {
@@ -102,13 +106,13 @@ fun GroupSpoofingScreen(
             SecondaryTabRow(selectedTabIndex = selectedTab) {
                 Tab(
                     selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    onClick = { viewModel.setSelectedTab(0) },
                     text = { Text(stringResource(id = R.string.group_spoofing_tab_spoof)) },
                     icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                 )
                 Tab(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    onClick = { viewModel.setSelectedTab(1) },
                     text = { Text(stringResource(id = R.string.group_spoofing_tab_apps)) },
                     icon = { Icon(Icons.Filled.Apps, contentDescription = null) },
                 )

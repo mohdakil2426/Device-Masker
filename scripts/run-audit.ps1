@@ -70,8 +70,35 @@ function Grep-Check($id, $description, [string[]]$paths, $pattern, $excludePatte
 function Gradle-Gate($id, $description, $gradleTask) {
     $script:lines.Add("")
     $script:lines.Add(">>> Running: ./gradlew $gradleTask")
-    $output = & cmd /c "gradlew.bat $gradleTask 2>&1"
-    $exitCode = $LASTEXITCODE
+    $gradleWrapper = Join-Path $ProjectRoot "gradlew.bat"
+    $taskArgs = [regex]::Split($gradleTask.Trim(), "\s+") | Where-Object { $_ }
+    $output = @()
+    $exitCode = $null
+
+    try {
+        $cmdPath = (Get-Command "cmd.exe" -ErrorAction Stop).Source
+        $output = & $cmdPath /c "`"$gradleWrapper`" $gradleTask 2>&1"
+        $exitCode = $LASTEXITCODE
+    } catch {
+        $output += "cmd.exe launch failed: $($_.Exception.Message)"
+    }
+
+    if ($null -eq $exitCode) {
+        try {
+            $output += "Falling back to direct gradlew.bat execution..."
+            $output += & $gradleWrapper @taskArgs 2>&1
+            $exitCode = $LASTEXITCODE
+        } catch {
+            $output += "Direct gradlew.bat launch failed: $($_.Exception.Message)"
+            $lastExitCodeVar = Get-Variable LASTEXITCODE -ErrorAction SilentlyContinue
+            if ($null -eq $lastExitCodeVar) {
+                $exitCode = 1
+            } else {
+                $exitCode = $lastExitCodeVar.Value
+            }
+        }
+    }
+
     $outputText = $output -join "`n"
 
     # Capture last 30 lines of output for context

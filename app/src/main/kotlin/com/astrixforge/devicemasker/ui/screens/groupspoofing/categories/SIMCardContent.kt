@@ -164,7 +164,10 @@ fun SIMCardCategoryContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Country", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = stringResource(id = R.string.group_spoofing_country),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
 
                         // Country button - opens dialog
                         val selectedCountry = Country.getByIso(selectedCountryIso)
@@ -210,7 +213,10 @@ fun SIMCardCategoryContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Carrier", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = stringResource(id = R.string.group_spoofing_carrier),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
 
                         var carrierDropdownExpanded by remember { mutableStateOf(false) }
 
