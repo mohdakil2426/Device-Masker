@@ -79,14 +79,7 @@ abstract class BaseSpoofHooker(protected val tag: String) {
         } catch (t: Throwable) {
             val message = "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}"
             DualLog.warn(tag, message, t)
-            runCatching {
-                XposedEntry.instance.log(
-                    android.util.Log.WARN,
-                    tag,
-                    message,
-                    null,
-                )
-            }
+            runCatching { XposedEntry.instance.log(android.util.Log.WARN, tag, message, null) }
         }
     }
 

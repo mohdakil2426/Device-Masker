@@ -6,8 +6,7 @@ import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
-import io.github.libxposed.api.XposedInterface.AfterHookCallback
-import io.github.libxposed.api.XposedInterface.BeforeHookCallback
+
 
 /**
  * WebView Hooker — libxposed API 100 edition.
@@ -31,118 +30,67 @@ import io.github.libxposed.api.XposedInterface.BeforeHookCallback
 object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
 
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        HookState.prefs = prefs
-        HookState.pkg = pkg
-
         // Load preset once at hook-registration time
-        val presetId = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
-        if (presetId.isNotEmpty()) {
-            HookState.preset = DeviceProfilePreset.findById(presetId)
-        }
-
-        hookWebSettings(cl, xi)
-        hookWebViewDefaultUA(cl, xi)
+        val presetId = getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
+        val preset = if (presetId.isNotEmpty()) DeviceProfilePreset.findById(presetId) else null
+        
+        hookWebSettings(cl, xi, preset, pkg)
+        hookWebViewDefaultUA(cl, xi, preset, pkg)
     }
 
-    private fun hookWebSettings(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookWebSettings(cl: ClassLoader, xi: XposedInterface, preset: DeviceProfilePreset?, pkg: String) {
         val wsClass = cl.loadClassOrNull("android.webkit.WebSettings") ?: return
         safeHook("WebSettings.getUserAgentString()") {
             wsClass.methodOrNull("getUserAgentString")?.let { m ->
-                xi.hook(m, GetUserAgentStringHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val ua = result as? String ?: return@intercept result
+                    val model = preset?.model ?: return@intercept result
+                    val spoofed = modifyUserAgent(ua, model)
+                    if (spoofed != ua) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("WebSettings.setUserAgentString(String)") {
             wsClass.methodOrNull("setUserAgentString", String::class.java)?.let { m ->
-                xi.hook(m, SetUserAgentStringHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val model = preset?.model ?: return@intercept chain.proceed()
+                    val ua = chain.args.firstOrNull() as? String ?: return@intercept chain.proceed()
+                    if (ua.isNotEmpty() && !ua.contains(model)) {
+                        chain.args[0] = modifyUserAgent(ua, model)
+                        reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                    }
+                    chain.proceed()
+                }
             }
         }
     }
 
-    private fun hookWebViewDefaultUA(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookWebViewDefaultUA(cl: ClassLoader, xi: XposedInterface, preset: DeviceProfilePreset?, pkg: String) {
         safeHook("WebView.getDefaultUserAgent(Context)") {
             val webViewClass = cl.loadClassOrNull("android.webkit.WebView") ?: return@safeHook
             val contextClass = cl.loadClassOrNull("android.content.Context") ?: return@safeHook
             webViewClass.methodOrNull("getDefaultUserAgent", contextClass)?.let { m ->
-                xi.hook(m, GetDefaultUserAgentHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val model = preset?.model ?: return@intercept result
+                    val ua = result as? String ?: return@intercept result
+                    val spoofed = modifyUserAgent(ua, model)
+                    if (spoofed != ua) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Shared state
-    // ─────────────────────────────────────────────────────────────
-
-    internal object HookState {
-        @Volatile var prefs: SharedPreferences? = null
-        @Volatile var pkg: String = ""
-        @Volatile var preset: DeviceProfilePreset? = null
-    }
 
     private val UA_DEVICE_REGEX = Regex("""(?<=Android \d+; )([^)]+)""")
 
     internal fun modifyUserAgent(originalUA: String, model: String): String {
         if (model.isBlank()) return originalUA
         return UA_DEVICE_REGEX.replace(originalUA, model)
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // @XposedHooker callback classes
-    // ─────────────────────────────────────────────────────────────
-
-    class GetUserAgentStringHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val pkg = HookState.pkg
-                    val model = HookState.preset?.model ?: return
-                    val ua = callback.result as? String ?: return
-                    val spoofed = modifyUserAgent(ua, model)
-                    callback.result = spoofed
-                    if (spoofed != ua) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetUserAgentStringHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class SetUserAgentStringHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun before(callback: BeforeHookCallback) {
-                try {
-                    val pkg = HookState.pkg
-                    val model = HookState.preset?.model ?: return
-                    val ua = callback.args.firstOrNull() as? String ?: return
-                    if (ua.isNotEmpty() && !ua.contains(model)) {
-                        callback.args[0] = modifyUserAgent(ua, model)
-                        reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                    }
-                } catch (t: Throwable) {
-                    DualLog.warn("SetUserAgentStringHooker", "before() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetDefaultUserAgentHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val pkg = HookState.pkg
-                    val model = HookState.preset?.model ?: return
-                    val ua = callback.result as? String ?: return
-                    val spoofed = modifyUserAgent(ua, model)
-                    callback.result = spoofed
-                    if (spoofed != ua) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetDefaultUserAgentHooker", "after() failed", t)
-                }
-            }
-        }
     }
 }

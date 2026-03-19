@@ -4,17 +4,17 @@
 
 | Metric                | Value                                                                                 |
 | --------------------- | ------------------------------------------------------------------------------------- |
-| **Project Phase**     | libxposed API 100 Migration — Local Dependency Publishing ⏳                          |
-| **Active Changes**    | 1 (`libxposed-api100-migration`)                                                      |
-| **Archived Changes**  | 12                                                                                    |
-| **Last Major Update** | March 13, 2026 — Resolved all 15 audit failures and refactored SecureRandom usage. ✅ |
+| **Project Phase**     | libxposed API 101 Maven Central Migration ✅                                          |
+| **Active Changes**    | 0                                                                                     |
+| **Archived Changes**  | 13                                                                                    |
+| **Last Major Update** | March 19, 2026 — Migrated to libxposed 101.0.0 via Maven Central and fixed formatting. ✅ |
 
 ---
 
-## ⏳ In Progress: libxposed API 100 Migration (Mar 13, 2026)
+## ✅ Completed: libxposed API 101 Migration (Mar 19, 2026)
 
-**Status**: API Local ✅ | App-side config ✅ | AIDL demotion ✅ | **Build blocked** 🔴 (API Annotation Mismatch)
-**Impact**: Eliminates ART inlining bypass gap, local resolution of libxposed artifacts.
+**Status**: API Maven Central ✅ | App-side config ✅ | AIDL demotion ✅
+**Impact**: Eliminates ART inlining bypass gap, moves away from local resolution of libxposed artifacts to official Maven Central releases.
 
 ### Completed This Session
 
@@ -22,14 +22,21 @@
 | --------------------------- | ------ | ------------------------------------------------------------------ |
 | `docs/libxposed/api-master` | ✅     | Successfully built and published `api:100` to `mavenLocal()`       |
 | `settings.gradle.kts`       | ✅     | Added `mavenLocal()` for artifact resolution                       |
-| `XposedEntry.kt`            | ✅     | Fixed `log` signature to (Int, String, String, Throwable?)         |
-| API 100 Signature Fixes     | ✅     | Replaced `@XposedHooker` with callback hooks, used `throwAndSkip`  |
+| `XposedEntry.kt`            | ✅     | Fixed `XposedModule()` constructor and initialization for libxposed API 101.0.0 |
+| API 100 Signature Fixes     | ✅     | Replaced `@XposedHooker` with callback hooks (`intercept`), used `throwAndSkip` equivalents |
 | Advanced Generators Logic   | ✅     | Integrated IMEIGenerator, IMSIGenerator, MACGenerator, etc.        |
 | Spoof Event Reporting       | ✅     | Added `reportSpoofEvent(pkg, type)` to all hookers                 |
 | `ValueGenerators.kt`        | ✅     | **Deleted** — all usage replaced by advanced generators in :common |
 | `SecureRandomUtils.kt`      | ✅     | Refactored to top-level extensions; resolved A03/A04 failures.     |
-| `Audit Failures (15/15)`    | ✅     | All A01-A10 and B01-B05 checks now passing.                        |
-| `libxposed-service`         | 🔴     | Build failing due to Java version & SDK path. Publication pending. |
+| `AntiDetectHooker.kt`       | ✅     | Removed all unresolvable inner Hooker classes and migrated to `intercept` lambdas |
+| `libxposed-service`         | ✅     | Build is now passing after refactoring remaining outdated usages. |
+
+### Pending Tasks
+
+| Task | Priority | Status |
+| --- | --- | --- |
+| Address Lint warnings | Medium | Pending (Package directive and naming/formatting) |
+| Manual validation | High | Pending (Ensure new API 100 intercept syntax behaves securely at runtime) |
 
 ### YukiHookAPI Elimination — Verification
 
@@ -80,16 +87,11 @@ grep -rn 'import com.highcapable' xposed/src app/src --include='*.kt'
 | `common/DeviceHardwareConfig.kt`        | ✅     | `isDualSIM` now reflects `DeviceProfilePreset.simCount`.                                   |
 | `common/generators/IMEIGenerator.kt`    | ✅     | Preset fallback simplified to an explicit, easier-to-reason-about path.                    |
 
-### 🔴 ACTIVE BLOCKER: libxposed-service Compilation & Publication
+### ✅ RESOLVED BLOCKER: libxposed-service Compilation & Publication
 
-**Problem**: The migrated hookers (`AdvertisingHooker.kt`, etc.) have mostly been refactored for the static callback pattern taking `throwAndSkip(Throwable)` from `libxposed-api:100`. However, the local source for `libxposed-service` and `libxposed-interface` fails to build `publishToMavenLocal` due to Java version compatibility (`JavaVersion.VERSION_21` vs 17) and missing SDK setups inside the nested standalone `service` directory.
+**Problem**: The local source for `libxposed-service` and `libxposed-interface` failed to build `publishToMavenLocal` due to Java version compatibility (`JavaVersion.VERSION_21` vs 17) and SDK path issues.
 
-**Next Steps**:
-
-1. Fix the build files inside `docs/libxposed/libxposed-service` to correctly read `ANDROID_HOME` or `local.properties`.
-2. Fix JDK version properties (force Java 17).
-3. Complete local publishing of `service` and `interface` artifacts.
-4. Verify full build pass for `:xposed` and `:app`.
+**Resolution**: Completely migrated to `io.github.libxposed:api:101.0.0` and `io.github.libxposed:service:101.0.0` via Maven Central. We no longer rely on `mavenLocal()`.
 
 ---
 

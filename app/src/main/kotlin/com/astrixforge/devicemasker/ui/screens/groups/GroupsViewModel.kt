@@ -53,10 +53,11 @@ class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
      */
     fun exportGroups(onResult: (Result<String>) -> Unit) {
         viewModelScope.launch {
-            runCatching { repository.exportGroups() }.fold(
-                onSuccess = { jsonData -> onResult(Result.success(jsonData)) },
-                onFailure = { error -> onResult(Result.failure(error)) },
-            )
+            runCatching { repository.exportGroups() }
+                .fold(
+                    onSuccess = { jsonData -> onResult(Result.success(jsonData)) },
+                    onFailure = { error -> onResult(Result.failure(error)) },
+                )
         }
     }
 

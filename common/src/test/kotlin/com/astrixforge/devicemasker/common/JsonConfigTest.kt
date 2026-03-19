@@ -18,10 +18,7 @@ class JsonConfigTest {
     fun `parseOrDefault reports failure before returning default config`() {
         var failureCount = 0
 
-        val config =
-            JsonConfig.parseOrDefault("{ invalid json }") {
-                failureCount += 1
-            }
+        val config = JsonConfig.parseOrDefault("{ invalid json }") { failureCount += 1 }
 
         assertEquals(1, failureCount)
         assertTrue(config.groups.isEmpty())

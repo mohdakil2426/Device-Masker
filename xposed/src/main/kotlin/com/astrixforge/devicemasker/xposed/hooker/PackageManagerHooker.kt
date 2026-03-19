@@ -6,8 +6,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
 import com.astrixforge.devicemasker.xposed.DualLog
 import io.github.libxposed.api.XposedInterface
-import io.github.libxposed.api.XposedInterface.AfterHookCallback
-import io.github.libxposed.api.XposedInterface.BeforeHookCallback
+
 
 /**
  * Package Manager Hooker — new in libxposed API 100 migration (Gap 4.10).
@@ -49,113 +48,66 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
 
         safeHook("ApplicationPackageManager.getPackageInfo(String, int)") {
             pmClass.methodOrNull("getPackageInfo", String::class.java, intPrimitive)?.let { m ->
-                xi.hook(m, GetPackageInfoHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val pkgName = chain.args.firstOrNull() as? String
+                    if (pkgName == SELF_PACKAGE) {
+                        throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
+                    }
+                    chain.proceed()
+                }
             }
         }
         safeHook("ApplicationPackageManager.getApplicationInfo(String, int)") {
             pmClass.methodOrNull("getApplicationInfo", String::class.java, intPrimitive)?.let { m ->
-                xi.hook(m, GetApplicationInfoHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val pkgName = chain.args.firstOrNull() as? String
+                    if (pkgName == SELF_PACKAGE) {
+                        throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
+                    }
+                    chain.proceed()
+                }
             }
         }
         safeHook("ApplicationPackageManager.getInstalledPackages(int)") {
             pmClass.methodOrNull("getInstalledPackages", intPrimitive)?.let { m ->
-                xi.hook(m, GetInstalledPackagesHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    @Suppress("UNCHECKED_CAST")
+                    val packages = result as? MutableList<PackageInfo>
+                    packages?.removeAll { it.packageName == SELF_PACKAGE }
+                    result
+                }
             }
         }
         safeHook("ApplicationPackageManager.getInstalledApplications(int)") {
             pmClass.methodOrNull("getInstalledApplications", intPrimitive)?.let { m ->
-                xi.hook(m, GetInstalledApplicationsHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    @Suppress("UNCHECKED_CAST")
+                    val apps = result as? MutableList<ApplicationInfo>
+                    apps?.removeAll { it.packageName == SELF_PACKAGE }
+                    result
+                }
             }
         }
         safeHook("ApplicationPackageManager.queryIntentActivities(Intent, int)") {
             pmClass
-                .methodOrNull("queryIntentActivities", android.content.Intent::class.java, intPrimitive)
-                ?.let { m -> xi.hook(m, QueryIntentActivitiesHooker::class.java) }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // @XposedHooker callback classes
-    // ─────────────────────────────────────────────────────────────
-
-    class GetPackageInfoHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun before(callback: BeforeHookCallback) {
-                try {
-                    val pkgName = callback.args.firstOrNull() as? String ?: return
-                    if (pkgName == SELF_PACKAGE) {
-                        callback.throwAndSkip(
-                            android.content.pm.PackageManager.NameNotFoundException(pkgName)
-                        )
+                .methodOrNull(
+                    "queryIntentActivities",
+                    android.content.Intent::class.java,
+                    intPrimitive,
+                )
+                ?.let { m ->
+                    xi.hook(m).intercept { chain ->
+                        val result = chain.proceed()
+                        @Suppress("UNCHECKED_CAST")
+                        val activities = result as? MutableList<ResolveInfo>
+                        activities?.removeAll { it.activityInfo?.packageName == SELF_PACKAGE }
+                        result
                     }
-                } catch (t: Throwable) {
-                    DualLog.warn("PMGetPackageInfoHooker", "before() failed", t)
                 }
-            }
         }
     }
 
-    class GetApplicationInfoHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun before(callback: BeforeHookCallback) {
-                try {
-                    val pkgName = callback.args.firstOrNull() as? String ?: return
-                    if (pkgName == SELF_PACKAGE) {
-                        callback.throwAndSkip(
-                            android.content.pm.PackageManager.NameNotFoundException(pkgName)
-                        )
-                    }
-                } catch (t: Throwable) {
-                    DualLog.warn("PMGetApplicationInfoHooker", "before() failed", t)
-                }
-            }
-        }
-    }
 
-    class GetInstalledPackagesHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    val packages = callback.result as? MutableList<PackageInfo> ?: return
-                    packages.removeAll { it.packageName == SELF_PACKAGE }
-                } catch (t: Throwable) {
-                    DualLog.warn("PMGetInstalledPackagesHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetInstalledApplicationsHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    val apps = callback.result as? MutableList<ApplicationInfo> ?: return
-                    apps.removeAll { it.packageName == SELF_PACKAGE }
-                } catch (t: Throwable) {
-                    DualLog.warn("PMGetInstalledApplicationsHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class QueryIntentActivitiesHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    val activities = callback.result as? MutableList<ResolveInfo> ?: return
-                    activities.removeAll { it.activityInfo?.packageName == SELF_PACKAGE }
-                } catch (t: Throwable) {
-                    DualLog.warn("PMQueryIntentActivitiesHooker", "after() failed", t)
-                }
-            }
-        }
-    }
 }

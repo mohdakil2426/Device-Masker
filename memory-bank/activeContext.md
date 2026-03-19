@@ -2,60 +2,39 @@
 
 ## Current Work Focus
 
-### ⏳ IN PROGRESS: libxposed API 100 Migration (Mar 13, 2026)
+### ✅ COMPLETED: libxposed API 101 Migration (Mar 19, 2026)
 
-**Status**: App-side config ✅ | **Dependency Resolution**: Partially Local ✅ | **Build Blocked** 🔴 (API Mismatch)
+**Status**: API Maven Central ✅ | App-side config ✅ | AIDL demotion ✅
 **Branch**: `main`
 **Spec**: `openspec/changes/libxposed-api100-migration/`
 
 ---
 
-## 🔴 ACTIVE BLOCKER: API Mismatch / Missing Annotations
+## ✅ RESOLVED BLOCKER: API Mismatch / local publishing
 
-### Problem
-
-Compilation of `:xposed` fails with `Unresolved reference` for:
-
-- `@XposedHooker`
-- `@AfterInvocation`
-- `@BeforeInvocation`
-
-These annotations are used in all rewritten hookers (`AdvertisingHooker.kt`, etc.) based on initial migration assumptions, but they are **not present** in the `libxposed:api:100` source code published to `mavenLocal()`.
-
-### Root Cause
-
-The `libxposed-api` source (version 100) uses a callback-based interface where hooker classes implement `XposedInterface.Hooker` and provide static `before(BeforeHookCallback)` and `after(AfterHookCallback)` methods. The annotation-driven pattern (`@XposedHooker`) was removed/changed in API 100. Furthermore, methods like `throwable = ...` inside callbacks have been replaced with `throwAndSkip(Throwable)` and `returnAndSkip(Object)` in `BeforeHookCallback`.
-
-### Current Status: Local Dependency Resolution
-
-- `io.github.libxposed:api:100`: **Published to mavenLocal()** ✅
-  - Built from local source `docs/libxposed/api-master`.
-  - `:checks` module disabled to bypass lint issues.
-- `io.github.libxposed:service:100-1.0.0`: **Failing Build** 🔴 (Pending)
-  - Source: `docs/libxposed/libxposed-service-2692e83`
-  - Fails to compile `interface:compileReleaseAidl` and `compileReleaseJavaWithJavac` due to JDK 21 vs 17 target compatibility and missing Android SDK location declarations within its standalone build context. Cannot yet `publishToMavenLocal`.
-- `io.github.libxposed:interface:100`: **Failing Build** 🔴 (Pending)
-
-### Resolution Options
-
-1. **Refactor Hookers**: Convert all hookers from annotation-based to the verified static method pattern:
-   ```kotlin
-   class MyHooker : XposedInterface.Hooker {
-       companion object {
-           @JvmStatic fun before(callback: BeforeHookCallback) { ... }
-           @JvmStatic fun after(callback: AfterHookCallback) { ... }
-       }
-   }
-   ```
-2. **Verify API Source**: Ensure we didn't miss a "helper" library dependency that provides these annotations.
+### Resolution
+Migrated to the official `101.0.0` releases of `io.github.libxposed:api` and `io.github.libxposed:service` on Maven Central. This completely bypassed the local build compilation failures associated with missing Android SDK configurations inside the `docs/libxposed` sub-project and mismatching JDK versions. 
+- Updated `libs.versions.toml` to point to `101.0.0`
+- Removed `mavenLocal()` from `settings.gradle.kts`.
+- Fixed deprecation warnings in `gradle.properties`.
+- Addressed Spotless formatting violations across all files.
 
 ---
 
-## ✅ COMPLETED THIS SESSION (Mar 13, 2026)
+## ✅ COMPLETED THIS SESSION (Mar 19, 2026)
 
-- **Audit Failures Resolved (15/15)**: Successfully fixed all 10 section A (Safety) and 5 section B (Build) audit failures.
-- **SecureRandom Refactor**: Refactored `SecureRandomUtils.kt` to top-level extensions and properties; updated all 40+ call sites across the project.
-- **Build Pass Verified**: Full cross-module compile, lint, and test pass confirmed via `run-audit.ps1`.
+- **Audit Failures Resolved**: Fixed remaining build issues related to libxposed 101.0.0 migration.
+- **XposedEntry Updates**: Updated `XposedEntry` to extend parameterless `XposedModule()`, correctly overridden `onModuleLoaded`, changed `onSystemServerLoaded` to `onSystemServerStarting`, and replaced `param.classLoader` with `param.defaultClassLoader`.
+- **AntiDetectHooker Rewrite**: Rewrote `AntiDetectHooker` completely to use the new lambda-based `xi.hook(m).intercept { chain -> ... }` interceptor syntax instead of static inner classes. Removed unresolvable references like `AfterHookCallback`.
+- **Build Pass Verified**: The `:xposed:assembleDebug` task now successfully compiles without errors.
+
+---
+
+## 🚀 PENDING TASKS
+
+1. **Address Lint Warnings**: Fix remaining lint warnings such as package directive mismatches and string interpolation simplifications across the hooker files.
+2. **Review Code Polish**: Ensure all recently rewritten hookers align tightly with project formatting conventions (though spotlessApply should handle most of this).
+3. **Manual Device Testing**: Verify all the hookers behave correctly on a real device with LSPosed installed, especially the updated `AntiDetectHooker`.
 
 ---
 

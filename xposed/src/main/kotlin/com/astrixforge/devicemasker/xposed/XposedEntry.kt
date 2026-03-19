@@ -18,7 +18,7 @@ import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
-import io.github.libxposed.api.XposedModuleInterface.SystemServerLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Diagnostics path: Hooks → oneway AIDL → DeviceMaskerService (system_server) →
  * DiagnosticsViewModel reads
  */
-class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModule(base, param) {
+class XposedEntry : XposedModule() {
 
     companion object {
         const val TAG = "DeviceMasker"
@@ -55,7 +55,7 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         /**
          * Packages to skip entirely for app hooks. These are system-critical processes that must
          * never be intercepted. Note: "android" is skipped separately in onPackageLoaded() since it
-         * is handled by onSystemServerLoaded().
+         * is handled by onSystemServerStarting().
          */
         private val SKIP_PACKAGES =
             setOf(
@@ -76,7 +76,8 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     }
 
-    init {
+    override fun onModuleLoaded(param: ModuleLoadedParam) {
+        super.onModuleLoaded(param)
         instance = this
         log(Log.INFO, TAG, "XposedEntry loaded for process: ${param.processName}", null)
     }
@@ -88,7 +89,7 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
      * CRITICAL SAFETY: Every single line here must be in its own try-catch. Any uncaught exception
      * here causes a system_server crash = device bootloop.
      */
-    override fun onSystemServerLoaded(param: SystemServerLoadedParam) {
+    override fun onSystemServerStarting(param: SystemServerStartingParam) {
         log(
             Log.INFO,
             TAG,
@@ -157,7 +158,7 @@ class XposedEntry(base: XposedInterface, param: ModuleLoadedParam) : XposedModul
         // Per-app toggle — only hook apps that the user explicitly enabled
         if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(pkg), false)) return
 
-        val cl = param.classLoader
+        val cl = param.defaultClassLoader
         val classLoaderKey = System.identityHashCode(cl)
         if (!hookedClassLoaders.add(classLoaderKey)) {
             log(Log.DEBUG, TAG, "Hooks already registered for classloader of $pkg", null)

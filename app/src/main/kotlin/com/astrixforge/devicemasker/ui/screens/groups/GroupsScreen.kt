@@ -110,7 +110,9 @@ fun GroupsScreen(
                                                 val outputStream =
                                                     context.contentResolver.openOutputStream(uri)
                                                 checkNotNull(outputStream)
-                                                outputStream.use { it.write(jsonData.toByteArray()) }
+                                                outputStream.use {
+                                                    it.write(jsonData.toByteArray())
+                                                }
                                             }
                                         }
                                         .fold(

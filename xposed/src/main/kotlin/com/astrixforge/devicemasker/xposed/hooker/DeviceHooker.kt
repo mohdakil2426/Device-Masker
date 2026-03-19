@@ -9,7 +9,6 @@ import com.astrixforge.devicemasker.common.generators.SerialGenerator
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
-import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
 /**
  * Device Identifier Hooker — libxposed API 100 edition.
@@ -45,152 +44,240 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
      * @param pkg The target app's package name
      */
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        // Publish state to companion objects of @XposedHooker inner classes
-        // These are process-local — each process gets its own DeviceHooker instance + companion
-        // state
-        HookState.prefs = prefs
-        HookState.pkg = pkg
-        HookState.xi = xi
-
-        hookTelephonyManager(cl, xi)
-        hookBuildSerial(cl, xi)
-        hookSettingsSecure(cl, xi)
-        hookSystemProperties(cl, xi)
+        hookTelephonyManager(cl, xi, prefs, pkg)
+        hookBuildSerial(cl, xi, prefs, pkg)
+        hookSettingsSecure(cl, xi, prefs, pkg)
+        hookSystemProperties(cl, xi, prefs, pkg)
     }
 
     // ─────────────────────────────────────────────────────────────
     // Telephony Manager hooks
     // ─────────────────────────────────────────────────────────────
 
-    private fun hookTelephonyManager(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookTelephonyManager(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         val tm = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
         val intClass = Int::class.javaPrimitiveType!!
 
         // getDeviceId() — no-arg (deprecated, still used by legacy apps)
         safeHook("getDeviceId()") {
             tm.methodOrNull("getDeviceId")?.let { m ->
-                xi.hook(m, GetImeiHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.IMEI)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getDeviceId(int slot) — slot-indexed
         safeHook("getDeviceId(int)") {
             tm.methodOrNull("getDeviceId", intClass)?.let { m ->
-                xi.hook(m, GetImeiHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.IMEI)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getImei() — no-arg (API 26+)
         safeHook("getImei()") {
             tm.methodOrNull("getImei")?.let { m ->
-                xi.hook(m, GetImeiHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.IMEI)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getImei(int slot) — slot-indexed (API 26+)
         safeHook("getImei(int)") {
             tm.methodOrNull("getImei", intClass)?.let { m ->
-                xi.hook(m, GetImeiHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.IMEI)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSubscriberId() — IMSI, no-arg
         safeHook("getSubscriberId()") {
             tm.methodOrNull("getSubscriberId")?.let { m ->
-                xi.hook(m, GetImsiHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.IMSI) { IMSIGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.IMSI)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSubscriberId(int slot) — slot-indexed
         safeHook("getSubscriberId(int)") {
             tm.methodOrNull("getSubscriberId", intClass)?.let { m ->
-                xi.hook(m, GetImsiHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.IMSI) { IMSIGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.IMSI)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSimSerialNumber() — ICCID, no-arg
         safeHook("getSimSerialNumber()") {
             tm.methodOrNull("getSimSerialNumber")?.let { m ->
-                xi.hook(m, GetIccidHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.ICCID) { ICCIDGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.ICCID)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSimSerialNumber(int slot)
         safeHook("getSimSerialNumber(int)") {
             tm.methodOrNull("getSimSerialNumber", intClass)?.let { m ->
-                xi.hook(m, GetIccidHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.ICCID) { ICCIDGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.ICCID)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSimCountryIso() — SIM country code
         safeHook("getSimCountryIso()") {
             tm.methodOrNull("getSimCountryIso")?.let { m ->
-                xi.hook(m, GetSimCountryIsoHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
+                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("getSimCountryIso(int)") {
             tm.methodOrNull("getSimCountryIso", intClass)?.let { m ->
-                xi.hook(m, GetSimCountryIsoHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
+                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getNetworkCountryIso()
         safeHook("getNetworkCountryIso()") {
             tm.methodOrNull("getNetworkCountryIso")?.let { m ->
-                xi.hook(m, GetNetworkCountryIsoHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO) { "us" }
+                    reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("getNetworkCountryIso(int)") {
             tm.methodOrNull("getNetworkCountryIso", intClass)?.let { m ->
-                xi.hook(m, GetNetworkCountryIsoHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO) { "us" }
+                    reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSimOperatorName() — carrier display name
         safeHook("getSimOperatorName()") {
             tm.methodOrNull("getSimOperatorName")?.let { m ->
-                xi.hook(m, GetSimOperatorNameHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME) { "Carrier" }
+                    reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("getSimOperatorName(int)") {
             tm.methodOrNull("getSimOperatorName", intClass)?.let { m ->
-                xi.hook(m, GetSimOperatorNameHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME) { "Carrier" }
+                    reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getSimOperator() — MCC+MNC string
         safeHook("getSimOperator()") {
             tm.methodOrNull("getSimOperator")?.let { m ->
-                xi.hook(m, GetMccMncHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) { "310260" }
+                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("getSimOperator(int)") {
             tm.methodOrNull("getSimOperator", intClass)?.let { m ->
-                xi.hook(m, GetMccMncHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) { "310260" }
+                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getNetworkOperator() — PLMN string
         safeHook("getNetworkOperator()") {
             tm.methodOrNull("getNetworkOperator")?.let { m ->
-                xi.hook(m, GetNetworkOperatorHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR) { "310260" }
+                    reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("getNetworkOperator(int)") {
             tm.methodOrNull("getNetworkOperator", intClass)?.let { m ->
-                xi.hook(m, GetNetworkOperatorHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR) { "310260" }
+                    reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         // getLine1Number() — phone number
         safeHook("getLine1Number()") {
             tm.methodOrNull("getLine1Number")?.let { m ->
-                xi.hook(m, GetLine1NumberHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) { com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
@@ -200,11 +287,16 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     // Build.getSerial() hook
     // ─────────────────────────────────────────────────────────────
 
-    private fun hookBuildSerial(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookBuildSerial(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         safeHook("Build.getSerial()") {
             val buildClass = cl.loadClassOrNull("android.os.Build") ?: return@safeHook
             buildClass.methodOrNull("getSerial")?.let { m ->
-                xi.hook(m, GetSerialHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SERIAL) { SerialGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.SERIAL)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
@@ -214,14 +306,21 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     // Settings.Secure.getString() hook (intercepts android_id reads)
     // ─────────────────────────────────────────────────────────────
 
-    private fun hookSettingsSecure(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookSettingsSecure(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         safeHook("Settings.Secure.getString()") {
             val secureClass =
                 cl.loadClassOrNull("android.provider.Settings\$Secure") ?: return@safeHook
             val resolverClass =
                 cl.loadClassOrNull("android.content.ContentResolver") ?: return@safeHook
             secureClass.methodOrNull("getString", resolverClass, String::class.java)?.let { m ->
-                xi.hook(m, GetSettingsSecureStringHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val key = chain.args.getOrNull(1) as? String ?: return@intercept result
+                    if (key != "android_id") return@intercept result
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) { com.astrixforge.devicemasker.common.generators.UUIDGenerator.generateAndroidId() }
+                    reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
@@ -238,7 +337,14 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     Int::class.javaPrimitiveType!!,
                 )
                 ?.let { m ->
-                    xi.hook(m, GetSettingsSecureStringHooker::class.java)
+                    xi.hook(m).intercept { chain ->
+                        val result = chain.proceed()
+                        val key = chain.args.getOrNull(1) as? String ?: return@intercept result
+                        if (key != "android_id") return@intercept result
+                        val spoofed = getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) { com.astrixforge.devicemasker.common.generators.UUIDGenerator.generateAndroidId() }
+                        reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
+                        spoofed
+                    }
                     xi.deoptimize(m)
                 }
         }
@@ -248,271 +354,35 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     // SystemProperties.get() — intercepts ro.serialno reads
     // ─────────────────────────────────────────────────────────────
 
-    private fun hookSystemProperties(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookSystemProperties(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+        val SERIAL_KEYS = setOf("ro.serialno", "ro.boot.serialno", "ril.serialnumber")
+        
         safeHook("SystemProperties.get(String)") {
             val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
             spClass.methodOrNull("get", String::class.java)?.let { m ->
-                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
+                    if (key !in SERIAL_KEYS) return@intercept result
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SERIAL) { SerialGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.SERIAL)
+                    spoofed
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("SystemProperties.get(String, String)") {
             val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
             spClass.methodOrNull("get", String::class.java, String::class.java)?.let { m ->
-                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
+                    if (key !in SERIAL_KEYS) return@intercept result
+                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SERIAL) { SerialGenerator.generate() }
+                    reportSpoofEvent(pkg, SpoofType.SERIAL)
+                    spoofed
+                }
                 xi.deoptimize(m)
-            }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // Shared hook state — @Volatile for thread safety
-    // Set once per process at hook registration time (XposedEntry.onPackageLoaded)
-    // ─────────────────────────────────────────────────────────────
-
-    internal object HookState {
-        @Volatile var prefs: SharedPreferences? = null
-        @Volatile var pkg: String = ""
-        @Volatile var xi: XposedInterface? = null
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // @XposedHooker inner classes — one per unique callback behavior
-    // @JvmStatic required — libxposed API 100 calls these via JVM static dispatch
-    // ─────────────────────────────────────────────────────────────
-
-    class GetImeiHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.IMEI) {
-                            IMEIGenerator.generate()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.IMEI)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetImeiHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetImsiHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.IMSI) {
-                            IMSIGenerator.generate()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.IMSI)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetImsiHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetIccidHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.ICCID) {
-                            ICCIDGenerator.generate()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.ICCID)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetIccidHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetSimCountryIsoHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
-                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetSimCountryIsoHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetNetworkCountryIsoHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO) {
-                            "us"
-                        }
-                    reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetNetworkCountryIsoHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetSimOperatorNameHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME) {
-                            "Carrier"
-                        }
-                    reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetSimOperatorNameHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetMccMncHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) {
-                            "310260"
-                        }
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetMccMncHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetNetworkOperatorHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR) {
-                            "310260"
-                        }
-                    reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetNetworkOperatorHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetLine1NumberHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) {
-                            com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
-                                .generate()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetLine1NumberHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetSerialHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SERIAL) {
-                            SerialGenerator.generate()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.SERIAL)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetSerialHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetSettingsSecureStringHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    // args[1] is the key name; check for "android_id"
-                    val key = callback.args.getOrNull(1) as? String ?: return
-                    if (key != "android_id") return
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) {
-                            com.astrixforge.devicemasker.common.generators.UUIDGenerator
-                                .generateAndroidId()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetSettingsSecureStringHooker", "after() failed", t)
-                }
-            }
-        }
-    }
-
-    class GetSystemPropertyHooker : XposedInterface.Hooker {
-        private companion object {
-            // SystemProperties keys that leak real serial number
-            private val SERIAL_KEYS = setOf("ro.serialno", "ro.boot.serialno", "ril.serialnumber")
-
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val key = callback.args.firstOrNull() as? String ?: return
-                    if (key !in SERIAL_KEYS) return
-                    val prefs = HookState.prefs ?: return
-                    val pkg = HookState.pkg
-                    callback.result =
-                        PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.SERIAL) {
-                            SerialGenerator.generate()
-                        }
-                    reportSpoofEvent(pkg, SpoofType.SERIAL)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetSystemPropertyHooker", "after() failed", t)
-                }
             }
         }
     }

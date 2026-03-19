@@ -192,11 +192,10 @@ data class JsonConfig(
          * Parses a JSON string into a [JsonConfig], preserving parse failures for callers that need
          * to surface recovery or logging decisions.
          */
-        fun parseCatching(json: String?): Result<JsonConfig> =
-            runCatching {
-                require(!json.isNullOrBlank()) { "Config JSON must not be blank" }
-                parse(json)
-            }
+        fun parseCatching(json: String?): Result<JsonConfig> = runCatching {
+            require(!json.isNullOrBlank()) { "Config JSON must not be blank" }
+            parse(json)
+        }
 
         /**
          * Safely parses a JSON string, returning a default config on failure.
@@ -205,10 +204,7 @@ data class JsonConfig(
          * @param onFailure Optional callback for surfacing parse failures to the caller
          * @return Parsed JsonConfig or default on error
          */
-        fun parseOrDefault(
-            json: String?,
-            onFailure: ((Throwable) -> Unit)? = null,
-        ): JsonConfig {
+        fun parseOrDefault(json: String?, onFailure: ((Throwable) -> Unit)? = null): JsonConfig {
             return parseCatching(json).getOrElse { error ->
                 onFailure?.invoke(error)
                 createDefault()

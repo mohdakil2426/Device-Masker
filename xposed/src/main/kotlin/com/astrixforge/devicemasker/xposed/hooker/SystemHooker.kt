@@ -6,7 +6,6 @@ import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
-import io.github.libxposed.api.XposedInterface.AfterHookCallback
 import java.lang.reflect.Field
 
 /**
@@ -29,19 +28,13 @@ import java.lang.reflect.Field
 object SystemHooker : BaseSpoofHooker("SystemHooker") {
 
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        HookState.prefs = prefs
-        HookState.pkg = pkg
-        HookState.xi = xi
-
         // Get the device profile preset once — it's constant for the lifetime of this process
-        val presetId = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
+        val presetId = getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
         if (presetId.isEmpty()) return
         val preset = DeviceProfilePreset.findById(presetId) ?: return
 
-        HookState.preset = preset
-
         applyBuildFieldOverrides(cl, preset)
-        hookSystemProperties(cl, xi, preset)
+        hookSystemProperties(cl, xi, preset, pkg)
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -85,6 +78,7 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
         cl: ClassLoader,
         xi: XposedInterface,
         preset: DeviceProfilePreset,
+        pkg: String,
     ) {
         val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return
 
@@ -106,52 +100,29 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
             put("ro.system.build.fingerprint", preset.fingerprint)
             put("ro.vendor.build.fingerprint", preset.fingerprint)
         }
-        HookState.propertyMappings = propertyMappings
 
         safeHook("SystemProperties.get(String)") {
             spClass.methodOrNull("get", String::class.java)?.let { m ->
-                xi.hook(m, GetSystemPropertyHooker::class.java)
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
+                    val mapped = propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
+                    reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                    mapped
+                }
                 xi.deoptimize(m)
             }
         }
         safeHook("SystemProperties.get(String, String)") {
             spClass.methodOrNull("get", String::class.java, String::class.java)?.let { m ->
-                xi.hook(m, GetSystemPropertyHooker::class.java)
-                xi.deoptimize(m)
-            }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // Shared state
-    // ─────────────────────────────────────────────────────────────
-
-    internal object HookState {
-        @Volatile var prefs: SharedPreferences? = null
-        @Volatile var pkg: String = ""
-        @Volatile var xi: XposedInterface? = null
-        @Volatile var preset: DeviceProfilePreset? = null
-        @Volatile var propertyMappings: Map<String, String> = emptyMap()
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // @XposedHooker callback class
-    // ─────────────────────────────────────────────────────────────
-
-    class GetSystemPropertyHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    val key = callback.args.firstOrNull() as? String ?: return
-                    val mapped =
-                        HookState.propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return
-                    val pkg = HookState.pkg
-                    callback.result = mapped
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
+                    val mapped = propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                } catch (t: Throwable) {
-                    DualLog.warn("GetSystemPropertyHooker", "after() failed", t)
+                    mapped
                 }
+                xi.deoptimize(m)
             }
         }
     }

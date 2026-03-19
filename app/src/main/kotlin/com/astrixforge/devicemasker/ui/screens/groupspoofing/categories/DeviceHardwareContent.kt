@@ -173,7 +173,8 @@ fun DeviceHardwareCategoryContent(
                             )
                             if (preset.securityPatch.isNotBlank()) {
                                 ReadOnlyValueRow(
-                                    label = stringResource(id = R.string.group_spoofing_security_patch),
+                                    label =
+                                        stringResource(id = R.string.group_spoofing_security_patch),
                                     value = preset.securityPatch,
                                     onCopy = { onCopy(preset.securityPatch) },
                                 )

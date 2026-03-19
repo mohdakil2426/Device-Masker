@@ -87,31 +87,4 @@ object DeoptimizeManager {
         }
     }
 
-    /**
-     * Convenience: hooks a method then immediately deoptimizes it. Guarantees the hook fires even
-     * on ART-inlined call sites.
-     *
-     * @param xi XposedInterface for hook + deoptimize
-     * @param method The method to hook (must be accessible)
-     * @param hookerClass The @XposedHooker class to use for callbacks
-     */
-    fun <T : XposedInterface.Hooker> hookAndDeoptimize(
-        xi: XposedInterface,
-        method: Method,
-        hookerClass: Class<T>,
-    ): XposedInterface.MethodUnhooker<Method>? {
-        return runCatching {
-                val unhooker = xi.hook(method, hookerClass)
-                runCatching { xi.deoptimize(method) }
-                    .onFailure { t ->
-                        Log.w(
-                            TAG,
-                            "Hook registered but deoptimize failed for " +
-                                "${method.declaringClass.simpleName}.${method.name}: ${t.message}",
-                        )
-                    }
-                unhooker
-            }
-            .getOrNull()
-    }
 }

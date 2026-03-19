@@ -3,7 +3,6 @@ package com.astrixforge.devicemasker.xposed.hooker
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedInterface
-import io.github.libxposed.api.XposedInterface.AfterHookCallback
 
 /**
  * System Framework Hooker — Initializes the DeviceMaskerService (diagnostics AIDL) in
@@ -50,7 +49,15 @@ object SystemServiceHooker {
                 .filter { it.name == "systemReady" && it.parameterCount in 0..5 }
                 .forEach { method ->
                     method.isAccessible = true
-                    xi.hook(method, AmsSystemReadyHooker::class.java)
+                    xi.hook(method).intercept { chain ->
+                        val result = chain.proceed()
+                        try {
+                            initializeServiceSafely("AMS.systemReady")
+                        } catch (t: Throwable) {
+                            DualLog.error(TAG, "AMS.systemReady() hook crashed", t)
+                        }
+                        result
+                    }
                     DualLog.info(
                         TAG,
                         "AMS.systemReady(${method.parameterCount} params) hook registered",
@@ -66,7 +73,15 @@ object SystemServiceHooker {
         try {
             val ssClass = cl.loadClass("com.android.server.SystemServer")
             val runMethod = ssClass.getDeclaredMethod("run").also { it.isAccessible = true }
-            xi.hook(runMethod, SystemServerRunHooker::class.java)
+            xi.hook(runMethod).intercept { chain ->
+                val result = chain.proceed()
+                try {
+                    initializeServiceSafely("SystemServer.run")
+                } catch (t: Throwable) {
+                    DualLog.error(TAG, "SystemServer.run() hook crashed", t)
+                }
+                result
+            }
             DualLog.info(TAG, "SystemServer.run() hook registered")
         } catch (t: Throwable) {
             DualLog.warn(TAG, "SystemServer.run() hook unavailable", t)
@@ -125,34 +140,4 @@ object SystemServiceHooker {
     }
 
     fun isServiceInitialized(): Boolean = initialized
-
-    // ─────────────────────────────────────────────────────────────
-    // @XposedHooker inner classes — static, annotation-driven
-    // ─────────────────────────────────────────────────────────────
-
-    class AmsSystemReadyHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    initializeServiceSafely("AMS.systemReady")
-                } catch (t: Throwable) {
-                    DualLog.error(TAG, "AmsSystemReadyHooker.after() crashed", t)
-                }
-            }
-        }
-    }
-
-    class SystemServerRunHooker : XposedInterface.Hooker {
-        companion object {
-            @JvmStatic
-            fun after(callback: AfterHookCallback) {
-                try {
-                    initializeServiceSafely("SystemServer.run")
-                } catch (t: Throwable) {
-                    DualLog.error(TAG, "SystemServerRunHooker.after() crashed", t)
-                }
-            }
-        }
-    }
 }

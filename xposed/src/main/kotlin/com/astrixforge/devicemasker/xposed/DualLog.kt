@@ -12,8 +12,8 @@ import android.util.Log
  * process logcat output and displays it in its log screen, so all logs remain visible in LSPosed
  * Manager as before.
  *
- * Structured logs are also forwarded to the diagnostics AIDL service when it is available so the
- * UI sees the same failures that reach logcat.
+ * Structured logs are also forwarded to the diagnostics AIDL service when it is available so the UI
+ * sees the same failures that reach logcat.
  *
  * Usage:
  * ```kotlin

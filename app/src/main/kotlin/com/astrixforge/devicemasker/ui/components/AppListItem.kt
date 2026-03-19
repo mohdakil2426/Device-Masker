@@ -130,7 +130,10 @@ fun AppListItem(
 private fun AppIcon(app: InstalledApp, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val iconBitmap by
-        produceState<androidx.compose.ui.graphics.ImageBitmap?>(initialValue = null, app.packageName) {
+        produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+            initialValue = null,
+            app.packageName,
+        ) {
             value =
                 withContext(Dispatchers.IO) {
                     runCatching {

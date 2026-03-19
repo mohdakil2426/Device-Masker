@@ -416,8 +416,7 @@ class SpoofRepository(private val context: Context) {
         updatedGroup = updatedGroup.withValue(SpoofType.CARRIER_MCC_MNC, simConfig.mccMnc)
         updatedGroup =
             updatedGroup.withValue(SpoofType.SIM_OPERATOR_NAME, simConfig.simOperatorName)
-        updatedGroup =
-            updatedGroup.withValue(SpoofType.NETWORK_OPERATOR, simConfig.networkOperator)
+        updatedGroup = updatedGroup.withValue(SpoofType.NETWORK_OPERATOR, simConfig.networkOperator)
 
         updatedGroup = updatedGroup.withValue(SpoofType.TIMEZONE, locationConfig.timezone)
         updatedGroup = updatedGroup.withValue(SpoofType.LOCALE, locationConfig.locale)
@@ -439,11 +438,13 @@ class SpoofRepository(private val context: Context) {
         updatedGroup = updatedGroup.withValue(SpoofType.BLUETOOTH_MAC, hardwareConfig.bluetoothMAC)
         updatedGroup = updatedGroup.withValue(SpoofType.WIFI_SSID, generateRealisticSSID())
         updatedGroup = updatedGroup.withValue(SpoofType.WIFI_BSSID, MACGenerator.generate())
-        updatedGroup = updatedGroup.withValue(SpoofType.ANDROID_ID, UUIDGenerator.generateAndroidId())
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.ANDROID_ID, UUIDGenerator.generateAndroidId())
         updatedGroup = updatedGroup.withValue(SpoofType.GSF_ID, UUIDGenerator.generateGSFId())
         updatedGroup =
             updatedGroup.withValue(SpoofType.ADVERTISING_ID, UUIDGenerator.generateAdvertisingId())
-        updatedGroup = updatedGroup.withValue(SpoofType.MEDIA_DRM_ID, UUIDGenerator.generateMediaDrmId())
+        updatedGroup =
+            updatedGroup.withValue(SpoofType.MEDIA_DRM_ID, UUIDGenerator.generateMediaDrmId())
 
         ConfigManager.updateGroup(updatedGroup)
     }

@@ -11,27 +11,27 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        :app (UI Layer — Compose MVVM)                  │
-│  MainActivity ──► NavHost (Home │ Groups │ Settings │ Diagnostics)     │
-│  ViewModels   ──► SpoofRepository ──► ConfigManager (app-side)        │
-│                    ├─ Local JSON file (filesDir/config.json)           │
-│                    ├─ ConfigSync ──► XposedPrefs (MODE_WORLD_READABLE) │
-│                    └─ ServiceClient ──► AIDL ──► system_server         │
+│                        :app (UI Layer — Compose MVVM)                   │
+│  MainActivity ──► NavHost (Home │ Groups │ Settings │ Diagnostics)      │
+│  ViewModels   ──► SpoofRepository ──► ConfigManager (app-side)          │
+│                    ├─ Local JSON file (filesDir/config.json)            │
+│                    ├─ ConfigSync ──► XposedPrefs (MODE_WORLD_READABLE)  │
+│                    └─ ServiceClient ──► AIDL ──► system_server          │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                        :common (Shared Models & IPC)                   │
-│  SpoofType(24) │ SpoofGroup │ JsonConfig │ AppConfig │ DeviceIdentifier│
-│  DeviceProfilePreset(10) │ Carrier(65+) │ SIMConfig │ LocationConfig   │
-│  Generators: IMEI, IMSI, ICCID, MAC, Serial, Phone, UUID             │
-│  SharedPrefsKeys (SINGLE SOURCE OF TRUTH for pref keys)               │
-│  IDeviceMaskerService.aidl (14 methods)                               │
+│                        :common (Shared Models & IPC)                    │
+│  SpoofType(24) │ SpoofGroup │ JsonConfig │ AppConfig │ DeviceIdentifier │
+│  DeviceProfilePreset(10) │ Carrier(65+) │ SIMConfig │ LocationConfig    │
+│  Generators: IMEI, IMSI, ICCID, MAC, Serial, Phone, UUID                │
+│  SharedPrefsKeys (SINGLE SOURCE OF TRUTH for pref keys)                 │
+│  IDeviceMaskerService.aidl (14 methods)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                        :xposed (Hook Layer — YukiHookAPI)              │
-│  XposedEntry: loadSystem { SystemServiceHooker }                      │
-│               loadApp   { AntiDetect → Device → Network → Advertising │
-│                            → System → Location → Sensor → WebView }   │
-│  BaseSpoofHooker: AIDL first ──► XSharedPreferences fallback          │
-│  Service: DeviceMaskerService + ConfigManager + ServiceBridge          │
-│  Utils: ClassCache (LRU-100) │ DualLog │ HookMetrics │ PrefsHelper    │
+│                        :xposed (Hook Layer — YukiHookAPI)               │
+│  XposedEntry: loadSystem { SystemServiceHooker }                        │
+│               loadApp   { AntiDetect → Device → Network → Advertising   │
+│                            → System → Location → Sensor → WebView }     │
+│  BaseSpoofHooker: AIDL first ──► XSharedPreferences fallback            │
+│  Service: DeviceMaskerService + ConfigManager + ServiceBridge           │
+│  Utils: ClassCache (LRU-100) │ DualLog │ HookMetrics │ PrefsHelper      │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,7 +73,6 @@ devicemasker/
 | Type                  | Correct Location                         | Wrong                                     |
 | --------------------- | ---------------------------------------- | ----------------------------------------- |
 | Shared models/enums   | `:common` module                         | Duplicating models in `:app` or `:xposed` |
-| AIDL interface        | `common/src/main/aidl/`                  | Defining AIDL in `:app` or `:xposed`      |
 | Pref key generation   | `SharedPrefsKeys` in `:common`           | Hardcoding keys in `:app` or `:xposed`    |
 | Value generators      | `common/generators/`                     | Generating values in hookers directly     |
 | Hook logic            | `:xposed/hooker/`                        | Putting hooks in `:app` or `:common`      |
@@ -325,48 +324,6 @@ structured TXT report to `scripts/logs/audit-report.txt`. Designed to be read by
 | Hookers         | PascalCase + `Hooker`        | `AntiDetectHooker`               |
 | Generators      | PascalCase + `Generator`     | `IMEIGenerator`                  |
 
-### Kotlin Coding Patterns
-
-```kotlin
-// Immutable data updates — always copy()
-val updated = group.copy(isEnabled = true, updatedAt = System.currentTimeMillis())
-
-// Null safety — ?.let or ?: return
-val group = config.getGroupForApp(packageName) ?: return null
-
-// Exception handling in hooks — runCatching
-runCatching {
-    method { name = "getDeviceId" }.hook {
-        after { result = spoofedValue }
-    }
-}.onFailure { e -> DualLog.warn(TAG, "Hook failed", e) }
-
-// Hybrid config lookup (BaseSpoofHooker pattern)
-val value = getSpoofValue(SpoofType.IMEI) { IMEIGenerator.generate() }
-
-// Thread-safe state in system_server
-private val config = AtomicReference<JsonConfig>(JsonConfig.createDefault())
-private val filterCounts = ConcurrentHashMap<String, AtomicInteger>()
-```
-
-### Compose Guidelines
-
-- Use `collectAsStateWithLifecycle()` for `StateFlow` in UI
-- Prefer `derivedStateOf` for expensive computations
-- Add stable `key` to all `LazyColumn` items
-- Use `MaterialTheme.colorScheme.*` — never hardcode colors
-- Use `AppMotion.*` springs for animations
-- Mark data classes with `@Immutable` or `@Stable` for Compose stability
-
-### Error Handling
-
-- **In Hookers**: Wrap uncertain methods with `runCatching { }` to prevent crashes
-- **In system_server**: ALWAYS wrap in try-catch (crashes cause bootloop!)
-- Use `optional()` for methods that may not exist on all Android versions
-- Log errors with `DualLog.warn(TAG, message, throwable)`
-- Never crash target apps — fail gracefully with fallback values
-- Use `hookClassSafe()` for optional class hooking
-
 ---
 
 ## Key Patterns
@@ -386,44 +343,6 @@ private val filterCounts = ConcurrentHashMap<String, AtomicInteger>()
 | **UI state**              | `StateFlow` + `collectAsStateWithLifecycle()` + immutable state classes         |
 | **Navigation**            | 3-tab BottomNav (Home, Groups, Settings) + detail screens                       |
 | **Config write path**     | UI → SpoofRepo → ConfigManager → JSON + XPrefs + AIDL service                   |
-
----
-
-## Key Architecture Notes
-
-### AIDL Service Components
-
-| Component                   | Location          | Purpose                                     |
-| --------------------------- | ----------------- | ------------------------------------------- |
-| `IDeviceMaskerService.aidl` | `:common/aidl`    | AIDL interface (14 methods)                 |
-| `DeviceMaskerService.kt`    | `:xposed/service` | Singleton service in system_server          |
-| `ConfigManager.kt`          | `:xposed/service` | Atomic file config (`/data/misc/`)          |
-| `ServiceBridge.kt`          | `:xposed/service` | ContentProvider for binder discovery        |
-| `SystemServiceHooker.kt`    | `:xposed/hooker`  | Boot-time service init (AMS + SystemServer) |
-| `ServiceClient.kt`          | `:app/service`    | UI client with retry + exponential backoff  |
-
-### Hooker Inventory (8 active hookers)
-
-| Hooker              | Base Class        | Targets                                                    |
-| ------------------- | ----------------- | ---------------------------------------------------------- |
-| `AntiDetectHooker`  | `YukiBaseHooker`  | Stack traces, /proc/maps, PackageManager                   |
-| `DeviceHooker`      | `BaseSpoofHooker` | TelephonyManager, Build, Settings.Secure, SubscriptionInfo |
-| `NetworkHooker`     | `BaseSpoofHooker` | WifiInfo, NetworkInterface, BluetoothAdapter, carrier      |
-| `AdvertisingHooker` | `BaseSpoofHooker` | AdvertisingIdClient, Gservices, MediaDrm                   |
-| `SystemHooker`      | `BaseSpoofHooker` | Build.\* fields, SystemProperties                          |
-| `LocationHooker`    | `BaseSpoofHooker` | Location, LocationManager, TimeZone, Locale                |
-| `SensorHooker`      | `BaseSpoofHooker` | SensorManager (list filter), Sensor (metadata)             |
-| `WebViewHooker`     | `BaseSpoofHooker` | WebSettings (User-Agent)                                   |
-
-### SpoofType Categories (24 total)
-
-| Category        | Types                                                                                                                |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Device**      | IMEI, IMSI, SERIAL, ICCID, PHONE_NUMBER, SIM_COUNTRY_ISO, SIM_OPERATOR_NAME                                          |
-| **Network**     | WIFI_MAC, BLUETOOTH_MAC, WIFI_SSID, WIFI_BSSID, CARRIER_NAME, CARRIER_MCC_MNC, NETWORK_COUNTRY_ISO, NETWORK_OPERATOR |
-| **Advertising** | ANDROID_ID, GSF_ID, ADVERTISING_ID, MEDIA_DRM_ID                                                                     |
-| **System**      | DEVICE_PROFILE                                                                                                       |
-| **Location**    | LOCATION_LATITUDE, LOCATION_LONGITUDE, TIMEZONE, LOCALE                                                              |
 
 ---
 
@@ -476,6 +395,7 @@ Before closing any task, confirm ALL of the following:
   - [API](https://github.com/libxposed/api)
   - [Helper](https://github.com/libxposed/helper)
   - [Service](https://github.com/libxposed/service)
+  - [Service](https://libxposed.github.io/service/)
   - [Example](https://github.com/libxposed/example)
 
 ---
@@ -488,10 +408,9 @@ Skills are located in `.agents/skills/` — read the **SKILL.md** file inside ea
 
 ### Design & Planning
 
-| Skill                | When to Use                                                            | Path                               |
-| :------------------- | :--------------------------------------------------------------------- | :--------------------------------- |
-| **brainstorming**    | Use before creative work — exploring features, components, and intent. | `.agents/skills/brainstorming/`    |
-| **mermaid-diagrams** | Creating software diagrams (class, sequence, flow, C4, ERD, Git).      | `.agents/skills/mermaid-diagrams/` |
+| Skill                | When to Use                                                       | Path                               |
+| :------------------- | :---------------------------------------------------------------- | :--------------------------------- |
+| **mermaid-diagrams** | Creating software diagrams (class, sequence, flow, C4, ERD, Git). | `.agents/skills/mermaid-diagrams/` |
 
 ### Android & Kotlin
 
@@ -500,20 +419,6 @@ Skills are located in `.agents/skills/` — read the **SKILL.md** file inside ea
 | **android-ninja** | Core Android architectural guidance (Kotlin, Compose, MVVM, Hilt, Multi-module). | `.agents/skills/claude-android-ninja/`  |
 | **material-3**    | Material 3 Expressive UI design, review, token specification, and motion.        | `.agents/skills/material-3-expressive/` |
 
-### DevOps & Infrastructure
-
-| Skill              | When to Use                                                             | Path                                       |
-| :----------------- | :---------------------------------------------------------------------- | :----------------------------------------- |
-| **docker-expert**  | Containerization, multi-stage builds, image optimization, and security. | `.agents/skills/docker-expert/`            |
-| **github-actions** | Automating CI/CD: testing, building, and deployment workflows.          | `.agents/skills/github-actions-templates/` |
-
-### Tooling & Maintenance
-
-| Skill                | When to Use                                                               | Path                                     |
-| :------------------- | :------------------------------------------------------------------------ | :--------------------------------------- |
-| **skill-creator**    | Creating, modifying, and optimizing agentic skills via data-driven evals. | `.agents/skills/skill-creator/`          |
-| **coding-standards** | Generating project-specific style guides from existing source code.       | `.agents/skills/write-coding-standards/` |
-
 ---
 
-_Last Updated: 2026-03-13 (Skill reference update, AIDL hybrid architecture, R8 full-mode release build, 7-gate quality pipeline, Xposed safety grep checks, 24 SpoofTypes)1_
+_Last Updated: 2026-03-13_

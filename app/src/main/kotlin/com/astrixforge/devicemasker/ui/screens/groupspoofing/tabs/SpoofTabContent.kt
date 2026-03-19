@@ -49,8 +49,7 @@ fun SpoofTabContent(
     modifier: Modifier = Modifier,
 ) {
     val clipboardManager = LocalClipboardManager.current
-    var expandedCategories by
-        rememberSaveable(group?.id) { mutableStateOf(emptyList<String>()) }
+    var expandedCategories by rememberSaveable(group?.id) { mutableStateOf(emptyList<String>()) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

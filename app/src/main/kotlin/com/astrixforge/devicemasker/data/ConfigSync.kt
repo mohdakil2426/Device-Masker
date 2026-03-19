@@ -68,7 +68,10 @@ object ConfigSync {
                         val typeEnabled = appEnabled && group.isTypeEnabled(type)
                         val value = if (typeEnabled) group.getValue(type) else null
 
-                        putBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), typeEnabled)
+                        putBoolean(
+                            SharedPrefsKeys.getSpoofEnabledKey(packageName, type),
+                            typeEnabled,
+                        )
 
                         if (value != null) {
                             putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)

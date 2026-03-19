@@ -23,8 +23,8 @@ import timber.log.Timber
  * This client is non-fatal: if the service is unavailable, [DiagnosticsViewModel] shows "Service
  * unavailable" and spoofing continues unaffected via RemotePreferences.
  *
- * Connection is established directly through `android.os.ServiceManager` to avoid stale bridge
- * code in the xposed layer.
+ * Connection is established directly through `android.os.ServiceManager` to avoid stale bridge code
+ * in the xposed layer.
  *
  * @param context Application context retained for lifecycle parity with the rest of the app
  */
