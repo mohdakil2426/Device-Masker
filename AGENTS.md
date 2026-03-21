@@ -1,13 +1,13 @@
 # Device Masker — LSPosed Privacy Module
 
 > **Advanced Android Xposed/LSPosed module** for spoofing device identifiers and hiding hook injection.
-> Kotlin 2.3.0 | Android SDK 36 | Jetpack Compose | YukiHookAPI 1.3.1 | AIDL IPC
+> Kotlin 2.3.0 | Android SDK 36 | Jetpack Compose | libxposed API 101 | AIDL IPC
 
 **Memory Bank**: The `memory-bank/` directory contains the source of truth for project context, patterns, and progress tracking. Read ALL files for deep project understanding. **NEVER SKIP THIS STEP.**
 
 **RESPECT ALL RULES**: You MUST follow every rule, guideline, principle, coding standard and best practice documented below. No exceptions, no shortcuts, no lazy work, full efforts. Respect project patterns, shared contracts, and existing code style consistency.
 
-## Architecture (Hybrid AIDL + XSharedPreferences)
+## Architecture (RemotePreferences + AIDL Diagnostics)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -15,7 +15,7 @@
 │  MainActivity ──► NavHost (Home │ Groups │ Settings │ Diagnostics)      │
 │  ViewModels   ──► SpoofRepository ──► ConfigManager (app-side)          │
 │                    ├─ Local JSON file (filesDir/config.json)            │
-│                    ├─ ConfigSync ──► XposedPrefs (MODE_WORLD_READABLE)  │
+│                    ├─ ConfigSync ──► XposedPrefs (libxposed-service)    │
 │                    └─ ServiceClient ──► AIDL ──► system_server          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                        :common (Shared Models & IPC)                    │
@@ -23,22 +23,24 @@
 │  DeviceProfilePreset(10) │ Carrier(65+) │ SIMConfig │ LocationConfig    │
 │  Generators: IMEI, IMSI, ICCID, MAC, Serial, Phone, UUID                │
 │  SharedPrefsKeys (SINGLE SOURCE OF TRUTH for pref keys)                 │
-│  IDeviceMaskerService.aidl (14 methods)                                 │
+│  IDeviceMaskerService.aidl (8 methods — diagnostics only)               │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                        :xposed (Hook Layer — YukiHookAPI)               │
-│  XposedEntry: loadSystem { SystemServiceHooker }                        │
-│               loadApp   { AntiDetect → Device → Network → Advertising   │
-│                            → System → Location → Sensor → WebView }     │
-│  BaseSpoofHooker: AIDL first ──► XSharedPreferences fallback            │
-│  Service: DeviceMaskerService + ConfigManager + ServiceBridge           │
-│  Utils: ClassCache (LRU-100) │ DualLog │ HookMetrics │ PrefsHelper      │
+│                        :xposed (Hook Layer — libxposed API 101)         │
+│  XposedEntry: onSystemServerStarting { SystemServiceHooker }            │
+│               onPackageLoaded { AntiDetect → Device → Network →         │
+│                            Advertising → System → Location →            │
+│                            Sensor → WebView → Subscription →            │
+│                            PackageManager }                             │
+│  BaseSpoofHooker: RemotePreferences-first ──► AIDL fallback            │
+│  Service: DeviceMaskerService (diagnostics-only)                        │
+│  Utils: DualLog │ HookMetrics │ PrefsHelper                             │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Primary (Real-time)**: AIDL service (`DeviceMaskerService`) in `system_server` — config changes apply instantly.
-- **Fallback (Cached)**: `XSharedPreferences` via `MODE_WORLD_READABLE` — requires target app restart.
-- **Config write path**: UI → ConfigManager → JSON file + XposedPrefs + AIDL service.
-- **Config read path**: Hooker → `BaseSpoofHooker.getSpoofValue()` → AIDL first, XSharedPreferences fallback.
+- **Config write path**: UI → ConfigManager → JSON file + XposedPrefs (libxposed-service RemotePreferences).
+- **Config read path**: Hooker lambda → `BaseSpoofHooker.getSpoofValue()` → RemotePreferences (live, no restart needed).
+- **AIDL role**: Diagnostics only — event counts, log export, hooked package list.
+- **Hook style**: Lambda interceptors via `xi.hook(m).intercept { chain -> ... }` + `xi.deoptimize(m)`.
 
 ---
 
@@ -47,21 +49,23 @@
 ```text
 devicemasker/
 ├── app/                    # :app — Main application (UI + MVVM)
-│   ├── data/               # ConfigSync, XposedPrefs, DataStore
+│   ├── data/               # ConfigSync, XposedPrefs (libxposed-service), DataStore
 │   ├── repository/         # SpoofRepository, AppScopeRepository
-│   ├── service/            # ServiceClient (AIDL), ConfigManager, LogManager
+│   ├── service/            # ServiceClient (AIDL diagnostics), ConfigManager, LogManager
 │   └── ui/                 # MainActivity, navigation/, screens/, theme/
 ├── common/                 # :common — Shared models, generators, AIDL
-│   ├── aidl/               # IDeviceMaskerService.aidl (IPC Contract)
+│   ├── aidl/               # IDeviceMaskerService.aidl (diagnostics IPC Contract)
 │   └── kotlin/.../common/
-│       ├── generators/     # Secure value generation logic
+│       ├── generators/     # Secure value generation logic (SecureRandom)
 │       ├── models/         # Carrier, SIMConfig, LocationConfig
 │       └── [SpoofType, SharedPrefsKeys, JsonConfig, AppConfig]
-└── xposed/                 # :xposed — Hook logic (YukiHookAPI)
-    ├── hooker/             # 8+ Hookers (Device, Network, System, etc.)
-    ├── service/            # DeviceMaskerService (system_server), ConfigManager
-    ├── utils/              # ClassCache (LRU), DualLog, HookHelper
-    └── XposedEntry.kt      # Module entry: loadSystem + loadApp
+└── xposed/                 # :xposed — Hook logic (libxposed API 101)
+    ├── hooker/             # 10 Hookers (AntiDetect, Device, Network, Advertising,
+    │                       #             System, Location, Sensor, WebView,
+    │                       #             Subscription, PackageManager)
+    ├── service/            # DeviceMaskerService (system_server — diagnostics only)
+    ├── PrefsHelper.kt      # RemotePreferences helper
+    └── XposedEntry.kt      # Module entry: onSystemServerStarting + onPackageLoaded
 ```
 
 ---
@@ -78,7 +82,7 @@ devicemasker/
 | Hook logic            | `:xposed/hooker/`                        | Putting hooks in `:app` or `:common`      |
 | UI Compose screens    | `:app/ui/screens/`                       | Mixing UI into `:common` or `:xposed`     |
 | system_server service | `:xposed/service/`                       | Running AIDL service from `:app`          |
-| Config persistence    | `ConfigManager` (both app-side & xposed) | Direct file I/O from hookers              |
+| Config persistence    | `ConfigManager` (app-side only)          | Direct file I/O from hookers              |
 
 ---
 
@@ -89,12 +93,12 @@ devicemasker/
 | **Language**   | Kotlin 2.3.0, Java 25                                               |
 | **Platform**   | Android SDK 36 (Android 16 / Baklava), minSdk 26                    |
 | **UI**         | Jetpack Compose (BOM 2026.02.01), Material 3 Expressive (1.4.0)     |
-| **Hooking**    | YukiHookAPI 1.3.1, LSPosed (API 82), KavaRef                        |
-| **IPC**        | AIDL Binder (system_server ↔ app processes), ContentProvider bridge |
+| **Hooking**    | libxposed API **101.0.0**, LSPosed (API 101)                        |
+| **IPC**        | AIDL Binder (diagnostics only), RemotePreferences (libxposed-service) |
 | **Arch**       | MVVM, Multi-Module Gradle (`:app`, `:xposed`, `:common`)            |
 | **Data**       | kotlinx.serialization (JSON), SharedPreferences, AtomicFile         |
 | **Build**      | Gradle (Kotlin DSL), KSP, Spotless (ktfmt 0.54)                     |
-| **Logging**    | Timber (app), DualLog (xposed → YLog + buffer), HookMetrics         |
+| **Logging**    | Timber (app), DualLog (xposed → android.util.Log + diagnostics)    |
 | **Navigation** | Jetpack Navigation Compose, spring-based animated transitions       |
 
 ---
@@ -152,27 +156,27 @@ Select-String -Path 'app\build\outputs\mapping\release\mapping.txt' -Pattern 'De
 # APK size
 Get-Item app\build\outputs\apk\release\*.apk | Select-Object Name, @{N='MB';E={[math]::Round($_.Length/1MB,2)}}
 
-# Verify xposed_init exists (CRITICAL — LSPosed won't load without it)
-type xposed\src\main\assets\xposed_init
+# Verify java_init.list exists (CRITICAL — LSPosed won't load without it)
+type xposed\src\main\resources\META-INF\xposed\java_init.list
 ```
 
 ### 🔎 Xposed Safety Checks (All must return 0 results)
 
-```bash
-# 1. Unprotected hook callbacks
-grep -rn 'after {\|before {\|replaceAny {' xposed/src --include='*.kt' | grep -v 'runCatching'
+```powershell
+# 1. Legacy static hooker patterns (must NOT exist)
+Get-ChildItem -Path xposed/src -Recurse -Filter '*.kt' | Select-String "@XposedHooker|@BeforeInvocation|@AfterInvocation|AfterHookCallback"
 
 # 2. Hardcoded pref keys (must use SharedPrefsKeys)
-grep -rn '"module_enabled"\|"app_enabled_"\|"spoof_value_"\|"spoof_enabled_"' app/src xposed/src --include='*.kt'
+Get-ChildItem -Path app/src,xposed/src -Recurse -Filter '*.kt' | Select-String '"module_enabled"|"app_enabled_"|"spoof_value_"|"spoof_enabled_"'
 
 # 3. Non-secure random in generators
-grep -rn 'Random()\b' common/src --include='*.kt' | grep -v 'SecureRandom'
+Get-ChildItem -Path common/src -Recurse -Filter '*.kt' | Select-String 'Random\(\)' | Where-Object { $_ -notmatch 'SecureRandom' }
 
 # 4. Timber in :xposed (must use DualLog)
-grep -rn 'Timber\.' xposed/src --include='*.kt'
+Get-ChildItem -Path xposed/src -Recurse -Filter '*.kt' | Select-String 'Timber\.'
 
 # 5. Compose imports in :common or :xposed
-grep -rn 'import androidx.compose' common/src xposed/src --include='*.kt'
+Get-ChildItem -Path common/src,xposed/src -Recurse -Filter '*.kt' | Select-String 'import androidx.compose'
 ```
 
 ### 🗂️ PowerShell One-Liners
@@ -250,12 +254,12 @@ Select-String -Path 'app\build\outputs\mapping\release\mapping.txt' -Pattern 'De
 
 #### 🔎 Gate 7 — Xposed Safety Checks (Grep)
 
-```bash
-grep -rn 'after {\|before {\|replaceAny {' xposed/src --include='*.kt' | grep -v 'runCatching'
-grep -rn '"module_enabled"\|"app_enabled_"\|"spoof_value_"\|"spoof_enabled_"' app/src xposed/src --include='*.kt'
-grep -rn 'Random()' common/src --include='*.kt' | grep -v 'SecureRandom'
-grep -rn 'Timber\.' xposed/src --include='*.kt'
-grep -rn 'import androidx.compose' common/src xposed/src --include='*.kt'
+```powershell
+Get-ChildItem -Path xposed/src -Recurse -Filter '*.kt' | Select-String "@XposedHooker|AfterHookCallback"
+Get-ChildItem -Path app/src,xposed/src -Recurse -Filter '*.kt' | Select-String '"module_enabled"|"spoof_value_"|"spoof_enabled_"'
+Get-ChildItem -Path common/src -Recurse -Filter '*.kt' | Select-String 'Random\(\)'
+Get-ChildItem -Path xposed/src -Recurse -Filter '*.kt' | Select-String 'Timber\.'
+Get-ChildItem -Path common/src,xposed/src -Recurse -Filter '*.kt' | Select-String 'import androidx.compose'
 # All 5 checks must return 0 results
 ```
 
@@ -328,21 +332,21 @@ structured TXT report to `scripts/logs/audit-report.txt`. Designed to be read by
 
 ## Key Patterns
 
-| Pattern                   | Implementation                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| **Hook order**            | `loadSystem { SystemService }` → `loadApp { AntiDetect → spoof hooks }`         |
-| **Config cascade**        | AIDL service → XSharedPreferences → lazy fallback → hardcoded default           |
-| **Value correlation**     | `CorrelationGroup` enum — SIM_CARD, LOCATION, DEVICE_HARDWARE, NONE             |
-| **Carrier sync**          | `updateGroupWithCarrier()` auto-syncs SIM + Location to match country           |
-| **Device profiles**       | `DeviceProfilePreset` applies ALL Build.\* fields as a consistent set           |
-| **Class caching**         | `ClassCache` LRU (max 100) with negative cache for not-found classes            |
-| **Dual logging**          | `DualLog` → YLog (Logcat/LSPosed) + internal buffer (AIDL export)               |
-| **Pref key delegation**   | `:app` `XposedPrefs` + `:xposed` `PrefsKeys` both delegate to `SharedPrefsKeys` |
-| **Anti-detection layers** | Stack trace filter + `/proc/self/maps` hiding + PackageManager hiding           |
-| **Thread safety**         | `AtomicReference`, `ConcurrentHashMap`, `ConcurrentLinkedDeque`, `@Volatile`    |
-| **UI state**              | `StateFlow` + `collectAsStateWithLifecycle()` + immutable state classes         |
-| **Navigation**            | 3-tab BottomNav (Home, Groups, Settings) + detail screens                       |
-| **Config write path**     | UI → SpoofRepo → ConfigManager → JSON + XPrefs + AIDL service                   |
+| Pattern                   | Implementation                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| **Hook order**            | `onSystemServerStarting { SystemServiceHooker }` → `onPackageLoaded { AntiDetect → spoof hooks }` |
+| **Config cascade**        | RemotePreferences (live) → AIDL fallback → hardcoded default                        |
+| **Hook style (API 101)**  | `xi.hook(m).intercept { chain -> chain.proceed(); spoofed }` + `xi.deoptimize(m)`  |
+| **Value correlation**     | `CorrelationGroup` enum — SIM_CARD, LOCATION, DEVICE_HARDWARE, NONE                |
+| **Carrier sync**          | `updateGroupWithCarrier()` auto-syncs SIM + Location to match country               |
+| **Device profiles**       | `DeviceProfilePreset` applies ALL Build.\* fields as a consistent set               |
+| **Dual logging**          | `DualLog` → `android.util.Log` (Logcat/LSPosed) + diagnostics service buffer       |
+| **Pref key delegation**   | `:app` `XposedPrefs` + `:xposed` `PrefsHelper` both delegate to `SharedPrefsKeys`   |
+| **Anti-detection layers** | Stack trace filter + `/proc/self/maps` hiding + PackageManager hiding               |
+| **Thread safety**         | `AtomicReference`, `ConcurrentHashMap`, `ConcurrentLinkedDeque`, `@Volatile`        |
+| **UI state**              | `StateFlow` + `collectAsStateWithLifecycle()` + immutable state classes             |
+| **Navigation**            | 3-tab BottomNav (Home, Groups, Settings) + detail screens                           |
+| **Config write path**     | UI → SpoofRepo → ConfigManager → JSON + XposedPrefs (RemotePreferences)             |
 
 ---
 
@@ -352,13 +356,13 @@ Before closing any task, confirm ALL of the following:
 
 - [ ] All pref keys delegate to `SharedPrefsKeys` — no hardcoded key strings
 - [ ] New `SpoofType` entries added to all 3 layers: `:common` enum, hooker, and UI screen
-- [ ] `runCatching { }` wraps all hook callbacks — zero crash risk in target apps
+- [ ] `runCatching { }` wraps all hook intercept lambdas — zero crash risk in target apps
 - [ ] system_server code wrapped in try-catch — zero bootloop risk
 - [ ] Correlated values generated together via `CorrelationGroup` — no mismatched SIM/carrier/location
 - [ ] `DeviceProfilePreset` applied as complete set — no mixed Build.\* fields
 - [ ] `@Serializable` on all cross-process data models
 - [ ] Immutable patterns used — `val` properties, `copy()` for updates
-- [ ] `ClassCache` used for class lookups in hookers — no raw `loadClass()` calls
+- [ ] `xi.deoptimize(m)` called after every hook — no bypass via ART inlining
 - [ ] Memory bank updated if the change affects architecture, patterns, or project state
 
 ---
@@ -381,12 +385,12 @@ Before closing any task, confirm ALL of the following:
 
 > **⛔ MANDATORY — Query BEFORE writing any code, every time, no exceptions.**
 > **Priority 1: `google-developer-knowledge`** — Android, Compose, Jetpack, Google APIs (official Google sources).
-> **Priority 2: `context7`** — All other libraries (YukiHookAPI, kotlinx, third-party). Use only if google-developer-knowledge has no result.
+> **Priority 2: `context7`** — All other libraries (libxposed, kotlinx, third-party). Use only if google-developer-knowledge has no result.
 
 | Server                         | Priority | Covers                                                                              |
 | ------------------------------ | -------- | ----------------------------------------------------------------------------------- |
 | **google-developer-knowledge** | **1st**  | Android SDK, Jetpack Compose, Material 3, Firebase, Google APIs, Chrome, TensorFlow |
-| **context7**                   | 2nd      | YukiHookAPI, kotlinx, all non-Google libraries                                      |
+| **context7**                   | 2nd      | libxposed, kotlinx, all non-Google libraries                                        |
 
 ### Official Documentation & Repositories (`context7`)
 
@@ -421,4 +425,4 @@ Skills are located in `.agents/skills/` — read the **SKILL.md** file inside ea
 
 ---
 
-_Last Updated: 2026-03-13_
+_Last Updated: 2026-03-19 (libxposed API 101 full migration: module.prop=101, ProGuard rewritten, 10 hookers, RemotePreferences config, AIDL=diagnostics-only)_

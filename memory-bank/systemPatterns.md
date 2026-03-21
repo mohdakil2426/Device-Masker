@@ -20,10 +20,10 @@
 │  JsonConfig │ SpoofGroup │ DeviceProfilePreset │ generators/   │
 ├────────────────────────────────────────────────────────────────┤
 │  :xposed  (Hook Layer)                                         │
-│  XposedEntry: onPackageLoaded / onSystemServerLoaded           │
-│  DeviceMaskerService (system_server AIDL impl - diagnostics)   │
+│  XposedEntry: onPackageLoaded / onSystemServerStarting          │
+│  DeviceMaskerService (system_server AIDL - diagnostics only)   │
 │  BaseSpoofHooker: RemotePreferences-first ──► AIDL fallback    │
-│  DeoptimizeManager: Bypasses ART inlining for consistent hooks │
+│  DeoptimizeManager: xi.deoptimize(m) per hook (API 101 style)  │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -66,24 +66,26 @@ ConfigManager (app)
 ### Hybrid getSpoofValue() — Core Pattern
 
 ```kotlin
-// BaseSpoofHooker.kt — Shared logic for all hookers
+// BaseSpoofHooker.kt — Shared safeHook wrapper for all hookers
 protected fun safeHook(xi: XposedInterface, target: String, block: () -> Unit) {
     runCatching {
         block()
     }.onFailure { DualLog.warn(TAG, "Hook reservation failed: $target", it) }
 }
 
-// In hooker callbacks
-@JvmStatic
-fun after(callback: AfterHookCallback) {
-    runCatching {
-        val prefs = HookState.prefs ?: return
-        val pkg = HookState.pkg
-        callback.result = PrefsHelper.getSpoofValue(prefs, pkg, SpoofType.IMEI) {
-            IMEIGenerator.generate()
+// In hooker — API 101 lambda interceptor style
+safeHook(xi, "TelephonyManager.getImei()") {
+    tmClass.methodOrNull("getImei")?.let { m ->
+        xi.hook(m).intercept { chain ->
+            runCatching {
+                val prefs = HookState.prefs ?: return@runCatching chain.proceed()
+                PrefsHelper.getSpoofValue(prefs, HookState.pkg, SpoofType.IMEI) {
+                    IMEIGenerator.generate()
+                }.also { reportSpoofEvent(HookState.pkg, SpoofType.IMEI) }
+            }.getOrElse { chain.proceed() }
         }
-        reportSpoofEvent(pkg, SpoofType.IMEI)
-    }.onFailure { DualLog.warn(TAG, "after() failed", it) }
+        xi.deoptimize(m) // ⚠️ Prevent bypass via ART inlining
+    }
 }
 ```
 
@@ -112,24 +114,31 @@ fun getSpoofValueKey(pkg: String, type: SpoofType)   = "spoof_value_${sanitize(p
 
 ```kotlin
 // XposedEntry.kt
-override fun onHook() {
-    loadSystem {
-        loadHooker(SystemServiceHooker)  // MUST be in loadSystem — registers AIDL service at boot
+override fun onSystemServerStarting(param: SystemServerStartingParam) {
+    safeHook(param.xposed, "SystemService") {
+        SystemServiceHooker(this).hook(param.xposed)  // MUST be in onSystemServerStarting
     }
-    loadApp {
-        // Skip system-critical processes
-        if (packageName in listOf("android", "system_server", "com.android.systemui",
-                                   "com.android.phone")) return@loadApp
+}
 
-        loadHooker(AntiDetectHooker)     // ⚠️ ALWAYS FIRST — hide Xposed before any spoofing
-        loadHooker(DeviceHooker)
-        loadHooker(NetworkHooker)
-        loadHooker(AdvertisingHooker)
-        loadHooker(SystemHooker)
-        loadHooker(LocationHooker)
-        loadHooker(SensorHooker)
-        loadHooker(WebViewHooker)
-    }
+override fun onPackageLoaded(param: PackageLoadedParam) {
+    if (!param.isFirstPackage) return
+    val xi = param.xposed
+    val pkg = param.packageName
+
+    // Skip system-critical processes
+    if (pkg in listOf("android", "system_server", "com.android.systemui",
+                       "com.android.phone")) return
+
+    AntiDetectHooker(this).hook(xi)     // ⚠️ ALWAYS FIRST — hide Xposed before any spoofing
+    DeviceHooker(this).hook(xi)
+    NetworkHooker(this).hook(xi)
+    AdvertisingHooker(this).hook(xi)
+    SystemHooker(this).hook(xi)
+    LocationHooker(this).hook(xi)
+    SensorHooker(this).hook(xi)
+    WebViewHooker(this).hook(xi)
+    SubscriptionHooker(this).hook(xi)
+    PackageManagerHooker(this).hook(xi)
 }
 ```
 
@@ -144,33 +153,25 @@ override fun onHook() {
 Every hook callback **must** follow this exact double-`runCatching` structure:
 
 ```kotlin
-// ✅ CORRECT (API 100)
+// ✅ CORRECT (API 101 lambda interceptor)
 safeHook(xi, "TelephonyManager.getImei()") {
     tmClass.methodOrNull("getImei")?.let { m ->
-        xi.hook(m, GetImeiHooker::class.java)
+        xi.hook(m).intercept { chain ->
+            runCatching {
+                val prefs = HookState.prefs ?: return@runCatching chain.proceed()
+                PrefsHelper.getSpoofValue(prefs, HookState.pkg, SpoofType.IMEI) {
+                    IMEIGenerator.generate()
+                }
+            }.getOrElse { chain.proceed() }
+        }
         xi.deoptimize(m) // ⚠️ Prevent bypass
     }
 }
 
-class GetImeiHooker : XposedInterface.Hooker {
-    companion object {
-        @JvmStatic fun after(callback: AfterHookCallback) {
-            runCatching {
-                val prefs = HookState.prefs ?: return
-                callback.result = PrefsHelper.getSpoofValue(prefs, HookState.pkg, SpoofType.IMEI) {
-                    IMEIGenerator.generate()
-                }
-            }.onFailure { DualLog.warn("GetImeiHooker", "Failed to spoof IMEI", it) }
-        }
-    }
-}
-
 // ❌ WRONG — no deoptimize + bare calls = bypass risk + crash risk
-xi.hook(m, object : XposedInterface.Hooker {
-    @JvmStatic fun after(c: AfterHookCallback) {
-        c.result = "123" // Could crash if c.result type mismatch or prefs null
-    }
-})
+xi.hook(m).intercept { chain ->
+    chain.result = "123" // Could crash if result type mismatch or prefs null
+}
 ```
 
 | Rule                                         | Consequence if violated                                     |

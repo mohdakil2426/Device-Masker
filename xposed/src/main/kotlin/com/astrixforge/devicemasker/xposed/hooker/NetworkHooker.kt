@@ -3,14 +3,11 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.MACGenerator
-import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
-
 import java.net.NetworkInterface
 
 /**
- * Network Identifier Hooker — libxposed API 100 edition.
+ * Network Identifier Hooker — libxposed API 101 edition.
  *
  * Spoofs network-related identifiers:
  * - WiFi MAC address (WifiInfo.getMacAddress, NetworkInterface.getHardwareAddress)
@@ -32,13 +29,19 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         hookTelephonyCarrier(cl, xi, prefs, pkg)
     }
 
-    private fun hookWifiInfo(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookWifiInfo(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         val wifiInfoClass = cl.loadClassOrNull("android.net.wifi.WifiInfo") ?: return
         safeHook("WifiInfo.getMacAddress()") {
             wifiInfoClass.methodOrNull("getMacAddress")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) { MACGenerator.generate() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) { MACGenerator.generate() }
                     reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                     spoofed
                 }
@@ -60,7 +63,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
             wifiInfoClass.methodOrNull("getBSSID")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID) { MACGenerator.generate() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID) { MACGenerator.generate() }
                     reportSpoofEvent(pkg, SpoofType.WIFI_BSSID)
                     spoofed
                 }
@@ -69,22 +73,29 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         }
     }
 
-    private fun hookNetworkInterface(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookNetworkInterface(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         val niClass = cl.loadClassOrNull("java.net.NetworkInterface") ?: return
         safeHook("NetworkInterface.getHardwareAddress()") {
             niClass.methodOrNull("getHardwareAddress")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val networkInterface = chain.thisObject as? NetworkInterface ?: return@intercept result
+                    val networkInterface =
+                        chain.thisObject as? NetworkInterface ?: return@intercept result
                     val interfaceName = networkInterface.name ?: return@intercept result
                     if (
                         !interfaceName.startsWith("wlan", ignoreCase = true) &&
-                        !interfaceName.startsWith("wifi", ignoreCase = true) &&
-                        !interfaceName.startsWith("p2p", ignoreCase = true)
+                            !interfaceName.startsWith("wifi", ignoreCase = true) &&
+                            !interfaceName.startsWith("p2p", ignoreCase = true)
                     ) {
                         return@intercept result
                     }
-                    val mac = getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) { MACGenerator.generate() }
+                    val mac =
+                        getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) { MACGenerator.generate() }
                     reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                     mac.split(":").map { it.toInt(16).toByte() }.toByteArray()
                 }
@@ -93,13 +104,21 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         }
     }
 
-    private fun hookBluetoothAdapter(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookBluetoothAdapter(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         val btClass = cl.loadClassOrNull("android.bluetooth.BluetoothAdapter") ?: return
         safeHook("BluetoothAdapter.getAddress()") {
             btClass.methodOrNull("getAddress")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC) { MACGenerator.generate() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC) {
+                            MACGenerator.generate()
+                        }
                     reportSpoofEvent(pkg, SpoofType.BLUETOOTH_MAC)
                     spoofed
                 }
@@ -108,13 +127,21 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         }
     }
 
-    private fun hookTelephonyCarrier(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookTelephonyCarrier(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         val tmClass = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
         safeHook("TelephonyManager.getNetworkOperatorName()") {
             tmClass.methodOrNull("getNetworkOperatorName")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) { (result as? String) ?: "Carrier" }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) {
+                            (result as? String) ?: "Carrier"
+                        }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                     spoofed
                 }
@@ -125,7 +152,10 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
             tmClass.methodOrNull("getNetworkOperator")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) { (result as? String) ?: "310260" }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) {
+                            (result as? String) ?: "310260"
+                        }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                     spoofed
                 }
@@ -137,6 +167,5 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
     // ─────────────────────────────────────────────────────────────
     // Shared state
     // ─────────────────────────────────────────────────────────────
-
 
 }

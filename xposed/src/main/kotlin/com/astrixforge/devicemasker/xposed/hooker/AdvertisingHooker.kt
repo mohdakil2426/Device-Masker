@@ -3,13 +3,10 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.UUIDGenerator
-import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 
-
 /**
- * Advertising Identifier Hooker — libxposed API 100 edition.
+ * Advertising Identifier Hooker — libxposed API 101 edition.
  *
  * Spoofs advertising and tracking identifiers:
  * - Google Advertising ID (AdvertisingIdClient.Info.getId())
@@ -24,7 +21,12 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
         hookMediaDrm(cl, xi, prefs, pkg)
     }
 
-    private fun hookAdvertisingIdClient(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookAdvertisingIdClient(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         safeHook("AdvertisingIdClient.Info.getId()") {
             val infoClass =
                 cl.loadClassOrNull(
@@ -33,7 +35,10 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
             infoClass.methodOrNull("getId")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID) { UUIDGenerator.generateAdvertisingId() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID) {
+                            UUIDGenerator.generateAdvertisingId()
+                        }
                     reportSpoofEvent(pkg, SpoofType.ADVERTISING_ID)
                     spoofed
                 }
@@ -42,7 +47,12 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
         }
     }
 
-    private fun hookGservices(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookGservices(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         val gservicesClass = cl.loadClassOrNull("com.google.android.gsf.Gservices") ?: return
         safeHook("Gservices.getString(ContentResolver, String)") {
             // Method with ContentResolver + String key + default (3 params)
@@ -55,7 +65,10 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                         val result = chain.proceed()
                         val key = chain.args.getOrNull(1) as? String ?: return@intercept result
                         if (key != "android_id") return@intercept result
-                        val spoofed = getSpoofValue(prefs, pkg, SpoofType.GSF_ID) { UUIDGenerator.generateGSFId() }
+                        val spoofed =
+                            getSpoofValue(prefs, pkg, SpoofType.GSF_ID) {
+                                UUIDGenerator.generateGSFId()
+                            }
                         reportSpoofEvent(pkg, SpoofType.GSF_ID)
                         spoofed
                     }
@@ -71,8 +84,12 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                         val result = chain.proceed()
                         val key = chain.args.getOrNull(1) as? String ?: return@intercept result
                         if (key != "android_id") return@intercept result
-                        val spoofed = getSpoofValue(prefs, pkg, SpoofType.GSF_ID) { UUIDGenerator.generateGSFId() }
-                        val finalVal = runCatching { spoofed.toLong(16) }.getOrElse { result as Long }
+                        val spoofed =
+                            getSpoofValue(prefs, pkg, SpoofType.GSF_ID) {
+                                UUIDGenerator.generateGSFId()
+                            }
+                        val finalVal =
+                            runCatching { spoofed.toLong(16) }.getOrElse { result as Long }
                         reportSpoofEvent(pkg, SpoofType.GSF_ID)
                         finalVal
                     }
@@ -80,7 +97,12 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
         }
     }
 
-    private fun hookMediaDrm(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookMediaDrm(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         safeHook("MediaDrm.getPropertyByteArray(String)") {
             val drmClass = cl.loadClassOrNull("android.media.MediaDrm") ?: return@safeHook
             drmClass.methodOrNull("getPropertyByteArray", String::class.java)?.let { m ->
@@ -88,7 +110,10 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     val result = chain.proceed()
                     val property = chain.args.firstOrNull() as? String ?: return@intercept result
                     if (property != "deviceUniqueId") return@intercept result
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID) { UUIDGenerator.generateMediaDrmId() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID) {
+                            UUIDGenerator.generateMediaDrmId()
+                        }
                     reportSpoofEvent(pkg, SpoofType.MEDIA_DRM_ID)
                     hexToBytes(spoofed)
                 }

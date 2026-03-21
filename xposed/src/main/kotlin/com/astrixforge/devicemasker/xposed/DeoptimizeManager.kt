@@ -86,5 +86,4 @@ object DeoptimizeManager {
                 }
         }
     }
-
 }

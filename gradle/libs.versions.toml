@@ -16,7 +16,7 @@ material3 = "1.4.0"
 material = "1.13.0"
 graphicsShapes = "1.1.0"
 
-# libxposed API 100 (replaces YukiHookAPI 1.3.1 + KavaRef + legacy xposed-api:82)
+# libxposed API 101 (replaces YukiHookAPI 1.3.1 + KavaRef + legacy xposed-api:82)
 libxposed-api = "101.0.0"
 libxposed-service = "101.0.0"
 hiddenapibypass = "6.1"

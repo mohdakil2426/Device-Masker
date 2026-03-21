@@ -3,12 +3,10 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 
 /**
- * Sensor Hooker — libxposed API 100 edition.
+ * Sensor Hooker — libxposed API 101 edition.
  *
  * Spoofs sensor-related information to match the active DeviceProfilePreset:
  * - SensorManager.getSensorList(int) — filters sensor list to mask unique hardware fingerprints
@@ -52,13 +50,17 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     if (type != -1) return@intercept result
                     @Suppress("UNCHECKED_CAST")
                     val sensors = result as? List<Any> ?: return@intercept result
-                    if (sensors.size <= 10) return@intercept result // Small list — no suspicious fingerprint risk
-                    val filtered = sensors.filter { sensor ->
-                        runCatching {
-                            val sensorType = sensor.javaClass.getMethod("getType").invoke(sensor) as Int
-                            sensorType in ESSENTIAL_SENSOR_TYPES
-                        }.getOrDefault(true)
-                    }
+                    if (sensors.size <= 10)
+                        return@intercept result // Small list — no suspicious fingerprint risk
+                    val filtered =
+                        sensors.filter { sensor ->
+                            runCatching {
+                                    val sensorType =
+                                        sensor.javaClass.getMethod("getType").invoke(sensor) as Int
+                                    sensorType in ESSENTIAL_SENSOR_TYPES
+                                }
+                                .getOrDefault(true)
+                        }
 
                     if (sensors.size != filtered.size) {
                         reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
@@ -69,13 +71,18 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         }
     }
 
-    private fun hookSensorMetadata(cl: ClassLoader, xi: XposedInterface, preset: DeviceProfilePreset?) {
+    private fun hookSensorMetadata(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+    ) {
         val sensorClass = cl.loadClassOrNull("android.hardware.Sensor") ?: return
         safeHook("Sensor.getVendor()") {
             sensorClass.methodOrNull("getVendor")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    if (preset != null && preset.manufacturer.isNotEmpty()) preset.manufacturer else result
+                    if (preset != null && preset.manufacturer.isNotEmpty()) preset.manufacturer
+                    else result
                 }
             }
         }

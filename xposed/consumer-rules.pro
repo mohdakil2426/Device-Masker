@@ -1,6 +1,6 @@
 # =============================================================================
 # Device Masker — Consumer ProGuard Rules (:xposed module)
-# libxposed API 100 edition — YukiHookAPI rules REMOVED.
+# libxposed API 101 edition — YukiHookAPI rules REMOVED.
 #
 # These rules are merged into :app's R8 run by AGP when :xposed is consumed
 # as a library. They protect classes that are loaded via libxposed reflection,
@@ -8,14 +8,15 @@
 # =============================================================================
 
 # =============================================================================
-# LIBXPOSED API 100 — Hook entry point and hooker infrastructure
+# LIBXPOSED API 101 — Hook entry point and hooker infrastructure
 # =============================================================================
 
 # XposedModule subclass — entry class declared in META-INF/xposed/java_init.list.
 # LSPosed instantiates this class by name via ClassLoader.loadClass().
+# API 101: XposedModule uses a no-arg constructor.
 -keep class com.astrixforge.devicemasker.xposed.XposedEntry { *; }
 -keepclassmembers class com.astrixforge.devicemasker.xposed.XposedEntry {
-    public <init>(io.github.libxposed.api.XposedInterface, io.github.libxposed.api.XposedModuleInterface$ModuleLoadedParam);
+    public <init>();
     public *;
     static *;
 }
@@ -23,22 +24,11 @@
 # Module-active sentinel — field set by libxposed at load time
 -keep class com.astrixforge.devicemasker.XposedModuleActive { *; }
 
-# @XposedHooker annotated classes — inner static classes with @BeforeInvocation / @AfterInvocation.
-# R8 may strip inner classes that appear unreferenced from Kotlin perspective.
--keep @io.github.libxposed.api.annotations.XposedHooker class * { *; }
--keepclassmembers @io.github.libxposed.api.annotations.XposedHooker class * { *; }
-
-# XposedInterface.Hooker implementations (all @XposedHooker classes implement this)
--keep class * implements io.github.libxposed.api.XposedInterface$Hooker { *; }
--keepclassmembers class * implements io.github.libxposed.api.XposedInterface$Hooker {
-    public static *;
-}
-
 # XposedModule base class — kept for subclassing
 -keep class io.github.libxposed.api.XposedModule { *; }
 
 # =============================================================================
-# HOOKERS — All hookers and their @XposedHooker inner classes
+# HOOKERS — All hookers and their lambda interceptors
 # =============================================================================
 -keep class com.astrixforge.devicemasker.xposed.hooker.** { *; }
 -keepclassmembers class com.astrixforge.devicemasker.xposed.hooker.** {
@@ -48,32 +38,29 @@
 }
 
 # =============================================================================
-# SERVICE LAYER — AIDL diagnostics service + ContentProvider bridge
+# SERVICE LAYER — AIDL diagnostics service
 # DeviceMaskerService extends IDeviceMaskerService.Stub (inner Binder class).
-# ServiceBridge is declared in AndroidManifest as a ContentProvider.
 # =============================================================================
 -keep class com.astrixforge.devicemasker.xposed.service.DeviceMaskerService { *; }
 -keepclassmembers class com.astrixforge.devicemasker.xposed.service.DeviceMaskerService {
     *;
 }
 
-# ServiceBridge ContentProvider is registered dynamically in system_server
--keep class com.astrixforge.devicemasker.xposed.service.ServiceBridge { *; }
-
 # SystemServiceHooker registers the AIDL service at boot via AMS hook
 -keep class com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker { *; }
 
 # =============================================================================
-# HOOK INFRASTRUCTURE — BaseSpoofHooker, PrefsHelper, DeoptimizeManager
+# HOOK INFRASTRUCTURE — BaseSpoofHooker, PrefsHelper
 # =============================================================================
 -keep class com.astrixforge.devicemasker.xposed.hooker.BaseSpoofHooker { *; }
 -keep class com.astrixforge.devicemasker.xposed.PrefsHelper { *; }
--keep class com.astrixforge.devicemasker.xposed.DeoptimizeManager { *; }
 
 # =============================================================================
-# UTILS — ClassCache LRU, metrics, etc. (xposed/utils package)
+# UTILS — Logging and metrics utils (xposed root package)
 # =============================================================================
--keep class com.astrixforge.devicemasker.xposed.utils.** { *; }
+-keep class com.astrixforge.devicemasker.xposed.DualLog { *; }
+-keep class com.astrixforge.devicemasker.xposed.HookMetrics { *; }
+-keep class com.astrixforge.devicemasker.xposed.PrefsKeys { *; }
 
 # =============================================================================
 # LIBXPOSED SERVICE — ModulePreferences for writing RemotePreferences from :app

@@ -4,13 +4,10 @@ import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
 import com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
-import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 
-
 /**
- * Subscription Info Hooker — new in libxposed API 100 migration (Gap 4.6).
+ * Subscription Info Hooker — new in libxposed API 101 migration (Gap 4.6).
  *
  * Many banking and identity verification apps cross-check TelephonyManager with
  * SubscriptionInfo/SubscriptionManager to detect SIM manipulation. DeviceHooker covers
@@ -39,12 +36,18 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         hookSubscriptionManagerList(cl, xi)
     }
 
-    private fun hookSubscriptionInfoGetters(siClass: Class<*>, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    private fun hookSubscriptionInfoGetters(
+        siClass: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         safeHook("SubscriptionInfo.getIccId()") {
             siClass.methodOrNull("getIccId")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.ICCID) { ICCIDGenerator.generate() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.ICCID) { ICCIDGenerator.generate() }
                     reportSpoofEvent(pkg, SpoofType.ICCID)
                     spoofed
                 }
@@ -66,7 +69,10 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
             siClass.methodOrNull("getCarrierName")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) { (result as? CharSequence)?.toString() ?: "Carrier" }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) {
+                            (result as? CharSequence)?.toString() ?: "Carrier"
+                        }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                     spoofed
                 }
@@ -77,7 +83,10 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
             siClass.methodOrNull("getDisplayName")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) { (result as? CharSequence)?.toString() ?: "Carrier" }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) {
+                            (result as? CharSequence)?.toString() ?: "Carrier"
+                        }
                     reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                     spoofed
                 }
@@ -132,7 +141,10 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
             siClass.methodOrNull("getNumber")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) { PhoneNumberGenerator.generate() }
+                    val spoofed =
+                        getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) {
+                            PhoneNumberGenerator.generate()
+                        }
                     reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
                     spoofed
                 }
@@ -146,16 +158,8 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         safeHook("SubscriptionManager.getActiveSubscriptionInfoList()") {
             // No params (API 22+)
             smClass.methodOrNull("getActiveSubscriptionInfoList")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    chain.proceed()
-                }
+                xi.hook(m).intercept { chain -> chain.proceed() }
             }
         }
     }
-
-    // ─────────────────────────────────────────────────────────────
-    // Shared state
-    // ─────────────────────────────────────────────────────────────
-
-
 }

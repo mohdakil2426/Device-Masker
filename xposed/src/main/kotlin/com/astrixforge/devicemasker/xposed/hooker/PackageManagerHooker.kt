@@ -4,12 +4,10 @@ import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
-import com.astrixforge.devicemasker.xposed.DualLog
 import io.github.libxposed.api.XposedInterface
 
-
 /**
- * Package Manager Hooker — new in libxposed API 100 migration (Gap 4.10).
+ * Package Manager Hooker — new in libxposed API 101 migration (Gap 4.10).
  *
  * Hides the Device Masker module's own package from apps that query PackageManager. Apps that
  * detect root/Xposed tools often enumerate installed packages and check for known Xposed manager
@@ -72,8 +70,7 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
             pmClass.methodOrNull("getInstalledPackages", intPrimitive)?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    @Suppress("UNCHECKED_CAST")
-                    val packages = result as? MutableList<PackageInfo>
+                    @Suppress("UNCHECKED_CAST") val packages = result as? MutableList<PackageInfo>
                     packages?.removeAll { it.packageName == SELF_PACKAGE }
                     result
                 }
@@ -83,8 +80,7 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
             pmClass.methodOrNull("getInstalledApplications", intPrimitive)?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    @Suppress("UNCHECKED_CAST")
-                    val apps = result as? MutableList<ApplicationInfo>
+                    @Suppress("UNCHECKED_CAST") val apps = result as? MutableList<ApplicationInfo>
                     apps?.removeAll { it.packageName == SELF_PACKAGE }
                     result
                 }
@@ -108,6 +104,4 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                 }
         }
     }
-
-
 }

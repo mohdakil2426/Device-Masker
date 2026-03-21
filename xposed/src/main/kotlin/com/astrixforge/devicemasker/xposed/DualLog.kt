@@ -5,10 +5,10 @@ import android.util.Log
 /**
  * Dual Logger — logs to Android logcat and mirrors structured entries to the diagnostics service.
  *
- * ## Migration note (libxposed API 100)
+ * ## Migration note (libxposed API 101)
  *
  * Previously used `YLog` from YukiHookAPI which routed to LSPosed Manager's log screen. With
- * libxposed API 100, we route to the standard `android.util.Log` instead. LSPosed captures module
+ * libxposed API 101, we route to the standard `android.util.Log` instead. LSPosed captures module
  * process logcat output and displays it in its log screen, so all logs remain visible in LSPosed
  * Manager as before.
  *

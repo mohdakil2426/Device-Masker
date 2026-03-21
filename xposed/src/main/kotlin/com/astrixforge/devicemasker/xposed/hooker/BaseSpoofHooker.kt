@@ -8,52 +8,42 @@ import com.astrixforge.devicemasker.xposed.XposedEntry
 import java.lang.reflect.Method
 
 /**
- * Base class for all Device Masker spoof hookers — libxposed API 100 edition.
+ * Base class for all Device Masker spoof hookers — libxposed API 101 edition.
  *
  * ## Design contract
  *
  * Each hooker is a stateless Kotlin `object` that extends this class. The lifecycle is:
  * 1. XposedEntry.onPackageLoaded() calls `Hooker.hook(cl, xi, prefs, pkg)`
  * 2. `hook()` calls [safeHook] for each method it wants to intercept
- * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook()`, then `xi.deoptimize()`
- * 4. The hooker callback class handles the actual callback via static `before` / `after` methods.
+ * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook().intercept {}`, then
+ *    `xi.deoptimize()`
+ * 4. The lambda passed to `intercept` handles the actual callback via `chain.proceed()` + return
+ *    value.
  *
  * ## Why no instance state
  *
- * libxposed API 100 creates a NEW XposedModule instance per target process. Hooker objects are
+ * libxposed API 101 creates a NEW XposedModule instance per target process. Hooker objects are
  * registered once per process load and their callbacks fire on whatever thread the target app uses.
  * Shared state must stay process-stable. `XposedEntry` registers hooks only for the first package
  * loaded in a process to avoid later package loads corrupting process-global state.
  *
- * ## Hook safety pattern
+ * ## Hook safety pattern (API 101)
  *
  * Every single method hook must be in its own [safeHook] block. One failed method lookup (e.g.,
- * `getImei(int)` absent on some OEM firmware) must NOT prevent other hooks from registering. This
- * is the API 100 replacement for the YukiHookAPI outer `runCatching` pattern.
+ * `getImei(int)` absent on some OEM firmware) must NOT prevent other hooks from registering.
  *
  * ```kotlin
  * object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
  *     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
  *         val tmClass = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
  *         // Each method in its own safeHook — one failure cannot cascade
- *         safeHook("getImei") {
- *             val m = tmClass.methodOrNull("getImei") ?: return@safeHook
- *             xi.hook(m, GetImeiHooker::class.java)
- *             xi.deoptimize(m)   // bypass ART inlining — CRITICAL for guaranteed delivery
- *         }
- *     }
- *
- *      *     class GetImeiHooker : XposedInterface.Hooker {
- *         companion object {
- *             @Volatile var prefs: SharedPreferences? = null
- *             @Volatile var pkg: String = ""
- *
- *             @JvmStatic
- *              *             fun after(callback: AfterHookCallback) {
- *                 val p = prefs ?: return
- *                 callback.result = PrefsHelper.getSpoofValue(p, pkg, SpoofType.IMEI) {
- *                     IMEIGenerator.generate()
+ *         safeHook("getImei()") {
+ *             tmClass.methodOrNull("getImei")?.let { m ->
+ *                 xi.hook(m).intercept { chain ->
+ *                     chain.proceed() // call original method
+ *                     getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
  *                 }
+ *                 xi.deoptimize(m)  // bypass ART inlining — CRITICAL for guaranteed delivery
  *             }
  *         }
  *     }

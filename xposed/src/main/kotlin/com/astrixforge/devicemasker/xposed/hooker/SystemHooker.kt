@@ -4,7 +4,6 @@ import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 import java.lang.reflect.Field
 
@@ -17,7 +16,7 @@ import java.lang.reflect.Field
  * }.get().set(...)`). This was unreliable because ART may have already constant-folded the field
  * values into app code.
  *
- * libxposed API 100 version:
+ * libxposed API 101 version:
  * 1. Directly modify the static fields on Build class (same as before, catches early reads)
  * 2. Hook SystemProperties.get() to intercept later reads via reflection/system property queries
  *
@@ -106,7 +105,8 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val key = chain.args.firstOrNull() as? String ?: return@intercept result
-                    val mapped = propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
+                    val mapped =
+                        propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                     mapped
                 }
@@ -118,7 +118,8 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val key = chain.args.firstOrNull() as? String ?: return@intercept result
-                    val mapped = propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
+                    val mapped =
+                        propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                     mapped
                 }

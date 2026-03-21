@@ -14,7 +14,6 @@ import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
-import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam

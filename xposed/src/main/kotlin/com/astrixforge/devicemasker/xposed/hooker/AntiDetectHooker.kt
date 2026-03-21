@@ -19,10 +19,10 @@ import io.github.libxposed.api.XposedInterface
  * 3. /proc/self/maps — filters Xposed native library paths from BufferedReader.readLine()
  * 4. PackageManager — hides LSPosed Manager, Magisk, VirtualXposed from PM queries
  *
- * ## API 100 changes
+ * ## API 101 changes
  * - Extends nothing (no YukiBaseHooker)
  * - Static hook(cl, xi, prefs, pkg) factory
- * - Lambda-based interception
+ * - Lambda-based interception via `xi.hook(m).intercept { chain -> ... }`
  * - throwToApp() replaced by throwing directly from intercept hook
  */
 object AntiDetectHooker {
@@ -145,7 +145,12 @@ object AntiDetectHooker {
                     method.isAccessible = true
                     xi.hook(method).intercept { chain ->
                         val className = chain.args.firstOrNull() as? String
-                        if (className != null && HIDDEN_CLASS_PATTERNS.any { className.contains(it, ignoreCase = true) }) {
+                        if (
+                            className != null &&
+                                HIDDEN_CLASS_PATTERNS.any {
+                                    className.contains(it, ignoreCase = true)
+                                }
+                        ) {
                             throw ClassNotFoundException(className)
                         }
                         chain.proceed()
@@ -175,7 +180,12 @@ object AntiDetectHooker {
                     method.isAccessible = true
                     xi.hook(method).intercept { chain ->
                         val className = chain.args.firstOrNull() as? String
-                        if (className != null && HIDDEN_CLASS_PATTERNS.any { className.contains(it, ignoreCase = true) }) {
+                        if (
+                            className != null &&
+                                HIDDEN_CLASS_PATTERNS.any {
+                                    className.contains(it, ignoreCase = true)
+                                }
+                        ) {
                             throw ClassNotFoundException(className)
                         }
                         chain.proceed()
@@ -200,7 +210,10 @@ object AntiDetectHooker {
                     xi.hook(m).intercept { chain ->
                         val result = chain.proceed()
                         val line = result as? String
-                        if (line != null && HIDDEN_LIBRARY_PATTERNS.any { line.contains(it, ignoreCase = true) }) {
+                        if (
+                            line != null &&
+                                HIDDEN_LIBRARY_PATTERNS.any { line.contains(it, ignoreCase = true) }
+                        ) {
                             ""
                         } else {
                             result
@@ -220,7 +233,8 @@ object AntiDetectHooker {
         val pmClass = cl.loadClass("android.app.ApplicationPackageManager")
 
         // getPackageInfo(String, int) + getPackageInfo(String, PackageInfoFlags)
-        listOf(arrayOf<Class<*>>(String::class.java, Int::class.javaPrimitiveType!!)).forEach { params ->
+        listOf(arrayOf<Class<*>>(String::class.java, Int::class.javaPrimitiveType!!)).forEach {
+            params ->
             try {
                 pmClass
                     .getDeclaredMethod("getPackageInfo", *params)
@@ -228,8 +242,13 @@ object AntiDetectHooker {
                     .let { m ->
                         xi.hook(m).intercept { chain ->
                             val pkgName = chain.args.firstOrNull() as? String
-                            if (pkgName != null && HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }) {
-                                throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
+                            if (
+                                pkgName != null &&
+                                    HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }
+                            ) {
+                                throw android.content.pm.PackageManager.NameNotFoundException(
+                                    pkgName
+                                )
                             }
                             chain.proceed()
                         }
@@ -249,7 +268,10 @@ object AntiDetectHooker {
                 .let { m ->
                     xi.hook(m).intercept { chain ->
                         val pkgName = chain.args.firstOrNull() as? String
-                        if (pkgName != null && HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }) {
+                        if (
+                            pkgName != null &&
+                                HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }
+                        ) {
                             throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
                         }
                         chain.proceed()
@@ -268,7 +290,8 @@ object AntiDetectHooker {
                     xi.hook(m).intercept { chain ->
                         val result = chain.proceed()
                         @Suppress("UNCHECKED_CAST")
-                        val packages = result as? MutableList<PackageInfo> ?: return@intercept result
+                        val packages =
+                            result as? MutableList<PackageInfo> ?: return@intercept result
                         packages.removeAll { info ->
                             HIDDEN_PACKAGES.any { info.packageName.equals(it, ignoreCase = true) }
                         }
@@ -288,7 +311,8 @@ object AntiDetectHooker {
                     xi.hook(m).intercept { chain ->
                         val result = chain.proceed()
                         @Suppress("UNCHECKED_CAST")
-                        val apps = result as? MutableList<ApplicationInfo> ?: return@intercept result
+                        val apps =
+                            result as? MutableList<ApplicationInfo> ?: return@intercept result
                         apps.removeAll { info ->
                             HIDDEN_PACKAGES.any { info.packageName.equals(it, ignoreCase = true) }
                         }
@@ -313,7 +337,8 @@ object AntiDetectHooker {
                         @Suppress("UNCHECKED_CAST")
                         val infos = result as? MutableList<ResolveInfo> ?: return@intercept result
                         infos.removeAll { info ->
-                            val packageName = info.activityInfo?.packageName ?: return@removeAll false
+                            val packageName =
+                                info.activityInfo?.packageName ?: return@removeAll false
                             HIDDEN_PACKAGES.any { packageName.equals(it, ignoreCase = true) }
                         }
                         infos

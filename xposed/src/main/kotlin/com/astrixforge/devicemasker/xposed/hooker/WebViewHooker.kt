@@ -3,13 +3,10 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
 import io.github.libxposed.api.XposedInterface
 
-
 /**
- * WebView Hooker — libxposed API 100 edition.
+ * WebView Hooker — libxposed API 101 edition.
  *
  * Spoofs WebView User-Agent string to match the active DeviceProfilePreset. WebView UA is a rich
  * source of device fingerprint data: it contains the Android version, device model, and WebView
@@ -33,12 +30,17 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         // Load preset once at hook-registration time
         val presetId = getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
         val preset = if (presetId.isNotEmpty()) DeviceProfilePreset.findById(presetId) else null
-        
+
         hookWebSettings(cl, xi, preset, pkg)
         hookWebViewDefaultUA(cl, xi, preset, pkg)
     }
 
-    private fun hookWebSettings(cl: ClassLoader, xi: XposedInterface, preset: DeviceProfilePreset?, pkg: String) {
+    private fun hookWebSettings(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+        pkg: String,
+    ) {
         val wsClass = cl.loadClassOrNull("android.webkit.WebSettings") ?: return
         safeHook("WebSettings.getUserAgentString()") {
             wsClass.methodOrNull("getUserAgentString")?.let { m ->
@@ -68,7 +70,12 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         }
     }
 
-    private fun hookWebViewDefaultUA(cl: ClassLoader, xi: XposedInterface, preset: DeviceProfilePreset?, pkg: String) {
+    private fun hookWebViewDefaultUA(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+        pkg: String,
+    ) {
         safeHook("WebView.getDefaultUserAgent(Context)") {
             val webViewClass = cl.loadClassOrNull("android.webkit.WebView") ?: return@safeHook
             val contextClass = cl.loadClassOrNull("android.content.Context") ?: return@safeHook
@@ -85,7 +92,6 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
             }
         }
     }
-
 
     private val UA_DEVICE_REGEX = Regex("""(?<=Android \d+; )([^)]+)""")
 
