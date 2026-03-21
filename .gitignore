@@ -114,7 +114,7 @@ Thumbs.db
 .playwright-cli/
 .playwright-mcp/
 scripts/logs/*.txt
-docs/libxposed/
+
 # ═══════════════════════════════════════════════════════════
 # VERSION CONTROL
 # ═══════════════════════════════════════════════════════════
