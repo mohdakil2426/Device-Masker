@@ -32,11 +32,15 @@ User/UI action
 Diagnostics is separate:
 
 ```text
+App Timber logs
+  -> PersistentAppLogTree
+  -> AppLogStore in filesDir/logs/structured.log
+
 Hooker
   -> DualLog / reportSpoofEvent / reportPackageHooked
   -> DeviceMaskerService in system_server
   -> ServiceClient
-  -> Diagnostics UI
+  -> Diagnostics UI / LogManager export
 ```
 
 Config must not be delivered through AIDL. AIDL is diagnostics-only.
@@ -130,6 +134,15 @@ Generators live in `:common`. Hookers read stored values; they do not generate n
 - `collectAsStateWithLifecycle()` in composables.
 - Navigation routes are string constants in `NavRoutes`, not sealed object routes.
 - Home and Diagnostics observe libxposed service connection through `XposedPrefs.isServiceConnected`.
+
+## Logging Patterns
+
+- App logs are stored without root through `PersistentAppLogTree` and `AppLogStore`.
+- App log storage lives in the app sandbox at `filesDir/logs/structured.log`.
+- Export uses `LogManager` to combine app-owned persistent logs with the current diagnostics service buffer.
+- The app must not depend on reading global logcat; `READ_LOGS` is privileged/not suitable for this app.
+- Export files should stay minimal and structured: metadata, app entries, and xposed diagnostics entries.
+- Xposed diagnostics logs remain in-memory in `DeviceMaskerService`; they are best-effort and reset when the service/process restarts.
 
 ## Build And Documentation Rules
 

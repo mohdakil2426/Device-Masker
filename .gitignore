@@ -71,6 +71,7 @@ release/
 *.keystore
 *.jks
 signing.properties
+/docs/local-signing/
 
 # ═══════════════════════════════════════════════════════════
 # YUKIHOOKAPI AUTO-GENERATED FILES

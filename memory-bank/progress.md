@@ -11,7 +11,7 @@
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
-| Diagnostics | AIDL diagnostics-only |
+| Diagnostics | AIDL diagnostics-only, app logs persisted rootlessly |
 | Target-app hook validation | Pending |
 | Stable release readiness | Not ready until target-app LSPosed validation passes |
 
@@ -28,6 +28,8 @@
 - Hook-side pref reads can distinguish configured stored values from missing/disabled values.
 - High-risk identifier hooks pass through to original results when config is unsafe.
 - Diagnostics AIDL contract is narrowed to events, logs, hooked package list, clear, and health.
+- App-side logs persist to an app-owned structured file without root or `READ_LOGS`.
+- Log export writes a minimal file containing app log entries and current xposed diagnostics entries.
 - Release build runs R8 and keeps critical xposed classes.
 
 ## Latest Completed Work
@@ -46,6 +48,13 @@
 - Expanded PackageManager hiding for API 33+ flag overloads.
 - Added regression tests for config sync, stored spoof reads, legacy config migration, and group-delete app config cleanup.
 - Updated architecture audit report and Memory Bank.
+
+2026-05-02 logging/export remediation:
+- Added rootless persistent app log storage through `AppLogStore`.
+- Added `PersistentAppLogTree` so Timber app logs are stored in the app sandbox.
+- Reworked `LogManager` export to avoid decorative empty templates.
+- Export now merges persistent app entries with reachable `DeviceMaskerService` logs.
+- Added regression tests for log persistence, trimming, sanitization, and minimal export formatting.
 
 ## Verification Evidence
 
@@ -81,10 +90,10 @@ Before calling this stable:
 - Confirm disabled/missing/malformed spoof values pass through.
 - Confirm anti-detection hooks hide Device Masker and known LSPosed/tool packages in target processes.
 - Test at least one real API 33+ PackageManager flag query path.
+- Export logs from the installed app after target hooks fire and confirm both app and xposed sections contain useful entries.
 
 Engineering cleanup:
 - Remove or update stale references outside Memory Bank if found.
 - Clean AGP 10 deprecation warnings.
 - Consider more tests around hook value conversion and config migrations.
 - Keep Memory Bank updated after each architecture-affecting change.
-

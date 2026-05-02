@@ -2,7 +2,9 @@ package com.astrixforge.devicemasker
 
 import android.app.Application
 import com.astrixforge.devicemasker.data.XposedPrefs
+import com.astrixforge.devicemasker.service.AppLogStore
 import com.astrixforge.devicemasker.service.ConfigManager
+import com.astrixforge.devicemasker.service.PersistentAppLogTree
 import com.astrixforge.devicemasker.service.ServiceClient
 import timber.log.Timber
 
@@ -21,16 +23,20 @@ class DeviceMaskerApp : Application() {
 
     /** AIDL client for the diagnostics service (hook event counts, logs, health). */
     private lateinit var _serviceClient: ServiceClient
+    private lateinit var _appLogStore: AppLogStore
 
     override fun onCreate() {
         super.onCreate()
         instance = this
 
-        // Debug logging — release builds strip Timber via R8 -assumenosideeffects
+        _appLogStore = AppLogStore.from(this)
+        Timber.plant(PersistentAppLogTree(_appLogStore))
+
+        // Debug logging — release builds strip DebugTree logcat calls via R8.
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
-            Timber.d("Device Masker Application initialised")
         }
+        Timber.d("Device Masker Application initialised")
 
         // Register XposedService listener — enables getRemotePreferences() write path.
         // Safe to call multiple times (no-op on reconnect).
@@ -71,6 +77,9 @@ class DeviceMaskerApp : Application() {
          */
         val serviceClient: ServiceClient
             get() = getInstance()._serviceClient
+
+        val appLogStore: AppLogStore
+            get() = getInstance()._appLogStore
 
         /** Whether the app is currently connected to LSPosed's libxposed service. */
         val isXposedModuleActive: Boolean

@@ -65,10 +65,10 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
     }
 
     // ═══════════════════════════════════════════════════════════
-    // EXPORT LOGS (In-Memory YLog Data)
+    // EXPORT LOGS
     // ═══════════════════════════════════════════════════════════
 
-    /** Exports YLog in-memory data to a custom URI location (file picker). */
+    /** Exports app-owned structured logs and available diagnostics logs to a custom URI. */
     fun exportLogsToUri(uri: Uri) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }

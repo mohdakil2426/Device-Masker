@@ -75,6 +75,8 @@ Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-Stri
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/XposedPrefs.kt` | App-side libxposed service binding and RemotePreferences access |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt` | Flattens JsonConfig into RemotePreferences |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/ConfigManager.kt` | Local JSON config, StateFlow, app/group mutation |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/AppLogStore.kt` | Rootless persistent app log store, Timber tree, export formatter |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Minimal log export from app log store plus diagnostics service buffer |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config/app repository |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | RemotePreferences key single source of truth |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
@@ -98,4 +100,3 @@ To validate spoofing, a test device/emulator must have:
 - Target app force-stopped/restarted after scope or module changes.
 
 App launch alone does not prove target-process hook behavior.
-

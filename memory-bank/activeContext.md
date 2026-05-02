@@ -54,6 +54,8 @@ Emulator check:
 - PackageManager self-hide covers modern API 33+ flag overloads.
 - Throw-based hiding hooks use `ExceptionMode.PASSTHROUGH`.
 - Hook/list filters return filtered copies instead of mutating framework lists.
+- App-side logs now persist without root through `PersistentAppLogTree` and `AppLogStore`.
+- Log export now produces a minimal structured file from app-owned logs plus available diagnostics service logs.
 
 ## Open Validation Items
 
@@ -64,6 +66,7 @@ High priority:
 - Verify disabled or malformed values pass through to originals.
 - Verify diagnostics service registers in system_server and reports hook events.
 - Verify anti-detection behavior with target-process checks.
+- Verify exported logs on-device after app startup, diagnostics connection, and at least one hooked target app event.
 
 Medium priority:
 - Clean AGP/Spotless deprecation warnings.
@@ -76,4 +79,3 @@ Medium priority:
 - It is acceptable to keep development compatibility helpers for old config JSON.
 - Stability and pass-through safety are more important than aggressive spoofing coverage.
 - Manual LSPosed runtime validation is required before claiming target-app compatibility.
-

@@ -100,8 +100,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  assemble-release-check:
-    name: Assemble Release Check
+  assemble-signed-release:
+    name: Assemble Signed Release
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -124,16 +124,32 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
-      - name: Assemble release
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASS"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASS"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
+
+      - name: Assemble signed release
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Upload release verification artifacts
-        if: always()
+      - name: Upload signed release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-check-artifacts-${{ github.run_id }}
+          name: signed-release-artifacts-${{ github.run_id }}
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/mapping/release/**
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
