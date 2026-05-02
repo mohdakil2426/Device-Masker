@@ -2,64 +2,77 @@
 
 ## Overview
 
-Device Masker is an Android LSPosed/libxposed module for privacy research and controlled device-identity spoofing. It provides a Compose app for configuration and an Xposed hook layer that intercepts selected Android framework and Google service APIs in scoped target apps.
+Device Masker is an Android LSPosed/libxposed module for privacy research and controlled per-app device identity spoofing. It has a Compose app for configuration, a shared `:common` contract module, and a `:xposed` hook layer that runs inside scoped target app processes.
 
-The project is in active development. The current codebase builds and launches, and the architecture has been remediated after the 2026-05-02 audit, but full end-to-end spoof validation must still be performed against real target apps on a rooted LSPosed runtime.
+The project is active development, not a stable release. As of 2026-05-02, the app has its first verified working base: `com.mantle.verify` launched under LSPosed after the latest crash remediation, Device Masker hooks registered, and LSPosed logs showed live spoof events for multiple identifiers.
 
 ## Core Goal
 
-Spoof configured device identifiers per app while hiding obvious LSPosed/module signals from target apps.
+Provide stable, configured spoofed identity values to selected apps while keeping target app startup safe.
 
-The project should stay focused on:
-- Device, SIM, network, advertising, system profile, and location identifier spoofing.
-- Per-app and per-group configuration.
-- Anti-detection for the module/LSPosed presence.
-- Diagnostics for hook registration, spoof events, and logs.
+Primary goals:
+- Per-app and per-group spoof configuration.
+- Stable stored values generated in the app and consumed by hooks.
+- Hook coverage for Android ID, device profile, telephony, SIM/carrier, network, Advertising ID, Media DRM, location, sensor, WebView, and package visibility paths.
+- Anti-detection for safer surfaces such as stack traces, package visibility, and `/proc/self/maps`.
+- Diagnostics and logs through rootless app logs plus LSPosed hook-side logs.
 
 ## Non-Goals
 
-Device Masker does not attempt to solve:
+Device Masker does not attempt:
 - Root hiding.
-- Play Integrity or SafetyNet bypass.
-- Hardware attestation bypass.
-- Bootloader status spoofing.
-- General fraud or unauthorized access workflows.
-
-Those concerns belong to separate modules or are out of scope.
+- Play Integrity, SafetyNet, or hardware attestation bypass.
+- Bootloader or verified boot bypass.
+- Fraud, ban evasion, or unauthorized access workflows.
+- Global device mutation outside selected target app processes.
 
 ## Target Users
 
-- Privacy-conscious Android users who want app-specific device identities.
 - Security researchers testing app fingerprinting behavior.
-- Developers studying modern libxposed API 101 module architecture.
-- Advanced users who need multiple consistent identity groups for controlled testing.
+- Android privacy researchers who need controlled app-specific identities.
+- Developers studying libxposed API 101 architecture and RemotePreferences configuration.
+- Advanced users validating how apps consume Android framework identifiers.
+
+## Current Verified State
+
+Latest full gate:
+
+```powershell
+.\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+Runtime smoke check:
+- Device/emulator: `emulator-5554`.
+- Installed rebuilt debug APK.
+- Scoped target: `com.mantle.verify`.
+- LSPosed loaded `com.astrixforge.devicemasker.xposed.XposedEntry`.
+- Hooks registered successfully.
+- Spoof events appeared for Android ID, carrier MCC/MNC, network operator, IMEI, Wi-Fi MAC, Wi-Fi SSID, Advertising ID, Media DRM ID, and SIM operator name.
+- Previous crash signatures did not appear in the final launch log window:
+  - `androidx.work.WorkManagerInitializer`
+  - WebView regex `PatternSyntaxException`
+  - abstract WebView hook failure
+  - target-app fatal crash
 
 ## Development Status
 
-Current status: development build, post-audit remediation complete in working tree.
+Current status: working development base with one target-app smoke pass. The project is not stable until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
 
-Known verified state:
-- Debug/release Gradle builds pass.
-- Unit tests pass.
-- Lint and Spotless pass.
-- Xposed static safety greps pass.
-- Debug APK installs and launches to `MainActivity` on `emulator-5554`.
-- LSPosed metadata uses API 101 and scope includes `android` and `system`.
-
-Remaining validation:
-- Test live hooks against scoped target apps under LSPosed.
-- Verify the previously stuck target app now passes splash/startup.
-- Validate anti-detection behavior in real target processes.
-- Confirm diagnostics Binder registration in system_server on the target runtime.
+Known stability decisions:
+- Release shrinking/minification is disabled while libxposed hook lambdas are being live-validated.
+- Global `Class.forName` and `ClassLoader.loadClass` anti-detection hooks are implemented but not registered by default because they caused or contributed to target startup instability.
+- AIDL diagnostics is best-effort only; LSPosed logs are the authoritative runtime source for hook events.
 
 ## Quality Bar
 
-The project should prefer correctness and target-app safety over broad spoof coverage. A disabled, missing, blank, or malformed spoof value must pass through to the original framework result rather than inventing a runtime fallback.
+Target app safety is more important than broad spoof coverage.
 
-Runtime hook callbacks should be conservative:
-- Call the original API first when appropriate.
-- Return configured stored values only when explicitly enabled.
-- Avoid generating fresh identifiers in target processes.
-- Deoptimize hooked methods.
-- Never crash target apps or system_server.
-
+Hooks must:
+- Return original framework values when config is disabled, missing, blank, malformed, or unsafe.
+- Avoid generating random fallback identifiers in target processes.
+- Avoid mutating framework-returned lists in place.
+- Avoid static initializers that can throw in target processes.
+- Skip unhookable methods such as abstract framework declarations.
+- Log hook registration and spoof events to LSPosed logs.

@@ -2,13 +2,13 @@
 
 ## Current Focus
 
-The project is in active development after the 2026-05-02 architecture audit remediation. The working tree contains code and documentation updates that make the current architecture coherent around libxposed API 101, RemotePreferences config delivery, diagnostics-only AIDL, canonical `AppConfig` scoping, and original-result fallback in hooks.
+Device Masker has its first verified working base. The newest priority is to preserve target-app startup stability while expanding validation coverage and improving diagnostics clarity.
 
-The next meaningful work is target-app runtime validation under LSPosed, especially the app that previously stuck on its logo.
+The latest successful runtime smoke test launched `com.mantle.verify` under LSPosed on `emulator-5554`. `XposedEntry` loaded, hooks registered, and LSPosed logs showed spoof events for Android ID, carrier, IMEI, Wi-Fi, Advertising ID, Media DRM, and SIM operator paths. The previous crash signatures were absent from the final launch window.
 
 ## Current Verified State
 
-Last full gate run:
+Full gate:
 
 ```powershell
 .\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
@@ -16,66 +16,72 @@ Last full gate run:
 
 Result: `BUILD SUCCESSFUL`.
 
-Static Xposed safety greps returned no matches for:
-- Legacy static hook annotations/callbacks.
-- Hardcoded RemotePreferences key strings in app/xposed source.
-- Insecure `Random()` in common generators.
-- Timber usage in `:xposed`.
-- Compose imports in `:common` or `:xposed`.
-- Runtime generator/default fallback patterns in xposed hooks.
-
-Emulator check:
-- Installed `app/build/outputs/apk/debug/app-debug.apk` on `emulator-5554`.
+App smoke:
+- Installed debug APK on `emulator-5554`.
 - Launched `com.astrixforge.devicemasker`.
-- Confirmed foreground `MainActivity`.
-- Final screenshot: `docs/device-masker-home-verification-2026-05-02-final.png`.
+- App opens to `MainActivity`.
 
-## Recent Architecture Decisions
+Target smoke:
+- Installed rebuilt debug APK on `emulator-5554`.
+- Force-stopped and launched `com.mantle.verify`.
+- Confirmed target process stayed alive after startup.
+- Confirmed LSPosed logs:
+  - `XposedEntry loaded for process: com.mantle.verify`
+  - `Anti-detection hooks registered`
+  - `All hooks registered`
+  - multiple `Spoof event` entries.
+- No final-window recurrence of:
+  - `androidx.work.WorkManagerInitializer`
+  - WebView regex `PatternSyntaxException`
+  - `Cannot hook abstract methods`
+  - fatal `AndroidRuntime` crash.
 
-- libxposed API is 101.0.1 for `:xposed`; app-side service/interface artifacts are 101.0.0.
-- Config delivery is RemotePreferences-first and not AIDL.
-- AIDL service is diagnostics-only.
-- `XposedModuleActive` sentinel was removed; app health uses `XposedPrefs.isServiceConnected`.
-- `AppConfig` is canonical for protected app scope and group assignment.
-- Legacy `SpoofGroup.assignedApps` is migration/display compatibility only.
-- Hooks must return original framework values on disabled/missing/blank/malformed config.
-- Hookers must not generate runtime identifiers.
-- Default scope includes `android` and `system`.
+## Recent Decisions To Preserve
 
-## Recent Fixes To Preserve
+- Config delivery is RemotePreferences-first.
+- AIDL is diagnostics-only.
+- LSPosed logs are authoritative for target-process hook proof.
+- `JsonConfig.appConfigs` is canonical.
+- `SpoofGroup.assignedApps` is legacy/display compatibility.
+- `SharedPrefsKeys` is the only key builder.
+- Hooks return originals for unsafe config.
+- Hookers do not generate runtime identifiers.
+- Release minification and resource shrinking stay disabled during hook validation.
+- Target app processes do not look up custom diagnostics through `ServiceManager`.
+- Global class lookup anti-detection hooks are not registered by default.
+- WebView UA spoofing uses defensive string parsing and skips abstract methods.
 
-- Config load and libxposed service bind trigger RemotePreferences sync.
-- Full sync clears stale package keys.
-- Deleted groups remove app configs assigned to that group.
-- `SpoofRepository.removeAppFromGroup()` checks canonical `AppConfig`.
-- Sensor hooks only register when `DEVICE_PROFILE` is enabled and valid.
-- Malformed MediaDRM hex passes through to original bytes.
-- Malformed MCC/MNC passes through to original values.
-- PackageManager self-hide covers modern API 33+ flag overloads.
-- Throw-based hiding hooks use `ExceptionMode.PASSTHROUGH`.
-- Hook/list filters return filtered copies instead of mutating framework lists.
-- App-side logs now persist without root through `PersistentAppLogTree` and `AppLogStore`.
-- Log export now produces a minimal structured file from app-owned logs plus available diagnostics service logs.
+## Latest Crash Lessons
+
+The working base came from fixing these failure modes:
+- R8/minification caused invalid libxposed hooker lambda behavior in target processes.
+- Target processes were not allowed to discover custom diagnostics Binder services.
+- Global class lookup hooks could destabilize target startup.
+- Android regex rejected variable-length lookbehind in `WebViewHooker` static initialization.
+- Abstract `android.webkit.WebSettings` methods cannot be hooked.
 
 ## Open Validation Items
 
 High priority:
-- Run on rooted LSPosed runtime with Device Masker enabled and target app scoped.
-- Verify the previously stuck target app now starts.
-- Verify configured spoof values in target app APIs.
-- Verify disabled or malformed values pass through to originals.
-- Verify diagnostics service registers in system_server and reports hook events.
-- Verify anti-detection behavior with target-process checks.
-- Verify exported logs on-device after app startup, diagnostics connection, and at least one hooked target app event.
+- Repeat `com.mantle.verify` validation after reboot and LSPosed module toggle.
+- Validate at least two more target apps.
+- Confirm configured spoof values match UI-generated stored values.
+- Confirm disabled/missing/malformed values pass through to originals.
+- Verify LSPosed log export after target hook events.
+- Verify PackageManager hiding on API 33+ flag object overloads.
+- Verify anti-detection behavior with class lookup hooks still disabled.
 
 Medium priority:
-- Clean AGP/Spotless deprecation warnings.
-- Expand unit tests around additional hook conversion helpers.
-- Add more explicit docs for the difference between service connection, module enabled, scope enabled, package hooked, and spoof event observed.
+- Add per-app safe-mode controls for risky hook groups.
+- Add optional per-app class lookup anti-detection kill switch before reintroducing class hiding.
+- Add more unit tests for hook conversion helpers.
+- Clean AGP and Spotless deprecation warnings.
+- Improve UI wording around service connected vs target hooked vs spoof observed.
 
 ## Working Assumptions
 
-- This is not a stable release branch.
-- It is acceptable to keep development compatibility helpers for old config JSON.
-- Stability and pass-through safety are more important than aggressive spoofing coverage.
-- Manual LSPosed runtime validation is required before claiming target-app compatibility.
+- This is a development build.
+- Stability beats spoof breadth.
+- LSPosed runtime validation is required before stability claims.
+- The first working base should be protected from broad refactors.
+- New hook areas should start disabled or pass-through safe until proven.

@@ -53,8 +53,11 @@ android {
             isDebuggable = true
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Keep release bytecode unshrunk while the libxposed API 101 hook layer is under
+            // live validation. R8 synthesized Hooker lambdas caused target-app
+            // AbstractMethodError crashes in LSPosed processes.
+            isMinifyEnabled = false
+            isShrinkResources = false
             isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

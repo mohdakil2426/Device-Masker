@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import io.github.libxposed.api.XposedInterface
+import java.lang.reflect.Modifier
 
 /**
  * WebView Hooker — libxposed API 101 edition.
@@ -44,6 +45,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         val wsClass = cl.loadClassOrNull("android.webkit.WebSettings") ?: return
         safeHook("WebSettings.getUserAgentString()") {
             wsClass.methodOrNull("getUserAgentString")?.let { m ->
+                if (Modifier.isAbstract(m.modifiers)) return@safeHook
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val ua = result as? String ?: return@intercept result
@@ -57,6 +59,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         }
         safeHook("WebSettings.setUserAgentString(String)") {
             wsClass.methodOrNull("setUserAgentString", String::class.java)?.let { m ->
+                if (Modifier.isAbstract(m.modifiers)) return@safeHook
                 xi.hook(m).intercept { chain ->
                     val model = preset?.model ?: return@intercept chain.proceed()
                     val ua = chain.args.firstOrNull() as? String ?: return@intercept chain.proceed()
@@ -94,10 +97,34 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         }
     }
 
-    private val UA_DEVICE_REGEX = Regex("""(?<=Android \d+; )([^)]+)""")
-
     internal fun modifyUserAgent(originalUA: String, model: String): String {
         if (model.isBlank()) return originalUA
-        return UA_DEVICE_REGEX.replace(originalUA, model)
+
+        val androidMarker = "Android "
+        val androidIndex = originalUA.indexOf(androidMarker)
+        if (androidIndex < 0) return originalUA
+
+        val deviceStart = originalUA.indexOf("; ", startIndex = androidIndex)
+        if (deviceStart < 0) return originalUA
+
+        val segmentStart = deviceStart + 2
+        val deviceEnd =
+            firstPositiveIndex(
+                originalUA.indexOf(" Build/", startIndex = segmentStart),
+                originalUA.indexOf("; wv", startIndex = segmentStart),
+                originalUA.indexOf(")", startIndex = segmentStart),
+            )
+        if (deviceEnd < 0) return originalUA
+
+        return originalUA.replaceRange(segmentStart, deviceEnd, model)
+    }
+
+    private fun firstPositiveIndex(vararg indexes: Int): Int {
+        var best = -1
+        for (index in indexes) {
+            if (index < 0) continue
+            if (best < 0 || index < best) best = index
+        }
+        return best
     }
 }

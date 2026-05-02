@@ -4,57 +4,79 @@
 
 | Area | Status |
 | --- | --- |
-| Project phase | Development, post-audit remediation |
+| Project phase | Development, first working base |
 | Build | Passing |
 | Unit tests | Passing |
 | Lint/format | Passing |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
-| Diagnostics | AIDL diagnostics-only, app logs persisted rootlessly |
-| Target-app hook validation | Pending |
-| Stable release readiness | Not ready until target-app LSPosed validation passes |
+| Diagnostics | Rootless app logs plus best-effort AIDL diagnostics |
+| Target hook validation | Smoke-passed on `com.mantle.verify` |
+| Stable release readiness | Not ready; broader target validation required |
 
-## What Works Now
+## What Works
 
 - Three-module Gradle structure: `:app`, `:common`, `:xposed`.
-- Compose app launches to Home.
-- Config persists to `filesDir/config.json`.
+- Compose app launches.
+- Local config persists to app `filesDir/config.json`.
 - App-side libxposed service binding exposes connection state.
 - Config sync writes flattened per-app RemotePreferences keys.
-- Stale RemotePreferences keys are cleared on full sync.
-- `AppConfig` is the canonical protected-app table.
-- Existing assigned-app-only development configs can migrate to app configs.
-- Hook-side pref reads can distinguish configured stored values from missing/disabled values.
-- High-risk identifier hooks pass through to original results when config is unsafe.
-- Diagnostics AIDL contract is narrowed to events, logs, hooked package list, clear, and health.
-- App-side logs persist to an app-owned structured file without root or `READ_LOGS`.
-- Log export writes a minimal file containing app log entries and current xposed diagnostics entries.
-- Release build runs R8 and keeps critical xposed classes.
+- Full config sync clears stale package keys.
+- `AppConfig` is the canonical app/group assignment model.
+- Hook-side pref reads distinguish missing/disabled values from configured values.
+- High-risk hooks pass through when config is unsafe.
+- Hook-side registration and spoof events are mirrored to LSPosed logs.
+- Rootless app log export works from app-owned storage.
+- `com.mantle.verify` launched after latest remediation and emitted spoof events.
 
-## Latest Completed Work
+## Completed Milestones
 
-2026-05-02 architecture remediation:
-- Fixed Home/Diagnostics activation state by using libxposed service connection.
-- Added service-bind and config-load resync.
+### 2026-05-02 Architecture Remediation
+
+- Reworked app status around libxposed service connection.
+- Made RemotePreferences the config delivery path.
+- Kept AIDL diagnostics-only.
 - Reworked config projection around canonical `AppConfig`.
 - Added stale-key cleanup.
 - Removed runtime generator fallback from hook callbacks.
-- Fixed malformed-value pass-through for MediaDRM and carrier MCC/MNC.
-- Made sensor spoofing depend on an enabled valid device profile.
-- Added `system` default scope.
-- Added or filled deoptimize calls across hookers.
-- Hardened anti-detection exception mode and list filtering.
-- Expanded PackageManager hiding for API 33+ flag overloads.
-- Added regression tests for config sync, stored spoof reads, legacy config migration, and group-delete app config cleanup.
-- Updated architecture audit report and Memory Bank.
+- Added original-result fallback for malformed MediaDRM and carrier values.
+- Made sensor spoofing depend on valid enabled device profile config.
+- Added default `system` scope.
+- Added or preserved deoptimize calls.
+- Expanded PackageManager hiding for API 33+ paths.
+- Updated architecture docs and Memory Bank.
 
-2026-05-02 logging/export remediation:
-- Added rootless persistent app log storage through `AppLogStore`.
-- Added `PersistentAppLogTree` so Timber app logs are stored in the app sandbox.
-- Reworked `LogManager` export to avoid decorative empty templates.
-- Export now merges persistent app entries with reachable `DeviceMaskerService` logs.
-- Added regression tests for log persistence, trimming, sanitization, and minimal export formatting.
+### 2026-05-02 Logging Remediation
+
+- Added `AppLogStore`.
+- Added `PersistentAppLogTree`.
+- Reworked `LogManager` export into minimal structured output.
+- Kept `READ_LOGS` out of app requirements.
+- Added log persistence and export tests.
+
+### 2026-05-02 Target Crash Remediation
+
+- Analyzed app export logs and LSPosed Manager logs.
+- Disabled release shrinking/minification during libxposed hook validation.
+- Removed target-process custom diagnostics `ServiceManager` lookup.
+- Added tests for release hooker bytecode safety and diagnostics lookup safety.
+- Fixed anti-detection class-loading ANR patterns with reentry guards and direct bootstrap class literals.
+- Added safe-prefix class hiding helper tests.
+- Disabled global `Class.forName` and `ClassLoader.loadClass` anti-detection registration by default.
+- Removed Android-invalid WebView lookbehind regex.
+- Made WebView UA parsing defensive.
+- Skipped abstract `WebSettings` methods.
+- Added xposed regression tests for WebView UA parsing and anti-detect class lookup pass-through.
+
+### First Working Base
+
+- Installed rebuilt debug APK on `emulator-5554`.
+- Launched `com.mantle.verify` under LSPosed.
+- Confirmed `XposedEntry` loaded.
+- Confirmed hooks registered.
+- Confirmed spoof events for multiple identifiers in LSPosed logs.
+- Confirmed previous target startup crash signatures were absent in the final smoke launch.
 
 ## Verification Evidence
 
@@ -66,34 +88,36 @@ Full gate:
 
 Result: `BUILD SUCCESSFUL`.
 
-Emulator:
-- `emulator-5554`
-- Installed debug APK.
-- Launched package `com.astrixforge.devicemasker`.
-- Foreground activity confirmed: `com.astrixforge.devicemasker/.ui.MainActivity`.
-
-Audit report:
-- `docs/DEVICE_MASKER_ARCHITECTURE_AUDIT_2026-05-02.md`
-
-Screenshots:
-- `docs/device-masker-launch-verification-2026-05-02.png`
-- `docs/device-masker-home-verification-2026-05-02.png`
-- `docs/device-masker-home-verification-2026-05-02-final.png`
+Target smoke evidence:
+- `TARGET_PID=6592` in the successful retry.
+- LSPosed log showed `All hooks registered for: com.mantle.verify`.
+- LSPosed spoof events included:
+  - `CARRIER_MCC_MNC`
+  - `NETWORK_OPERATOR`
+  - `ANDROID_ID`
+  - `IMEI`
+  - `WIFI_MAC`
+  - `WIFI_SSID`
+  - `ADVERTISING_ID`
+  - `MEDIA_DRM_ID`
+  - `SIM_OPERATOR_NAME`
 
 ## Remaining Work
 
 Before calling this stable:
-- Validate on a rooted LSPosed API 101 runtime.
-- Scope and launch the affected target app that previously stuck on logo.
-- Confirm spoof events appear in diagnostics.
-- Confirm target app receives configured spoof values.
-- Confirm disabled/missing/malformed spoof values pass through.
-- Confirm anti-detection hooks hide Device Masker and known LSPosed/tool packages in target processes.
-- Test at least one real API 33+ PackageManager flag query path.
-- Export logs from the installed app after target hooks fire and confirm both app and xposed sections contain useful entries.
+- Validate after emulator/device reboot.
+- Validate after LSPosed module disable/enable cycle.
+- Validate at least two additional target apps.
+- Confirm actual returned values inside target apps, not only spoof event logs.
+- Confirm disabled/missing/malformed values pass through.
+- Confirm anti-detection behavior with current safer surfaces.
+- Add a safe-mode UI/config flag for risky hook groups.
+- Reconsider class lookup hiding only behind a per-app kill switch.
+- Test package visibility hiding with API 33+ flag object overloads.
+- Export logs after target hook events and verify exported output is useful.
 
 Engineering cleanup:
-- Remove or update stale references outside Memory Bank if found.
 - Clean AGP 10 deprecation warnings.
-- Consider more tests around hook value conversion and config migrations.
-- Keep Memory Bank updated after each architecture-affecting change.
+- Replace deprecated Spotless `indentWithSpaces`.
+- Add more hook helper tests.
+- Keep docs and Memory Bank current after every runtime validation result.

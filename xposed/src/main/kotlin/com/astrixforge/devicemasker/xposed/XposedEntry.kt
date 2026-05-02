@@ -215,9 +215,12 @@ class XposedEntry : XposedModule() {
     private var diagnosticService: com.astrixforge.devicemasker.IDeviceMaskerService? = null
 
     /**
-     * Retrieves the diagnostics service binder.
-     * - In system_server: returns the local instance directly (no IPC).
-     * - In target apps: performs a ServiceManager lookup for "user.devicemasker_diag".
+     * Retrieves the diagnostics service binder when this module is running inside system_server.
+     *
+     * Target apps must not discover the custom diagnostics service through ServiceManager. Android
+     * user builds deny that lookup for untrusted app domains, and repeated denied lookups add
+     * startup noise to every scoped process. Hook-side diagnostics therefore fall back to the
+     * LSPosed log until a supported libxposed/app bridge exists.
      */
     private fun getService(): com.astrixforge.devicemasker.IDeviceMaskerService? {
         // 1. Return cached binder if still alive
@@ -229,23 +232,7 @@ class XposedEntry : XposedModule() {
             return diagnosticService
         }
 
-        // 3. In app process: discovery via ServiceManager (hidden API)
-        val svc =
-            runCatching {
-                    val smClass = Class.forName("android.os.ServiceManager")
-                    val getServiceMethod =
-                        smClass.getDeclaredMethod("getService", String::class.java)
-                    val binder =
-                        getServiceMethod.invoke(null, "user.devicemasker_diag")
-                            as? android.os.IBinder
-                    binder?.let {
-                        com.astrixforge.devicemasker.IDeviceMaskerService.Stub.asInterface(it)
-                    }
-                }
-                .getOrNull()
-
-        diagnosticService = svc
-        return svc
+        return null
     }
 
     /**
@@ -254,6 +241,7 @@ class XposedEntry : XposedModule() {
      * initialized in system_server by SystemServiceHooker.
      */
     private fun reportPackageHooked(pkg: String) {
+        log(Log.INFO, TAG, "Hooks registered for: $pkg", null)
         runCatching { getService()?.reportPackageHooked(pkg) }
     }
 
@@ -262,10 +250,12 @@ class XposedEntry : XposedModule() {
      * Declared here so hookers can call XposedEntry.instance.reportSpoofEvent().
      */
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
+        log(Log.DEBUG, TAG, "Spoof event: $pkg/$spoofTypeName", null)
         runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
     }
 
     fun reportLog(tag: String, message: String, level: Int) {
+        log(level, tag, message, null)
         runCatching { getService()?.reportLog(tag, message, level) }
     }
 }

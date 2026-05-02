@@ -32,7 +32,7 @@ object AntiDetectHooker {
 
     // Class/library/package name fragments to suppress in detection vectors
     private val HIDDEN_CLASS_PATTERNS =
-        listOf(
+        arrayOf(
             "de.robv.android.xposed",
             "XposedBridge",
             "XposedHelpers",
@@ -50,6 +50,20 @@ object AntiDetectHooker {
             "org.lsposed.lspd",
             "LSPosedService",
             "io.github.libxposed", // Hide libxposed itself too
+        )
+
+    private val SAFE_CLASS_PREFIXES =
+        arrayOf(
+            "android.",
+            "androidx.",
+            "com.android.",
+            "com.google.",
+            "dalvik.",
+            "java.",
+            "javax.",
+            "kotlin.",
+            "kotlinx.",
+            "org.jetbrains.",
         )
 
     private val HIDDEN_LIBRARY_PATTERNS =
@@ -74,12 +88,13 @@ object AntiDetectHooker {
             "org.meowcat.edxposed.manager",
         )
 
+    private val classLookupHookActive = ThreadLocal<Boolean>()
+
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         DualLog.debug(TAG, "Loading anti-detection hooks for: $pkg")
 
         hookStackTraces(cl, xi)
-        hookClassLoaderLoadClass(cl, xi)
-        hookClassForName(cl, xi)
+        DualLog.debug(TAG, "Class lookup hiding disabled for target startup safety")
         hookProcMaps(cl, xi)
         hookPackageManager(cl, xi)
 
@@ -135,7 +150,7 @@ object AntiDetectHooker {
 
     private fun hookClassLoaderLoadClass(cl: ClassLoader, xi: XposedInterface) {
         try {
-            val classLoaderClass = cl.loadClass("java.lang.ClassLoader")
+            val classLoaderClass = ClassLoader::class.java
             classLoaderClass.declaredMethods
                 .filter {
                     it.name == "loadClass" &&
@@ -147,16 +162,17 @@ object AntiDetectHooker {
                 .forEach { method ->
                     method.isAccessible = true
                     xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
-                        val className = chain.args.firstOrNull() as? String
-                        if (
-                            className != null &&
-                                HIDDEN_CLASS_PATTERNS.any {
-                                    className.contains(it, ignoreCase = true)
-                                }
-                        ) {
-                            throw ClassNotFoundException(className)
+                        if (classLookupHookActive.get() == true) return@intercept chain.proceed()
+                        classLookupHookActive.set(true)
+                        try {
+                            val className = chain.args.firstOrNull() as? String
+                            if (className != null && shouldHideClass(className)) {
+                                throw ClassNotFoundException(className)
+                            }
+                            chain.proceed()
+                        } finally {
+                            classLookupHookActive.set(false)
                         }
-                        chain.proceed()
                     }
                     xi.deoptimize(method)
                 }
@@ -167,7 +183,7 @@ object AntiDetectHooker {
 
     private fun hookClassForName(cl: ClassLoader, xi: XposedInterface) {
         try {
-            val classClass = cl.loadClass("java.lang.Class")
+            val classClass = Class::class.java
             classClass.declaredMethods
                 .filter {
                     it.name == "forName" &&
@@ -183,16 +199,17 @@ object AntiDetectHooker {
                 .forEach { method ->
                     method.isAccessible = true
                     xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
-                        val className = chain.args.firstOrNull() as? String
-                        if (
-                            className != null &&
-                                HIDDEN_CLASS_PATTERNS.any {
-                                    className.contains(it, ignoreCase = true)
-                                }
-                        ) {
-                            throw ClassNotFoundException(className)
+                        if (classLookupHookActive.get() == true) return@intercept chain.proceed()
+                        classLookupHookActive.set(true)
+                        try {
+                            val className = chain.args.firstOrNull() as? String
+                            if (className != null && shouldHideClass(className)) {
+                                throw ClassNotFoundException(className)
+                            }
+                            chain.proceed()
+                        } finally {
+                            classLookupHookActive.set(false)
                         }
-                        chain.proceed()
                     }
                     xi.deoptimize(method)
                 }
@@ -382,5 +399,30 @@ object AntiDetectHooker {
         } finally {
             filteringFlag.set(false)
         }
+    }
+
+    private fun shouldHideClass(className: String): Boolean {
+        for (prefix in SAFE_CLASS_PREFIXES) {
+            if (className.startsWith(prefix)) return false
+        }
+        for (pattern in HIDDEN_CLASS_PATTERNS) {
+            if (containsIgnoreCase(className, pattern)) return true
+        }
+        return false
+    }
+
+    internal fun shouldHideClassForTest(className: String): Boolean = shouldHideClass(className)
+
+    private fun containsIgnoreCase(value: String, pattern: String): Boolean {
+        val lastStart = value.length - pattern.length
+        if (lastStart < 0) return false
+        var index = 0
+        while (index <= lastStart) {
+            if (value.regionMatches(index, pattern, 0, pattern.length, ignoreCase = true)) {
+                return true
+            }
+            index++
+        }
+        return false
     }
 }

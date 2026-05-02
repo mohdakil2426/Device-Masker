@@ -2,55 +2,73 @@
 
 ## Problem
 
-Android apps can collect many identifiers and signals to build a device fingerprint:
-- Telephony identifiers such as IMEI, IMSI, ICCID, carrier, and phone number.
-- Android and Google identifiers such as Android ID, GSF ID, Advertising ID, and Media DRM ID.
-- Network identifiers such as Wi-Fi/Bluetooth MAC, SSID, and BSSID.
-- System profile values such as model, manufacturer, build fingerprint, and serial.
+Android apps can collect identifiers and signals that become a device fingerprint:
+- Android ID, Advertising ID, GSF-like identifiers, and Media DRM identifiers.
+- Telephony identifiers such as IMEI, IMSI, ICCID, MCC/MNC, carrier name, and phone number.
+- Network signals such as Wi-Fi MAC, SSID, BSSID, Bluetooth address, and network operator.
+- Build and system profile values such as manufacturer, model, fingerprint, serial, board, brand, and hardware.
 - Locale, timezone, location, and sensor metadata.
-- Installed package and stack trace evidence that a hook framework is present.
+- Installed packages, stack traces, loaded maps, and other evidence of LSPosed or hook frameworks.
 
-Users and researchers need a controlled way to present consistent alternate identities to selected apps without modifying APKs.
+Researchers need a controlled way to present consistent alternate identities to selected apps without modifying those apps.
 
 ## Product Shape
 
-Device Masker has two user-visible parts:
+Device Masker has three product-facing responsibilities:
 
-1. The Android app
-   - Configure the global module switch.
+1. Configuration app
+   - Enable/disable the module globally.
    - Create and edit spoof groups.
    - Assign apps to groups.
-   - Regenerate or customize identifier values.
-   - See module/framework health and diagnostics.
+   - Generate and persist stable identity values.
+   - Sync configuration to libxposed RemotePreferences.
+   - Export rootless app logs and available diagnostics.
 
-2. The LSPosed module
-   - Loads in scoped target app processes.
-   - Reads configuration through libxposed RemotePreferences.
-   - Applies spoof hooks only when the app and spoof type are enabled.
-   - Hides selected LSPosed/module/package traces.
-   - Reports diagnostics to the system_server service.
+2. Xposed module
+   - Loads only in LSPosed-scoped processes.
+   - Reads RemotePreferences from the libxposed service bridge.
+   - Applies hooks only for enabled target apps and enabled spoof types.
+   - Returns original values whenever config is unsafe.
+   - Logs hook and spoof events to LSPosed Manager logs.
+
+3. Diagnostics and verification
+   - Shows app-side service/config/log state.
+   - Treats custom AIDL diagnostics as best-effort.
+   - Uses LSPosed logs as the reliable proof that target-process hooks loaded and fired.
 
 ## Expected User Flow
 
-1. Install the APK.
-2. Enable Device Masker in LSPosed.
-3. Ensure required scope is available (`android`, `system`, and selected target apps as applicable).
-4. Open Device Masker.
+1. Install Device Masker.
+2. Enable it as an LSPosed module.
+3. Scope `android`, `system`, and the selected target apps.
+4. Open Device Masker and wait for libxposed service connection.
 5. Create or select a spoof group.
 6. Assign target apps to that group.
-7. Enable and configure specific spoof types.
-8. Restart target apps if needed.
-9. Verify with diagnostics and external identifier-checking apps.
+7. Enable specific spoof types and verify generated values.
+8. Force-stop and relaunch target apps.
+9. Validate with LSPosed logs and an identifier-checking app.
+
+## Working Base
+
+The first working base was validated on 2026-05-02:
+- Target app: `com.mantle.verify`.
+- Target process started under LSPosed after crash remediation.
+- Hooks registered.
+- Multiple spoof events were emitted to LSPosed logs.
+- Earlier startup crash signatures were absent in the final smoke check.
+
+This proves the architecture can work end to end for at least one scoped target under the current emulator setup. It does not prove stable release readiness.
 
 ## UX Principles
 
-- Make current status clear: module switch, LSPosed service connection, protected app count, and configured identifiers.
-- Avoid false health claims. The app can show service connection and diagnostics availability, but a target app is only proven hooked after hook registration or spoof events appear.
-- Keep configuration changes immediate and recoverable.
-- Prefer coherent group/persona configuration over one-off values that break correlation.
-- Make development-state limitations visible rather than pretending the module is stable.
+- Never imply that app launch alone proves hook success.
+- Distinguish app-side Xposed service connection from target-process hook registration.
+- Prefer clear status labels over optimistic activation claims.
+- Keep configuration recoverable and stable.
+- Make development limitations visible.
+- Encourage LSPosed log verification after changing scope, module state, or target app config.
 
-## Correct Behavior
+## Correct Hook Behavior
 
 For each target app and spoof type:
 - If the module is disabled, return the original value.
@@ -59,7 +77,6 @@ For each target app and spoof type:
 - If the spoof type is disabled, blank, missing, or malformed, return the original value.
 - If a valid stored value exists and the type is enabled, return the stored spoofed value.
 
-## Primary Risk To Avoid
+## Primary Product Risk
 
-Target apps can get stuck during startup if they see inconsistent or changing identifiers. Therefore hooks must not generate random values in target processes. Values should be generated and persisted in app-side configuration, then read by hooks as stable stored values.
-
+Target apps can fail during startup when hooks are too invasive, too early, or inconsistent. The latest working base was achieved by favoring pass-through safety and disabling global class lookup anti-detection by default.
