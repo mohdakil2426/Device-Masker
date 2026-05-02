@@ -1,6 +1,6 @@
 # =============================================================================
 # Device Masker — R8 / ProGuard Rules (app module)
-# libxposed API 100 edition — YukiHookAPI / KavaRef rules REMOVED.
+# libxposed API 101 edition — YukiHookAPI / KavaRef rules REMOVED.
 #
 # Applied by R8 during assembleRelease.
 # Base: proguard-android-optimize.txt (set in app/build.gradle.kts).

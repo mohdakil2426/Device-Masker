@@ -2,9 +2,9 @@
 package com.astrixforge.devicemasker;
 
 /**
- * AIDL interface for Device Masker diagnostics service (Option B — libxposed API 100).
+ * AIDL interface for Device Masker diagnostics service (Option B — libxposed API 101).
  *
- * Config delivery has been moved entirely to RemotePreferences (libxposed API 100).
+ * Config delivery has been moved entirely to RemotePreferences (libxposed API 101).
  * This service is now DIAGNOSTICS ONLY — hooks report events to it, and the UI reads
  * aggregated statistics and log entries.
  *

@@ -5,7 +5,7 @@ import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 
 /**
- * Thread-safe preference reading for libxposed API 100 RemotePreferences.
+ * Thread-safe preference reading for libxposed API 101 RemotePreferences.
  *
  * ## What changed from the YukiHookAPI (XSharedPreferences) version
  *

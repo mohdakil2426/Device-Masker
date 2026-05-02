@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    // KSP plugin removed — YukiHookAPI KSP processor no longer needed with libxposed API 100
+    // KSP plugin removed — YukiHookAPI KSP processor no longer needed with libxposed API 101
 }
 
 // Use JVM 17 for better Android/Xposed compatibility

@@ -1,6 +1,6 @@
 # =============================================================================
 # Device Masker — Consumer ProGuard Rules (:common module)
-# libxposed API 100 edition.
+# libxposed API 101 edition.
 #
 # Merged into :app's R8 run automatically by AGP.
 # Protects shared models, generators, AIDL interface, enums, and keys.
@@ -92,7 +92,7 @@
     public static *;
 }
 
-# NetworkTypeMapper — new in API 100 migration
+# NetworkTypeMapper — new in API 101 migration
 -keep class com.astrixforge.devicemasker.common.NetworkTypeMapper { *; }
 -keepclassmembers class com.astrixforge.devicemasker.common.NetworkTypeMapper {
     public static *;

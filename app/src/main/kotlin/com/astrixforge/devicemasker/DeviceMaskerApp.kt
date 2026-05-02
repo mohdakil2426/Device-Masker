@@ -7,7 +7,7 @@ import com.astrixforge.devicemasker.service.ServiceClient
 import timber.log.Timber
 
 /**
- * Device Masker Application class — libxposed API 100 edition.
+ * Device Masker Application class — libxposed API 101 edition.
  *
  * Extends standard [Application] (YukiHookAPI's `ModuleApplication` no longer used after libxposed
  * migration). Initialises only what is needed at startup:
@@ -88,7 +88,7 @@ class DeviceMaskerApp : Application() {
  *
  * `XposedEntry.init` sets [active] to `true` via reflection when the module is loaded into a
  * process. In the module app's own process this field stays `false` — the module app is never
- * hooked into itself (libxposed API 100 guarantees this).
+ * hooked into itself (libxposed API 101 guarantees this).
  *
  * This pattern replaces `YukiHookAPI.Status.isModuleActive`.
  */

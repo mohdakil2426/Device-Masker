@@ -4,10 +4,51 @@
 
 | Metric                | Value                                                                                 |
 | --------------------- | ------------------------------------------------------------------------------------- |
-| **Project Phase**     | libxposed API 101 Full Migration + Finalization ✅                                    |
+| **Project Phase**     | Latest libxposed API 101 Refresh ✅                                                   |
 | **Active Changes**    | 0                                                                                     |
 | **Archived Changes**  | 13                                                                                    |
-| **Last Major Update** | March 19, 2026 — API 101 finalization: module.prop updated, ProGuard rewritten, all hooker KDocs updated, assembleDebug PASSED (24.44 MB). ✅ |
+| **Last Major Update** | May 2, 2026 — latest API 101 artifact refresh: libxposed api 101.0.1, service/interface 101.0.0, hook entry moved to onPackageReady for minSdk 26 lint safety, all quality gates passed. ✅ |
+
+---
+
+## ✅ Completed: Latest libxposed API 101 Refresh (May 2, 2026)
+
+**Status**: Dependencies ✅ | metadata ✅ | hook lifecycle ✅ | tests/lint/builds ✅ | safety greps ✅
+
+### What Changed
+
+| File / Area | Status | Notes |
+| --- | --- | --- |
+| `gradle/libs.versions.toml` | ✅ | `libxposed-api` updated to `101.0.1`; `service` and `interface` stay on latest published `101.0.0`. |
+| `app/src/main/AndroidManifest.xml` | ✅ | Legacy `xposedminversion` bumped from `100` to `101`; RemotePreferences comments updated. |
+| `xposed/XposedEntry.kt` | ✅ | App hook registration moved from `onPackageLoaded()`/`defaultClassLoader` to `onPackageReady()`/`classLoader` to satisfy minSdk 26 lint. |
+| `app`, `common`, `xposed` comments/resources | ✅ | Stale `libxposed API 100` runtime text updated to API 101. |
+| Persona migration helpers | ✅ | Added persona preference keys and ConfigManager persona lifecycle helpers needed by current tests. |
+| Tests | ✅ | Fixed current unit-test compile issues around JUnit imports and persona test arguments. |
+
+### Verification
+
+```bash
+./gradlew.bat spotlessApply spotlessCheck lint test assembleDebug assembleRelease
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+Xposed safety greps all returned 0 results:
+- legacy static hook annotations/callbacks
+- hardcoded pref key strings in app/xposed source
+- non-secure random in common source
+- Timber usage in xposed source
+- Compose imports in common/xposed source
+
+Release mapping check confirmed critical classes are kept:
+- `com.astrixforge.devicemasker.xposed.XposedEntry`
+- `com.astrixforge.devicemasker.xposed.hooker.AntiDetectHooker`
+- `com.astrixforge.devicemasker.xposed.service.DeviceMaskerService`
+
+### Remaining
+
+Manual device validation is still required on an LSPosed runtime that reports API 101.
 
 ---
 

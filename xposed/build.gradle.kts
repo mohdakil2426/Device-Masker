@@ -52,7 +52,7 @@ dependencies {
     implementation(project(":common"))
 
     // ═══════════════════════════════════════════════════════════
-    // libxposed API 100 — Modern Xposed hook engine
+    // libxposed API 101 — Modern Xposed hook engine
     // compileOnly: LSPosed provides the runtime implementation via its framework
     // Resolves from mavenCentral() — no local AARs needed
     // ═══════════════════════════════════════════════════════════

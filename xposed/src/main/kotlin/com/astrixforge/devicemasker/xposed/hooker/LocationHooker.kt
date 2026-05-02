@@ -6,7 +6,7 @@ import com.astrixforge.devicemasker.common.SpoofType
 import io.github.libxposed.api.XposedInterface
 
 /**
- * Location Hooker — libxposed API 100 edition.
+ * Location Hooker — libxposed API 101 edition.
  *
  * Spoofs:
  * - GPS latitude (Location.getLatitude())

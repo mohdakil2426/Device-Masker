@@ -5,7 +5,7 @@ import io.github.libxposed.api.XposedInterface
 import java.lang.reflect.Method
 
 /**
- * Centralized ART deoptimization manager for libxposed API 100.
+ * Centralized ART deoptimization manager for libxposed API 101.
  *
  * ## Why deoptimize() is critical
  *

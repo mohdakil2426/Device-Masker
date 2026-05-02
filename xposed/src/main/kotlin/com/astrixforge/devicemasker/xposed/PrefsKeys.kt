@@ -9,10 +9,10 @@ import com.astrixforge.devicemasker.common.SpoofType
  * Delegates entirely to SharedPrefsKeys in :common, which remains the SINGLE SOURCE OF TRUTH for
  * all key names. This class exists only as a convenience alias within :xposed.
  *
- * ## Migration note (libxposed API 100)
+ * ## Migration note (libxposed API 101)
  *
  * Previously used YukiHookAPI's `PrefsData` wrapper objects, which are specific to the
- * `YukiHookPrefsBridge`. With libxposed API 100 and RemotePreferences, we use standard
+ * `YukiHookPrefsBridge`. With libxposed API 101 and RemotePreferences, we use standard
  * `SharedPreferences` keys (plain strings). `PrefsData` wrappers are no longer needed.
  *
  * Key format is UNCHANGED — only the delivery mechanism changed (RemotePreferences vs

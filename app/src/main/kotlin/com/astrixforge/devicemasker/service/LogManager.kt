@@ -97,7 +97,7 @@ object LogManager {
         // Header
         builder.appendLine(HEADER_LINE)
         builder.appendLine("              DEVICE MASKER - LOG EXPORT")
-        builder.appendLine("                    libxposed API 100")
+        builder.appendLine("                    libxposed API 101")
         builder.appendLine(HEADER_LINE)
         builder.appendLine()
 

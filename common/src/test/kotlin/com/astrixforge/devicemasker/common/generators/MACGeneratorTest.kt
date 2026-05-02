@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.Utils
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.Test
 
 /**
  * Unit tests for MACGenerator.

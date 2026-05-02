@@ -12,8 +12,9 @@
 | **UI**       | Material 3             | 1.4.0 (Stable)            | M3 Expressive components                              |
 | **UI**       | Navigation Compose     | 2.9.7                     | NavHost + animated transitions                        |
 | **UI**       | Lifecycle              | 2.10.0                    | `collectAsStateWithLifecycle`                         |
-| **Hooking**  | **libxposed-api**      | **101.0.0**               | **Hook API (replaces YukiHookAPI 1.3.1)**             |
+| **Hooking**  | **libxposed-api**      | **101.0.1**               | **Hook API (replaces YukiHookAPI 1.3.1)**             |
 | **Hooking**  | **libxposed-service**  | **101.0.0**               | **App-side RemotePreferences + UI service binding**   |
+| **Hooking**  | **libxposed-interface** | **101.0.0**              | **App-side service interface for XposedServiceHelper** |
 | **Hooking**  | AndroidHiddenApiBypass | 6.1                       | Hidden API access                                     |
 | **Hooking**  | LSPosed                | **API 101**               | Framework (external, user installs)                   |
 | **IPC**      | AIDL Binder            | —                         | Diagnostics-only: event counts, logs, hooked packages |

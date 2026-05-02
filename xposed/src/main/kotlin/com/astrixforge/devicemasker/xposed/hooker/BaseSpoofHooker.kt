@@ -125,8 +125,8 @@ abstract class BaseSpoofHooker(protected val tag: String) {
 
     /**
      * Reports a successful spoof event to the diagnostics-only AIDL service. Fire-and-forget — if
-     * the service is unavailable, this call fails silently. Hooker @AfterInvocation callbacks
-     * should call this after returning a spoofed value.
+     * the service is unavailable, this call fails silently. Hookers should call this after
+     * returning a spoofed value.
      */
     protected fun reportSpoofEvent(pkg: String, type: SpoofType) {
         runCatching { XposedEntry.instance.reportSpoofEvent(pkg, type.name) }

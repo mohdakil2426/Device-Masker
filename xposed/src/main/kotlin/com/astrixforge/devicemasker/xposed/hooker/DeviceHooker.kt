@@ -27,8 +27,8 @@ import io.github.libxposed.api.XposedInterface
  * 4. `loadClassOrNull()` used everywhere — isolated renderer processes don't crash
  *
  * ## API 101 hook pattern
- * Lambda-based interceptor: `xi.hook(m).intercept { chain -> proceed(); return spoofed }` No static
- * inner classes or @XposedHooker annotations needed.
+ * Lambda-based interceptor: `xi.hook(m).intercept { chain -> proceed(); return spoofed }`. No
+ * static callback classes or hook annotations are needed.
  */
 object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
 

@@ -589,12 +589,8 @@ class SpoofRepository(private val context: Context) {
     suspend fun importGroups(jsonString: String): Boolean {
         return try {
             val config = com.astrixforge.devicemasker.common.JsonConfig.parse(jsonString)
-            if (config != null) {
-                config.getAllGroups().forEach { group -> ConfigManager.updateGroup(group) }
-                true
-            } else {
-                false
-            }
+            config.getAllGroups().forEach { group -> ConfigManager.updateGroup(group) }
+            true
         } catch (e: Exception) {
             false
         }

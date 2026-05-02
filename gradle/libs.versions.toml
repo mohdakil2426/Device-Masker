@@ -1,6 +1,6 @@
 [versions]
 # Core
-agp = "9.1.0"
+agp = "9.2.0"
 kotlin = "2.3.0"
 
 # Android
@@ -17,7 +17,7 @@ material = "1.13.0"
 graphicsShapes = "1.1.0"
 
 # libxposed API 101 (replaces YukiHookAPI 1.3.1 + KavaRef + legacy xposed-api:82)
-libxposed-api = "101.0.0"
+libxposed-api = "101.0.1"
 libxposed-service = "101.0.0"
 hiddenapibypass = "6.1"
 
@@ -65,11 +65,11 @@ lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtim
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
-# libxposed API 100 — Modern Xposed hook engine (replaces YukiHookAPI + KavaRef + xposed-api:82)
+# libxposed API 101 — Modern Xposed hook engine (replaces YukiHookAPI + KavaRef + xposed-api:82)
 # api: compileOnly in :xposed — LSPosed provides the runtime implementation
 # service: implementation in :app — enables writing RemotePreferences from the UI
 libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed-api" }
-libxposed-iface = { group = "io.github.libxposed", name = "interface", version.ref = "libxposed-api" }
+libxposed-iface = { group = "io.github.libxposed", name = "interface", version.ref = "libxposed-service" }
 libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed-service" }
 hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version.ref = "hiddenapibypass" }
 

@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the Diagnostics screen — libxposed API 100 / Option B edition.
+ * ViewModel for the Diagnostics screen — libxposed API 101 / Option B edition.
  *
  * Uses the diagnostics-only [ServiceClient] (post-migration):
  * - `getHookedPackages()` — packages hooked this session
@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
  * - `isAlive()` / `connectionState` — service health
  *
  * Config-related service methods (writeConfig, readConfig, etc.) have been removed. Config delivery
- * is exclusively via RemotePreferences (libxposed API 100).
+ * is exclusively via RemotePreferences (libxposed API 101).
  */
 class DiagnosticsViewModel(application: Application, private val repository: SpoofRepository) :
     AndroidViewModel(application) {

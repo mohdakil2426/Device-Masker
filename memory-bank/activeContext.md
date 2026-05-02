@@ -2,6 +2,43 @@
 
 ## Current Work Focus
 
+### ✅ COMPLETED: Latest libxposed API 101 Refresh (May 2, 2026)
+
+**Status**: API dependency ✅ | metadata ✅ | hook entry ✅ | lint/test/debug/release ✅
+**Branch**: `main`
+
+Updated the live project from the previous API 101.0.0 baseline to the latest currently published
+API 101 artifact set:
+- `io.github.libxposed:api` → `101.0.1`
+- `io.github.libxposed:service` remains `101.0.0` (latest published service artifact)
+- `io.github.libxposed:interface` remains `101.0.0` (latest published interface artifact)
+
+Context7 was requested but unavailable in this session because its OAuth token was expired. Official
+libxposed API docs and Maven Central were used as fallback sources. Key docs confirmed:
+`XposedModule`, `getRemotePreferences()`, `hook()`, `deoptimize()`, and API 101 runtime constants.
+
+Key implementation update:
+- `XposedEntry` now registers app hooks in `onPackageReady()` and uses `PackageReadyParam.classLoader`
+  instead of `PackageLoadedParam.defaultClassLoader`, because the latter is annotated `@RequiresApi(29)`
+  while this project supports minSdk 26.
+- Legacy API 100 wording was updated across live code/resources.
+- `xposedminversion` is now `101`; `module.prop` already had `minApiVersion=101` and
+  `targetApiVersion=101`.
+- Current persona migration compile gaps were closed by adding persona preference keys and
+  ConfigManager persona lifecycle helpers.
+
+Verification passed:
+- `./gradlew.bat spotlessApply spotlessCheck lint test assembleDebug assembleRelease`
+- Xposed safety greps: legacy callback annotations, hardcoded pref keys, non-secure random,
+  Timber in `:xposed`, and Compose imports in `:common`/`:xposed` all returned 0 results.
+- Release mapping contains critical xposed classes including `XposedEntry`, `AntiDetectHooker`, and
+  `DeviceMaskerService`.
+
+Remaining notes:
+- Gradle/AGP deprecation warnings remain in `gradle.properties` and Spotless config; they do not
+  fail the current gates but should be cleaned before AGP 10.
+- Manual device testing with an LSPosed API 101 runtime is still required.
+
 ### ✅ COMPLETED: libxposed API 101 Migration — Full Finalization (Mar 19, 2026)
 
 **Status**: API 101 ✅ | module.prop ✅ | ProGuard ✅ | All hooker docs ✅ | assembleDebug ✅

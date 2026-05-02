@@ -20,7 +20,7 @@
 │  JsonConfig │ SpoofGroup │ DeviceProfilePreset │ generators/   │
 ├────────────────────────────────────────────────────────────────┤
 │  :xposed  (Hook Layer)                                         │
-│  XposedEntry: onPackageLoaded / onSystemServerStarting          │
+│  XposedEntry: onPackageLoaded / onSystemServerStarting         │
 │  DeviceMaskerService (system_server AIDL - diagnostics only)   │
 │  BaseSpoofHooker: RemotePreferences-first ──► AIDL fallback    │
 │  DeoptimizeManager: xi.deoptimize(m) per hook (API 101 style)  │

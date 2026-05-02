@@ -34,17 +34,17 @@
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
-        <!-- Updated to API 100 for libxposed modern API (LSPosed 1.9.0+, we require 1.10.2+) -->
+        <!-- Updated to API 101 for libxposed modern API -->
         <meta-data
             android:name="xposedminversion"
-            android:value="100" />
+            android:value="101" />
         <meta-data
             android:name="xposeddescription"
             android:value="@string/xposed_description" />
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposed_scope" />
-        <!-- Required for RemotePreferences cross-process bridge (libxposed API 100) -->
+        <!-- Required for RemotePreferences cross-process bridge (libxposed API 101) -->
         <meta-data
             android:name="xposedsharedprefs"
             android:value="true" />

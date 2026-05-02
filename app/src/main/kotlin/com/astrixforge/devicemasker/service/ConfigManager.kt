@@ -9,6 +9,7 @@ import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.ConfigSync
 import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,7 +21,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
- * Config Manager — manages application configuration (libxposed API 100 edition).
+ * Config Manager — manages application configuration (libxposed API 101 edition).
  *
  * Responsibilities:
  * 1. Load/save configuration from/to local JSON file (filesDir/config.json)
@@ -82,11 +83,9 @@ object ConfigManager {
                 if (configFile.baseFile.exists()) {
                     val json = String(configFile.readFully())
                     val loadedConfig = JsonConfig.parse(json)
-                    if (loadedConfig != null) {
-                        _config.value = loadedConfig
-                        Timber.tag(TAG).i("Config loaded from local file")
-                        return@withContext
-                    }
+                    _config.value = loadedConfig
+                    Timber.tag(TAG).i("Config loaded from local file")
+                    return@withContext
                 }
 
                 // Use default config
@@ -229,6 +228,20 @@ object ConfigManager {
         val group = getGroup(groupId) ?: return
         val regenerated = group.regenerateAll()
         updateGroup(regenerated)
+    }
+
+    /** Returns the resolved persona seed for a group. */
+    fun getPersonaSeed(group: SpoofGroup): String = group.resolvedPersonaSeed()
+
+    /** Returns the version used to identify the current generated persona state. */
+    fun getPersonaVersion(group: SpoofGroup): Long = group.updatedAt
+
+    /** Rotates persona metadata while preserving group identity and assignments. */
+    fun refreshPersonaLifecycle(group: SpoofGroup): SpoofGroup {
+        return group.withPersona(
+            seed = UUID.randomUUID().toString(),
+            generatedAt = System.currentTimeMillis(),
+        )
     }
 
     // ═══════════════════════════════════════════════════════════

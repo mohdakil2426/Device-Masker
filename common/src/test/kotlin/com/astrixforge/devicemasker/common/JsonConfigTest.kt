@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.common
 
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import org.junit.Test
 
 class JsonConfigTest {
 

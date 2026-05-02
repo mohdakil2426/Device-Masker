@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.common.models
 
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
-import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import org.junit.Test
 
 class DeviceHardwareConfigTest {
 

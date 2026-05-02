@@ -10,13 +10,13 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Diagnostics service running in `system_server` — libxposed API 100 / Option B.
+ * Diagnostics service running in `system_server` — libxposed API 101 / Option B.
  *
  * **What changed from the previous version:**
  * - ALL config-related state removed: `config: AtomicReference<JsonConfig>`, `ConfigManager`
  * - ALL config-related methods removed: `writeConfig`, `readConfig`, `reloadConfig`,
  *   `isModuleEnabled`, `isAppEnabled`, `getSpoofValue`
- * - Config delivery is now exclusively via `RemotePreferences` (libxposed API 100)
+ * - Config delivery is now exclusively via `RemotePreferences` (libxposed API 101)
  *
  * **What remains:**
  * - `logs`: in-memory ring buffer of hook event messages
@@ -45,7 +45,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         private const val MAX_LOGS = 500
 
         /** Version used by DiagnosticsViewModel for display. */
-        const val VERSION = "2.0.0" // bumped: diagnostics-only, libxposed API 100
+        const val VERSION = "2.0.0" // bumped: diagnostics-only, libxposed API 101
 
         @Volatile private var instance: DeviceMaskerService? = null
 

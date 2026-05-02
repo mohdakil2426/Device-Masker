@@ -16,12 +16,12 @@ import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
-import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Device Masker entry point for libxposed API 100.
+ * Device Masker entry point for libxposed API 101.
  *
  * Each target process gets a NEW instance of this class — LSPosed reads
  * META-INF/xposed/java_init.list, instantiates this class via reflection, then calls
@@ -109,13 +109,13 @@ class XposedEntry : XposedModule() {
     }
 
     /**
-     * Called when a target package's ClassLoader is ready. This fires BEFORE Application.onCreate()
-     * — the earliest possible hook point. Hooks set here intercept the very first identifier reads
-     * by the app.
+     * Called when a target package's ClassLoader is ready. Hooks set here intercept identifier
+     * reads by the app while avoiding PackageLoadedParam.defaultClassLoader, which is only
+     * available on Android 10+.
      *
      * @param param Contains packageName, classLoader, and process metadata.
      */
-    override fun onPackageLoaded(param: PackageLoadedParam) {
+    override fun onPackageReady(param: PackageReadyParam) {
         val pkg = param.packageName
 
         // System server is handled by onSystemServerLoaded — do not double-hook
@@ -157,7 +157,7 @@ class XposedEntry : XposedModule() {
         // Per-app toggle — only hook apps that the user explicitly enabled
         if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(pkg), false)) return
 
-        val cl = param.defaultClassLoader
+        val cl = param.classLoader
         val classLoaderKey = System.identityHashCode(cl)
         if (!hookedClassLoaders.add(classLoaderKey)) {
             log(Log.DEBUG, TAG, "Hooks already registered for classloader of $pkg", null)
@@ -258,9 +258,8 @@ class XposedEntry : XposedModule() {
     }
 
     /**
-     * Reports a spoof event to the diagnostics service. Called by hooker @AfterInvocation callbacks
-     * after returning a spoofed value. Declared here so hookers can call
-     * XposedEntry.instance.reportSpoofEvent().
+     * Reports a spoof event to the diagnostics service after a hooker returns a spoofed value.
+     * Declared here so hookers can call XposedEntry.instance.reportSpoofEvent().
      */
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
         runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }

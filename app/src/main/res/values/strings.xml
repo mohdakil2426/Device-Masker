@@ -76,7 +76,7 @@
     <string name="settings_build_type_debug">Debug</string>
     <string name="settings_build_type_release">Release</string>
     <string name="settings_module_info">Module Info</string>
-    <string name="settings_module_info_value">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_value">libxposed API 101 • LSPosed module</string>
     <string name="settings_export_logs_share_chooser">Share Logs</string>
 
     <!-- Settings Screen -->
@@ -185,7 +185,7 @@
     <string name="action_section_state">%1$s, %2$s</string>
     <string name="action_assignment_state">%1$s, %2$s</string>
     <string name="action_group_row_state">%1$s, %2$s, %3$s</string>
-    <string name="action_module_info_description">libxposed API 100 and LSPosed compatibility details</string>
+    <string name="action_module_info_description">libxposed API 101 and LSPosed compatibility details</string>
     <string name="action_module_info_unavailable">Module information only</string>
     <string name="app_item_locked">Assigned to another group</string>
     <string name="app_item_icon">App icon</string>
@@ -242,7 +242,7 @@
     <string name="group_screen_fab">Create group</string>
     <string name="group_screen_actions">Group list actions</string>
 
-    <string name="about_module_info_value">libxposed API 100 • LSPosed module</string>
+    <string name="about_module_info_value">libxposed API 101 • LSPosed module</string>
     <string name="about_build_type_release">Release</string>
     <string name="about_build_type_debug">Debug</string>
     <string name="about_module_info_title">Module Info</string>
@@ -555,7 +555,7 @@
     <string name="group_empty_state">No groups found</string>
     <string name="group_empty_state_cta">Create a group to start assigning spoofed identities.</string>
 
-    <string name="settings_module_info_summary">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_summary">libxposed API 101 • LSPosed module</string>
 
     <string name="group_card_role">Button</string>
     <string name="settings_item_role">Button</string>
@@ -591,7 +591,7 @@
     <string name="group_card_edit_action">Edit group</string>
     <string name="group_card_delete_action">Delete group</string>
 
-    <string name="settings_about_module_value">libxposed API 100 • LSPosed module</string>
+    <string name="settings_about_module_value">libxposed API 101 • LSPosed module</string>
     <string name="settings_about_build_value_debug">Debug</string>
     <string name="settings_about_build_value_release">Release</string>
 
@@ -719,7 +719,7 @@
     <string name="diagnostics_result_title">Result</string>
     <string name="diagnostics_result_status">Status</string>
 
-    <string name="settings_module_runtime_value">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_runtime_value">libxposed API 101 • LSPosed module</string>
 
     <string name="home_group_current">Current group</string>
 
@@ -774,7 +774,7 @@
     <string name="diagnostics_cached_fallback">Cached fallback</string>
 
     <string name="settings_share_logs_title">Share Logs</string>
-    <string name="settings_module_info_subtitle">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_subtitle">libxposed API 101 • LSPosed module</string>
 
     <string name="group_card_footer">Group metadata</string>
     <string name="diagnostics_footer">Diagnostics details</string>
@@ -978,7 +978,7 @@
     <string name="home_group_disabled_tag_text">Disabled</string>
 
     <string name="settings_export_logs_summary_note">Save or share in-memory diagnostics logs</string>
-    <string name="settings_module_info_summary_note">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_summary_note">libxposed API 101 • LSPosed module</string>
 
     <string name="diagnostics_pull_hint">Pull down to refresh</string>
     <string name="group_list_dynamic">Live-updating group list</string>
@@ -1027,7 +1027,7 @@
     <string name="diagnostics_live_service">Live service</string>
     <string name="diagnostics_cached_preferences">Cached preferences</string>
 
-    <string name="settings_module_info_runtime">libxposed API 100</string>
+    <string name="settings_module_info_runtime">libxposed API 101</string>
     <string name="settings_module_info_framework">LSPosed module</string>
 
     <string name="group_dialog_name_example">e.g., Samsung</string>
@@ -1139,7 +1139,7 @@
     <string name="config_sync_immediate">Configuration updates apply immediately when the live module service is available.</string>
     <string name="config_sync_restart_fallback">If the service is unavailable, cached preferences may require a target app restart.</string>
 
-    <string name="settings_module_info_architecture">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_architecture">libxposed API 101 • LSPosed module</string>
 
     <string name="group_auto_updates">Groups update automatically from repository changes.</string>
     <string name="group_no_pull_refresh">Manual pull-to-refresh is not shown.</string>
@@ -1168,7 +1168,7 @@
     <string name="picker_dialog_timezone_semantics">Timezone picker dialog</string>
 
     <string name="settings_export_logs_note_dynamic">Save or share in-memory diagnostics logs</string>
-    <string name="settings_module_info_note_dynamic">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_note_dynamic">libxposed API 101 • LSPosed module</string>
 
     <string name="group_empty_state_subtitle">Create a group to start assigning spoofed identities.</string>
     <string name="home_group_current_selection">Current group selection</string>
@@ -1202,7 +1202,7 @@
     <string name="picker_country_code">+%1$s</string>
     <string name="picker_timezone_parts">%1$s • %2$s</string>
 
-    <string name="settings_module_info_libxposed">libxposed API 100</string>
+    <string name="settings_module_info_libxposed">libxposed API 101</string>
     <string name="settings_module_info_lsposed">LSPosed module</string>
 
     <string name="group_card_created_summary">Created %1$s</string>
@@ -1212,7 +1212,7 @@
 
     <string name="settings_export_logs_destination_removed">No fixed destination</string>
 
-    <string name="settings_module_info_updated">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_updated">libxposed API 101 • LSPosed module</string>
 
     <string name="group_list_real_time">Reactive group updates</string>
     <string name="group_list_manual_refresh_hidden">Manual refresh hidden</string>
@@ -1225,7 +1225,7 @@
     <string name="diagnostics_config_desc_live">Immediate when live service is available</string>
     <string name="diagnostics_config_desc_fallback">Fallback may require restart</string>
 
-    <string name="about_module_info_runtime">libxposed API 100 • LSPosed module</string>
+    <string name="about_module_info_runtime">libxposed API 101 • LSPosed module</string>
 
     <string name="groups_screen_empty_subtitle">Create a group to start assigning spoofed identities.</string>
 
@@ -1338,7 +1338,7 @@
 
     <string name="groups_flow_updates">Repository flow updates automatically</string>
 
-    <string name="settings_module_info_runtime_updated">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_runtime_updated">libxposed API 101 • LSPosed module</string>
 
     <string name="home_group_label_current">Current group</string>
 
@@ -1371,7 +1371,7 @@
     <string name="settings_build_type_value_release">Release</string>
     <string name="settings_build_type_value_debug">Debug</string>
 
-    <string name="module_info_value">libxposed API 100 • LSPosed module</string>
+    <string name="module_info_value">libxposed API 101 • LSPosed module</string>
 
     <string name="group_card_summary_text">%1$s, %2$s, %3$s</string>
 
@@ -1442,7 +1442,7 @@
 
     <string name="screen_subtitle_home">Module status and quick actions</string>
 
-    <string name="settings_about_module_updated">libxposed API 100 • LSPosed module</string>
+    <string name="settings_about_module_updated">libxposed API 101 • LSPosed module</string>
 
     <string name="picker_search_country_hint">Search countries…</string>
     <string name="picker_search_timezone_hint">Search timezones…</string>
@@ -1483,7 +1483,7 @@
     <string name="config_sync_live_text">Live updates</string>
     <string name="config_sync_fallback_text">Fallback restart path</string>
 
-    <string name="module_info_runtime_text">libxposed API 100 • LSPosed module</string>
+    <string name="module_info_runtime_text">libxposed API 101 • LSPosed module</string>
 
     <string name="settings_export_logs_reworded">Save or share in-memory diagnostics logs</string>
 
@@ -1636,7 +1636,7 @@
     <string name="status_module_current">Module Active</string>
     <string name="status_module_current_inactive">Module Inactive</string>
 
-    <string name="settings_module_info_final">libxposed API 100 • LSPosed module</string>
+    <string name="settings_module_info_final">libxposed API 101 • LSPosed module</string>
     <string name="groups_empty_final">Create a group to start assigning spoofed identities.</string>
 
     <string name="home_loading_final">Loading dashboard…</string>
@@ -1687,7 +1687,7 @@
 
     <string name="home_loading_dashboard_final">Loading dashboard…</string>
 
-    <string name="module_info_runtime_final">libxposed API 100 • LSPosed module</string>
+    <string name="module_info_runtime_final">libxposed API 101 • LSPosed module</string>
 
     <string name="groups_auto_updates_final">Groups update automatically from repository changes.</string>
 

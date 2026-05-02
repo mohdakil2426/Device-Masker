@@ -13,7 +13,7 @@ import timber.log.Timber
  * The UI stores configuration as a group-based [JsonConfig] (JSON file). Hooks read flat per-app
  * [SharedPreferences] keys via `getRemotePreferences()`. This object bridges the gap.
  *
- * ## Sync Flow (libxposed API 100):
+ * ## Sync Flow (libxposed API 101):
  * ```
  * UI Change → ConfigManager → JsonConfig → ConfigSync.syncFromConfig()
  *                                                ↓

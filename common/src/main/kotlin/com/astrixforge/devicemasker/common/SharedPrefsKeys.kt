@@ -30,6 +30,8 @@ object SharedPrefsKeys {
     private const val PREFIX_APP_ENABLED = "app_enabled_"
     private const val PREFIX_SPOOF_ENABLED = "spoof_enabled_"
     private const val PREFIX_SPOOF_VALUE = "spoof_"
+    private const val PREFIX_PERSONA_BLOB = "persona_blob_"
+    private const val PREFIX_PERSONA_VERSION = "persona_version_"
 
     // ═══════════════════════════════════════════════════════════
     // KEY GENERATORS
@@ -63,6 +65,22 @@ object SharedPrefsKeys {
         return getSpoofValueKey(packageName, SpoofType.DEVICE_PROFILE)
     }
 
+    /** Gets the key for the coherent per-package persona JSON blob. */
+    fun getPersonaBlobKey(packageName: String): String {
+        return "$PREFIX_PERSONA_BLOB${sanitize(packageName)}"
+    }
+
+    /** Gets the key for the coherent per-package persona version. */
+    fun getPersonaVersionKey(packageName: String): String {
+        return "$PREFIX_PERSONA_VERSION${sanitize(packageName)}"
+    }
+
+    /** Checks whether [key] is a persona JSON blob key. */
+    fun isPersonaBlobKey(key: String): Boolean = key.startsWith(PREFIX_PERSONA_BLOB)
+
+    /** Checks whether [key] is a persona version key. */
+    fun isPersonaVersionKey(key: String): Boolean = key.startsWith(PREFIX_PERSONA_VERSION)
+
     // ═══════════════════════════════════════════════════════════
     // VALIDATION (for debugging sync issues)
     // ═══════════════════════════════════════════════════════════
@@ -74,7 +92,7 @@ object SharedPrefsKeys {
     fun isValidKey(key: String): Boolean {
         return key.matches(
             Regex(
-                "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+)$"
+                "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
             )
         )
     }

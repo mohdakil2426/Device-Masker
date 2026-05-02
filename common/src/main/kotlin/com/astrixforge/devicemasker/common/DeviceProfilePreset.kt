@@ -3,12 +3,12 @@ package com.astrixforge.devicemasker.common
 import kotlinx.serialization.Serializable
 
 /**
- * Predefined device profile preset — libxposed API 100 edition.
+ * Predefined device profile preset — libxposed API 101 edition.
  *
  * All values in a preset are consistent and must be applied together to create a realistic,
  * undetectable device fingerprint. Fraud detection SDKs cross-reference all fields.
  *
- * **Enriched fields (added for libxposed API 100 migration):**
+ * **Enriched fields (added for libxposed API 101 migration):**
  * - [buildTime]: `Build.TIME` — epoch millis of the build. Fraud SDKs check this against the model.
  * - [buildId]: `Build.ID` — like `"AP3A.241005.015"`. Must match the fingerprint.
  * - [incremental]: `Build.VERSION.INCREMENTAL` — the specific build number.
@@ -54,7 +54,7 @@ data class DeviceProfilePreset(
     val fingerprint: String,
     // ── Existing field ──────────────────────────────────────────
     val securityPatch: String = "",
-    // ── Enriched fields (libxposed API 100 migration) ───────────
+    // ── Enriched fields (libxposed API 101 migration) ───────────
     /**
      * `Build.TIME` — build timestamp in epoch milliseconds. Default: 0 means "do not override"
      * (leave real device value).

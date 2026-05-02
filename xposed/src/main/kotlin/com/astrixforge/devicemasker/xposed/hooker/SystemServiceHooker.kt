@@ -21,9 +21,9 @@ import io.github.libxposed.api.XposedInterface
  * - NEVER throw exceptions.
  * - Log errors but continue gracefully.
  *
- * ## API 100 change
+ * ## API 101 change
  * - Old: Extends YukiBaseHooker, implements onHook(), uses toClass()/method{}/hook{after{}}
- * - New: Plain object with static hook(cl, xi) factory. @XposedHooker inner classes for callbacks.
+ * - New: Plain object with a static hook(cl, xi) factory and lambda interceptors for callbacks.
  */
 object SystemServiceHooker {
 

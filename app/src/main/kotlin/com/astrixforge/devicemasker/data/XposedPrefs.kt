@@ -9,7 +9,7 @@ import io.github.libxposed.service.XposedServiceHelper
 import timber.log.Timber
 
 /**
- * Xposed Preferences Writer — libxposed API 100 / XposedService edition.
+ * Xposed Preferences Writer — libxposed API 101 / XposedService edition.
  *
  * Writes to [SharedPreferences] obtained from [XposedService.getRemotePreferences]. LSPosed
  * delivers these writes live to the hooked process via `getRemotePreferences()` in

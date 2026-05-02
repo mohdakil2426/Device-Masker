@@ -33,6 +33,8 @@ data class SpoofGroup(
     val identifiers: Map<SpoofType, DeviceIdentifier> = emptyMap(),
     val assignedApps: Set<String> = emptySet(),
     val selectedCarrierMccMnc: String? = null, // Selected carrier for SIM spoofing
+    val personaSeed: String? = null,
+    val personaGeneratedAt: Long = 0L,
 ) {
     /**
      * Gets a specific identifier value from this group.
@@ -53,6 +55,28 @@ data class SpoofGroup(
     fun getValue(type: SpoofType): String? {
         return identifiers[type]?.value
     }
+
+    /**
+     * Gets an explicit override value if present.
+     *
+     * In the current model, this returns the stored value, allowing the generator to distinguish
+     * between persisted state and runtime-derived defaults.
+     *
+     * @param type The spoof type to look up
+     * @return The override value or null
+     */
+    fun getExplicitOverrideValue(type: SpoofType): String? {
+        return getValue(type)
+    }
+
+    /**
+     * Resolves a deterministic persona seed for this group.
+     *
+     * Returns the [personaSeed] if set, otherwise falls back to a stable derivation from [id].
+     *
+     * @return A stable root seed for persona generation
+     */
+    fun resolvedPersonaSeed(): String = personaSeed ?: id
 
     /**
      * Checks if a specific spoof type is enabled in this group.
@@ -93,6 +117,15 @@ data class SpoofGroup(
     /** Creates a copy with updated enabled state. */
     fun withEnabled(enabled: Boolean): SpoofGroup {
         return copy(isEnabled = enabled, updatedAt = System.currentTimeMillis())
+    }
+
+    /** Creates a copy with updated persona metadata. */
+    fun withPersona(seed: String?, generatedAt: Long): SpoofGroup {
+        return copy(
+            personaSeed = seed,
+            personaGeneratedAt = generatedAt,
+            updatedAt = System.currentTimeMillis(),
+        )
     }
 
     /** Regenerates all identifier values. */

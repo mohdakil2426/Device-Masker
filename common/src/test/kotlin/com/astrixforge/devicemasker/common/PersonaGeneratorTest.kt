@@ -23,7 +23,9 @@ class PersonaGeneratorTest {
 
     @Test
     fun `android id is package scoped while tracking ids remain stable`() {
-        val group = SpoofGroup.createNew(name = "Persona").withPersona(seed = "seed-android")
+        val group =
+            SpoofGroup.createNew(name = "Persona")
+                .withPersona(seed = "seed-android", generatedAt = 1000L)
 
         val appOne = PersonaGenerator.generate(group, "com.example.one")
         val appTwo = PersonaGenerator.generate(group, "com.example.two")
