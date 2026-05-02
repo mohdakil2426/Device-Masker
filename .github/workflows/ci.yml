@@ -124,7 +124,30 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
+      - name: Check release signing secrets
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          missing=()
+          [ -n "$KEYSTORE_BASE64" ] || missing+=("KEYSTORE_BASE64")
+          [ -n "$KEYSTORE_PASS" ] || missing+=("KEYSTORE_PASS")
+          [ -n "$KEY_ALIAS" ] || missing+=("KEY_ALIAS")
+          [ -n "$KEY_PASS" ] || missing+=("KEY_PASS")
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Release signing secrets are incomplete: ${missing[*]}"
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "has_signing=true" >> "$GITHUB_OUTPUT"
+
       - name: Decode release keystore
+        if: steps.signing.outputs.has_signing == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
@@ -142,9 +165,11 @@ jobs:
           echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
 
       - name: Assemble signed release
+        if: steps.signing.outputs.has_signing == 'true'
         run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload signed release artifacts
+        if: steps.signing.outputs.has_signing == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: signed-release-artifacts-${{ github.run_id }}
@@ -153,3 +178,9 @@ jobs:
             app/build/outputs/mapping/release/**
           if-no-files-found: error
           retention-days: 14
+
+      - name: Report skipped signed release
+        if: steps.signing.outputs.has_signing != 'true'
+        run: |
+          echo "Signed release artifact was skipped because release signing secrets are incomplete."
+          echo "Add KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS, and KEY_PASS as repository Actions secrets."

@@ -36,4 +36,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Submit dependency graph
+        continue-on-error: true
         uses: gradle/actions/dependency-submission@v5
