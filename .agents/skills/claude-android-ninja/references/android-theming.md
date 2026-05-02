@@ -1,24 +1,33 @@
 # Android Theming
 
-Modern Material Design 3 theming with dynamic colors, custom color schemes, typography scales, shape theming, and dark/light mode switching.
+Material Design 3 theming: dynamic color, custom color schemes, typography scales, shape theming, dark/light mode.
 
-All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
-
-**Related guides:** See `references/compose-patterns.md` for theme usage in composables and `references/android-accessibility.md` for color contrast requirements.
+All Kotlin code must align with `references/kotlin-patterns.md`. Theme usage in composables: `references/compose-patterns.md`. Color contrast targets: `references/android-accessibility.md`.
 
 ## Table of Contents
 
 - [Material 3 Theme System](#material-3-theme-system)
 - [Color Schemes](#color-schemes)
+- [Color Pairing Rules](#color-pairing-rules)
+- [`outline` vs `outlineVariant`](#outline-vs-outlinevariant)
+- [Surface Container Hierarchy](#surface-container-hierarchy)
+- [Tonal Elevation vs Shadows](#tonal-elevation-vs-shadows)
 - [Dynamic Color (Material You)](#dynamic-color-material-you)
+- [User Contrast Preference (Android 14+)](#user-contrast-preference-android-14)
 - [Typography Scales](#typography-scales)
 - [Shape Theming](#shape-theming)
+- [Material 3 Expressive](#material-3-expressive)
 - [Dark/Light Mode Switching](#darklight-mode-switching)
 - [Theme Preferences](#theme-preferences)
 - [Custom Theme Attributes](#custom-theme-attributes)
+  - [Brand Color Harmonization](#brand-color-harmonization)
+- [Scoped Themes](#scoped-themes)
 - [Architecture Integration](#architecture-integration)
 - [Testing](#testing)
-- [Best Practices](#best-practices)
+- [Layout Spacing and Component Dimensions](#layout-spacing-and-component-dimensions)
+- [Reserved Resource Names](#reserved-resource-names)
+- [Visual Style by App Category](#visual-style-by-app-category)
+- [Theme routing](#theme-routing)
 
 ## Material 3 Theme System
 
@@ -94,6 +103,81 @@ class MainActivity : ComponentActivity() {
 
 ## Color Schemes
 
+### Full Color Role Reference (M3)
+
+Material 3 defines ~40 semantic color roles. Use these on `MaterialTheme.colorScheme.*` instead of raw `Color(...)` so themes, dark mode, dynamic color, and user contrast all keep working.
+
+**Accent roles** (3 groups: primary, secondary, tertiary)
+
+| Role                                      | `colorScheme.*`      | Use for                                              |
+|-------------------------------------------|----------------------|------------------------------------------------------|
+| Primary                                   | `primary`            | High-emphasis fills, FAB, primary button             |
+| On Primary                                | `onPrimary`          | Text/icons on `primary`                              |
+| Primary Container                         | `primaryContainer`   | Standout container fill (selected chip, hero card)   |
+| On Primary Container                      | `onPrimaryContainer` | Text/icons on `primaryContainer`                     |
+| Secondary / On / Container / On Container | `secondary*`         | Less prominent accents (tonal buttons, filter chips) |
+| Tertiary  / On / Container / On Container | `tertiary*`          | Contrasting accents (badges, complementary surfaces) |
+
+**Error roles** (do not change with dynamic color)
+
+| Role               | `colorScheme.*`    | Use for                          |
+|--------------------|--------------------|----------------------------------|
+| Error              | `error`            | Destructive action, validation   |
+| On Error           | `onError`          | Text/icons on `error`            |
+| Error Container    | `errorContainer`   | Error banner / inline error fill |
+| On Error Container | `onErrorContainer` | Text/icons on `errorContainer`   |
+
+**Surface roles** (the modern depth system - prefer over `background`)
+
+| Role                      | `colorScheme.*`           | Use for                                                       |
+|---------------------------|---------------------------|---------------------------------------------------------------|
+| Surface                   | `surface`                 | Default screen background                                     |
+| On Surface                | `onSurface`               | Primary text/icons on any surface                             |
+| On Surface Variant        | `onSurfaceVariant`        | Lower-emphasis text/icons on surface                          |
+| Surface Container Lowest  | `surfaceContainerLowest`  | Lowest-tone container (rarely used)                           |
+| Surface Container Low     | `surfaceContainerLow`     | Cards in flow, low-emphasis containers                        |
+| Surface Container         | `surfaceContainer`        | Default container (nav bar, persistent panels)                |
+| Surface Container High    | `surfaceContainerHigh`    | Menus, scrolled top app bar                                   |
+| Surface Container Highest | `surfaceContainerHighest` | Filled cards, highest-emphasis nested container               |
+| Surface Dim               | `surfaceDim`              | Always-dimmest surface (both themes)                          |
+| Surface Bright            | `surfaceBright`           | Always-brightest surface (both themes)                        |
+| Surface Tint              | `surfaceTint`             | Tonal-elevation tint (set by `Surface(tonalElevation = ...)`) |
+
+**Inverse roles** (for elements that contrast against the surrounding UI, e.g. snackbars)
+
+| Role               | `colorScheme.*`    | Use for                              |
+|--------------------|--------------------|--------------------------------------|
+| Inverse Surface    | `inverseSurface`   | Snackbar background, inverted toast  |
+| Inverse On Surface | `inverseOnSurface` | Text on `inverseSurface`             |
+| Inverse Primary    | `inversePrimary`   | Actionable text on `inverseSurface`  |
+
+**Outline roles**
+
+| Role            | `colorScheme.*`  | Use for                                                  |
+|-----------------|------------------|----------------------------------------------------------|
+| Outline         | `outline`        | Interactive boundaries (text-field borders, focus rings) |
+| Outline Variant | `outlineVariant` | Decorative dividers, card borders                        |
+
+**Fixed accent roles** (same color in light **and** dark - keep brand identity inside scoped surfaces)
+
+| Role                                                 | `colorScheme.*`         | Use for                                          |
+|------------------------------------------------------|-------------------------|--------------------------------------------------|
+| Primary Fixed                                        | `primaryFixed`          | Branded chip / badge that must not flip on theme |
+| Primary Fixed Dim                                    | `primaryFixedDim`       | Dimmer companion to `primaryFixed`               |
+| On Primary Fixed                                     | `onPrimaryFixed`        | Text/icons on `primaryFixed`                     |
+| On Primary Fixed Variant                             | `onPrimaryFixedVariant` | Lower-emphasis text on `primaryFixed`            |
+| (same shape for `secondaryFixed*`, `tertiaryFixed*`) | -                       | Brand-locked secondary/tertiary surfaces         |
+
+Fixed roles do not adapt to theme - only use them where preserving identity matters more than contrast adjustment.
+
+**Scrim**
+
+| Role  | `colorScheme.*` | Use for                                        |
+|-------|-----------------|------------------------------------------------|
+| Scrim | `scrim`         | Modal backdrops behind dialogs / bottom sheets |
+
+`background` / `onBackground` still exist for backwards compatibility; in new code prefer `surface` / `onSurface`.
+
 ### Default Light and Dark Schemes
 
 Material 3 uses semantic color roles instead of hardcoded colors.
@@ -135,6 +219,29 @@ val md_theme_light_surfaceTint = Color(0xFF6750A4)
 val md_theme_light_outlineVariant = Color(0xFFCAC4D0)
 val md_theme_light_scrim = Color(0xFF000000)
 
+// Surface containers (M3) - tonal hierarchy for nested surfaces
+val md_theme_light_surfaceContainerLowest = Color(0xFFFFFFFF)
+val md_theme_light_surfaceContainerLow = Color(0xFFF7F2FA)
+val md_theme_light_surfaceContainer = Color(0xFFF3EDF7)
+val md_theme_light_surfaceContainerHigh = Color(0xFFECE6F0)
+val md_theme_light_surfaceContainerHighest = Color(0xFFE6E0E9)
+val md_theme_light_surfaceDim = Color(0xFFDED8E1)
+val md_theme_light_surfaceBright = Color(0xFFFEF7FF)
+
+// Fixed accent roles (M3) - same color in light and dark
+val md_theme_primaryFixed = Color(0xFFEADDFF)
+val md_theme_primaryFixedDim = Color(0xFFD0BCFF)
+val md_theme_onPrimaryFixed = Color(0xFF21005D)
+val md_theme_onPrimaryFixedVariant = Color(0xFF4F378B)
+val md_theme_secondaryFixed = Color(0xFFE8DEF8)
+val md_theme_secondaryFixedDim = Color(0xFFCCC2DC)
+val md_theme_onSecondaryFixed = Color(0xFF1D192B)
+val md_theme_onSecondaryFixedVariant = Color(0xFF4A4458)
+val md_theme_tertiaryFixed = Color(0xFFFFD8E4)
+val md_theme_tertiaryFixedDim = Color(0xFFEFB8C8)
+val md_theme_onTertiaryFixed = Color(0xFF31111D)
+val md_theme_onTertiaryFixedVariant = Color(0xFF633B48)
+
 // Dark theme colors
 val md_theme_dark_primary = Color(0xFFD0BCFF)
 val md_theme_dark_onPrimary = Color(0xFF381E72)
@@ -166,6 +273,15 @@ val md_theme_dark_surfaceTint = Color(0xFFD0BCFF)
 val md_theme_dark_outlineVariant = Color(0xFF49454F)
 val md_theme_dark_scrim = Color(0xFF000000)
 
+// Surface containers (M3) - tonal hierarchy for nested surfaces
+val md_theme_dark_surfaceContainerLowest = Color(0xFF0F0D13)
+val md_theme_dark_surfaceContainerLow = Color(0xFF1D1B20)
+val md_theme_dark_surfaceContainer = Color(0xFF211F26)
+val md_theme_dark_surfaceContainerHigh = Color(0xFF2B2930)
+val md_theme_dark_surfaceContainerHighest = Color(0xFF36343B)
+val md_theme_dark_surfaceDim = Color(0xFF141218)
+val md_theme_dark_surfaceBright = Color(0xFF3B383E)
+
 val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
@@ -195,7 +311,26 @@ val LightColorScheme = lightColorScheme(
     inversePrimary = md_theme_light_inversePrimary,
     surfaceTint = md_theme_light_surfaceTint,
     outlineVariant = md_theme_light_outlineVariant,
-    scrim = md_theme_light_scrim
+    scrim = md_theme_light_scrim,
+    surfaceContainerLowest = md_theme_light_surfaceContainerLowest,
+    surfaceContainerLow = md_theme_light_surfaceContainerLow,
+    surfaceContainer = md_theme_light_surfaceContainer,
+    surfaceContainerHigh = md_theme_light_surfaceContainerHigh,
+    surfaceContainerHighest = md_theme_light_surfaceContainerHighest,
+    surfaceDim = md_theme_light_surfaceDim,
+    surfaceBright = md_theme_light_surfaceBright,
+    primaryFixed = md_theme_primaryFixed,
+    primaryFixedDim = md_theme_primaryFixedDim,
+    onPrimaryFixed = md_theme_onPrimaryFixed,
+    onPrimaryFixedVariant = md_theme_onPrimaryFixedVariant,
+    secondaryFixed = md_theme_secondaryFixed,
+    secondaryFixedDim = md_theme_secondaryFixedDim,
+    onSecondaryFixed = md_theme_onSecondaryFixed,
+    onSecondaryFixedVariant = md_theme_onSecondaryFixedVariant,
+    tertiaryFixed = md_theme_tertiaryFixed,
+    tertiaryFixedDim = md_theme_tertiaryFixedDim,
+    onTertiaryFixed = md_theme_onTertiaryFixed,
+    onTertiaryFixedVariant = md_theme_onTertiaryFixedVariant
 )
 
 val DarkColorScheme = darkColorScheme(
@@ -227,7 +362,26 @@ val DarkColorScheme = darkColorScheme(
     inversePrimary = md_theme_dark_inversePrimary,
     surfaceTint = md_theme_dark_surfaceTint,
     outlineVariant = md_theme_dark_outlineVariant,
-    scrim = md_theme_dark_scrim
+    scrim = md_theme_dark_scrim,
+    surfaceContainerLowest = md_theme_dark_surfaceContainerLowest,
+    surfaceContainerLow = md_theme_dark_surfaceContainerLow,
+    surfaceContainer = md_theme_dark_surfaceContainer,
+    surfaceContainerHigh = md_theme_dark_surfaceContainerHigh,
+    surfaceContainerHighest = md_theme_dark_surfaceContainerHighest,
+    surfaceDim = md_theme_dark_surfaceDim,
+    surfaceBright = md_theme_dark_surfaceBright,
+    primaryFixed = md_theme_primaryFixed,
+    primaryFixedDim = md_theme_primaryFixedDim,
+    onPrimaryFixed = md_theme_onPrimaryFixed,
+    onPrimaryFixedVariant = md_theme_onPrimaryFixedVariant,
+    secondaryFixed = md_theme_secondaryFixed,
+    secondaryFixedDim = md_theme_secondaryFixedDim,
+    onSecondaryFixed = md_theme_onSecondaryFixed,
+    onSecondaryFixedVariant = md_theme_onSecondaryFixedVariant,
+    tertiaryFixed = md_theme_tertiaryFixed,
+    tertiaryFixedDim = md_theme_tertiaryFixedDim,
+    onTertiaryFixed = md_theme_onTertiaryFixed,
+    onTertiaryFixedVariant = md_theme_onTertiaryFixedVariant
 )
 ```
 
@@ -270,6 +424,227 @@ fun ProfileCard(user: User) {
     }
 }
 ```
+
+## Color Pairing Rules
+
+Every M3 color role has an `on*` partner that is contrast-tuned for it. Mixing partners - `onPrimary` over `surface`, `onSurface` over `primaryContainer` - silently breaks WCAG, dark mode, dynamic color, and user contrast all at once. The rule is mechanical: **pick a container role, then use its `on*` for everything drawn on top.**
+
+### The pairing table
+
+| Container / fill role              | Content / `on*` role                                                       | Typical use                           |
+|------------------------------------|----------------------------------------------------------------------------|---------------------------------------|
+| `primary`                          | `onPrimary`                                                                | Filled button, FAB                    |
+| `primaryContainer`                 | `onPrimaryContainer`                                                       | Selected chip, hero card              |
+| `secondary` / `secondaryContainer` | `onSecondary` / `onSecondaryContainer`                                     | Tonal button, filter chip             |
+| `tertiary` / `tertiaryContainer`   | `onTertiary` / `onTertiaryContainer`                                       | Badge, complementary surface          |
+| `error` / `errorContainer`         | `onError` / `onErrorContainer`                                             | Destructive action, error banner      |
+| `surface` / `surfaceContainer*`    | `onSurface` (titles), `onSurfaceVariant` (secondary text, icons, dividers) | Most app content                      |
+| `inverseSurface`                   | `inverseOnSurface`                                                         | Snackbar, tooltip                     |
+| `*Fixed` / `*FixedDim`             | `on*Fixed` / `on*FixedVariant`                                             | Cross-mode media controls (see below) |
+
+### Compose: pair containers and content explicitly
+
+```kotlin
+@Composable
+fun PairedSurfaces() {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Hero card", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Auto-inherits onPrimaryContainer via LocalContentColor",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+```
+
+Setting `Surface(contentColor = ...)` updates `LocalContentColor` so `Text`, `Icon`, and `IconButton` inside pick the right partner automatically - that's the idiomatic way to enforce pairing without naming colors at every `Text` call.
+
+### Title vs supporting text on surfaces
+
+On any `surface` / `surfaceContainer*` role, use **two** content roles, not one:
+
+- `onSurface` for primary text (titles, body copy that must read).
+- `onSurfaceVariant` for secondary text, icons, dividers, placeholders, helper text.
+
+`onSurfaceVariant` is intentionally lower-contrast - using it for body copy fails WCAG; using `onSurface` for every label flattens the visual hierarchy.
+
+### `*Fixed` / `*FixedDim`: keep tone constant across modes
+
+`primaryFixed` / `primaryFixedDim` keep the **same tone** in light and dark themes - useful when a surface (album art controls, an embedded media widget) must visually match across modes. Pair them with `onPrimaryFixed` (titles) and `onPrimaryFixedVariant` (supporting text), the same way `surface` pairs with `onSurface` / `onSurfaceVariant`.
+
+### Cross-references
+
+- These pairs are also enforced by `Card`, `Button`, `Chip`, `NavigationBar` etc. via `*Defaults.colors(...)` - see `references/compose-patterns.md`.
+- Anti-patterns for breaking pairing live in [Theme routing → Forbidden](#forbidden).
+
+## `outline` vs `outlineVariant`
+
+M3 has two outline roles, and they are not interchangeable. Picking the wrong one is the difference between a focusable, accessible boundary and a decorative hairline that disappears for low-vision users.
+
+| Role             | Contrast                                | Use for                                                                                                    |
+|------------------|-----------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `outline`        | High - meets non-text contrast (3:1)    | Interactive borders: outlined button/text field/chip, focus indicators, important dividers between regions |
+| `outlineVariant` | Low - decorative, **does not** meet 3:1 | Subtle dividers between items in a list, decorative separators, disabled-state borders                     |
+
+Rule of thumb: if a sighted user is supposed to **act on** the bordered thing, use `outline`. If the line is purely visual rhythm inside a single region, use `outlineVariant`.
+
+### Compose: pick the role that matches the job
+
+```kotlin
+@Composable
+fun OutlineDemo() {
+    OutlinedTextField(
+        value = "",
+        onValueChange = {},
+        label = { Text("Email") },
+    )
+
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Text(
+            text = "Region boundary the user can tab to",
+            modifier = Modifier
+                .padding(16.dp)
+                .focusable(),
+        )
+    }
+}
+```
+
+`OutlinedTextField` already pulls `outline` (and `outlineVariant` for its disabled state) internally - that's the model to follow when you write your own outlined components: take `outline` for the resting interactive border, `outlineVariant` for disabled/decorative.
+
+### Cross-references
+
+- Anti-pattern lives in [Theme routing → Forbidden](#forbidden).
+- Custom outlined components: see `references/compose-patterns.md` → component patterns.
+
+## Surface Container Hierarchy
+
+M3 expresses depth through **container tone**, not shadows. Pick the surface role that matches the component's job, not its visual weight. Nest by stepping **one level up** at each layer (`surface` → `surfaceContainerLow` → `surfaceContainer` → ...) so depth reads cleanly under any contrast or theme.
+
+### Which level for what
+
+| Container role            | Use for                                                                  |
+|---------------------------|--------------------------------------------------------------------------|
+| `surface`                 | Default screen background                                                |
+| `surfaceContainerLowest`  | Component on a **busy** background that should recede (rare)             |
+| `surfaceContainerLow`     | Cards laid out in flow on a `surface` background                         |
+| `surfaceContainer`        | Persistent containers (navigation bar, side rail, bottom sheet at rest)  |
+| `surfaceContainerHigh`    | Menus, scrolled top app bar, sheets while dragging                       |
+| `surfaceContainerHighest` | Filled cards, deepest nested container (chip on a card on a sheet)       |
+| `surfaceDim`              | Hero/empty-state surface that should always read as the dimmest area     |
+| `surfaceBright`           | Hero/empty-state surface that should always read as the brightest area   |
+
+### Compose nesting example
+
+```kotlin
+@Composable
+fun NestedSurfacesDemo() {
+    Surface(color = MaterialTheme.colorScheme.surface) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Card on surface",
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        modifier = Modifier.padding(top = 12.dp)
+                    ) {
+                        Text(
+                            text = "Chip nested inside the card",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+The nested chip sits at `surfaceContainerHighest` so it stays distinguishable from the card (`surfaceContainerLow`) and the page (`surface`) regardless of light/dark, dynamic color, or user contrast.
+
+### Avoid `surfaceVariant` for new containers
+
+`surfaceVariant` predates the container hierarchy. Keep it only for **legacy** screens or for tinted decorative surfaces (e.g. inactive switch tracks). For any new container, pick a `surfaceContainer*` level instead.
+
+## Tonal Elevation vs Shadows
+
+In M3, depth is communicated through **container tone first**. Reach for a shadow only when a component must visually float over content the surface tone can't separate from (a FAB over a photo, a sheet over a busy feed). Stacking shadows for ordinary depth produces the cluttered, MD2-style look M3 was designed to retire.
+
+### Map elevation level to surface role
+
+| Elevation level | Tonal role                  | Components at rest                                                       |
+|-----------------|-----------------------------|--------------------------------------------------------------------------|
+| 0               | `surface`                   | Most resting components, top app bar (flat), filled/outlined/text button |
+| 1               | `surfaceContainerLow`       | Elevated card, banner, modal bottom sheet                                |
+| 2               | `surfaceContainer`          | Navigation bar, scrolled top app bar, menus, toolbar                     |
+| 3               | `surfaceContainerHigh`      | FAB, dialogs, search bar, date/time pickers                              |
+| 4–5             | `surfaceContainerHighest`   | Hover/focus increase only - never a resting state                        |
+
+Setting `Surface(tonalElevation = 3.dp)` blends `surfaceTint` into `surface` to approximate level 3. **Use the explicit `surfaceContainer*` role** instead — clearer mapping, survives dynamic color and user contrast, and matches what M3 components do internally.
+
+### Compose: prefer container role, add shadow only when needed
+
+```kotlin
+@Composable
+fun ElevationDemo() {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Text(
+            text = "Menu surface - tone alone communicates level 2",
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(16.dp),
+        )
+    }
+
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shadowElevation = 6.dp,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = "Compose",
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(16.dp),
+        )
+    }
+}
+```
+
+The menu uses tone only. The FAB adds `shadowElevation` because it floats over arbitrary content - exactly the case where a shadow is justified.
+
+### Hover/focus, not resting
+
+Levels 4 and 5 are **interaction** levels. Bump elevation by **one step** on hover/focus (e.g. FAB level 3 → 4 on hover) and return to rest on release. Never ship a component at rest above level 3.
+
+### Cross-references
+
+- M3 Expressive components consume tonal/elevation tokens through `MaterialExpressiveTheme` and `MotionScheme.expressive()` - see [Material 3 Expressive](#material-3-expressive).
+- Animation/feel of elevation transitions belongs in `references/compose-patterns.md` → "Animation".
 
 ## Dynamic Color (Material You)
 
@@ -364,6 +739,132 @@ fun AppTheme(
     )
 }
 ```
+
+## User Contrast Preference (Android 14+)
+
+Android 14 (API 34) added a system-wide **Contrast** slider in *Settings → Accessibility → Color and motion*. Users pick Standard / Medium / High, and the OS exposes the result via `UiModeManager.getContrast()` returning a `Float`:
+
+| `getContrast()` value | Setting  | Use the scheme variant                         |
+|-----------------------|----------|------------------------------------------------|
+| `0.0f`                | Standard | Default `LightColorScheme` / `DarkColorScheme` |
+| `0.5f`                | Medium   | Medium-contrast variant                        |
+| `1.0f`                | High     | High-contrast variant                          |
+
+Honoring the OS contrast choice is a low-cost M3 accessibility win: read `getContrast()` and select the matching scheme variant.
+
+### Generate the contrast scheme variants
+
+Use [Material Theme Builder](https://m3.material.io/theme-builder) → **Export** → it ships six schemes: `Light`, `LightMediumContrast`, `LightHighContrast`, `Dark`, `DarkMediumContrast`, `DarkHighContrast`. Drop them into `Color.kt` next to the existing pair.
+
+### Compose helper: read contrast reactively
+
+`UiModeManager.getContrast()` is API 34+ only, and the value can change while the app is foregrounded (user toggles the slider). Listen to `UiModeManager.ContrastChangeListener` and surface it through state.
+
+```kotlin
+import android.app.UiModeManager
+import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.getSystemService
+
+enum class ContrastLevel { Standard, Medium, High }
+
+@Composable
+fun rememberContrastLevel(): ContrastLevel {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        return ContrastLevel.Standard
+    }
+    val context = LocalContext.current
+    val uiModeManager = remember(context) { context.getSystemService<UiModeManager>()!! }
+    var level by remember { mutableStateOf(uiModeManager.contrastLevel()) }
+
+    DisposableEffect(uiModeManager) {
+        val executor = ContextCompat.getMainExecutor(context)
+        val listener = UiModeManager.ContrastChangeListener { level = uiModeManager.contrastLevel() }
+        uiModeManager.addContrastChangeListener(executor, listener)
+        onDispose { uiModeManager.removeContrastChangeListener(listener) }
+    }
+    return level
+}
+
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+private fun UiModeManager.contrastLevel(): ContrastLevel = when {
+    contrast >= 0.75f -> ContrastLevel.High
+    contrast >= 0.25f -> ContrastLevel.Medium
+    else              -> ContrastLevel.Standard
+}
+```
+
+The bucket boundaries (`0.25` / `0.75`) are intentional - the API is documented to return `0.0` / `0.5` / `1.0` today, but bucketing leaves room for future intermediate values without breaking the picker.
+
+### Plug into `AppTheme`
+
+Slot the contrast pick into the same `colorScheme` decision tree from [Conditional Dynamic Color Support](#conditional-dynamic-color-support) - pick the static variant that matches `(isDark, contrast)`. With **dynamic color**, `dynamicLightColorScheme(context)` / `dynamicDarkColorScheme(context)` already honor the user contrast on API 34+, so leave them alone.
+
+```kotlin
+@Composable
+fun AppTheme(
+    themeConfig: ThemeConfig,
+    content: @Composable () -> Unit,
+) {
+    val isDarkTheme = when (themeConfig.themePreference) {
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+    }
+    val dynamicColorActive =
+        themeConfig.useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val contrast = rememberContrastLevel()
+
+    val colorScheme = when {
+        dynamicColorActive -> {
+            val context = LocalContext.current
+            if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        isDarkTheme -> when (contrast) {
+            ContrastLevel.High     -> DarkHighContrastColorScheme
+            ContrastLevel.Medium   -> DarkMediumContrastColorScheme
+            ContrastLevel.Standard -> DarkColorScheme
+        }
+        else -> when (contrast) {
+            ContrastLevel.High     -> LightHighContrastColorScheme
+            ContrastLevel.Medium   -> LightMediumContrastColorScheme
+            ContrastLevel.Standard -> LightColorScheme
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = AppTypography,
+        shapes = AppShapes,
+        content = content,
+    )
+}
+```
+
+### What this does **not** replace
+
+User contrast scales the **color scheme**. It is not a substitute for:
+
+- WCAG contrast checks on hard-coded brand colors (still required - see `references/android-accessibility.md`).
+- A larger-text / display-density preference (those are separate system settings).
+- Honoring user font scale (`fontScale` in `Configuration`) - that affects typography, not color.
+
+### Testing
+
+`adb shell settings put secure contrast_level 0.5` toggles the system value without going through the slider. Pair with the existing dark-mode preview pattern:
+
+```kotlin
+@Preview(name = "Light · Standard")
+@Preview(name = "Light · Medium",  group = "contrast")
+@Preview(name = "Light · High",    group = "contrast")
+@Preview(name = "Dark · Standard", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Dark · High",     uiMode = Configuration.UI_MODE_NIGHT_YES, group = "contrast")
+```
+
+Previews can't read the live `UiModeManager`, so wrap your composable in a small test theme that takes `ContrastLevel` as a parameter.
 
 ## Typography Scales
 
@@ -662,6 +1163,79 @@ fun ProductCard(product: Product) {
     }
 }
 ```
+
+## Material 3 Expressive
+
+Material 3 Expressive is the 2025+ refresh of Material 3. It adds a **motion scheme**, expressive color tokens, and shape/typography updates. In Compose it is exposed via `MaterialExpressiveTheme` and sibling color-scheme builders.
+
+### Status
+
+- API lives in `androidx.compose.material3` and is marked `@ExperimentalMaterial3ExpressiveApi`.
+- Shipped in `androidx.compose.material3:material3:1.5.0-alpha16` and later.
+- The pinned catalog version (`material3` in `assets/libs.versions.toml.template`) gates availability. On stable 1.4.x, Expressive APIs are **not** available; keep `MaterialTheme` as the canonical entry point.
+- Do not mix `MaterialTheme` and `MaterialExpressiveTheme` in the same tree. Pick one per Activity/Composable root.
+
+### Opt-in
+
+Enable the opt-in at the file or module level:
+
+```kotlin
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+```
+
+Module-wide (library modules, not `:app` per `references/kotlin-patterns.md`):
+
+```kotlin
+// build.gradle.kts (module)
+kotlin {
+    compilerOptions {
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
+    }
+}
+```
+
+### Wiring
+
+```kotlin
+@Composable
+fun AppTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        darkTheme -> expressiveDarkColorScheme()
+        else -> expressiveLightColorScheme()
+    }
+
+    MaterialExpressiveTheme(
+        colorScheme = colorScheme,
+        motionScheme = MotionScheme.expressive(),
+        typography = Typography,
+        shapes = Shapes,
+        content = content
+    )
+}
+```
+
+### What changes vs `MaterialTheme`
+
+| Slot       | `MaterialTheme`                            | `MaterialExpressiveTheme`                                      |
+|------------|--------------------------------------------|----------------------------------------------------------------|
+| Color      | `lightColorScheme()` / `darkColorScheme()` | `expressiveLightColorScheme()` / `expressiveDarkColorScheme()` |
+| Motion     | Not a theme slot; per-component defaults   | `MotionScheme.expressive()` / `MotionScheme.standard()`        |
+| Typography | `Typography`                               | Same `Typography` slot; expressive defaults differ             |
+| Shapes     | `Shapes`                                   | Same `Shapes` slot; expressive defaults use larger corners     |
+
+The `motionScheme` slot is the distinguishing feature: it centralises duration and easing tokens that Material 3 components (FAB, dialogs, switches, segmented buttons) pick up automatically.
+
+### When to adopt
+
+- Adopt when the catalog's `material3` is pinned to a version that ships the API as stable, or when the product explicitly signs off on using an experimental API.
+- Until then, use stable `MaterialTheme` plus the token overrides shown above. Migration path: swap `MaterialTheme(...)` for `MaterialExpressiveTheme(...)` and add a `MotionScheme` argument.
 
 ## Dark/Light Mode Switching
 
@@ -1073,6 +1647,146 @@ fun StatusBadge(status: String) {
 }
 ```
 
+### Brand Color Harmonization
+
+Hard-coded brand colors (`success`, `warning`, `info`, an "always-red" notification dot, a partner logo tint) clash visibly when [dynamic color](#dynamic-color-material-you) repaints the rest of the app from the user's wallpaper. M3 ships a fix: `MaterialColors.harmonize(...)` shifts a custom color's **hue** toward `colorScheme.primary` while preserving its **chroma and tone**, so `success` still reads as green and `warning` as yellow without fighting the wallpaper palette.
+
+Add the dependency once in `build.gradle.kts`:
+
+```kotlin
+implementation("com.google.android.material:material:1.12.0")
+```
+
+#### Harmonize once when the scheme is built
+
+`harmonize` is a pure color-math call. Run it where you build `ExtendedColors` so every consumer sees harmonized values automatically - never call it inside `Composable`s that recompose on every frame.
+
+```kotlin
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import com.google.android.material.color.MaterialColors
+
+private fun Color.harmonizeWith(primary: Color): Color =
+    Color(MaterialColors.harmonize(this.toArgb(), primary.toArgb()))
+
+@Composable
+fun rememberHarmonizedExtendedColors(
+    base: ExtendedColors,
+    primary: Color = MaterialTheme.colorScheme.primary,
+): ExtendedColors = remember(base, primary) {
+    base.copy(
+        success = base.success.harmonizeWith(primary),
+        warning = base.warning.harmonizeWith(primary),
+        info    = base.info.harmonizeWith(primary),
+    )
+}
+```
+
+`on*` partners stay as-is - they're chosen for contrast against the harmonized fill, and the fill's hue shift is too small to flip which on-color you need.
+
+#### Plug into `AppTheme`
+
+Replace the static `extendedColors` lookup in `AppTheme` with the harmonized version, but **only when dynamic color is actually active**. With the static `LightColorScheme` / `DarkColorScheme` there's nothing to harmonize against, so skip the cost.
+
+```kotlin
+@Composable
+fun AppTheme(
+    themeConfig: ThemeConfig,
+    content: @Composable () -> Unit,
+) {
+    val isDarkTheme = when (themeConfig.themePreference) {
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val dynamicColorActive =
+        themeConfig.useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    val colorScheme = when {
+        dynamicColorActive -> {
+            val context = LocalContext.current
+            if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        isDarkTheme -> DarkColorScheme
+        else        -> LightColorScheme
+    }
+
+    val baseExtended = if (isDarkTheme) DarkExtendedColors else LightExtendedColors
+    val extendedColors = if (dynamicColorActive) {
+        rememberHarmonizedExtendedColors(baseExtended, colorScheme.primary)
+    } else {
+        baseExtended
+    }
+
+    CompositionLocalProvider(LocalExtendedColors provides extendedColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
+}
+```
+
+#### When to harmonize, when not to
+
+- **Harmonize**: brand accents (`success`, `warning`, `info`), partner-tinted illustrations, a custom `notification` color, third-party SDK accent overrides.
+- **Do not harmonize**: `error` (already part of `colorScheme`, must stay unmistakably red), pure neutrals (white, black, grays), brand colors with **legal/identity constraints** where the exact hex matters (logos, regulated marks).
+- For static-only apps (no dynamic color anywhere), there's nothing to harmonize against - skip it entirely and keep the original brand values.
+
+## Scoped Themes
+
+Sometimes a single screen needs its own slice of theming - a settings *Danger Zone* whose primary is `error`, an "on-media" toolbar that sits over a dark hero image, an embedded brand surface inside a partner section. The right tool is **a nested `MaterialTheme`** that derives from the outer one with `colorScheme.copy(...)`. This keeps dynamic color, user contrast, and dark mode intact for the rest of the app while overriding only the roles you actually care about.
+
+### Rule: `copy()` from the outer scheme, never rebuild
+
+Always start from `MaterialTheme.colorScheme` and `.copy(...)` the roles you want to change. Re-instantiating `lightColorScheme(...)` from scratch silently throws away the user's dynamic palette and contrast pick.
+
+```kotlin
+@Composable
+fun ErrorScope(content: @Composable () -> Unit) {
+    val outer = MaterialTheme.colorScheme
+    MaterialTheme(
+        colorScheme = outer.copy(
+            primary           = outer.error,
+            onPrimary         = outer.onError,
+            primaryContainer  = outer.errorContainer,
+            onPrimaryContainer = outer.onErrorContainer,
+        ),
+        typography = MaterialTheme.typography,
+        shapes     = MaterialTheme.shapes,
+        content    = content,
+    )
+}
+
+@Composable
+fun DangerZone() {
+    ErrorScope {
+        Button(onClick = { /* ... */ }) {
+            Text("Delete account")
+        }
+    }
+}
+```
+
+The `Button` reads `colorScheme.primary` like any other M3 component; inside `ErrorScope` that role maps to `error`. No custom `ButtonColors`, no per-component overrides, no leakage outside the `ErrorScope` block.
+
+### Common scoped-theme patterns
+
+- **Destructive scope**: map `primary` → `error`, `primaryContainer` → `errorContainer` (above). Wrap the dangerous CTA only, not the whole screen.
+- **On-media scope**: a toolbar over a photo can switch to `inverseSurface` / `inverseOnSurface` so icons stay legible regardless of the underlying image.
+- **Brand-tinted section**: an embedded partner area can swap `primary` and `secondary` for the partner's harmonized brand color, keeping the surface hierarchy intact.
+- **Forced light/dark**: a media player that should always render dark UI can pass a frozen dark `colorScheme` to its subtree without touching the rest of the app.
+
+### Don'ts
+
+- **Don't scope shapes or typography** unless the design genuinely diverges — those tokens rebuild the visual identity beyond palette swaps and rarely belong in a scope.
+- **Don't scope to override a single component**. If only one `Button` needs a different fill, pass `ButtonDefaults.buttonColors(containerColor = ...)`. Reach for a scoped theme when **multiple** components in a subtree need the override.
+- **Don't nest more than one level deep.** Two layered scopes mean the inner subtree should read the outer color roles instead of adding another theme layer.
+- **Don't introduce a scoped theme for accessibility-critical actions** without re-checking contrast - the new pairing must still satisfy WCAG. Run the same checks as for the base scheme (see `references/android-accessibility.md`).
+
 ## Architecture Integration
 
 ### ViewModel Integration
@@ -1236,9 +1950,65 @@ fun `theme settings screen shows correct theme selection`() {
 }
 ```
 
-## Best Practices
+## Layout Spacing and Component Dimensions
 
-### ✅ Always Do
+Use an **8 dp grid** for spacing (4 dp only for fine tuning). Map tokens to `Modifier.padding` / `Spacer` consistently across features.
+
+| Token | Value | Typical use                          |
+|-------|-------|--------------------------------------|
+| xs    | 4 dp  | Icon padding, tight gaps             |
+| sm    | 8 dp  | Inline spacing, dense lists          |
+| md    | 16 dp | Default screen and card padding      |
+| lg    | 24 dp | Section separation                   |
+| xl    | 32 dp | Large gaps between groups            |
+| xxl   | 48 dp | Screen edge margins on compact width |
+
+**Common component heights** (Material 3; combine with minimum **48 dp** touch targets in `references/android-accessibility.md`)
+
+| Component         | Height / size                 | Notes                             |
+|-------------------|-------------------------------|-----------------------------------|
+| Standard button   | 40 dp height, min width 64 dp | Touch target still at least 48 dp |
+| FAB               | 56 x 56 dp                    | Mini FAB 40 dp when spec allows   |
+| Text field        | 56 dp tall, min width ~280 dp | Includes label area               |
+| Top app bar       | 64 dp                         |                                   |
+| Bottom navigation | 80 dp                         |                                   |
+| Navigation rail   | 80 dp width                   |                                   |
+
+## Reserved Resource Names
+
+Avoid **Android-reserved or overly generic** names for colors, drawables, and IDs. They can cause merge errors, shadow system resources, or confusing generated `R` fields.
+
+| Category       | Avoid as a resource name                                                                                    |
+|----------------|-------------------------------------------------------------------------------------------------------------|
+| Colors         | `background`, `foreground`, `transparent`, `white`, `black` (prefer `app_background`, `icon_primary`, etc.) |
+| Drawables      | `icon`, `logo`, `image`, `drawable`                                                                         |
+| Generic        | `view`, `text`, `button`, `layout`, `container`                                                             |
+| Meta           | `id`, `name`, `type`, `style`, `theme`, `color` as bare names                                               |
+| Namespace-like | `app`, `android`, `content`, `data`, `action`                                                               |
+
+In Kotlin, prefer descriptive names (`screenBackground`) over labels that read like framework APIs.
+
+## Visual Style by App Category
+
+Match **density, color, motion, and typography** to product category. Use the table below to pick defaults; deviate only with explicit product sign-off.
+
+| App category           | Visual direction                                        | Interaction notes                                        |
+|------------------------|---------------------------------------------------------|----------------------------------------------------------|
+| Utility / tools        | Minimal, neutral palette, clear hierarchy               | Fast paths, little ornament                              |
+| Finance / business     | Conservative colors, structured layout                  | Confirm destructive actions                              |
+| Health / wellness      | Soft palette, generous whitespace                       | Encouraging, not alarming copy                           |
+| Kids (younger)         | Bright colors, large type (18 sp+), very rounded shapes | Large targets (56 dp+), avoid text-only critical actions |
+| Kids (older)           | Vibrant but readable                                    | Gamification ok; keep navigation obvious                 |
+| Social / entertainment | Brand-forward, media-rich                               | Gestures ok if alternatives exist                        |
+| Productivity           | High contrast options, dense modes                      | Keyboard and focus friendly                              |
+| E-commerce             | Clear CTAs, scannable prices                            | Fast cart and checkout paths                             |
+| Games                  | Theme-driven                                            | Follow platform sign-in and parent gates where required  |
+
+**Style mismatches to avoid:** playful palette on finance, dense dashboards on meditation apps, tiny touch targets on kids flows, clownish UI on enterprise tools.
+
+## Theme routing
+
+### Required
 
 1. **Use semantic color roles** from `MaterialTheme.colorScheme` (never hardcoded colors)
 2. **Support both light and dark themes** with proper contrast
@@ -1250,9 +2020,9 @@ fun `theme settings screen shows correct theme selection`() {
 8. **Persist theme preferences** using DataStore (not SharedPreferences)
 9. **Handle edge-to-edge** UI properly with `enableEdgeToEdge()` and `Scaffold` (mandatory on API 36)
 10. **Test on both themes** to ensure content is readable
-11. **Do not use `elegantTextHeight`** attribute -- it is deprecated and ignored on API 36
+11. **Do not use `elegantTextHeight` attribute** - it is deprecated and ignored on API 36
 
-### ❌ Never Do
+### Forbidden
 
 1. **Never hardcode colors** in composables (`Color(0xFFFF0000)`)
 2. **Never hardcode text sizes** or font weights
@@ -1264,17 +2034,20 @@ fun `theme settings screen shows correct theme selection`() {
 8. **Never create custom color attributes** without considering light/dark variants
 9. **Never use `Color.Unspecified`** - always provide fallback colors
 10. **Never test theme in emulator only** - test on real devices with different wallpapers
+11. **Never mix color pairs** - `onPrimary` only goes on `primary`, `onPrimaryContainer` only on `primaryContainer` (see [Color Pairing Rules](#color-pairing-rules)); pulling content roles off their partner silently breaks contrast under dark mode, dynamic color, and user contrast
+12. **Never use `onSurface` for everything on a surface** - secondary text, icons, dividers, and helper text belong on `onSurfaceVariant`; using `onSurface` everywhere flattens the visual hierarchy
+13. **Never use `outlineVariant` for interactive borders** - it's a decorative role and does not meet 3:1 non-text contrast; outlined buttons, text fields, focus indicators, and region boundaries the user can tab to must use `outline` (see [`outline` vs `outlineVariant`](#outline-vs-outlinevariant))
 
 ### Color Naming Convention
 
 Use semantic names, not visual descriptions:
 
 ```kotlin
-// ❌ Bad
+// WRONG: visual descriptor names (`lightBlue`) instead of semantic roles
 val lightBlue = Color(0xFF2196F3)
 val darkBlue = Color(0xFF1976D2)
 
-// ✅ Good
+// CORRECT: semantic role names (`primary`, `primaryVariant`)
 val primary = Color(0xFF2196F3)
 val primaryVariant = Color(0xFF1976D2)
 ```

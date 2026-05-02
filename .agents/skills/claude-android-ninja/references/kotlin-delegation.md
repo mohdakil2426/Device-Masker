@@ -1,39 +1,31 @@
 # Kotlin Delegation (Composition over Inheritance)
 
-Use Kotlin's class and property delegation (`by`) to share behavior across ViewModels and classes without relying on base classes or inheritance.
-This keeps responsibilities explicit, improves testability, and avoids deep inheritance chains.
+Use Kotlin's class and property delegation (`by`) to share behavior across ViewModels and other classes. Forbidden: open base classes (`BaseViewModel`, `BaseActivity`, etc.) for cross-cutting concerns like logging, validation, crash reporting, or feature flags.
 
 ## Table of Contents
-1. [Why Delegation in Android](#why-delegation-in-android)
-2. [When to Use Delegation](#when-to-use-delegation)
-3. [Class Delegation](#class-delegation)
-4. [Property Delegation](#property-delegation)
-5. [Advanced Patterns](#advanced-patterns)
-6. [Testing with Delegation](#testing-with-delegation)
-7. [Best Practices](#best-practices)
+1. [Delegation routing](#delegation-routing)
+2. [Class Delegation](#class-delegation)
+3. [Property Delegation](#property-delegation)
+4. [Advanced Patterns](#advanced-patterns)
+5. [Testing with Delegation](#testing-with-delegation)
+6. [Rules](#rules)
 
-## Why Delegation in Android
+## Delegation routing
 
-- **Avoid base class bloat**: Split cross-cutting concerns (logging, validation, feature flags) into focused interfaces.
-- **Swap implementations easily**: Delegates are injected, so tests can replace them with fakes.
-- **Keep ViewModels lean**: Behavior is composed instead of inherited.
-- **Enable decorators**: Layer additional behavior without modifying original classes.
-- **No performance overhead**: Delegation creates minimal wrapper objects with negligible impact.
-
-## When to Use Delegation
+**Use when:**
 
 - Shared behavior across multiple ViewModels or classes
 - Behavior not tied to Android framework inheritance requirements
 - Logic that benefits from clear interfaces and DI (e.g., validators, analytics, feature flags)
-- When you need to layer behavior (decorator pattern)
+- Layered behavior (decorator pattern)
 - State management in ViewModels (`by mutableStateOf`)
 
-## When Not to Use It
+**Forbidden:**
 
 - Single-use logic with no reuse potential
-- Cases where delegation adds indirection without value
+- Delegation that only adds indirection
 - Framework-required inheritance (e.g., `Activity`, `Application`, `ViewModel` itself)
-- Extremely performance-critical paths (rare; measure first)
+- Hot paths where delegation measurably regresses performance (profile before changing)
 
 ## Class Delegation
 
@@ -63,7 +55,7 @@ class ExampleViewModel(
 ### Inheritance vs Delegation Comparison
 
 ```kotlin
-// ❌ Bad: Deep inheritance hierarchy
+// WRONG: Deep inheritance hierarchy
 abstract class BaseViewModel : ViewModel() {
     abstract fun log(message: String)
     abstract fun validateEmail(email: String): String?
@@ -90,7 +82,7 @@ class LoginViewModel : BaseViewModel() {
     // Tightly coupled to base class
 }
 
-// ✅ Good: Composition with delegation
+// CORRECT: Composition with delegation
 interface Logger {
     fun log(message: String)
 }
@@ -420,7 +412,7 @@ class SettingsViewModel @Inject constructor(
 
 ### Complex Real-World Example
 
-**Note**: For `CrashReporter` interface and implementation details, see `references/crashlytics.md` → "Provider-Agnostic Interface" and "Implementation Examples" sections.
+[`crashlytics.md`](/references/crashlytics.md) defines the `CrashReporter` surface and provider-agnostic implementations.
 
 ```kotlin
 // Interfaces for different concerns
@@ -515,7 +507,7 @@ class AuthViewModel @Inject constructor(
 
 ### Creating Test Fakes
 
-**Note**: For `CrashReporter` interface, see `references/crashlytics.md` → "Provider-Agnostic Interface".
+[`crashlytics.md`](/references/crashlytics.md) carries the `CrashReporter` contract used by these fakes.
 
 ```kotlin
 // Test fakes for delegated interfaces
@@ -635,18 +627,20 @@ fun `login records crash on failure`() = runTest {
 }
 ```
 
-## Best Practices
+## Rules
 
-### Interface Design
-- **Keep interfaces focused**: Prefer 2-5 methods per interface. Split larger interfaces into smaller ones.
-- **Delegate interfaces, not concrete classes**: Enables easy swapping and testing.
-- **Use sealed types for errors**: Return `ValidationResult` or sealed error types, not nullable strings.
+### Interface shape
+
+- Cap interfaces at roughly five methods; split larger surfaces.
+- Delegate to interfaces, not concrete implementations, so fakes swap cleanly.
+- Return `ValidationResult` or sealed error types instead of nullable strings for validation failures.
 
 ### Implementation
-- **No `private` on delegated parameters**: Makes delegation explicit and prevents bypassing.
-- **Use `super` in overrides**: When overriding delegated methods, call `super.method()` to use delegate.
-- **Prefer DI for delegates**: Inject delegates via Hilt; avoid manual construction.
-- **Document delegation intent**: Add comments explaining why delegation is used.
+
+- **No `private` on delegated parameters:** keeps delegation explicit and prevents bypassing the `by` target.
+- Override delegated methods by calling `super.method()` unless the override fully replaces behavior.
+- Inject delegates through Hilt instead of constructing graphs manually.
+- Add a one-line comment only when the delegate wiring is not obvious from types alone.
 
 ### Auditing Existing Base Classes
 
@@ -658,9 +652,11 @@ When migrating from inheritance-based patterns to delegation, audit base classes
    ```kotlin
    // BaseViewModel.kt
    abstract class BaseViewModel : ViewModel() {
-       // ❌ Dead code: No subclass ever uses this
+       // WRONG: Dead code: No subclass ever uses this
        protected fun handleFailure(throwable: Throwable) {
-           _failure.emit(throwable)
+           viewModelScope.launch {
+               _failure.emit(throwable)
+           }
        }
        
        private val _failure = MutableSharedFlow<Throwable>()
@@ -673,8 +669,8 @@ When migrating from inheritance-based patterns to delegation, audit base classes
    ```kotlin
    // Application class or BaseViewModel
    class MyApplication : Application() {
-       @Inject lateinit var resources: Resources  // ❌ Never used
-       @Inject lateinit var crashReporter: CrashReporter  // ✅ Used in subclasses
+       @Inject lateinit var resources: Resources  // WRONG: Never used
+       @Inject lateinit var crashReporter: CrashReporter  // CORRECT: Used in subclasses
    }
    ```
    **Fix:** Remove unused `@Inject` fields. They compile fine but add unnecessary dependencies.
@@ -684,7 +680,7 @@ When migrating from inheritance-based patterns to delegation, audit base classes
    // BaseViewModel.kt
    abstract class BaseViewModel : ViewModel() {
        private val _failure = MutableSharedFlow<Throwable>()
-       val failure: SharedFlow<Throwable> = _failure.asSharedFlow()  // ❌ No screen collects this
+       val failure: SharedFlow<Throwable> = _failure.asSharedFlow()  // WRONG: No screen collects this
    }
    ```
    **Fix:** Search codebase for `.collect` or `collectAsStateWithLifecycle()` on this flow. If none exist, delete it.
@@ -693,7 +689,7 @@ When migrating from inheritance-based patterns to delegation, audit base classes
    ```kotlin
    // BaseViewModel.kt
    abstract class BaseViewModel : ViewModel() {
-       // ❌ Only called by handleFailure(), which is also unused
+       // WRONG: Only called by handleFailure(), which is also unused
        protected fun logError(throwable: Throwable) {
            crashReporter.recordException(throwable)
        }
@@ -707,12 +703,6 @@ When migrating from inheritance-based patterns to delegation, audit base classes
 3. **Check field access**: For each field/property, verify it's accessed by at least one subclass
 4. **Check flow collection**: For each `Flow`/`Channel`, verify UI collects from it
 5. **Delete aggressively**: Dead code in base classes is hard to spot because it compiles fine and appears intentional
-
-**Why this matters:**
-- Base classes centralize dead code, making it invisible to static analysis
-- Unused `@Inject` fields add unnecessary dependencies to every subclass
-- Unused flows/channels consume memory and add complexity
-- Dead code survives refactors because "it might be used somewhere"
 
 **Example audit:**
 ```kotlin
@@ -752,7 +742,7 @@ class AuthViewModel @Inject constructor(
 - **Crash Reporting**: For `CrashReporter` interface and implementations, see `references/crashlytics.md`
 - **Design Patterns**: See `references/design-patterns.md` for Decorator pattern with delegation
 - **ViewModel Patterns**: Use with ViewModel patterns in `references/compose-patterns.md`
-- **Architecture**: Fits into our layered architecture in `references/architecture.md`
+- **Architecture**: `references/architecture.md`
 
 ## Sources
 

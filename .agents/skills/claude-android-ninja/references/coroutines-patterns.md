@@ -1,9 +1,8 @@
 # Coroutines Patterns
 
-## Coroutines Best Practices (Android)
+## Android coroutine rules
 
-Use coroutines in a testable, lifecycle-aware way. Highlights from Android guidance:
-[https://developer.android.com/kotlin/coroutines/coroutines-best-practices](https://developer.android.com/kotlin/coroutines/coroutines-best-practices)
+Use coroutines in a testable, lifecycle-aware way. Reference: [developer.android.com/kotlin/coroutines/coroutines-best-practices](https://developer.android.com/kotlin/coroutines/coroutines-best-practices).
 
 **Data Synchronization:** For retry mechanisms with exponential backoff and background sync patterns, see `references/android-data-sync.md`.
 
@@ -30,7 +29,7 @@ class AuthRepository @Inject constructor(
 
 ### Use `limitedParallelism` for Custom Dispatcher Pools
 
-Prefer `limitedParallelism` over creating custom `ExecutorService` dispatchers. This is more efficient and integrates better with structured concurrency.
+Use `limitedParallelism` instead of custom `ExecutorService` dispatchers — fewer threads and proper structured-concurrency integration.
 
 ```kotlin
 // Define qualifier annotations to distinguish dispatchers of the same type
@@ -60,7 +59,7 @@ object DispatchersModule {
         Dispatchers.Default.limitedParallelism(4)
 }
 
-// Usage — qualifier tells Hilt which dispatcher to inject
+// Usage - qualifier tells Hilt which dispatcher to inject
 class AuthTokenEncryptor @Inject constructor(
     @CryptoDispatcher private val cryptoDispatcher: CoroutineDispatcher
 ) {
@@ -77,7 +76,7 @@ Benefits over custom ExecutorService:
 - Automatic cleanup and resource management
 - Better debugging and profiling support
 
-### Avoid GlobalScope, Prefer Structured Concurrency
+### Structured concurrency (not `GlobalScope`)
 
 Use `viewModelScope`/`lifecycleScope` for UI and inject external scope only when work must outlive UI.
 
@@ -140,7 +139,7 @@ class AuthViewModel @Inject constructor(
 ### Do Not Catch `Throwable`
 
 Catch only expected exception types. Avoid `catch (Throwable)` because it includes fatal errors and
-`CancellationException`. Prefer a `CoroutineExceptionHandler` for unexpected failures so cancellation
+`CancellationException`. Use a `CoroutineExceptionHandler` for unexpected failures so cancellation
 propagates correctly without manual rethrowing.
 
 ```kotlin
@@ -163,41 +162,96 @@ It is ignored if passed to `withContext` or nested coroutines.
 If you must catch `Throwable` (rare), rethrow `CancellationException` immediately so structured
 concurrency remains intact.
 
-### Prefer StateFlow Over LiveData for New Code
+### StateFlow for new code (not LiveData)
 
-Use `StateFlow` for observable state and `SharedFlow` for events. Reserve `LiveData` for interop
-or legacy code that still requires it.
+Use `StateFlow` for observable state and `SharedFlow` or `Channel` for events. Reserve `LiveData` for interop
+or legacy code that still requires it. **Migration Priority:** If the project plan allows, prioritize refactoring and migrating existing `LiveData` to `StateFlow` by following the guidelines in `references/migration.md` -> `## LiveData to StateFlow`.
+
+#### StateFlow vs SharedFlow vs Channel
+
+| Type         | Best For                                    | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|--------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `StateFlow`  | UI state (forms, loading, data)             | Always holds one value. New collectors get the current value immediately.                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `SharedFlow` | Data or signals many observers need at once | **Multicast:** every active collector can see the same emissions. Optional `replay` re-delivers the last N values to **new** collectors (watch for duplicate handling after rotation or back stack). With defaults similar to `MutableSharedFlow()`, `emit()` **suspends** until there is subscriber capacity rather than dropping; **loss** comes from `tryEmit`, `DROP_OLDEST` / `DROP_LATEST` under buffer pressure, or tight `replay` / buffer sizing. |
+| `Channel`    | One-shot **commands** (navigate, snackbar)  | **Unicast:** each element is consumed once by one receiver. Buffered channels hold work until a collector runs; expose with `receiveAsFlow()` for lifecycle-aware collection. Design for **one** consumer (typical single UI collector).                                                                                                                                                                                                                                             |
+
+**Commands vs data, unicast vs multicast**
+
+Treat navigation, snackbars, and dialogs as **commands**: they should run once per logical occurrence, not replay to every new observer. A `Channel` matches that shape: queued delivery to a single consumer, no accidental replay when a new collector starts.
+
+Treat "session invalidated", "theme changed", or global bus-style signals as **data** or **broadcasts**: several layers may need the same event. That is the natural fit for `SharedFlow` (multicast).
+
+**Required semantics for `SharedFlow`**
+
+- `replay = 1` (or higher) fixes "missed last value" for late subscribers but **re-fires** that value whenever a new collector appears. Wrong shape for one-shot commands after configuration change.
+- `MutableSharedFlow` defaults to `onBufferOverflow = BufferOverflow.SUSPEND`. You do not need to pass `SUSPEND` unless you want the call site to document intent; you pass a **non-default** overflow (for example `DROP_OLDEST`) when you intentionally prefer loss or conflation over blocking the emitter.
+- With the default `SUSPEND`, `emit()` tends to **suspend** when there is no capacity, not silently drop. Loss is more tied to `tryEmit`, choosing `DROP_OLDEST` / `DROP_LATEST`, or tight buffer sizing under load.
+- Larger `replay` or `extraBufferCapacity` with the default `SUSPEND` adds queue space before `emit()` suspends; the emitter can still wait until collectors drain the buffer (typical `viewModelScope` usage tolerates this; cancel when the `ViewModel` clears).
+
+**Use when:** `Channel` + `receiveAsFlow()` for strict one-shot UI commands. `SharedFlow` when several collectors must observe the same emissions or when controlled replay is part of the product contract.
 
 ```kotlin
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    // State: always has a value, conflates rapid updates
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Loading)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    // replay is for new collectors; extraBufferCapacity is for bursts from existing collectors
-    private val _events = MutableSharedFlow<AuthEvent>(
-        replay = 0,
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
+    // CORRECT: Channel = unicast one-shot commands; buffers until UI collects
+    private val _events = Channel<AuthEvent>(Channel.BUFFERED)
+    val events: Flow<AuthEvent> = _events.receiveAsFlow()
+
+    // Use SharedFlow when several observers need the same event or replay/buffer tradeoffs are acceptable
+    // private val _events = MutableSharedFlow<AuthEvent>(
+    //     replay = 0,
+    //     extraBufferCapacity = 1,
+    //     onBufferOverflow = BufferOverflow.DROP_OLDEST
+    // )
+    // val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
+
+    fun login() {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            // ... do login ...
+            _events.send(AuthEvent.LoginSuccess) // Channel: suspends if buffer is full
+            // _events.emit(AuthEvent.LoginSuccess) // SharedFlow
+        }
+    }
 }
 ```
 
-Note on buffering:
+**Common Mistake:** Using `StateFlow` for a one-off snackbar.
+```kotlin
+// Bad: StateFlow holds the value forever. You have to manually reset it to null after showing the snackbar.
+private val _snackbarMessage = MutableStateFlow<String?>(null)
+
+// Good: same patterns as other one-shot commands (Channel preferred; SharedFlow if you accept its tradeoffs)
+private val _snackbarMessage = Channel<String>(Channel.BUFFERED)
+val snackbarMessages: Flow<String> = _snackbarMessage.receiveAsFlow()
+// Or: MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+```
+
+Note on buffering with SharedFlow:
 
 - `replay` controls how many values new subscribers receive.
 - `extraBufferCapacity` adds temporary queue space for bursts from active emitters.
-If you want new subscribers to receive only the latest value, use `replay = 1` and optionally
-add `extraBufferCapacity` for bursty emissions.
+- For **one-shot commands**, `replay = 1` (or higher) replays to every new collector — wrong default. Use `replay = 0` with an explicit buffer/overflow policy, or
+  use a `Channel` instead of fighting multicast semantics.
+When **late subscribers** must read only the **latest** value (state-like behavior),
+`replay = 1` plus explicit `extraBufferCapacity` can match the product; treat that as sticky state, not
+a consumed command.
 
 Guidance for events vs state:
 
-- Use `SharedFlow(replay = 0)` for one-shot, lossy UI events (toasts, dialogs, navigation).
+- **`Channel` + `receiveAsFlow()`** for strict one-shot commands (navigation, snackbars,
+  one-time dialogs). **`SharedFlow`** when multiple collectors observe the same stream or
+  replay to new subscribers is intended; size buffers and pick `onBufferOverflow` deliberately.
+- **Best-effort** UI (some toasts, debug banners) may use a small `SharedFlow` if occasional drops are
+  acceptable; do not label navigation that way unless the product truly allows missing the action.
 - If an event must survive the UI being stopped, persist it as state and render it on resume
-(StateFlow/ViewModel state/persistence), rather than relying on buffering.
+  (`StateFlow` / `ViewModel` state / persistence), rather than relying only on in-memory buffering.
 
 ### Convert Cold Flows to Hot StateFlows with `stateIn`
 
@@ -229,7 +283,7 @@ Key `SharingStarted` strategies:
 - `Eagerly`: Starts immediately and never stops. Use for critical always-needed state (auth status, app config).
 - `Lazily`: Starts on first subscriber, never stops. Use when you want to keep the flow hot after first access.
 
-Common mistake: Using `stateIn` with `Eagerly` by default. Prefer `WhileSubscribed` to avoid wasted resources.
+Common mistake: Using `stateIn` with `Eagerly` by default. Use `WhileSubscribed` to avoid wasted resources.
 
 ### Share Expensive Upstream with `shareIn`
 
@@ -338,7 +392,7 @@ suspend fun refreshAuth(): AuthResult {
 }
 ```
 
-### Prefer `launch` for Fire-and-Forget, `async` for Values, `withContext` for Sequential Work
+### `launch` vs `async` vs `withContext`
 
 Use `launch` for side effects, `async` for parallel work that returns values, and `withContext` for sequential operations that need dispatcher switching or structured concurrency.
 
@@ -371,7 +425,7 @@ suspend fun processAuthData(data: AuthData): ProcessedAuth = withContext(Dispatc
 
 ### Use `awaitAll` for Parallel Work
 
-Prefer `awaitAll()` so failures cancel remaining work promptly. It handles exceptions properly and cancels sibling coroutines when one fails.
+Use `awaitAll()` so failures cancel remaining work promptly. It handles exceptions properly and cancels sibling coroutines when one fails.
 
 ```kotlin
 suspend fun syncAuthData(): SyncResult = coroutineScope {
@@ -446,6 +500,40 @@ class AuthLegacyKeyStore(
 }
 ```
 
+### `coroutineScope` vs `supervisorScope` - Failure Propagation
+
+Both are scope builders for use inside suspend functions. They differ on **what happens when one child fails**.
+
+| Aspect                         | `coroutineScope { }`                                        | `supervisorScope { }`                                   |
+|--------------------------------|-------------------------------------------------------------|---------------------------------------------------------|
+| Child failure cancels siblings | Yes                                                         | No                                                      |
+| Failure rethrown to caller     | Yes (first failure)                                         | No (contained per-child)                                |
+| Use when                       | Children form one atomic unit. Partial results are useless. | Children are independent. Partial results are valuable. |
+
+```kotlin
+suspend fun loadDashboard() = coroutineScope {
+    val user = async { api.fetchUser() }
+    val orders = async { api.fetchOrders() }
+    Dashboard(user.await(), orders.await())
+}
+```
+
+If `fetchOrders()` fails, `fetchUser()` is cancelled and the exception is rethrown to the caller. Correct: there is no partial dashboard.
+
+```kotlin
+suspend fun warmCaches() = supervisorScope {
+    launch { cache.warmTokens() }
+    launch { cache.warmFeatures() }
+    launch { cache.warmConfig() }
+}
+```
+
+If `warmFeatures()` fails, `warmTokens` and `warmConfig` keep running. The function returns normally. Correct: a partially warmed cache is still a win.
+
+**Decision rule:** ask "if one child fails, is there any value in the others' results?" Yes → `supervisorScope`. No → `coroutineScope`.
+
+**With `async`:** in `supervisorScope`, exceptions thrown inside `async` are stored on the `Deferred` and only raised when you call `await()`. Always `await()` (or `awaitAll()`) every `async` you launch - see [Unawaited async in supervisorScope](#unawaited-async-in-supervisorscope).
+
 ### `supervisorScope` vs `SupervisorJob` - Independent Child Failures
 
 Both let children fail independently without cancelling siblings. The difference is **where you use them** and **how exceptions are handled**.
@@ -496,14 +584,15 @@ class RelayConnectionService : Service() {
 
 Without the `CoroutineExceptionHandler`, an unhandled exception from any child would crash the app - `SupervisorJob` only prevents sibling cancellation, it does not swallow exceptions.
 
-#### Decision Guide
+#### Use when
 
+| Scenario                                    | Use                                           |
+|---------------------------------------------|-----------------------------------------------|
+| Suspend function, parallel independent work | `supervisorScope`                             |
+| Long-lived scope (Service, Repository)      | `SupervisorJob` + `CoroutineExceptionHandler` |
+| `withContext` + supervision needed          | `supervisorScope` inside `withContext`        |
 
-| Scenario                                    | Use                                           | Why                                           |
-|---------------------------------------------|-----------------------------------------------|-----------------------------------------------|
-| Suspend function, parallel independent work | `supervisorScope`                             | Scoped, automatic exception containment       |
-| Long-lived scope (Service, Repository)      | `SupervisorJob` + `CoroutineExceptionHandler` | Explicit lifecycle, explicit error handling   |
-| `withContext` + supervision needed          | `supervisorScope` inside `withContext`        | Never pass `SupervisorJob()` to `withContext` |
+Forbidden: `withContext(SupervisorJob())` - see anti-pattern below.
 
 
 #### Anti-Pattern: `withContext(SupervisorJob())`
@@ -649,17 +738,16 @@ accelerometerFlow()
     .collect { reading -> updateDisplay(reading) }
 ```
 
-#### Decision Guide
+#### Use when
 
-
-| Scenario                                         | Operator                 | Effect                    |
-|--------------------------------------------------|--------------------------|---------------------------|
-| Slow collector, fast producer, all values matter | `buffer(capacity)`       | Queues emissions          |
-| Slow collector, only latest value matters        | `conflate()`             | Skips intermediate        |
-| Fast producer, drop old when full                | `buffer(n, DROP_OLDEST)` | Bounded buffer, drops old |
-| User input (search, text)                        | `debounce(ms)`           | Waits for pause           |
-| Continuous stream, periodic sampling             | `sample(ms)`             | Fixed-rate snapshots      |
-| Suppress consecutive duplicates                  | `distinctUntilChanged()` | Filters equal             |
+| Scenario                                         | Operator                 |
+|--------------------------------------------------|--------------------------|
+| Slow collector, fast producer, all values matter | `buffer(capacity)`       |
+| Slow collector, only latest value matters        | `conflate()`             |
+| Fast producer, drop old when full                | `buffer(n, DROP_OLDEST)` |
+| User input (search, text)                        | `debounce(ms)`           |
+| Continuous stream, periodic sampling             | `sample(ms)`             |
+| Suppress consecutive duplicates                  | `distinctUntilChanged()` |
 
 
 #### Anti-Pattern
@@ -679,7 +767,7 @@ fastProducer()
     }
 ```
 
-### Prefer `suspend` for One-Off Values
+### `suspend` for one-off values
 
 Use a suspending function when only a single value is expected.
 
@@ -689,7 +777,7 @@ interface AuthRepository {
 }
 ```
 
-### Prefer Explicit Coroutine Names for Long-Lived Work
+### Coroutine names for long-lived work
 
 For long-lived or background work, add `CoroutineName` to improve debugging and structured logs.
 
@@ -712,7 +800,7 @@ class AuthSessionRefresher(
 
 ### Avoid `Job` in `withContext` or Ad-Hoc `Job()` Usage
 
-Passing a `Job` into `withContext` breaks structured concurrency. Prefer `coroutineScope`/`supervisorScope`
+Passing a `Job` into `withContext` breaks structured concurrency. Use `coroutineScope`/`supervisorScope`
 and keep a reference to the returned `Job` when you need cancellation.
 
 ```kotlin
@@ -827,11 +915,11 @@ class CameraRepository(
 
 Warning: Never wrap normal business logic in `NonCancellable`. It should only guard cleanup code that prevents resource leaks or corruption.
 
-### Prefer Explicit Timeouts for Hardware and Uncontrolled APIs
+### Timeouts for hardware and uncontrolled APIs
 
 Use `withTimeout` or `withTimeoutOrNull` for operations that can hang indefinitely when interacting with hardware or third-party SDKs without built-in timeout mechanisms.
 
-Note: Modern HTTP clients (OkHttp, Ktor) have sophisticated timeout configuration. Configure those at the client level instead of wrapping each call. Use explicit timeouts only when the underlying API has no timeout control.
+Configure HTTP timeouts at the client level (OkHttp, Ktor). Use `withTimeout`/`withTimeoutOrNull` only for APIs that expose no timeout control of their own (hardware SDKs, third-party callbacks).
 
 ```kotlin
 class BiometricAuthRepository(
@@ -863,11 +951,9 @@ class HardwarePrinterRepository(
 }
 ```
 
-Important notes:
-
-- `withTimeout` throws `TimeoutCancellationException` (a subclass of `CancellationException`), which will cancel the coroutine unless caught and handled
-- Wrap `withContext` inside `withTimeout`, not the other way around, so the timeout covers the full operation including dispatcher switch
-- Use `withTimeoutOrNull` when a null result is acceptable; use `withTimeout` with explicit timeout handling when you need to distinguish timeout from other failures
+- `withTimeout` throws `TimeoutCancellationException` (a `CancellationException`); it cancels the coroutine unless caught.
+- Always wrap `withContext` *inside* `withTimeout`, never the reverse. The timeout must cover the dispatcher switch.
+- Use `withTimeoutOrNull` when `null` is an acceptable outcome. Use `withTimeout` when timeout must be distinguished from other failures.
 
 ## Bridging Imperative Callbacks to Coroutines
 
@@ -877,8 +963,8 @@ Android and third-party SDKs expose many callback-based APIs. Use the right brid
 | Scenario                                               | Use                           |
 |--------------------------------------------------------|-------------------------------|
 | Callback fires **multiple times** (listener, observer) | `callbackFlow`                |
-| Callback fires **once** (completion, result)           | `suspendCancellableCoroutine` |
 | Need **multiple concurrent coroutine producers**       | `channelFlow`                 |
+| Callback fires **once** (completion, result)           | `suspendCancellableCoroutine` |
 
 
 ### `callbackFlow` - Callback Stream to Flow
@@ -922,6 +1008,7 @@ fun observeNetworkStatus(
 
 - **Always call `awaitClose {}`** - even if cleanup is empty. Without it, the flow closes immediately after the builder block completes.
 - **Use `trySend()` from callbacks, not `send()`** - `trySend` is non-suspending and safe to call from any thread. `send()` is suspending and will throw if called from a non-coroutine context.
+- **Callback registration APIs must be thread-safe** - `awaitClose` cleanup can race callback delivery, so `register`/`unregister` must be safe under concurrent calls.
 - **Emit initial state before registering callback** - prevents collectors from missing the current value.
 - **Unregister/cleanup in `awaitClose`** - mirrors the lifecycle of the collector.
 
@@ -976,20 +1063,6 @@ fun observeStableNetworkStatus(
         .flowOn(Dispatchers.IO)
 ```
 
-#### `channelFlow` - Multiple Coroutine Producers
-
-Use `channelFlow` when you need multiple coroutines producing into the same Flow. No `awaitClose` requirement.
-
-```kotlin
-fun mergeFeeds(repos: List<FeedRepository>): Flow<FeedItem> = channelFlow {
-    repos.forEach { repo ->
-        launch {
-            repo.getFeed().collect { send(it) }
-        }
-    }
-}
-```
-
 #### `callbackFlow` Anti-Patterns
 
 ```kotlin
@@ -1001,9 +1074,15 @@ fun badFlow(): Flow<Event> = callbackFlow {
 
 // GOOD: Always include awaitClose
 fun goodFlow(): Flow<Event> = callbackFlow {
+    val cleanedUp = java.util.concurrent.atomic.AtomicBoolean(false)
     val listener = EventListener { trySend(it) }
+    fun cleanupOnce() {
+        if (cleanedUp.compareAndSet(false, true)) {
+            api.unregisterListener(listener)
+        }
+    }
     api.registerListener(listener)
-    awaitClose { api.unregisterListener(listener) }
+    awaitClose { cleanupOnce() }
 }
 ```
 
@@ -1025,11 +1104,87 @@ fun goodFlow(): Flow<Event> = callbackFlow {
 }
 ```
 
+```kotlin
+// BAD: Non-thread-safe awaitClose cleanup (races with callback thread cleanup)
+fun badCleanupFlow(): Flow<Event> = callbackFlow {
+    var cleanedUp = false
+
+    val callback = object : StreamingCallback<Event> {
+        override fun onNext(event: Event) {
+            trySend(event)
+        }
+
+        override fun onClosed() {
+            if (!cleanedUp) {
+                cleanedUp = true
+                api.unregisterCallback(this) // can race with awaitClose path
+            }
+            channel.close()
+        }
+    }
+
+    api.registerCallback(callback)
+
+    awaitClose {
+        if (!cleanedUp) { // Race: callback thread may pass this check too
+            cleanedUp = true
+            api.unregisterCallback(callback)
+        }
+    }
+}
+
+// GOOD: Idempotent cleanup shared by callback and awaitClose
+fun goodCleanupFlow(): Flow<Event> = callbackFlow {
+    val cleanedUp = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    val callback = object : StreamingCallback<Event> {
+        override fun onNext(event: Event) {
+            trySend(event)
+        }
+
+        override fun onClosed() {
+            cleanupOnce()
+            channel.close()
+        }
+    }
+
+    fun cleanupOnce() {
+        if (cleanedUp.compareAndSet(false, true)) {
+            api.unregisterCallback(callback)
+        }
+    }
+
+    api.registerCallback(callback)
+    awaitClose { cleanupOnce() }
+}
+```
+
+#### `channelFlow` - Multiple Coroutine Producers
+
+Use `channelFlow` when you need multiple coroutines producing into the same Flow. No `awaitClose` requirement.
+
+```kotlin
+fun mergeFeeds(repos: List<FeedRepository>): Flow<FeedItem> = channelFlow {
+    repos.forEach { repo ->
+        launch {
+            repo.getFeed().collect { send(it) }
+        }
+    }
+}
+```
+
 ### `suspendCancellableCoroutine` - One-Shot Callback to Suspend
 
 Use `suspendCancellableCoroutine` to convert a **single-result** callback into a suspend function. The coroutine suspends until `resume` or `resumeWithException` is called exactly once.
 
 **Always prefer `suspendCancellableCoroutine` over `suspendCoroutine`** - it supports cancellation, which is critical for structured concurrency.
+
+`suspendCoroutine` is acceptable only for narrow cases where all of the following are true:
+
+- The API is truly one-shot and guaranteed to invoke exactly one terminal callback.
+- There is no meaningful cancellation or cleanup path to execute.
+- The operation is short-lived and does not hold scarce resources while waiting.
+- You still enforce exact-once resume semantics.
 
 #### Core Pattern
 
@@ -1053,39 +1208,101 @@ suspend fun authenticate(biometricManager: BiometricManager): AuthResult =
 
 #### Common Use Cases
 
+For Google Play Services and Firebase APIs that return `Task<T>`, prefer the official coroutine
+adapter from `kotlinx-coroutines-play-services` (`import kotlinx.coroutines.tasks.await`) instead of
+maintaining custom `Task<T>.await()` bridges.
+
 ```kotlin
-// One-shot location request
+import kotlinx.coroutines.tasks.await
+
+// One-shot location request via official Task.await()
 suspend fun getLastLocation(
     fusedLocationClient: FusedLocationProviderClient
-): Location = suspendCancellableCoroutine { cont ->
-    fusedLocationClient.lastLocation
-        .addOnSuccessListener { location ->
-            if (location != null) cont.resume(location)
-            else cont.resumeWithException(LocationNotFoundException())
-        }
-        .addOnFailureListener { e ->
-            cont.resumeWithException(e)
-        }
+): Location =
+    fusedLocationClient.lastLocation.await()
+        ?: throw LocationNotFoundException()
+```
 
-    cont.invokeOnCancellation {
-        // FusedLocationProviderClient tasks auto-cancel
+#### Returning Closeable Resources Safely
+
+`suspendCancellableCoroutine` has prompt cancellation guarantees. If a callback returns a closeable
+resource, cancellation may happen after `resume(resource)` but before the caller receives it. Use
+`resume(value) { ... }` to close the resource in that race window.
+
+```kotlin
+suspend fun openFileHandle(api: FileApi): FileHandle =
+    suspendCancellableCoroutine { cont ->
+        api.openAsync(
+            onSuccess = { handle ->
+                cont.resume(handle) { _, handleToClose, _ ->
+                    handleToClose.close()
+                }
+            },
+            onError = { error ->
+                cont.resumeWithException(error)
+            }
+        )
+
+        cont.invokeOnCancellation {
+            api.cancelOpen()
+        }
     }
-}
-
-// Play Services Task to suspend
-suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
-    addOnSuccessListener { cont.resume(it) }
-    addOnFailureListener { cont.resumeWithException(it) }
-    addOnCanceledListener { cont.cancel() }
-}
 ```
 
 #### Rules
 
-- **Use `suspendCancellableCoroutine`, not `suspendCoroutine`** - `suspendCoroutine` ignores cancellation, leaking work and preventing structured concurrency from cleaning up.
-- **Call `resume`/`resumeWithException` exactly once** - multiple calls throw `IllegalStateException`. Use `cont.isActive` check if the callback might fire after cancellation.
+- **For APIs returning `Task<T>`, use official `await()` adapters** - prefer `kotlinx.coroutines.tasks.await` over custom bridge extensions.
+- **Use `suspendCancellableCoroutine` for one-shot callbacks that are not `Task<T>`** - custom bridging still applies when no official adapter exists.
+- **When resuming with closeable resources, use `resume(value) { ... }`** - ensures cancellation-time cleanup if the coroutine is cancelled before the caller observes the resource.
+- **Treat `suspendCoroutine` as an exception, not a default** - use it only for truly non-cancellable, short-lived one-shot callbacks with no cleanup requirements.
+- **Call `resume`/`resumeWithException` exactly once** - multiple calls throw `IllegalStateException`. Guard with `cont.isActive` when the callback can fire after cancellation.
 - **Always implement `invokeOnCancellation`** - clean up resources (cancel requests, unregister listeners) when the coroutine is cancelled.
+- **Cancellation cleanup must be thread-safe** - callbacks may fire concurrently with `invokeOnCancellation`, so cancellation/unregister logic must tolerate races.
 - **Never block inside the lambda** - the lambda runs synchronously on the caller's thread. Register the callback and return immediately.
+
+#### One-Shot Bridge Checklist
+
+Before merging any `suspendCancellableCoroutine` bridge, confirm:
+
+- Every success/error/disconnect callback path either `resume(...)` or `resumeWithException(...)`.
+- No path can resume twice (guard multi-fire callbacks with `cont.isActive` and idempotent cleanup).
+- Cancellation unregisters/cancels underlying work via `invokeOnCancellation`.
+- If the API can stall indefinitely, wrap the bridge call with `withTimeout`/`withTimeoutOrNull`.
+- Cleanup/unregister logic is race-safe between callback thread and cancellation thread.
+
+```kotlin
+suspend fun awaitConnectSafe(client: LegacyClient): Connection =
+    withTimeout(5.seconds) {
+        suspendCancellableCoroutine { cont ->
+            val cleanedUp = java.util.concurrent.atomic.AtomicBoolean(false)
+
+            fun cleanupOnce() {
+                if (cleanedUp.compareAndSet(false, true)) {
+                    client.disconnect()
+                }
+            }
+
+            client.connect(
+                onConnected = { connection ->
+                    if (cont.isActive) cont.resume(connection)
+                    cleanupOnce()
+                },
+                onError = { error ->
+                    if (cont.isActive) cont.resumeWithException(error)
+                    cleanupOnce()
+                },
+                onDisconnected = {
+                    if (cont.isActive) {
+                        cont.resumeWithException(IllegalStateException("Disconnected before connect"))
+                    }
+                    cleanupOnce()
+                }
+            )
+
+            cont.invokeOnCancellation { cleanupOnce() }
+        }
+    }
+```
 
 #### Anti-Patterns
 
@@ -1119,170 +1336,283 @@ suspend fun good(): String = suspendCancellableCoroutine { cont ->
 }
 ```
 
-## Coexisting with RxJava (Legacy Code)
-
-When maintaining projects with both RxJava and Coroutines (migration not planned):
-
-### Use StateFlow for All UI State
-
-Even for RxJava-based ViewModels, expose UI state via `StateFlow` (not `LiveData`):
-
 ```kotlin
-@HiltViewModel
-class ProductsViewModel @Inject constructor(
-    private val getProductsUseCase: GetProductsUseCase,  // RxJava-based
-    private val disposables: CompositeDisposable
-) : ViewModel() {
-    
-    private val _uiState = MutableStateFlow<ProductsUiState>(ProductsUiState.Loading)
-    val uiState: StateFlow<ProductsUiState> = _uiState.asStateFlow()
-    
-    fun loadProducts() {
-        getProductsUseCase.execute()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .autoDispose(this)  // Or use disposables.add()
-            .subscribe(
-                { products ->
-                    _uiState.value = ProductsUiState.Success(products)
-                },
-                { error ->
-                    _uiState.value = ProductsUiState.Error(error.message ?: "Unknown error")
-                }
-            )
-    }
-    
-    override fun onCleared() {
-        super.onCleared()
-        disposables.clear()
-    }
-}
-```
+// BAD: Non-thread-safe invokeOnCancellation cleanup (races with callback thread)
+suspend fun badCleanup(): Result = suspendCancellableCoroutine { cont ->
+    var cleanedUp = false
 
-### Compose Collection Remains Consistent
-
-UI code uses `collectAsStateWithLifecycle()` regardless of whether ViewModel uses Coroutines or RxJava:
-
-```kotlin
-@Composable
-fun ProductsRoute(viewModel: ProductsViewModel = hiltViewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
-    ProductsScreen(
-        state = uiState,
-        onRetry = viewModel::loadProducts
-    )
-}
-```
-
-### Disposal Management
-
-**Option 1: CompositeDisposable (recommended)**
-
-```kotlin
-class ProductsViewModel : ViewModel() {
-    private val disposables = CompositeDisposable()
-    
-    fun loadProducts() {
-        getProductsUseCase()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(...)
-            .also { disposables.add(it) }
-    }
-    
-    override fun onCleared() {
-        super.onCleared()
-        disposables.clear()
-    }
-}
-```
-
-**Option 2: AutoDispose (third-party, requires base ViewModel)**
-
-```kotlin
-dependencies {
-    implementation(libs.autodispose.android)
-    implementation(libs.autodispose.android.archcomponents)
-}
-
-class ProductsViewModel : ViewModel(), LifecycleScopeProvider by AndroidLifecycleScopeProvider.from(this) {
-    fun loadProducts() {
-        getProductsUseCase()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .autoDispose(this)
-            .subscribe(...)
-    }
-}
-```
-
-### Paging with RxJava
-
-Use `paging-rxjava3` alongside `paging-compose`:
-
-```kotlin
-dependencies {
-    implementation(libs.androidx.paging.runtime)
-    implementation(libs.androidx.paging.compose)
-    implementation(libs.androidx.paging.rxjava3)  // For RxJava sources
-}
-
-class ProductsPagingSource(
-    private val productsApi: ProductsApi  // Returns RxJava observables
-) : RxPagingSource<Int, Product>() {
-    
-    override fun loadSingle(params: LoadParams<Int>): Single<LoadResult<Int, Product>> {
-        val page = params.key ?: 1
-        
-        return productsApi.getProducts(page, params.loadSize)
-            .map { response ->
-                LoadResult.Page(
-                    data = response.products,
-                    prevKey = if (page == 1) null else page - 1,
-                    nextKey = if (response.hasMore) page + 1 else null
-                ) as LoadResult<Int, Product>
+    val callback = object : ApiCallback<Result> {
+        override fun onSuccess(value: Result) {
+            if (cont.isActive) cont.resume(value)
+            if (!cleanedUp) {
+                cleanedUp = true
+                api.unregister(this)
             }
-            .onErrorReturn { error ->
-                LoadResult.Error(error)
+        }
+
+        override fun onError(error: Throwable) {
+            if (cont.isActive) cont.resumeWithException(error)
+            if (!cleanedUp) {
+                cleanedUp = true
+                api.unregister(this)
             }
+        }
     }
-    
-    override fun getRefreshKey(state: PagingState<Int, Product>): Int? {
-        return state.anchorPosition?.let { anchorPosition ->
-            state.closestPageToPosition(anchorPosition)?.prevKey?.plus(1)
-                ?: state.closestPageToPosition(anchorPosition)?.nextKey?.minus(1)
+
+    api.register(callback)
+
+    cont.invokeOnCancellation {
+        if (!cleanedUp) { // Race: callback thread may pass this check too
+            cleanedUp = true
+            api.unregister(callback)
         }
     }
 }
 
-// ViewModel bridges to Flow for Compose
-class ProductsViewModel @Inject constructor(
-    private val productsApi: ProductsApi
-) : ViewModel() {
-    val products: Flow<PagingData<Product>> = Pager(
-        config = PagingConfig(pageSize = 20),
-        pagingSourceFactory = { ProductsPagingSource(productsApi) }
-    ).flow
-        .cachedIn(viewModelScope)
+// GOOD: Idempotent cleanup shared by callback and cancellation paths
+suspend fun goodCleanup(): Result = suspendCancellableCoroutine { cont ->
+    val cleanedUp = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    val callback = object : ApiCallback<Result> {
+        override fun onSuccess(value: Result) {
+            if (cont.isActive) cont.resume(value)
+            cleanupOnce()
+        }
+
+        override fun onError(error: Throwable) {
+            if (cont.isActive) cont.resumeWithException(error)
+            cleanupOnce()
+        }
+    }
+
+    fun cleanupOnce() {
+        if (cleanedUp.compareAndSet(false, true)) {
+            api.unregister(callback)
+        }
+    }
+
+    api.register(callback)
+    cont.invokeOnCancellation { cleanupOnce() }
 }
 ```
 
-### Best Practices
+### Preserve Error Shape in Bridge APIs
 
-1. **Unified UI layer**: Always use `StateFlow` for UI state, even when ViewModels use RxJava
-2. **Isolate RxJava**: Keep RxJava usage in data/domain layers, convert to `StateFlow` at ViewModel boundary
-3. **Dispose properly**: Use AutoDispose or `CompositeDisposable` to prevent leaks
-4. **Don't mix in same function**: A function should be either fully Coroutines or fully RxJava, not both
-5. **Prefer Coroutines for new code**: Only use RxJava for existing legacy code that won't be migrated
+When bridging callback APIs to suspend functions, keep the callback's data shape and error semantics
+intact instead of flattening everything to generic `Exception(message)`.
 
-### Migration Path (When Ready)
+#### Multi-Value Success -> Wrapper Result Type
 
-When planning RxJava → Coroutines migration:
+If success callbacks return multiple values, wrap them in a single result type so the suspend API
+stays explicit and strongly typed.
 
-1. Start with data layer (repositories)
-2. Then domain layer (use cases)
-3. Finally ViewModels
-4. UI layer already uses `StateFlow.collectAsStateWithLifecycle()`, so no changes needed
+```kotlin
+data class PurchaseBridgeResult(
+    val transaction: StoreTransaction,
+    val customerInfo: CustomerInfo
+)
 
-See [RxJava to Coroutines migration guide](https://developer.android.com/kotlin/coroutines/coroutines-adv#additional-resources) for detailed migration strategies.
+suspend fun purchase(params: PurchaseParams): PurchaseBridgeResult =
+    suspendCancellableCoroutine { cont ->
+        sdk.purchase(
+            params = params,
+            onSuccess = { tx, info ->
+                cont.resume(PurchaseBridgeResult(tx, info))
+            },
+            onError = { error ->
+                cont.resumeWithException(PurchaseBridgeException(error))
+            }
+        )
+    }
+```
+
+#### Typed Exceptions -> Preserve Programmatic Handling
+
+Map SDK/domain errors to typed exceptions that keep machine-readable fields (codes, cancellation
+reason, retryability) so callers can branch safely.
+
+```kotlin
+open class PurchaseBridgeException(
+    val error: PurchaseError
+) : Exception(error.message)
+
+class PurchaseCancelledException(
+    error: PurchaseError
+) : PurchaseBridgeException(error)
+
+suspend fun restorePurchases(): CustomerInfo =
+    suspendCancellableCoroutine { cont ->
+        sdk.restore(
+            onSuccess = { info -> cont.resume(info) },
+            onError = { error ->
+                val exception = if (error.code == PurchaseErrorCode.UserCancelled) {
+                    PurchaseCancelledException(error)
+                } else {
+                    PurchaseBridgeException(error)
+                }
+                cont.resumeWithException(exception)
+            }
+        )
+    }
+```
+
+#### Anti-Pattern: Losing Error Metadata
+
+```kotlin
+// BAD: Throws away typed error code/cause metadata
+onError = { error ->
+    cont.resumeWithException(Exception(error.message))
+}
+
+// GOOD: Preserve structured error for caller handling
+onError = { error ->
+    cont.resumeWithException(PurchaseBridgeException(error))
+}
+```
+
+## Common Pitfalls
+
+Quick-reference table of coroutine and Flow mistakes that are easy to miss during code review.
+
+### Redundant SupervisorJob in ViewModel
+
+`viewModelScope` already uses `SupervisorJob` internally. Adding another one creates a detached scope
+that breaks structured concurrency.
+
+```kotlin
+// BAD: redundant SupervisorJob, creates orphaned scope
+class MyViewModel : ViewModel() {
+    private val scope = CoroutineScope(viewModelScope.coroutineContext + SupervisorJob())
+
+    fun load() {
+        scope.launch { /* ... */ } // not cancelled when ViewModel clears
+    }
+}
+
+// GOOD: viewModelScope already has SupervisorJob
+class MyViewModel : ViewModel() {
+    fun load() {
+        viewModelScope.launch { /* ... */ }
+    }
+}
+```
+
+### Unawaited async in supervisorScope
+
+In `supervisorScope`, exceptions from unawaited `async` blocks are silently swallowed. The deferred
+completes exceptionally but nobody observes it. Use `launch` when you don't need the result.
+
+```kotlin
+// BAD: exception silently lost - nobody calls await()
+suspend fun syncAll() = supervisorScope {
+    async { syncUsers() }   // if this throws, nobody knows
+    async { syncOrders() }  // same problem
+}
+
+// GOOD: use launch when you don't need the return value
+suspend fun syncAll() = supervisorScope {
+    launch { syncUsers() }
+    launch { syncOrders() }
+}
+```
+
+### Side Effects Inside combine/map Transforms
+
+Transform lambdas in `combine`, `map`, and similar operators re-execute on every resubscription
+(e.g., after screen rotation). Launching coroutines or emitting events inside them causes
+duplicate side effects.
+
+```kotlin
+// BAD: launches a coroutine on every resubscription (rotation fires it again)
+val uiState = combine(userFlow, settingsFlow) { user, settings ->
+    viewModelScope.launch { analytics.trackView(user.id) } // fires on every rotation
+    UiState(user, settings)
+}
+
+// GOOD: move side effects to onEach or a dedicated handler
+val uiState = combine(userFlow, settingsFlow) { user, settings ->
+    UiState(user, settings)
+}.onEach { state ->
+    analytics.trackView(state.user.id)
+}
+```
+
+### Collecting a Flow Inside a Transform
+
+Calling `.first()` or `.firstOrNull()` inside a `map` or `combine` lambda creates a hidden
+sequential fetch that re-executes on every upstream emission. Use `combine` to merge both flows
+reactively instead.
+
+```kotlin
+// BAD: hidden suspend call inside combine, re-fetches on every emission
+val uiState = userFlow.map { user ->
+    val settings = settingsFlow.first() // blocks, re-fetches every time userFlow emits
+    UiState(user, settings)
+}
+
+// GOOD: combine both flows reactively
+val uiState = combine(userFlow, settingsFlow) { user, settings ->
+    UiState(user, settings)
+}
+```
+
+### Manual Job Cancellation Instead of flatMapLatest
+
+A common pattern is cancelling a previous `Job` and re-launching on new input. `flatMapLatest`
+handles this automatically and is less error-prone.
+
+```kotlin
+// BAD: manual Job? tracking
+class SearchViewModel : ViewModel() {
+    private var searchJob: Job? = null
+
+    fun onQueryChanged(query: String) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            val results = repository.search(query)
+            _uiState.update { it.copy(results = results) }
+        }
+    }
+}
+
+// GOOD: flatMapLatest cancels previous automatically
+class SearchViewModel : ViewModel() {
+    private val query = MutableStateFlow("")
+
+    val uiState = query
+        .debounce(300)
+        .flatMapLatest { q -> repository.search(q) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun onQueryChanged(q: String) { query.value = q }
+}
+```
+
+### `emit` vs `tryEmit`
+
+`emit` suspends until the value is delivered. `tryEmit` returns `Boolean` (`false` = dropped because the buffer was full). Inside a coroutine, default to `emit`. Use `tryEmit` only from non-suspending contexts, or when dropping a value is acceptable.
+
+With `BufferOverflow.DROP_OLDEST`/`DROP_LATEST`, `tryEmit` always returns `true`. Still prefer `emit` inside coroutines so the call stays correct if the overflow strategy changes.
+
+### Using emit() on MutableStateFlow
+
+`MutableStateFlow.emit()` is a suspending function but behaves identically to `.value =` assignment.
+Using `emit()` misleads readers into thinking suspension is meaningful and adds unnecessary overhead.
+
+```kotlin
+// MISLEADING: emit() suspends but does nothing extra on MutableStateFlow
+viewModelScope.launch {
+    _uiState.emit(UiState.Loading) // no benefit over .value =
+}
+
+// CLEAR: direct assignment
+_uiState.value = UiState.Loading
+```
+
+Use `.value =` for `MutableStateFlow`. Reserve `emit()` for `MutableSharedFlow` where suspension
+actually matters (it suspends when the buffer is full).
+
+## Coexisting with RxJava (Legacy Code)
+
+For RxJava coexistence patterns (StateFlow bridge, disposal management, paging) and the
+RxJava-to-Coroutines migration path, see [migration.md](/references/migration.md#rxjava-to-coroutines).

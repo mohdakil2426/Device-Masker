@@ -1,21 +1,18 @@
 # Crash Reporting (Firebase Crashlytics / Sentry)
 
-This guide shows how to integrate crash reporting in a **modular** Android app so the provider (Firebase Crashlytics or Sentry)
-can be swapped without touching feature code.
-
-## Goals
-
-- Keep SDK-specific code **out of feature modules**
-- Use an interface in `core` and inject implementations
-- Allow easy provider swaps or dual reporting
+Required:
+- SDK-specific code lives only in `core:data` (or `core:analytics`); feature modules call a `CrashReporter` interface from `core:domain`.
+- Provider initialization happens once, in the `app` module.
+- Swap providers by changing the Hilt binding + convention plugin only - never by touching feature code.
+- Play Vitals is optional store-level signal, not a Crashlytics replacement: see [android-performance.md → Optional: Play Vitals observability](/references/android-performance.md#optional-play-vitals-observability-play-developer-reporting-api).
 
 ## Architecture Placement
 
-**Recommended modules:**
-
-- `core:domain` (or `core:common`): interfaces and event models
-- `core:data` (or `core:analytics`): SDK-specific implementations
-- `app`: provider initialization and wiring
+| Layer       | Module                            | Responsibility                                  |
+|-------------|-----------------------------------|-------------------------------------------------|
+| Contract    | `core:domain` / `core:common`     | `CrashReporter` interface, event models         |
+| Adapter     | `core:data` / `core:analytics`    | Firebase or Sentry implementation               |
+| Composition | `app`                             | Init + Hilt binding for chosen provider         |
 
 ## Provider-Agnostic Interface
 
@@ -82,15 +79,19 @@ class SentryCrashReporter @Inject constructor() : CrashReporter {
         throwable: Throwable,
         context: Map<String, String>
     ) {
-        context.forEach { (k, v) -> Sentry.setTag(k, v) }
-        Sentry.captureException(throwable)
+        Sentry.withScope { scope ->
+            context.forEach { (k, v) -> scope.setTag(k, v) }
+            Sentry.captureException(throwable)
+        }
     }
 }
 ```
 
+Use `Sentry.withScope` (Isolated/Local Scope) so per-call tags do not leak into subsequent events.
+
 ## Sentry Setup (Convention Plugin + Compose)
 
-Use the Sentry convention plugin for automatic setup. It applies the Gradle plugins, adds the Sentry SDK, and configures Compose integration.
+Apply the Sentry convention plugin. It applies the Gradle plugins, adds the Sentry SDK, and wires Compose integration.
 
 ```kotlin
 // app/build.gradle.kts
@@ -102,11 +103,10 @@ plugins {
 }
 ```
 
-The `app.sentry` convention plugin (from `templates/convention/SentryConventionPlugin.kt`) automatically:
-- Applies `io.sentry.android.gradle` plugin (auto-adds core SDK, uploads mapping files)
-- Applies `io.sentry.kotlin.compiler.gradle` plugin (automatic @Composable tagging)
-- Adds `sentry-android` dependency
-- Adds `sentry-compose-android` dependency for Jetpack Compose integration
+`app.sentry` (`assets/convention/SentryConventionPlugin.kt`) applies:
+- `io.sentry.android.gradle` (core SDK + mapping upload)
+- `io.sentry.kotlin.compiler.gradle` (`@Composable` auto-tagging)
+- `sentry-android` and `sentry-compose-android` dependencies
 
 **Manual setup (if not using convention plugin):**
 
@@ -140,7 +140,7 @@ Sentry uses a ContentProvider for auto-initialization. Configure via `AndroidMan
 
 ### Application Initialization (Sentry)
 
-Enable logs so StrictMode `.penaltyLog()` events can be shipped.
+Enable `options.logs.isEnabled` so StrictMode `.penaltyLog()` events can be shipped. Pick exactly one of `profilesSampleRate` or `profileSessionSampleRate` - never both.
 
 ```kotlin
 class MyApplication : Application() {
@@ -152,7 +152,7 @@ class MyApplication : Application() {
             options.environment = if (BuildConfig.DEBUG) "debug" else "production"
             options.release = BuildConfig.VERSION_NAME
             options.tracesSampleRate = 1.0
-            // options.tracesSampler = { 0.2 } // Prefer sampler when you need dynamic control.
+            // options.tracesSampler = { 0.2 } // Use a sampler when traces need dynamic sampling rates.
             // options.tracePropagationTargets = listOf("api.example.com", "https://auth.example.com")
             // options.propagateTraceparent = true
             // options.traceOptionsRequests = false
@@ -182,11 +182,13 @@ class MyApplication : Application() {
 }
 ```
 
+Optional knobs (use only when justified): `tracesSampler`, `tracePropagationTargets`, `propagateTraceparent`, `traceOptionsRequests`, `profileLifecycle`, `startProfilerOnAppStart`, `maxBreadcrumbs`, `attachStacktrace`, `attachThreads`, `inAppIncludes`, `inAppExcludes`.
+
 ### Jetpack Compose Specifics
 
-- **Automatic navigation tracking**: With `androidx.navigation`, Sentry records navigation breadcrumbs and transactions automatically via the plugin.
-- **Automatic @Composable tagging**: The `sentry-kotlin-compiler` plugin tags composables based on function names (no manual `Modifier.sentryTag()` needed).
-- **Manual tracing for critical screens**: Wrap key content with `SentryTraced`.
+- Navigation breadcrumbs + transactions are auto-recorded when `androidx.navigation` is on the classpath.
+- `sentry-kotlin-compiler` tags composables by function name; do not add `Modifier.sentryTag()` manually.
+- Wrap critical screens with `SentryTraced` for explicit transactions.
 
 ```kotlin
 import io.sentry.compose.SentryTraced
@@ -203,7 +205,7 @@ fun AuthProfileScreen(userId: String) {
 
 ## Firebase Crashlytics Setup (Convention Plugin + Compose)
 
-Use the Firebase convention plugin for automatic setup. The separate `-ktx` artifact is no longer required with the Firebase BoM.
+Apply the Firebase convention plugin. The separate `-ktx` artifact is not required with the Firebase BoM.
 
 ```kotlin
 // app/build.gradle.kts
@@ -215,12 +217,11 @@ plugins {
 }
 ```
 
-The `app.firebase` convention plugin (from `templates/convention/FirebaseConventionPlugin.kt`) automatically:
-- Applies `com.google.gms.google-services` plugin
-- Applies `com.google.firebase.crashlytics` plugin
-- Adds Firebase BoM dependency (version managed centrally)
-- Adds `firebase-analytics` and `firebase-crashlytics` libraries
-- Configures native symbol uploads and debug build settings
+`app.firebase` (`assets/convention/FirebaseConventionPlugin.kt`) applies:
+- `com.google.gms.google-services` and `com.google.firebase.crashlytics`
+- Firebase BoM (centralized version)
+- `firebase-analytics` + `firebase-crashlytics`
+- Native symbol upload + debug build settings
 
 **Manual setup (if not using convention plugin):**
 
@@ -410,28 +411,36 @@ plugins {
 
 **Switching providers:** Simply change the binding and convention plugin. Feature modules remain unchanged.
 
-## Best Practices
+## Rules
 
-- **Initialize once** in the app module.
-- **Avoid PII** in tags and logs; keep user identifiers minimal. Use data scrubbing for sensitive information.
-- **Use sampling** for performance tracing/profiling if enabled.
-- **Send non-fatal errors intentionally**: log only what helps debugging.
-- **Quality breadcrumbs**: Focus on user actions and state changes, not internal implementation details.
-- **Upload mapping files**: Ensure ProGuard/R8 mappings are uploaded for symbolicated stack traces.
+Required:
+- Initialize the provider exactly once, in the `app` module.
+- Use `Sentry.withScope` for per-call tags. `Sentry.configureScope` mutates Global Scope on main thread and Thread Scope on background threads - avoid it for one-off context.
+- Sample tracing / profiling in production (`tracesSampleRate`, `profilesSampleRate` < 1.0) when traffic is non-trivial.
+- Record non-fatals only for actionable failures (network failures, parse errors, recoverable exceptions).
+- Pair crash data with analytics events on user-facing flows to surface pre-crash context.
+- Upload ProGuard/R8 mapping files on every release build; keep `SourceFile` and `LineNumberTable`.
+
+Forbidden:
+- PII (email, phone, raw user objects, auth tokens) in tags, breadcrumbs, or messages.
+- Recording every method call or coroutine launch as a breadcrumb.
+- Letting the same exception be logged at multiple layers without context to dedupe it.
 
 ## ProGuard/R8 Mapping Upload
 
-Both providers require mapping file upload for symbolicated crashes in release builds. See [gradle-setup.md](gradle-setup.md#r8--proguard-configuration) for R8 build configuration and `templates/proguard-rules.pro.template` for all keep rules.
+Both providers require mapping file upload for symbolicated crashes in release builds. See [gradle-setup.md](/references/gradle-setup.md#r8--proguard-configuration) for R8 build configuration and `assets/proguard-rules.pro.template` for all keep rules.
 
 ### Firebase Crashlytics
 
-The Firebase Crashlytics Gradle plugin automatically uploads mapping files during the build. No additional keep rules needed - apply the convention plugin and enable minification:
+The Firebase Crashlytics Gradle plugin automatically uploads mapping files during the build. Apply the convention plugin and enable minification:
 
 ```kotlin
 plugins {
     alias(libs.plugins.app.firebase)
 }
 ```
+
+**Important**: To ensure your stack traces include exact line numbers, you must keep the `SourceFile` and `LineNumberTable` attributes. This is already included in the provided `assets/proguard-rules.pro.template`.
 
 ### Sentry
 
@@ -452,52 +461,30 @@ sentry {
     authToken.set(System.getenv("SENTRY_AUTH_TOKEN"))
 }
 
-## Breadcrumb Best Practices
+## Breadcrumbs
 
-Good breadcrumbs help reconstruct user actions leading to a crash. Bad breadcrumbs create noise.
+Record only:
+- User navigation (`category = "navigation"`).
+- Discrete UI interactions (`category = "ui.click"`, with stable element id in `data`).
+- Auth / session / network state transitions (`category = "state"`).
 
-### Good Breadcrumbs (User Actions & State Changes)
+Do not record:
+- Internal implementation events (coroutine launches, dispatcher hops, lifecycle ticks).
+- Per-method-call traces (`getUserId() called`).
+- Raw object dumps or anything containing PII.
+
+Reference shape:
 
 ```kotlin
-// User navigation
-Sentry.addBreadcrumb(Breadcrumb().apply {
-    message = "User navigated to profile screen"
-    category = "navigation"
-    level = SentryLevel.INFO
-})
-
-// User interactions
 Sentry.addBreadcrumb(Breadcrumb().apply {
     message = "User clicked logout button"
     category = "ui.click"
     level = SentryLevel.INFO
     data = mapOf("button_id" to "logout_btn")
 })
-
-// Important state changes
-Sentry.addBreadcrumb(Breadcrumb().apply {
-    message = "Auth state changed to logged out"
-    category = "state"
-    level = SentryLevel.INFO
-})
 ```
 
-### Bad Breadcrumbs (Too Much Noise)
-
-```kotlin
-// Don't: Internal implementation details
-Sentry.addBreadcrumb("Coroutine launched on IO dispatcher") // ❌
-
-// Don't: Every method call
-Sentry.addBreadcrumb("getUserId() called") // ❌
-
-// Don't: Verbose data dumps
-Sentry.addBreadcrumb("User data: $entireUserObject") // ❌ (also PII risk)
-```
-
-### Automatic Navigation Breadcrumbs
-
-Both providers automatically track navigation in Jetpack Compose with Navigation library. For custom breadcrumbs, add them in the app-level navigation coordinator.
+Both providers auto-track Jetpack Compose navigation when `androidx.navigation` is on the classpath. Add custom breadcrumbs in the app-level navigation coordinator only.
 
 ## Network Request Tracking
 
@@ -536,7 +523,7 @@ class AuthRepository @Inject constructor(
 }
 ```
 
-**Note**: For Sentry with OkHttp, use `sentry-okhttp` integration for automatic network breadcrumbs: https://docs.sentry.io/platforms/android/integrations/okhttp/
+For Sentry + OkHttp use the `sentry-okhttp` integration for automatic network breadcrumbs: https://docs.sentry.io/platforms/android/integrations/okhttp/
 
 ## Testing Crash Reporting
 
@@ -625,7 +612,7 @@ SentryAndroid.init(this) { options ->
             "[REDACTED_EMAIL]"
         )
         
-        // Remove specific tags that might contain PII
+        // Strip tags that can carry PII
         event.removeTag("user_email")
         event.removeExtra("raw_user_data")
         
@@ -696,7 +683,7 @@ abstract class CrashReporterModule {
 
 ## Gradle & Setup Guidance
 
-- Keep SDK dependencies in the version catalog (`templates/libs.versions.toml.template`).
+- Keep SDK dependencies in the version catalog (`assets/libs.versions.toml.template`).
 - Follow `references/gradle-setup.md` for plugin configuration patterns.
 - For provider-specific setup, follow the official docs:
   - Sentry Android install and configuration: https://docs.sentry.io/platforms/android/

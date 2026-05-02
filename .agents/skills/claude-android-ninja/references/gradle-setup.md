@@ -1,6 +1,6 @@
 # Gradle & Build Configuration
 
-Build system patterns following our modern Android multi-module architecture with Navigation3, Jetpack Compose, KSP, and convention plugins. Targets **Gradle 9 / AGP 9.0**.
+Required: Gradle 9 / AGP 9.0, JVM 17+, KSP (never kapt), version catalog, convention plugins in `build-logic/convention`. Module structure follows [modularization.md](/references/modularization.md).
 
 ## AGP 9 Key Changes
 
@@ -12,15 +12,43 @@ Build system patterns following our modern Android multi-module architecture wit
 - **CommonExtension**: Type parameters removed; use `CommonExtension` instead of `CommonExtension<*, *, *, *, *, *>`.
 - **KotlinAndroidProjectExtension**: Not registered with built-in Kotlin; configure compiler options via `tasks.withType<KotlinCompile>().configureEach { compilerOptions { ... } }` instead.
 - **Hilt**: Minimum version **2.59.2** required for AGP 9 (older versions access removed `BaseExtension`).
-- **KSP**: Use `2.x` suffix (e.g., `2.2.21-2.0.5`) instead of `1.x` (e.g., `2.2.21-1.0.32`).
+- **KSP**: Minimum version **2.3.6** required for AGP 9. Use `2.x` suffix (e.g., `2.3.6-…`) instead of `1.x` (e.g., `2.2.21-1.0.32`); `1.x` KSP is incompatible with AGP 9.
+- **kapt fallback (`legacy-kapt`)**: Use KSP everywhere it exists. If a processor has no KSP equivalent under AGP 9, use the **`org.jetbrains.kotlin.kapt`** plugin (a.k.a. `legacy-kapt`) for that single module only; the new built-in Kotlin pipeline does not run kapt automatically.
 - **Type-safe project accessors**: Enabled by default in Gradle 9; `enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")` is no longer needed in `settings.gradle.kts`.
 - **JVM 17 minimum**: Gradle 9 requires JVM 17+ to run.
 - **Legacy API removal**: `BaseExtension`, `applicationVariants.all`, `Convention` type, and `com.android.build.gradle.api.*` legacy APIs are removed. Use `androidComponents` API instead.
 
+### AGP 9 Migration: Post-Upgrade Cleanup
+
+After completing the AGP 9 upgrade, remove these now-obsolete flags from `gradle.properties` (they were only needed during incremental migration and are no-ops or warnings under AGP 9):
+
+- `android.builtInKotlin`
+- `android.newDsl`
+- `android.uniquePackageNames`
+- `android.enableAppCompileTimeRClass`
+
+Do **not** add `android.disallowKotlinSourceSets=false`. It re-enables a removed escape hatch and masks real migration work.
+
+### AGP 9 Verification
+
+Run after every AGP 9 build-config change. Do **not** run `clean` first - it does not validate the DSL.
+
+```bash
+./gradlew help              # Gradle IDE-equivalent sync
+./gradlew build --dry-run   # Configures every task without executing
+```
+
+On failure, the failing task name identifies the module / DSL block to fix.
+
+### AGP 9 Toolchain Compatibility Notes
+
+- **Paparazzi**: Versions **`<= 2.0.0-alpha04`** are incompatible with AGP 9. Upgrade to a release that explicitly supports AGP 9 before flipping the AGP version, or temporarily disable Paparazzi modules.
+- **KMP**: This AGP 9 path is Android-only. Kotlin Multiplatform projects require a separate migration.
+
 ## Table of Contents
 1. [Project Structure](#project-structure)
 2. [Version Catalog](#version-catalog)
-3. [Convention Plugins](#convention-plugins)
+3. [Convention Plugins](#convention-plugins) (includes [root-level reporting task registration](#registering-a-root-level-reporting-task-play-vitals-example))
 4. [Code Quality (Detekt)](#code-quality-detekt)
 5. [Module Build Files](#module-build-files)
 6. [Build Variants & Optimization](#build-variants--optimization)
@@ -28,28 +56,26 @@ Build system patterns following our modern Android multi-module architecture wit
 
 ## Project Structure
 
-Project structure, module layout, and naming conventions are defined in
-`references/modularization.md`.
+Module layout and naming: [modularization.md](/references/modularization.md).
 
 ## Version Catalog
 
-The version catalog source of truth lives in `templates/libs.versions.toml.template`.
-Use it to generate or update `gradle/libs.versions.toml` for each project.
+Source of truth: `assets/libs.versions.toml.template`. Generate / update `gradle/libs.versions.toml` from it.
 
-Key points:
-- **KSP over kapt**: This SKILL uses KSP for annotation processing (2x faster than kapt)
-- **Kotlin Compose Plugin**: Compose compiler is managed via `kotlin-compose` plugin (Kotlin 2.0+)
-- **Bundles**: Use `unit-test` and `android-test` bundles for consistent testing dependencies
+Required:
+- KSP for all annotation processing; kapt is forbidden.
+- Room 3 via `androidx.room3` artifacts and the `androidx.room3` plugin; use `sqlite-bundled` with `BundledSQLiteDriver()` (configured by the `app.android.room` convention plugin).
+- Compose compiler via the `kotlin-compose` plugin (Kotlin 2.0+).
+- Use `unit-test` and `android-test` bundles for testing dependencies.
 
 ## Convention Plugins
 
-**Complete Convention Plugin Implementation**: All plugin source files are available in `templates/convention/` including:
-- All 18 convention plugins (`.kt` files)
-- Configuration files in `config/` subdirectory (KotlinAndroid.kt, AndroidCompose.kt, Jacoco.kt, etc.)
-- Build script (`build.gradle.kts`)
-- Setup guide and quick reference (`QUICK_REFERENCE.md`)
+Plugin sources live in `assets/convention/`:
+- `*ConventionPlugin.kt` (incl. `PlayVitalsReportingConventionPlugin.kt` for root-only Play Vitals), `PlayVitalsReportingTask.kt`, and related `.kt` files.
+- `config/` (`KotlinAndroid.kt`, `AndroidCompose.kt`, `Jacoco.kt`, …).
+- `build.gradle.kts`, `QUICK_REFERENCE.md`.
 
-Copy these files to `build-logic/convention/src/main/kotlin/` in your project.
+Copy them to `build-logic/convention/src/main/kotlin/`.
 
 ### Build Logic Setup
 
@@ -77,8 +103,9 @@ dependencies {
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.kotlin.composeGradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
-    compileOnly(libs.room.gradlePlugin)
+    compileOnly(libs.room3.gradlePlugin)
     implementation(libs.plugin.detekt)
+    implementation(libs.kotlinx.coroutines.core)
 }
 
 gradlePlugin {
@@ -143,13 +170,17 @@ gradlePlugin {
             id = "app.firebase"
             implementationClass = "FirebaseConventionPlugin"
         }
+        register("playVitals") {
+            id = "app.play.vitals"
+            implementationClass = "PlayVitalsReportingConventionPlugin"
+        }
     }
 }
 ```
 
 ### Convention Plugin Files
 
-All convention plugin implementations are available in `templates/convention/`:
+Implementations in `assets/convention/`:
 
 **Core Plugins:**
 - `AndroidApplicationConventionPlugin.kt` - Root app module configuration
@@ -161,7 +192,7 @@ All convention plugin implementations are available in `templates/convention/`:
 - `AndroidApplicationComposeConventionPlugin.kt` - Compose for application
 - `AndroidLibraryComposeConventionPlugin.kt` - Compose for libraries
 - `AndroidApplicationBaselineProfileConventionPlugin.kt` - Baseline profiles
-- `AndroidRoomConventionPlugin.kt` - Room database
+- `AndroidRoomConventionPlugin.kt` - Room 3 database (`androidx.room3`, KSP, `sqlite-bundled`)
 - `AndroidLintConventionPlugin.kt` - Android Lint configuration
 
 **Testing & Quality Plugins:**
@@ -176,6 +207,7 @@ All convention plugin implementations are available in `templates/convention/`:
 - `KotlinSerializationConventionPlugin.kt` - JSON serialization
 - `FirebaseConventionPlugin.kt` - Firebase Crashlytics integration
 - `SentryConventionPlugin.kt` - Sentry crash reporting integration
+- `PlayVitalsReportingConventionPlugin.kt` - Optional root `playVitalsReport` task ([Play Vitals reporting](/references/android-performance.md)); pairs with `PlayVitalsReportingTask.kt`
 
 **Configuration Files (in config/ subdirectory):**
 - `config/KotlinAndroid.kt` - Common Kotlin/Android setup
@@ -186,7 +218,26 @@ All convention plugin implementations are available in `templates/convention/`:
 - `config/PrintApksTask.kt` - APK path printing
 - `config/Jacoco.kt` - Code coverage configuration
 
-See `templates/convention/QUICK_REFERENCE.md` for detailed setup instructions and usage examples.
+Setup and usage: `assets/convention/QUICK_REFERENCE.md`.
+
+### Registering a root-level reporting task (Play Vitals)
+
+Optional Play Vitals reporting ([android-performance.md](/references/android-performance.md)) ships as a convention plugin to copy into `build-logic`:
+
+| Source (copy to `build-logic/convention/src/main/kotlin/`)                                                                | Role                                                                                                                              |
+|---------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| [`assets/convention/PlayVitalsReportingConventionPlugin.kt`](../assets/convention/PlayVitalsReportingConventionPlugin.kt) | Registers **`playVitalsReport`** on **`rootProject` only** (`id`: **`app.play.vitals`**)                                          |
+| [`assets/convention/PlayVitalsReportingTask.kt`](../assets/convention/PlayVitalsReportingTask.kt)                         | Default task body: env check + lifecycle log; add **`PlayVitalsRepository`** per [android-performance.md](/references/android-performance.md) |
+
+The plugin is already wired in [`assets/convention/build.gradle.kts`](../assets/convention/build.gradle.kts) (`gradlePlugin { register("playVitals") { ... } }`). **`gradle/libs.versions.toml`** should include **`app-play-vitals`** from [`assets/libs.versions.toml.template`](../assets/libs.versions.toml.template) (`[plugins]`).
+
+Required:
+- Apply `alias(libs.plugins.app.play.vitals)` in the **root** `build.gradle.kts` only.
+- Forbidden in `app/build.gradle.kts` or feature modules.
+- Forbidden inside `subprojects { }` / `allprojects { }` (duplicates / wrong scope).
+- Wire CI to run `./gradlew playVitalsReport` on a schedule.
+
+Query payload and HTTP code: [android-performance.md](/references/android-performance.md). This section only covers Gradle wiring.
 
 ## Module Build Files
 
@@ -345,7 +396,6 @@ android {
 }
 
 dependencies {
-    // Module dependencies following our architecture rules
     implementation(project(":core:domain"))
     
     // Data layer dependencies
@@ -382,7 +432,6 @@ android {
 }
 
 dependencies {
-    // Dependencies following our architecture
     implementation(project(":core:domain"))
     
     // Compose
@@ -445,15 +494,15 @@ android {
 dependencies {
     implementation(project(":core:domain"))
     
-    // Room (configured by convention plugin)
+    // Room 3 runtime + sqlite-bundled + compiler via app.android.room convention
     // Testing
     testImplementation(libs.bundles.unit.test)
 }
 ```
 
-### Benchmark Module (Optional)
+### Benchmark module
 
-Create a dedicated `:benchmark` test module for macrobenchmark performance testing. See `references/android-performance.md` for when to use.
+**Use when:** macrobenchmark coverage from [android-performance.md](/references/android-performance.md) applies. Host it in a dedicated `:benchmark` test module.
 
 `benchmark/build.gradle.kts`:
 ```kotlin
@@ -484,11 +533,11 @@ dependencies {
 }
 ```
 
-Note: The `benchmark` build type must be defined in the app module (shown in the app module example above).
+**Required:** `:app` declares a matching `benchmark` build type (`create("benchmark")` under Module Build Files).
 
-### Compose Stability Analyzer (Optional)
+### Compose stability analyzer
 
-For real-time stability analysis and CI validation of Jetpack Compose composables. See `references/android-performance.md` → "Compose Stability Validation (Optional)" for when to use.
+**Use when:** CI must gate composable stability per [android-performance.md → Compose Stability Validation](/references/android-performance.md#compose-stability-validation-optional).
 
 Root `build.gradle.kts`:
 ```kotlin
@@ -497,7 +546,7 @@ plugins {
 }
 ```
 
-Module `build.gradle.kts` (typically app or feature modules):
+Module `build.gradle.kts` (app or heavy UI modules):
 ```kotlin
 plugins {
     alias(libs.plugins.app.android.application)
@@ -511,7 +560,7 @@ composeStabilityAnalyzer {
         includeTests.set(false)
         failOnStabilityChange.set(true) // Fail build on stability regressions
         
-        // Optional: Exclude specific packages or classes
+        // Allowed: exclude internal packages from fail-on-change
         ignoredPackages.set(listOf("com.example.internal"))
         ignoredClasses.set(listOf("PreviewComposables"))
     }
@@ -520,8 +569,7 @@ composeStabilityAnalyzer {
 
 ## Code Quality (Detekt)
 
-Detekt is integrated via a convention plugin to keep rules consistent across modules.
-See `references/code-quality.md` for setup details, baseline usage, and CI guidance.
+Required: apply Detekt via the `app.detekt` convention plugin in every module. Setup, baselines, CI: [code-quality.md](/references/code-quality.md).
 
 ## Build Variants & Optimization
 
@@ -530,8 +578,12 @@ See `references/code-quality.md` for setup details, baseline usage, and CI guida
 `app/build.gradle.kts`:
 ```kotlin
 android {
+    buildFeatures {
+        buildConfig = true // Required when using buildConfigField (off by default in AGP 8+)
+    }
+
     flavorDimensions += "environment"
-    
+
     productFlavors {
         create("development") {
             dimension = "environment"
@@ -539,14 +591,14 @@ android {
             versionNameSuffix = "-dev"
             buildConfigField("String", "BASE_URL", "\"https://api.dev.example.com/\"")
         }
-        
+
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
             buildConfigField("String", "BASE_URL", "\"https://api.staging.example.com/\"")
         }
-        
+
         create("production") {
             dimension = "environment"
             buildConfigField("String", "BASE_URL", "\"https://api.example.com/\"")
@@ -554,6 +606,37 @@ android {
     }
 }
 ```
+
+**BuildConfig:** From AGP 8.0 onward, `BuildConfig` is not generated unless `buildFeatures.buildConfig` is enabled. You need this for `buildConfigField` values (e.g. `BuildConfig.BASE_URL`) and `BuildConfig.DEBUG`.
+
+**Variant names:** Gradle names variants `{productFlavor}{buildType}` with **capitalized** build type - for example `developmentDebug`, `stagingRelease`, `productionRelease`.
+
+**Common Gradle commands:**
+
+```bash
+# List build-related tasks
+./gradlew tasks --group="build"
+
+# Assemble or install a specific variant (flavor + build type)
+./gradlew :app:assembleDevelopmentDebug
+./gradlew :app:assembleStagingRelease
+./gradlew :app:assembleProductionRelease
+./gradlew :app:installDevelopmentDebug
+./gradlew :app:installProductionRelease
+
+# All debug or all release variants across flavors
+./gradlew :app:assembleDebug
+./gradlew :app:assembleRelease
+
+# Deeper dependency / sync issues
+./gradlew :app:dependencies
+./gradlew assembleDevelopmentDebug --stacktrace
+./gradlew --refresh-dependencies
+```
+
+**Flavor-specific source sets:** Optional overrides live next to `main` - for example `app/src/development/`, `app/src/staging/`, `app/src/production/` for resources or code only for that flavor; `app/src/debug/` and `app/src/release/` apply per build type across flavors.
+
+**Multiple flavor dimensions:** If you add another dimension (e.g. `tier` = `free` / `paid`), variants become combinations such as `developmentFreeDebug`. Cap flavor dimensions — each new dimension multiplies variant count and CI time.
 
 ### Build Optimization Configuration
 
@@ -601,11 +684,11 @@ With `android.nonTransitiveRClass=true`, each module generates its own R class c
    // Package: com.example.feature.products.presentation.detail
    
    // This may fail:
-   stringResource(R.string.product_title) // ❌ Unresolved reference
+   stringResource(R.string.product_title) // WRONG: Unresolved reference
    
    // Fix: Import the module's R class explicitly
    import com.example.feature.products.R
-   stringResource(R.string.product_title) // ✅ Works
+   stringResource(R.string.product_title) // CORRECT: Works
    ```
 
 3. **Cross-module resources require import aliases**:
@@ -625,10 +708,10 @@ With `android.nonTransitiveRClass=true`, each module generates its own R class c
    Text(stringResource(com.example.core.ui.R.string.loading))
    ```
 
-**Best practices:**
-- Use import aliases (`as CoreUiR`) for readability when accessing multiple resources from another module
-- Group cross-module resource imports at the top of the file
-- See [android-i18n.md](android-i18n.md#string-resource-ownership) for guidance on which module should own which strings
+**Required:**
+- Use import aliases (`as CoreUiR`) when one file pulls strings from multiple foreign modules.
+- Group cross-module resource imports at the top of the file.
+- String ownership rules: [android-i18n.md → String resource ownership](/references/android-i18n.md#string-resource-ownership).
 
 ### R8 / ProGuard Configuration
 
@@ -647,14 +730,14 @@ buildTypes {
 }
 ```
 
-Copy `templates/proguard-rules.pro.template` to `app/proguard-rules.pro` and adjust `com.example.*` package names to match your project. The template includes rules for every library in the version catalog.
+Copy `assets/proguard-rules.pro.template` to `app/proguard-rules.pro` and adjust `com.example.*` package names to match your project. The template includes rules for every library in the version catalog.
 
-**Key points:**
-- Most AndroidX/Jetpack libraries ship their own consumer rules inside the AAR - only add manual rules when library docs say so or when R8 full-mode requires it
-- Retrofit requires explicit rules for R8 full-mode (interfaces created via `Proxy` are invisible to R8)
-- `EncryptedSharedPreferences` needs `-dontwarn` for Tink's error-prone annotations
-- SQLCipher native methods must be kept
-- Upload `mapping.txt` to Crashlytics/Sentry for readable stack traces (both Gradle plugins handle this automatically)
+**Required:**
+- Rely on AndroidX/Jetpack consumer rules inside AARs; add manual keep rules only when library docs or R8 full-mode errors demand it.
+- Ship Retrofit keep rules for R8 full-mode (`Proxy`-generated interfaces stay invisible to static analysis).
+- Add `-dontwarn` for Tink error-prone annotations when using `EncryptedSharedPreferences`.
+- Keep SQLCipher native methods in shrinker output.
+- Upload `mapping.txt` to Crashlytics/Sentry so release stacks decode (Gradle plugins wire this when configured).
 
 **Debugging shrunk builds:**
 
@@ -668,22 +751,90 @@ retrace build/outputs/mapping/release/mapping.txt stacktrace.txt
 
 Check `build/outputs/mapping/release/` for the mapping file after each release build.
 
-See [android-security.md](android-security.md#proguard--r8-hardening) for security-specific hardening rules (log stripping, aggressive obfuscation, manifest settings).
+See [android-security.md](/references/android-security.md#proguard--r8-hardening) for security-specific hardening rules (log stripping, aggressive obfuscation, manifest settings).
+
+### R8 Keep-Rules Audit
+
+Run when `proguard-rules.pro` grows past ~50 lines, release APK/AAB size regresses, or a release-only crash points at a missing class/member. Steps are ordered worst-impact first; skip any step whose rule class does not appear in the file.
+
+**Step 1 - Drop redundant library rules.** The libraries below ship consumer rules inside the AAR/JAR. App-side duplicates only mask narrower rules - delete them first.
+
+| Library group                                          | App-side rules needed?                                                                                                                                  |
+|--------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AndroidX / Jetpack (lifecycle, room3, paging, work, …) | No. Consumer rules are bundled.                                                                                                                         |
+| Kotlin stdlib, kotlinx.coroutines, kotlinx.collections | No. Only `-dontwarn kotlinx.coroutines.**` for residual warnings.                                                                                       |
+| kotlinx.serialization                                  | Library bundles rules since 1.6+. Keep only the **`@Serializable` generic-parameter** rules (R8 full-mode strips classes used only as `List<MyModel>`). |
+| Retrofit / OkHttp                                      | Retrofit needs the `@retrofit2.http.*` interface keeps for R8 full-mode (Proxy). OkHttp 5.x: only `-dontwarn` for optional Conscrypt/BouncyCastle.      |
+| Gson / Moshi (codegen)                                 | No. Codegen variants ship rules. Reflective Gson **does** need `-keep` on the model package.                                                            |
+| Hilt / Dagger                                          | No. Only `-dontwarn dagger.hilt.internal.**` and project-level DI keep if you reflect into it.                                                          |
+| Google Play services (incl. Play Integrity, Play Core) | No. Only `-dontwarn` for optional sub-packages.                                                                                                         |
+| Firebase SDKs                                          | No. Mapping upload is handled by the Gradle plugin.                                                                                                     |
+| Coil 3, Compose, Compose-runtime                       | No (Compose-stability annotations are the only edge case worth keeping).                                                                                |
+
+If a release build fails after deleting one of the above, the failure points to a **reflection** site in app code (see step 4), not a missing library keep.
+
+**Step 2 - Score remaining rules by impact (broad → narrow).** Use the narrowest rule that works. Top-row rules are size-regression suspects:
+
+| Tier (worst → best) | Pattern                                                   | Effect                                                                                                                      |
+|---------------------|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| 1 - Package-wide    | `-keep class com.example.** { *; }`                       | Disables shrinking, optimization, and obfuscation for the whole tree. Forbidden in app code unless step 4 cannot narrow it. |
+| 2 - Class-wide      | `-keep class com.example.Foo { *; }`                      | Keeps every member; disables member-level optimization for that class.                                                      |
+| 3 - Method/field    | `-keepclassmembers class com.example.Foo { void bar(); }` | Keeps only what reflection touches; R8 shrinks/optimizes the rest.                                                          |
+| 4 - Conditional     | `-if @MyAnnotation class ** -keep class <1> { *; }`       | Required form for annotation-driven reflection.                                                                             |
+
+**Step 3 - Detect subsuming rules and remove the broader half.** When two rules overlap, keep only the narrower one:
+
+- `-keep class com.example.Foo { *; }` subsumes any `-keepclassmembers class com.example.Foo { … }` - **delete the class-wide rule**, keep the member rule.
+- `-keep class com.example.** { *; }` subsumes every per-class rule under that package - **delete the package-wide rule**, keep the per-class rules.
+- A conditional `-if … -keep <1>` subsumes the equivalent unconditional `-keep` for the same class - delete the unconditional one.
+
+R8 emits no "redundant rule" report. To verify a suspected redundancy, comment the broader rule out, run `./gradlew assembleRelease`, and confirm `mapping.txt` still contains the narrower-kept symbol.
+
+**Step 4 - Narrow reflection-driven keeps.** For every remaining package- or class-wide rule, locate the reflection site (search for `Class.forName`, `::class.java`, `getDeclaredMethod`, `getDeclaredField`, JNI symbol lookups, `META-INF/services/` entries, Gson `TypeToken`, Moshi adapter lookups, Retrofit `Proxy`). Replace the broad rule with one that targets only the reflected members:
+
+```proguard
+# Before: package-wide
+-keep class com.example.api.models.** { *; }
+
+# After: only what Gson reads via reflection
+-keep class com.example.api.models.** {
+    <init>();
+    <fields>;
+}
+
+# Before: class-wide because one method is called via Class.forName
+-keep class com.example.plugins.AnalyticsPlugin { *; }
+
+# After: only the constructor + entry point
+-keep class com.example.plugins.AnalyticsPlugin {
+    <init>();
+    public void initialize(android.content.Context);
+}
+```
+
+For annotation-driven reflection, use `-if @YourAnnotation class **` so the rule scales as new annotated classes are added.
+
+**Step 5 - AGP 9 default optimizations.** AGP 9 enables additional R8 optimizations by default. Re-run steps 1-4 after every AGP upgrade and every major library bump. Track release APK/AAB size as a CI metric to surface silent regressions.
+
+**Final guardrail.** Before shipping any `proguard-rules.pro` change:
+
+1. `./gradlew assembleRelease` (or `bundleRelease`) succeeds.
+2. Run a UI Automator smoke test over the packages whose rules changed (see [testing.md](/references/testing.md)).
+3. Diff `mapping.txt` line count against the previous release. Drops are the win signal; jumps mean a broader keep slipped in.
 
 ## Build Performance
 
 ### Settings Configuration
 
-Check `templates/settings.gradle.kts.template` as the source of truth for settings setup,
+Check `assets/settings.gradle.kts.template` as the source of truth for settings setup,
 module includes, and repository configuration.
 
 ### Root Build File
 
 `build.gradle.kts`:
 ```kotlin
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-// Note: AGP 9+ has built-in Kotlin support, no need for kotlin-android plugin.
-// Repositories are configured in settings.gradle.kts via dependencyResolutionManagement.
+// Top-level build. Repositories are configured in settings.gradle.kts via dependencyResolutionManagement.
+// AGP 9+ ships built-in Kotlin support; do not apply org.jetbrains.kotlin.android.
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
@@ -744,18 +895,90 @@ gradle.settingsEvaluated {
 }
 ```
 
-## Best Practices
+### Optimization Workflow
 
-1. **Use Version Catalog**: Centralize dependency versions for consistency
-2. **Convention Plugins**: Extract common build logic to avoid duplication
-3. **KSP over kapt**: 2x faster annotation processing (see `references/dependencies.md`)
-4. **Type-safe Project Accessors**: Enable for better IDE support
-5. **Build Caching**: Configure local and remote caches for faster builds
-6. **Modular Builds**: Use our strict dependency rules for clean architecture
-7. **Progressive Enhancement**: Start simple, add flavors and optimizations as needed
-8. **CI/CD Ready**: Ensure build configuration works well with CI systems
-9. **Profile Builds**: Use `./gradlew assembleDebug --profile` to identify bottlenecks
-10. **Compose-First**: No View binding or legacy View system support
+Required: change one variable at a time; measure before and after.
+
+1. Baseline: `./gradlew clean assembleDebug` and an incremental build.
+2. Build Scan: `./gradlew assembleDebug --scan`.
+3. In the scan, identify the slow phase (Initialization / Configuration / Execution) under **Performance → Build timeline**.
+4. Apply one change.
+5. Re-measure; revert if no improvement.
+
+Local-only profile (no upload): `./gradlew assembleDebug --profile` → `build/reports/profile/`.
+
+### Lazy Task Configuration
+
+Required: `tasks.register` for every custom task; `tasks.create` is forbidden (eagerly configures on every build).
+
+```kotlin
+// Bad
+tasks.create("generateBuildInfo") {
+    doLast { /* ... */ }
+}
+
+// Good
+tasks.register("generateBuildInfo") {
+    doLast { /* ... */ }
+}
+```
+
+### Avoid I/O During Configuration
+
+Forbidden in configuration phase: `File.readText()`, network calls, `exec { }`. They run every build and break the configuration cache. Defer via `providers`.
+
+```kotlin
+// Bad
+val version = file("version.txt").readText()
+
+// Good
+val version = providers.fileContents(layout.projectDirectory.file("version.txt")).asText
+```
+
+```kotlin
+// Bad
+val gitHash = Runtime.getRuntime().exec("git rev-parse --short HEAD")
+    .inputStream.bufferedReader().readText().trim()
+
+// Good
+val gitHash = providers.exec {
+    commandLine("git", "rev-parse", "--short", "HEAD")
+}.standardOutput.asText.map { it.trim() }
+```
+
+### Pin Dependency Versions
+
+Forbidden: dynamic versions (`1.+`, `latest.release`, `-SNAPSHOT`). Always pin via the version catalog.
+
+```kotlin
+// Bad
+implementation("com.example:lib:1.0.+")
+
+// Good
+implementation(libs.example.lib)
+```
+
+### Bottleneck Troubleshooting
+
+| Symptom                       | Fix                                                                                                                                                |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Slow configuration phase      | Use `tasks.register`; defer I/O via `providers`; move plugins into convention plugins; remove `subprojects { }` / `allprojects { }`.              |
+| Slow execution phase          | Migrate kapt → KSP ([dependencies.md](/references/dependencies.md)); enable `org.gradle.caching=true`; enable `org.gradle.parallel=true`; raise `-Xmx`. |
+| Slow dependency resolution    | Pin exact versions in the catalog; order `google()` before `mavenCentral()`; remove unused repos; ensure `org.gradle.caching=true`.               |
+
+## Rules
+
+Required:
+- Centralize all versions in `gradle/libs.versions.toml`.
+- Extract every reusable build configuration into a convention plugin.
+- Use KSP for annotation processing ([dependencies.md](/references/dependencies.md)).
+- Enable type-safe project accessors and local + remote build cache.
+- Apply Compose-only UI; no View binding, no legacy `View` system.
+
+Forbidden:
+- Dynamic versions (`1.+`, `latest.release`, `-SNAPSHOT`).
+- Inline build logic duplicated across modules instead of a convention plugin.
+- I/O, `exec`, or `Runtime.getRuntime()` during the configuration phase.
 
 ## Common Gradle Commands
 

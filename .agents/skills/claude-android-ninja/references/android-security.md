@@ -1,23 +1,28 @@
 # Android Security
 
-Security guide for Android apps, aligned with our modular architecture.
+Required: server is the trust boundary; the client only collects credentials and forwards integrity tokens. Layer Play Integrity (server-decoded) + Android Keystore + EncryptedSharedPreferences/EncryptedFile + network security config. Heuristic root/emulator checks are telemetry only - never the sole gate.
 
 ## Table of Contents
-1. [Network Security](#network-security)
-2. [Certificate Pinning](#certificate-pinning)
-3. [Data Encryption at Rest](#data-encryption-at-rest)
-4. [Android Keystore, TEE & StrongBox](#android-keystore-tee--strongbox)
-5. [Biometric Authentication](#biometric-authentication)
-6. [Play Integrity API](#play-integrity-api)
-7. [Root & Emulator Detection](#root--emulator-detection)
-8. [Screenshot & Screen Recording Prevention](#screenshot--screen-recording-prevention)
-9. [Secure Database (Room)](#secure-database-room)
-10. [Secure Clipboard](#secure-clipboard)
-11. [WebView Security](#webview-security)
-12. [Content Provider Security](#content-provider-security)
-13. [ProGuard / R8 Hardening](#proguard--r8-hardening)
-14. [CI/CD Security](#cicd-security)
-15. [Security Checklist](#security-checklist)
+1. [Device trust and abuse resistance](#device-trust-and-abuse-resistance)
+2. [Network Security](#network-security)
+3. [Certificate Pinning](#certificate-pinning)
+4. [Data Encryption at Rest](#data-encryption-at-rest)
+5. [Android Keystore, TEE & StrongBox](#android-keystore-tee--strongbox)
+6. [Biometric Authentication](#biometric-authentication)
+7. [Credential Manager and Sign-In](#credential-manager-and-sign-in)
+8. [Device Identifiers and Privacy](#device-identifiers-and-privacy)
+9. [Android 15+ Platform Privacy](#android-15-platform-privacy)
+10. [Play Console Data Safety](#play-console-data-safety)
+11. [Play Integrity API](#play-integrity-api)
+12. [Root & Emulator Detection](#root--emulator-detection)
+13. [Screenshot & Screen Recording Prevention](#screenshot--screen-recording-prevention)
+14. [Secure Database (Room)](#secure-database-room)
+15. [Secure Clipboard](#secure-clipboard)
+16. [WebView Security](#webview-security)
+17. [Content Provider Security](#content-provider-security)
+18. [ProGuard / R8 Hardening](#proguard--r8-hardening)
+19. [CI/CD Security](#cicd-security)
+20. [Security Checklist](#security-checklist)
 
 ## Dependencies
 
@@ -28,7 +33,35 @@ Security-related libraries available in the version catalog:
 - `play-integrity` - Play Integrity API (device/app attestation)
 - `sqlcipher-android` - SQLCipher for encrypted Room databases
 
-Add them to your module as needed, following [dependencies.md → Adding a New Dependency](dependencies.md#adding-a-new-dependency).
+Add them to your module as needed, following [dependencies.md → Adding a New Dependency](/references/dependencies.md#adding-a-new-dependency).
+
+## Device trust and abuse resistance
+
+Apply for high-value flows: login, payment, account change. Establish that *this app binary* on *this device* is trustworthy *for this specific request* - not a single client-side boolean.
+
+### Client-only heuristics are insufficient
+
+Local `su` / Magisk / package checks are evadable and tamperable. Use them only as telemetry. Never treat "root detected" / "not detected" as the sole authorization signal.
+
+### Trust inputs (server-verifiable)
+
+- App binary matches what Play expects (**app integrity**).
+- Install/account context is legitimate (**licensing / account signals**).
+- Device environment meets policy (**device integrity** and optional signals).
+- Integrity token binds to this exact server request (`requestHash` for Standard API, `nonce` for Classic - see [Play Integrity API](#play-integrity-api)).
+
+[Play Integrity API](https://developer.android.com/google/play/integrity/overview) emits these as server-verifiable signals.
+
+### Implementation order
+
+1. Backend is authoritative. Decrypt/verify tokens server-side; apply **tiered** policy (allow / step-up / rate-limit / deny the specific operation). Never let the client be the only enforcer.
+2. Use Play Integrity for Play-distributed apps. Integrate **Standard** for frequent checks (prepare provider, request with `requestHash`); use **Classic** for rare high-value checks (`nonce`). See [Play Integrity API](#play-integrity-api).
+3. Bind every token to the action: hash a canonical request representation. Never put secrets in plaintext into the hash input.
+4. Roll out enforcement gradually: log verdicts first, then tighten rules.
+5. Combine with Android Keystore-backed keys for device-bound signing/encryption of high-value operations (see [Android Keystore, TEE & StrongBox](#android-keystore-tee--strongbox)).
+6. Treat optional runtime signals (overlays, accessibility abuse, automation) as risk inputs to policy/fraud engines - not the sole gate unless product requires it.
+
+Reference: [Play Integrity API overview](https://developer.android.com/google/play/integrity/overview).
 
 ## Network Security
 
@@ -172,7 +205,7 @@ openssl x509 -in server.crt -pubkey -noout | \
   openssl dgst -sha256 -binary | openssl enc -base64
 ```
 
-### Best Practices
+### Pin rotation and monitoring
 
 - **Always include a backup pin** (intermediate or root CA) to avoid lockout during cert rotation
 - **Set expiration dates** on pin-sets so expired pins don't brick the app
@@ -413,7 +446,7 @@ class SoftwareEncryption {
 
 - **Android Keystore**: System-level key storage backed by hardware (when available). Keys never leave the secure hardware.
 - **TEE (Trusted Execution Environment)**: An isolated processing environment (e.g., ARM TrustZone) that runs alongside Android but is isolated from the main OS. Most modern Android devices have TEE support.
-- **StrongBox**: A dedicated secure element (separate hardware chip). More secure than TEE because the key material is in a tamper-resistant chip, not just an isolated CPU mode. Available since API 28 on devices that have a dedicated secure element.
+- **StrongBox**: A dedicated secure element (separate hardware chip). More secure than TEE because the key material is in a tamper-resistant chip, not solely an isolated CPU mode. Available since API 28 on devices that have a dedicated secure element.
 
 ### How They Protect
 
@@ -716,44 +749,233 @@ class BiometricCryptoManager @Inject constructor(
 }
 ```
 
+## Credential Manager and Sign-In
+
+**BiometricPrompt** (above) covers local biometric unlock. For **sign-in**, Google recommends **Credential Manager** (`androidx.credentials`) as the unified API for **passkeys**, saved passwords, and federated identity (for example Sign in with Google) in one user flow. It replaces older Smart Lock Password Manager integration patterns for new work.
+
+- Use Credential Manager for new sign-in and account linking flows where it fits your backend (WebAuthn / passkeys require server support).
+- Keep **server-side** validation authoritative; the client only collects credentials.
+- See [Sign in your user with Credential Manager](https://developer.android.com/identity/sign-in/credential-manager) and [Passkeys](https://developer.android.com/identity/sign-in/passkeys).
+
+## Device Identifiers and Privacy
+
+Do **not** use hardware identifiers for advertising or routine analytics. Google Play policies restrict many identifiers; users expect resettable, transparent tracking.
+
+| Identifier                                                              | Guidance                                                                                                                   |
+|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| IMEI, IMSI, serial number, MAC address                                  | Do not use for ads or general analytics; restricted / disallowed for most use cases                                        |
+| [Advertising ID](https://developer.android.com/training/articles/ad-id) | Use for ads and measurement where allowed; user can reset; declare in Play Data Safety                                     |
+| **Android ID**                                                          | App-scoped on modern Android; may change after factory reset; use only when appropriate, not as a global cross-app user ID |
+| App-specific ID                                                         | Generate and store a random UUID in app storage or tie identity to your **account** after sign-in                          |
+
+Use **account-based** identity for personalization. For crash and product analytics without PII, follow `references/crashlytics.md` scrubbing rules.
+
+## Android 15+ Platform Privacy
+
+Android 15 (API 35) and 16 (API 36) add platform privacy features that change how apps access media, render protected UI, and coexist with user profiles. Handle each one explicitly; do not rely on older behavior.
+
+### Partial photo/media access (API 34+, enforced broadly on API 35+)
+
+When the app requests `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` on API 34+, the user can grant **selected items only** instead of full access. The platform returns `READ_MEDIA_VISUAL_USER_SELECTED` in that case.
+
+```xml
+<!-- AndroidManifest.xml -->
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+```
+
+Rules:
+
+- **Use the Photo Picker** (`PickVisualMedia` / `ActivityResultContracts`) instead of broad media reads when UX allows. Details: `references/android-permissions.md`. The picker needs no media permission on supported APIs.
+- If you *must* enumerate media (gallery-like apps), check the grant state and show a "Manage selected photos" entry point that re-invokes the picker via `ACTION_MANAGE_APP_PERMISSIONS` or a fresh `READ_MEDIA_VISUAL_USER_SELECTED` request. Do not silently fail when only partial access is granted.
+
+```kotlin
+val fullAccess = ContextCompat.checkSelfPermission(
+    context, Manifest.permission.READ_MEDIA_IMAGES
+) == PackageManager.PERMISSION_GRANTED
+
+val partialAccess = ContextCompat.checkSelfPermission(
+    context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+) == PackageManager.PERMISSION_GRANTED
+
+when {
+    fullAccess -> loadAllMedia()
+    partialAccess -> loadSelectedMediaAndOfferReselection()
+    else -> showPhotoPickerPrompt()
+}
+```
+
+### Screen recording detection (API 35+)
+
+Android 15 lets an app detect when its own UI is being captured by another app or service (MediaProjection, cast, third-party recorders). Use this to pause sensitive surfaces (bank balances, OTP screens, medical data) rather than replacing `FLAG_SECURE`.
+
+Manifest:
+
+```xml
+<uses-permission android:name="android.permission.DETECT_SCREEN_RECORDING" />
+```
+
+Registration (in an Activity hosting sensitive content):
+
+```kotlin
+private val mainExecutor by lazy { ContextCompat.getMainExecutor(this) }
+
+private val screenRecordingCallback = Consumer<Int> { state ->
+    val visible = state == WindowManager.SCREEN_RECORDING_STATE_VISIBLE
+    sensitiveContentController.onRecordingStateChanged(visible)
+}
+
+override fun onStart() {
+    super.onStart()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        windowManager.addScreenRecordingCallback(mainExecutor, screenRecordingCallback)
+    }
+}
+
+override fun onStop() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        windowManager.removeScreenRecordingCallback(screenRecordingCallback)
+    }
+    super.onStop()
+}
+```
+
+Rules:
+
+- The callback only detects *this app's* windows being recorded. It does not catch foreground-level global recording by system-signed tools.
+- This is a **detection signal**, not a prevention mechanism. Pair it with `FLAG_SECURE` on screens that must never be captured (see [Screenshot & Screen Recording Prevention](#screenshot--screen-recording-prevention)).
+- Do not use it as a DRM substitute. Determined attackers capture the framebuffer through other channels.
+
+### Private Space awareness (API 35+)
+
+Private Space is a user-level profile that stores a separate, locked copy of installed apps. It affects these surfaces:
+
+- **FileProvider / content sharing:** when sharing files via `Intent.ACTION_SEND`, do not assume the target resolver list is global. The private profile's apps are filtered out when the profile is locked. Let the system handle it; do not build custom resolver UIs.
+- **Account linking:** the same Google account can be present in both the main and private profile. Do not dedupe users by on-device signals alone; server-side identity is authoritative (consistent with the rule in [Device Identifiers and Privacy](#device-identifiers-and-privacy)).
+- **Querying installed apps:** `PackageManager.getInstalledApplications()` in one profile does not see apps installed in the other. Code paths that enumerate apps must not assume full visibility.
+
+No new API is required for most apps - the correctness fix is to stop making assumptions the old single-profile model allowed.
+
+### Partial screen sharing (API 34+)
+
+`MediaProjection` can now record a **single app window** rather than the whole display. If the app is the *source* of a screen-capture feature:
+
+- Expose the app-window option when calling `createScreenCaptureIntent()`; the user picks scope in the system dialog.
+- Do not try to escalate from single-window to full-display capture; the system blocks it and the user experience degrades.
+
+If the app is the *target* being recorded, use the Screen recording detection callback above to react.
+
+### Official references
+
+- [Android 15 features and APIs](https://developer.android.com/about/versions/15/features)
+- [Photo picker improvements and partial access](https://developer.android.com/training/data-storage/shared/photopicker)
+- [Detect screen recording](https://developer.android.com/about/versions/15/features#screen-recording-detection)
+- [Private Space](https://developer.android.com/about/versions/15/features#private-space)
+
+## Play Console Data Safety
+
+In Play Console, complete the **Data safety** section (what you collect, how it is used, whether it is optional, retention). It must match your **privacy policy** URL and in-app disclosures.
+
+- Allow **account and data deletion** where required by policy and your product.
+- If you use Advertising ID or sensitive permissions, declare them accurately; mismatches can cause policy violations.
+
+See [Play Console Help - Data safety](https://support.google.com/googleplay/android-developer/answer/10787469) and [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311).
+
 ## Play Integrity API
 
-Replaces SafetyNet Attestation API (deprecated). Verifies device integrity, app integrity, and licensing.
+Replaces SafetyNet Attestation API (deprecated). Verifies device integrity, app integrity, and licensing. Use **Standard** requests for most on-demand checks; reserve **Classic** for infrequent, high-value actions. Official docs: [Overview](https://developer.android.com/google/play/integrity/overview), [Setup](https://developer.android.com/google/play/integrity/setup), [Standard requests](https://developer.android.com/google/play/integrity/standard), [Classic requests](https://developer.android.com/google/play/integrity/classic).
+
+### Prerequisites and project setup
+
+**Steps 1-2 need a human with Google Cloud and Play Console access.** An AI cannot log into those consoles. When implementing Play Integrity in code, **ask the engineer** to complete enablement and linking first, then obtain the value(**numeric Cloud project number**) below so the client and backend can be wired correctly.
+
+1. **Google Cloud (engineer):** Create or select a project; enable the **Play Integrity API** ([Setup guide](https://developer.android.com/google/play/integrity/setup)). The engineer should share the **Google Cloud project number** (numeric, shown in Cloud Console for the project). You pass it to `PrepareIntegrityTokenRequest.setCloudProjectNumber` (Standard API) and to Classic requests when the docs require it. Backend teams create a **service account** in this project with access to call the Play Integrity **decode** API (see [Google's server verification docs](https://developer.android.com/google/play/integrity/standard#decrypt-and-verify-the-integrity-verdict)); those credentials stay on the server.
+2. **Play Console (engineer):** Link that Cloud project to your app under **Test and release** > **App integrity** > **Play Integrity API** > **Link a Cloud project**. Linking is required for quota increases, response configuration in Console, and related tooling. Projects enabled only in Cloud Console but not linked get a limited integration path per Google.
+3. **Quotas (defaults):** Roughly **10,000** integrity token operations and **10,000** server-side decryptions per day for the linked Cloud project (shared across request types; see [Setup](https://developer.android.com/google/play/integrity/setup) for current numbers and how to request more).
+4. **Dependency:** add the Play Integrity library via the version catalog [`assets/libs.versions.toml.template`](../assets/libs.versions.toml.template) - `version.ref = "playIntegrity"`, library alias `play-integrity` (`com.google.android.play:integrity`). Mirror in `gradle/libs.versions.toml` and module `build.gradle.kts` (see [Dependencies](#dependencies)).
+
+### Standard API vs Classic API
+
+|                                   | **Standard API**                                                                                                                                     | **Classic API**                                                                                                       |
+|-----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **Warm-up**                       | Yes - call `prepareIntegrityToken` before you need tokens (typical warm-up a few seconds; allow a generous timeout, e.g. on the order of one minute) | No                                                                                                                    |
+| **Typical latency after warm-up** | Lower (often hundreds of ms for the token request)                                                                                                   | Higher (often a few seconds)                                                                                          |
+| **Use when**                      | Frequent checks tied to user actions or API calls                                                                                                    | Rare, high-value or sensitive actions                                                                                 |
+| **Client binding field**          | `requestHash` (digest of the protected request; max length per API)                                                                                  | `nonce` (server-chosen or derived; format per [Classic](https://developer.android.com/google/play/integrity/classic)) |
+| **Replay / tamper mitigation**    | Google Play mitigates replay for Standard; still bind with `requestHash` for request integrity                                                       | You must implement nonce handling and server checks                                                                   |
+| **Rate limits (documented)**      | Prepare: **5** warm-up calls per app instance per minute; token requests subject to product limits                                                   | **5** integrity token requests per app instance per minute for Classic                                                |
+
+Library `minSdk` for both follows the Play Integrity library version you ship (see release notes for the exact floor).
+
+### Standard API client flow
+
+- Create `StandardIntegrityManager` via `IntegrityManagerFactory.createStandard(context)`.
+- **Once per session (or after errors below):** call `prepareIntegrityToken` with `PrepareIntegrityTokenRequest` that sets your **Google Cloud project number**. Keep the resulting `StandardIntegrityTokenProvider` in memory.
+- **On each protected action:** build a stable digest of the data you need to bind (for example SHA-256 of a canonical string of request fields), pass it as **`requestHash`** in `StandardIntegrityTokenRequest`. Do not put sensitive values in plaintext in the hash input; hash them.
+- If you receive **`INTEGRITY_TOKEN_PROVIDER_INVALID`**, prepare a new provider and retry the token request.
+- Optional: use **`verdictOptOut`** on a Standard request to skip optional verdicts that add latency when you do not need them (see API reference / release notes).
+
+### Classic API client flow
+
+- Use `IntegrityManagerFactory.create(context)` and `IntegrityTokenRequest` with a **`nonce`** meeting Google's format (Base64 URL-safe, no wrap, length limits in the docs).
+- Apps **distributed through Google Play** omit `setCloudProjectNumber` when Play Console already links the Play Integrity cloud project.
+- Apps **not** installed from Play (or SDK integrations as documented) may need **`setCloudProjectNumber`** - follow [Classic requests](https://developer.android.com/google/play/integrity/classic).
+- Use Classic **sparingly**; it is heavier and you own nonce and replay policy on the server.
+
+### Policy (enforcement)
+
+- **Do not** treat a decrypted verdict as a long-lived "device is trusted forever" flag in the client. Avoid caching integrity results to authorize unrelated later actions.
+- Apply **tiered** server rules: allow, allow with limits, step-up (OTP, delay), or deny **only** the sensitive operation - avoid locking the whole app on the first failure unless product requires it.
+- **Optional verdicts** (extra device labels, app access risk, Play Protect, recent device activity, device recall, etc.) require opting in under Play Console **App integrity** > **Play Integrity API** > **Settings** / **Change responses**. Only enforce signals you actually receive and have enabled.
+- Roll out **telemetry first** (log or soft-fail), then tighten enforcement as you understand your user base.
 
 ### Setup
 
-Add the Play Integrity dependency (see [Dependencies](#dependencies)).
+Add the Play Integrity dependency (see [Dependencies](#dependencies)). Call **`warmUp()`** once after launch (or in background) so the first protected action is not paying full prepare latency. Use **`requestIntegrityToken(requestHash)`** only with a digest built for that action (see [Standard API client flow](#standard-api-client-flow)).
 
 ```kotlin
 // core/data/integrity/PlayIntegrityChecker.kt
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityManager
+import kotlinx.coroutines.tasks.await
 
 class PlayIntegrityChecker @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val integrityManager = IntegrityManagerFactory.createStandard(context)
 
-    suspend fun requestIntegrityToken(requestHash: String): Result<String> {
-        return try {
-            val request = StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
-                .setRequestHash(requestHash)
-                .build()
+    @Volatile
+    private var tokenProvider: StandardIntegrityManager.StandardIntegrityTokenProvider? = null
 
-            val response = integrityManager
+    /** Call once (e.g. Application onCreate or before first sensitive call). */
+    suspend fun warmUp(): Result<Unit> {
+        if (tokenProvider != null) return Result.success(Unit)
+        return try {
+            tokenProvider = integrityManager
                 .prepareIntegrityToken(
                     StandardIntegrityManager.PrepareIntegrityTokenRequest.builder()
                         .setCloudProjectNumber(YOUR_CLOUD_PROJECT_NUMBER)
                         .build()
                 )
                 .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
-            val tokenResponse = response
-                .request(request)
-                .await()
-
+    /** Request a token bound to this server action via requestHash (Standard API). */
+    suspend fun requestIntegrityToken(requestHash: String): Result<String> {
+        warmUp().getOrElse { return Result.failure(it) }
+        return try {
+            val request = StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
+                .setRequestHash(requestHash)
+                .build()
+            val tokenResponse = tokenProvider!!.request(request).await()
             Result.success(tokenResponse.token())
         } catch (e: Exception) {
+            tokenProvider = null
             Result.failure(e)
         }
     }
@@ -762,31 +984,70 @@ class PlayIntegrityChecker @Inject constructor(
 
 ### Server-Side Verification
 
-**The integrity token must be verified server-side.** Never trust client-side validation alone.
+**The integrity token must be verified server-side.** Never trust client-side validation alone. The backend calls Google's **`decodeIntegrityToken`** API with a service account (see [Decrypt and verify the integrity verdict](https://developer.android.com/google/play/integrity/standard#decrypt-and-verify-the-integrity-verdict)). Recompute **`requestHash`** the same way as the client and compare to **`requestDetails.requestHash`** in the decrypted payload.
 
 ```kotlin
-// Send token to your backend
+// Send token + the same requestHash your server will recompute for verification
 class IntegrityRepository @Inject constructor(
     private val api: IntegrityApi,
     private val integrityChecker: PlayIntegrityChecker
 ) {
-    suspend fun verifyDeviceIntegrity(): Result<IntegrityVerdict> {
-        val nonce = generateSecureNonce()
-        val token = integrityChecker.requestIntegrityToken(nonce).getOrElse {
+    suspend fun verifyProtectedAction(requestHash: String): Result<IntegrityVerdict> {
+        val token = integrityChecker.requestIntegrityToken(requestHash).getOrElse {
             return Result.failure(it)
         }
-
-        // Server decrypts and verifies the token
-        return api.verifyIntegrity(token, nonce)
-    }
-
-    private fun generateSecureNonce(): String {
-        val bytes = ByteArray(32)
-        java.security.SecureRandom().nextBytes(bytes)
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+        return api.verifyIntegrity(token, requestHash)
     }
 }
 ```
+
+### Server decode and verify checklist
+
+After your backend receives the integrity token string, call **`decodeIntegrityToken`** with a **service account** that has the **`playintegrity`** scope (see [Decrypt and verify the integrity verdict](https://developer.android.com/google/play/integrity/standard#decrypt-and-verify-the-integrity-verdict)). Validate the decrypted JSON **in order**:
+
+1. **`requestDetails`** - `requestPackageName` equals your application ID. For Standard requests, **`requestHash`** equals the value you computed for this action (same algorithm and canonical serialization as the client). Check **`timestampMillis`** is within a window you allow (reject stale tokens). For Classic requests, compare **`nonce`** to the value you issued for this request.
+2. **`appIntegrity`** - `appRecognitionVerdict` (for example `PLAY_RECOGNIZED` vs `UNRECOGNIZED_VERSION`).
+3. **`deviceIntegrity`** - `deviceRecognitionVerdict` labels (for example `MEETS_DEVICE_INTEGRITY`, optional labels if you opted in under Play Console).
+4. **`accountDetails`** - `appLicensingVerdict` (for example `LICENSED` vs `UNLICENSED`).
+5. **`environmentDetails`** - Only present if you enabled optional verdicts in Play Console; interpret **app access risk** and **Play Protect** per [Integrity verdicts](https://developer.android.com/google/play/integrity/verdicts).
+
+Repeated decryption of the **same** token can clear or weaken verdicts (Google documents replay protection). Issue one token per protected server request.
+
+### Standard API sequence (reference)
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant PlayServices as PlayIntegrity
+    participant Backend
+    participant GoogleAPI as GoogleDecode
+    App->>PlayServices: prepareIntegrityToken
+    PlayServices-->>App: StandardIntegrityTokenProvider
+    App->>PlayServices: request with requestHash
+    PlayServices-->>App: integrity token string
+    App->>Backend: HTTPS with token
+    Backend->>GoogleAPI: decodeIntegrityToken
+    GoogleAPI-->>Backend: verdict JSON
+```
+
+### Client errors and retries
+
+Use the official matrix: [Handle Play Integrity API error codes](https://developer.android.com/google/play/integrity/error-codes).
+
+- **Often retry with backoff** (transient): `NETWORK_ERROR`, `TOO_MANY_REQUESTS`, `GOOGLE_SERVER_UNAVAILABLE`, `CLIENT_TRANSIENT_ERROR`, `INTERNAL_ERROR`; follow Google guidance (initial delay, exponential backoff, cap attempts).
+- **Usually fix environment or config** (not a blind retry): `API_NOT_AVAILABLE`, `PLAY_STORE_NOT_FOUND`, `PLAY_STORE_VERSION_OUTDATED`, `PLAY_SERVICES_NOT_FOUND`, `PLAY_SERVICES_VERSION_OUTDATED`, `CLOUD_PROJECT_NUMBER_IS_INVALID`, `CANNOT_BIND_TO_SERVICE` - prompt user to update Play Store or Play services, or fix the Cloud project number you pass from the engineer.
+- **Standard only:** `INTEGRITY_TOKEN_PROVIDER_INVALID` - **invalidate the cached provider**, clear it, run **`warmUp()`** again, then retry the token request.
+- **`REQUEST_HASH_TOO_LONG`** - shorten the digest input or hash to a fixed-length string before sending.
+
+Treat persistent failures after retries as **failed integrity** for that action and apply your tiered policy (do not assume success).
+
+### Remediation dialogs
+
+Google Play can show **in-app dialogs** so users fix licensing, Play services, or integrity issues. See [Remediation dialogs](https://developer.android.com/google/play/integrity/remediation). Requires Play Integrity library **1.3.0 or higher** for `showDialog` on token responses; **1.5.0 or higher** for `GET_INTEGRITY` / `GET_STRONG_INTEGRITY` style flows on **remediable** exceptions.
+
+- **Your server** decides whether to ask the client to show a dialog (for example after a bad verdict or a specific error code).
+- **Your app** builds `StandardIntegrityDialogRequest` (or the Classic equivalent) with the **activity**, dialog **type code**, and the **token or exception** payload from the API.
+- After the user closes the dialog, **request a fresh token**; for Standard API, **prepare the token provider again** (warm up) before the next integrity request, as documented on the remediation page.
 
 ### Integrity Verdicts
 
@@ -798,6 +1059,16 @@ class IntegrityRepository @Inject constructor(
 | `MEETS_VIRTUAL_INTEGRITY` | Running in an emulator recognized by Google Play     |
 
 ## Root & Emulator Detection
+
+### Relationship to Play Integrity
+
+Local root/emulator checks are supplementary signals only (telemetry, fraud hints, optional warnings, feature gating). They are easy to evade on modified devices.
+
+Required:
+- Use server-verified Play Integrity tokens for login, payments, and sensitive operations (see [Device trust and abuse resistance](#device-trust-and-abuse-resistance) and [Play Integrity API](#play-integrity-api)).
+- If both ship, never equate "root detected" with "Play Integrity failed"; route through tiered policy.
+
+Reference: [Play Integrity API overview](https://developer.android.com/google/play/integrity/overview).
 
 ### Root Detection
 
@@ -1066,15 +1337,23 @@ fun PaymentScreen() {
 
 `FLAG_SECURE` also prevents the app from appearing in the recent apps screenshot.
 
-## Secure Database (Room)
+## Secure Database (Room 3)
 
-### SQLCipher Integration
+Room 3 requires a [`SQLiteDriver`](https://developer.android.com/kotlin/multiplatform/sqlite#sqlite-driver) on [`Room.databaseBuilder`](https://developer.android.com/jetpack/androidx/releases/room3). It does **not** support `SupportSQLiteOpenHelper.Factory` or `openHelperFactory` (removed with SupportSQLite).
 
-For encrypting the entire Room database:
+### Building the database (driver required)
 
 ```kotlin
 // core/database/di/DatabaseModule.kt
-import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import android.content.Context
+import androidx.room3.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -1082,41 +1361,33 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(
-        @ApplicationContext context: Context,
-        securePreferences: SecurePreferences
-    ): AppDatabase {
-        val passphrase = getOrCreatePassphrase(securePreferences)
-        val factory = SupportOpenHelperFactory(passphrase)
-
-        return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "app_database"
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder<AppDatabase>(
+            context = context,
+            name = "app_database",
         )
-            .openHelperFactory(factory)
+            .setDriver(BundledSQLiteDriver())
             .fallbackToDestructiveMigration()
             .build()
     }
-
-    private fun getOrCreatePassphrase(securePreferences: SecurePreferences): ByteArray {
-        val existing = securePreferences.getDatabasePassphrase()
-        if (existing != null) return existing
-
-        val passphrase = ByteArray(32).also {
-            java.security.SecureRandom().nextBytes(it)
-        }
-        securePreferences.saveDatabasePassphrase(passphrase)
-        return passphrase
-    }
 }
 ```
+
+`BundledSQLiteDriver` matches the `sqlite-bundled` dependency added by the `app.android.room` convention (see `assets/libs.versions.toml.template`).
+
+### SQLCipher / full-database encryption
+
+The Room 2 pattern `SupportOpenHelperFactory` + `openHelperFactory` does **not** apply to Room 3. To encrypt the whole database, follow **SQLCipher** (or your vendor) documentation for an **`SQLiteDriver`** (or supported integration) compatible with **`androidx.sqlite`**, then pass it to `.setDriver(...)`. The [`room3-sqlite-wrapper`](https://developer.android.com/jetpack/androidx/releases/room3) artifact is for bridging **legacy `SupportSQLite` call sites**, not for replacing a proper driver on the main `RoomDatabase` builder. See [Migrate from SupportSQLite](https://developer.android.com/kotlin/multiplatform/room#migrate) and [Room 3 release notes](https://developer.android.com/jetpack/androidx/releases/room3).
 
 ### Sensitive Field Encryption
 
 For encrypting specific fields (when full-database encryption is too heavy):
 
 ```kotlin
+import androidx.room3.ColumnInfo
+import androidx.room3.Entity
+import androidx.room3.PrimaryKey
+
 @Entity(tableName = "users")
 data class UserEntity(
     @PrimaryKey val id: String,
@@ -1277,7 +1548,7 @@ If JavaScript must be enabled, avoid `addJavascriptInterface()` as it exposes yo
 
 ## ProGuard / R8 Hardening
 
-Use `templates/proguard-rules.pro.template` as the source of truth for all keep rules. It includes security-specific sections:
+Use `assets/proguard-rules.pro.template` as the source of truth for all keep rules. It includes security-specific sections:
 
 - **Log stripping** - removes `Log.v/d/i/w` calls in release builds
 - **Crypto/security class preservation** - keeps `core.data.crypto.**` and `core.data.security.**`
@@ -1285,7 +1556,7 @@ Use `templates/proguard-rules.pro.template` as the source of truth for all keep 
 - **Crash report readability** - `SourceFile,LineNumberTable` attributes preserved
 - **Mapping file upload** - Firebase and Sentry Gradle plugins handle this automatically
 
-See [gradle-setup.md](gradle-setup.md#r8--proguard-configuration) for build configuration and debugging shrunk builds.
+See [gradle-setup.md](/references/gradle-setup.md#r8--proguard-configuration) for build configuration and debugging shrunk builds.
 
 ### Manifest Security
 
@@ -1415,13 +1686,20 @@ Use this checklist for every release:
 
 ### Authentication
 - [ ] BiometricPrompt for sensitive actions
+- [ ] Credential Manager / passkeys or other sign-in flows aligned with backend (where applicable)
+- [ ] No hardware IDs (IMEI, MAC, serial) used for tracking; Advertising ID only where policy allows
 - [ ] Session timeout implemented
 - [ ] Re-authentication for critical operations (payment, password change)
+
+### Privacy and Play policy
+- [ ] Play Console **Data safety** form matches actual SDK and app behavior
+- [ ] Privacy policy URL current and linked from store listing / in-app as required
+- [ ] User data deletion or export path documented where required
 
 ### App Hardening
 - [ ] R8/ProGuard enabled for release builds
 - [ ] Log stripping in release builds
-- [ ] Root detection for high-risk apps
+- [ ] High-risk apps: local root/emulator checks only as **supplement** (telemetry or soft warnings); **do not** rely on them alone for protecting APIs if Play Integrity is available
 - [ ] `FLAG_SECURE` on sensitive screens
 - [ ] All activities `android:exported="false"` except launcher
 - [ ] Content providers not exported unless needed
@@ -1434,28 +1712,25 @@ Use this checklist for every release:
 - [ ] Dependency vulnerability scanning in CI
 
 ### Device Security
-- [ ] Play Integrity API integration (for high-risk apps)
-- [ ] Keystore-backed key generation
+- [ ] Play Integrity for high-risk apps: **linked Cloud project** in Play Console; **Cloud project number** in app config; **`warmUp()`** before first sensitive use where applicable
+- [ ] **Standard** API: **`requestHash`** binding; **Classic** API: **`nonce`** per Google rules; server calls **`decodeIntegrityToken`** and validates **`requestDetails`** before other verdicts
+- [ ] **Tiered** enforcement and **gradual** rollout (telemetry before hard blocks); **remediation** path for recoverable integrity failures where product allows
+- [ ] Keystore-backed key generation for device-bound or high-value crypto where designed
 - [ ] StrongBox used when available
 
-## Best Practices Summary
+## Rules
 
-1. **Defense in depth**: Layer multiple security controls
-2. **Least privilege**: Request only necessary permissions
-3. **Fail securely**: Default to denying access on errors
-4. **Don't trust the client**: All critical validation must happen server-side
-5. **Encrypt everything sensitive**: At rest and in transit
-6. **Keep dependencies updated**: Monitor for CVEs
-7. **Test security**: Include security tests in CI/CD
-8. **Log security events**: But never log sensitive data
-9. **Use hardware security**: Keystore > software encryption
-10. **Follow Google's guidance**: [Android Security Tips](https://developer.android.com/privacy-and-security/security-tips)
+Required:
+- Server is the trust boundary; client never makes the final authorization decision.
+- Layer controls (defense in depth); fail closed on errors.
+- Request the minimum permission set; encrypt sensitive data at rest and in transit.
+- Use Android Keystore over software-managed keys; require StrongBox where available.
+- For high-value actions: Play Integrity (server-decoded) with `requestHash`/`nonce` binding + tiered backend policy.
+- Track CVEs in dependencies; run security checks in CI.
 
-## Related Guides
+Forbidden:
+- Logging tokens, PII, or any sensitive payload.
+- Treating local root/emulator checks as authoritative.
+- Hardcoding API keys, signing material, or secrets in source.
 
-- [Crash Reporting](crashlytics.md) - CrashReporter interface and PII scrubbing
-- [Permissions Guide](android-permissions.md) - Runtime permission patterns
-- [Network Configuration](gradle-setup.md) - Network security config setup
-- [Architecture Guide](architecture.md) - Repository patterns for secure data access
-- [Data Sync Guide](android-data-sync.md) - Offline-first with encrypted local storage
-- [StrictMode Guide](android-strictmode.md) - Detecting cleartext traffic
+Reference: [Android Security Tips](https://developer.android.com/privacy-and-security/security-tips). Cross-links: [crashlytics.md](/references/crashlytics.md), [android-permissions.md](/references/android-permissions.md), [gradle-setup.md](/references/gradle-setup.md), [architecture.md](/references/architecture.md), [android-data-sync.md](/references/android-data-sync.md), [android-strictmode.md](/references/android-strictmode.md).

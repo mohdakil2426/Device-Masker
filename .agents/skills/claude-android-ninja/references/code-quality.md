@@ -1,7 +1,6 @@
 # Code Quality (Detekt)
 
-Detekt is the primary static analysis tool for this multi-module Android project.
-We integrate it through build-logic convention plugins so every module is configured consistently.
+Detekt is the required static analysis tool. Apply it to every module through the `build-logic` convention plugin so configuration stays identical across modules.
 
 ## Goals
 - Single source of truth for rules (`plugins/detekt.yml`) with optional per-module overrides.
@@ -10,17 +9,17 @@ We integrate it through build-logic convention plugins so every module is config
 - Kotlin 2.2.x compatible configuration without legacy `buildscript` usage.
 
 ## Version Catalog
-Use `templates/libs.versions.toml.template` as the source of truth for:
+Use `assets/libs.versions.toml.template` as the source of truth for:
 - The Detekt plugin version and plugin ID.
 - The Compose detekt rules dependency (`compose-rules-detekt`).
 
-Use `templates/detekt.yml.template` as the baseline rules file; copy it to
+Use `assets/detekt.yml.template` as the baseline rules file; copy it to
 `plugins/detekt.yml` and customize it there (modules can optionally provide
 a local `detekt.yml` override).
 
 ## Detekt Convention Plugin (Build Logic)
 
-The `DetektConventionPlugin` is available in `templates/convention/DetektConventionPlugin.kt`.
+The `DetektConventionPlugin` is available in `assets/convention/DetektConventionPlugin.kt`.
 
 Copy it to `build-logic/convention/src/main/kotlin/DetektConventionPlugin.kt` in your project.
 
@@ -34,7 +33,7 @@ Key features:
 
 ### Build Logic Registration
 
-The Detekt plugin is already registered in the build script available at `templates/convention/build.gradle.kts`. 
+The Detekt plugin is already registered in the build script available at `assets/convention/build.gradle.kts`. 
 
 When you copy the build script to your project's `build-logic/convention/build.gradle.kts`, the Detekt plugin registration is included:
 
@@ -88,16 +87,18 @@ build:
 
 ## Baselines & CI
 
-### When to Use Baselines
+### Detekt baseline routing
 
 **Use baselines when:**
-- Adopting detekt in an existing project with many violations
-- You want to prevent new issues without fixing old ones immediately
-- You're enabling new rules gradually
 
-**Don't use baselines when:**
-- Starting a new project (fix issues instead)
-- In active development (baselines hide problems)
+- Adopting detekt in an existing project with many violations.
+- New violations must fail CI while legacy debt is scheduled.
+- Rules roll out gradually behind a baseline.
+
+**Forbidden:**
+
+- Greenfield projects — fix findings instead of freezing debt.
+- Active refactors that need signal — baselines mask regressions.
 
 ### Creating Per-Module Baselines
 
@@ -169,14 +170,14 @@ jobs:
 If the project uses Gradle toolchains, Detekt will resolve the proper JDK automatically.
 
 ## Compose Rules
-The Compose detekt ruleset is configured in `templates/detekt.yml.template`. Use that template as-is.
+The Compose detekt ruleset is configured in `assets/detekt.yml.template`. Use that template as-is.
 For compatibility information and latest rules, see: [Compose rules + detekt compatibility](https://mrmans0n.github.io/compose-rules/detekt/)
 
 ## Suppressing Violations
 
 ### Acceptable Suppressions for Compose
 
-Jetpack Compose composables are declarative UI functions that naturally differ from imperative code. The following suppressions are acceptable when applied to `@Composable` functions:
+The following suppressions are acceptable on `@Composable` functions only.
 
 #### `@Suppress("LongMethod")`
 Composable UI functions declare layout trees and are naturally longer than business logic functions.
@@ -285,23 +286,29 @@ enum class CirclePosition { START, END }
 fun AnAnimatedComposableExampleView(...) { /* ... */ }
 ```
 
-**When to use:**
-- `MatchingDeclarationName`: File has a primary composable plus supporting types (enums, sealed classes, data classes)
-- `TooManyFunctions`: Composable files with many small helper composables
-- `MagicNumber`: UI files with many layout dimensions
+**Use `@file:Suppress` when:**
 
-### When NOT to Suppress
+- `MatchingDeclarationName`: primary composable plus supporting types (enums, sealed classes, data classes) share one file.
+- `TooManyFunctions`: composable files with many tiny helpers.
+- `MagicNumber`: UI files dense with layout constants.
 
-Avoid suppressing these without fixing the underlying issue:
+### Forbidden suppressions
+
+Do not suppress without fixing the root cause when:
 - `ComplexMethod` in ViewModels or business logic → Refactor the code
 - `LongParameterList` in data classes → Consider builder pattern or DSL
 - `TooGenericExceptionCaught` when you can handle specific exceptions → Use specific catches
 - `UnusedPrivateProperty` → Remove the property
 
-## Best Practices
+## Suppression rules
 
-1. **Fix, don't suppress**: Suppressions should be rare. Refactor code instead.
-2. **Justify suppressions**: Add a comment explaining why the suppression is necessary.
-3. **Be specific**: Use targeted suppressions (catch parameters, single functions) over file-level.
-4. **Review suppressions**: Suppressions added "temporarily" tend to become permanent. Review regularly.
-5. **Compose is different**: Accept that Compose composables naturally violate some imperative code rules.
+Required:
+- Fix the violation. Suppress only when the rule does not apply (e.g., `LongMethod` on a `@Composable`).
+- Add a one-line `// Suppressed because <reason>` comment next to every `@Suppress`.
+- Use the narrowest scope: catch parameter > single declaration > `@file:Suppress`.
+- Re-audit suppressions on every CI baseline regeneration.
+
+Forbidden:
+- Suppressing rules in ViewModel, repository, use case, or other non-`@Composable` code without refactor.
+- File-level suppression of `MagicNumber`, `ComplexMethod`, `LongParameterList` in data/domain layers.
+- Adding a suppression labeled "temporary" without a tracked follow-up.

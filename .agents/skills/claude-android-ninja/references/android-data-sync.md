@@ -1,13 +1,8 @@
 # Android Data Synchronization & Offline-First
 
-Modern data synchronization patterns for offline-first Android apps with conflict resolution, cache invalidation, network monitoring, and retry strategies.
+Required: local Room 3 DB is the single source of truth, UI observes it, all writes are local-first + WorkManager-scheduled.
 
-All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
-
-**Related guides:** 
-- See `references/architecture.md` for repository patterns and data layer architecture
-- See `references/coroutines-patterns.md` for async operations and structured concurrency
-- See `references/android-notifications.md` for WorkManager and foreground service sync
+Kotlin code must align with [kotlin-patterns.md](/references/kotlin-patterns.md). Repository / data-layer rules: [architecture.md](/references/architecture.md). Async + structured concurrency: [coroutines-patterns.md](/references/coroutines-patterns.md). Foreground sync services: [android-notifications.md](/references/android-notifications.md).
 
 ## Table of Contents
 
@@ -26,7 +21,7 @@ All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
 - [Repository Pattern for Sync](#repository-pattern-for-sync)
 - [Architecture Integration](#architecture-integration)
 - [Testing](#testing)
-- [Best Practices](#best-practices)
+- [Rules](#rules)
 
 ## Offline-First Architecture
 
@@ -34,7 +29,7 @@ Local database is the **single source of truth**. UI always reads from local dat
 
 ### Core Principles
 
-1. **Local database is source of truth** - Room database holds all data
+1. **Local database is source of truth** - Room 3 database holds all data
 2. **UI observes local data** - ViewModels collect Flow from Repository
 3. **Background sync** - WorkManager syncs with remote when connected
 4. **Optimistic updates** - Write to local first, sync to remote later
@@ -254,6 +249,8 @@ sealed interface SyncItemResult {
 
 ### Room Entity with Sync Metadata
 
+Room 3 (`androidx.room3`): keep using **`suspend`** and **`Flow`** on DAOs; configure `Room.databaseBuilder` with **`setDriver(BundledSQLiteDriver())`** (see `references/android-security.md` and `references/testing.md`).
+
 ```kotlin
 // core/data/database/TaskEntity.kt
 @Entity(tableName = "tasks")
@@ -305,6 +302,66 @@ interface TaskDao {
     suspend fun delete(id: String)
 }
 ```
+
+## Database Optimization (Room/SQLite)
+
+### Room
+
+Room 3 disallows blocking DAO methods except reactive return types such as `Flow` ([Room 3 release notes](https://developer.android.com/jetpack/androidx/releases/room3)).
+
+Required:
+- DAO methods are `suspend` or return `Flow` / `PagingSource`. Never return `List<T>` from a non-suspend DAO method.
+- Add `@Index` to every column used in a `WHERE`, `JOIN`, or `ORDER BY`.
+- Wrap multi-statement writes in `@Transaction` (or use `@Insert` on `List<Entity>` for batch insert).
+- Cap result sets with `LIMIT … OFFSET …` or Paging 3 (`androidx.room3:room3-paging` + `@DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)`); never `SELECT *` on tables that can grow beyond ~1k rows.
+
+```kotlin
+@Dao
+interface UserDao {
+    @Query("SELECT * FROM users")
+    suspend fun getAll(): List<User>
+
+    @Query("SELECT * FROM users")
+    fun observeAll(): Flow<List<User>>
+
+    @Insert
+    suspend fun insertAll(users: List<User>)
+}
+
+@Transaction
+suspend fun updateUserAndPosts(user: User, posts: List<Post>) {
+    userDao.update(user)
+    postDao.insertAll(posts)
+}
+
+@Entity(
+    tableName = "users",
+    indices = [
+        Index(value = ["email"], unique = true),
+        Index(value = ["created_at"])
+    ]
+)
+data class User(
+    @PrimaryKey val id: Long,
+    val email: String,
+    val name: String,
+    val createdAt: Long
+)
+
+@Query("SELECT * FROM posts ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
+suspend fun getPostsPage(limit: Int, offset: Int): List<Post>
+
+@Query("SELECT * FROM posts ORDER BY created_at DESC")
+fun getPostsPaged(): PagingSource<Int, Post>
+```
+
+### SQLite
+
+Required:
+- Store numbers as `INTEGER`, not `TEXT`. Schema columns must use the narrowest correct affinity.
+- Run `EXPLAIN QUERY PLAN` for any new query touching > 1k rows; verify it uses indices.
+
+Room 3 does not expose `SupportSQLiteDatabase.query`. Ad-hoc SQL goes through [`SQLiteConnection`](https://developer.android.com/reference/kotlin/androidx/sqlite/SQLiteConnection) / driver APIs.
 
 ## Network State Monitoring
 
@@ -1636,33 +1693,25 @@ class FakeSyncCoordinator : SyncCoordinator {
 }
 ```
 
-### WorkManager Best Practices
+### WorkManager Rules
 
-#### ✅ Do
+Required:
+- Use `enqueueUniqueWork` / `enqueueUniquePeriodicWork` with stable names; pick `ExistingWorkPolicy` deliberately.
+- Set `Constraints` (network type, battery, storage) for every background job.
+- Configure `setBackoffCriteria(BackoffPolicy.EXPONENTIAL, ...)` on retry-eligible work.
+- Use expedited work (API 31+) only for user-visible, time-sensitive operations and pass `OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST`.
+- Report progress with `setProgress(Data)` for long-running sync; observe via `WorkManager.getWorkInfoByIdFlow` in the ViewModel.
+- Pass data between chained workers via `Data.Builder()` (≤ 10 KB).
+- Cancel periodic work (`cancelUniqueWork`) when the feature toggles off.
+- Test with `WorkManagerTestInitHelper` + `TestDriver`, simulating constraints.
 
-1. **Use unique work names** for sync operations to prevent duplicates
-2. **Set appropriate constraints** to respect user's battery and data
-3. **Handle backoff** for transient failures
-4. **Use expedited work** (API 31+) for time-sensitive operations
-5. **Report progress** for long-running work
-6. **Chain work** for complex multi-step operations
-7. **Pass data** between workers using `Data.Builder()`
-8. **Observe work status** in ViewModel, not composables
-9. **Test with TestDriver** to simulate constraint changes
-10. **Cancel work** when no longer needed
-
-#### ❌ Don't
-
-1. **Don't use WorkManager for immediate execution** - use coroutines instead
-2. **Don't store large data in Worker input/output** - max 10KB per Data object
-3. **Don't rely on Worker lifecycle** - work can be interrupted and restarted
-4. **Don't use periodic work with flex < 15 minutes** - system constraint
-5. **Don't forget to cancel periodic work** when feature is disabled
-6. **Don't chain too many workers** - prefer batching in single worker
-7. **Don't use expedited work unnecessarily** - limited quota
-8. **Don't block main thread** in Worker - use CoroutineWorker
-9. **Don't assume work will run immediately** - constraints must be met
-10. **Don't use WorkManager for UI updates** - use StateFlow/LiveData
+Forbidden:
+- WorkManager for immediate, in-process work - use coroutines / `viewModelScope`.
+- Storing payloads larger than 10 KB in `Data` (use Room or files and pass IDs).
+- Periodic work with `repeatInterval` < 15 minutes (system rejects it).
+- Blocking the main thread inside a `Worker` - always use `CoroutineWorker`.
+- Long unbounded chains; batch related steps inside one worker.
+- Driving UI directly from a `Worker`; UI listens to `StateFlow` / `WorkInfo`.
 
 ### Work Constraints Comparison
 
@@ -2235,33 +2284,28 @@ fun `syncState reflects WorkInfo state`() = runTest {
 }
 ```
 
-## Best Practices
+## Rules
 
-### ✅ Always Do
+Required:
+- Local DB is the only source UI observes; networking results land in the DB before reaching UI.
+- Write to the DB first (optimistic), then enqueue sync via the `SyncCoordinator`.
+- Store sync metadata on every syncable entity: `syncStatus`, `lastModified`, `serverVersion`.
+- Check `NetworkMonitor` before any sync attempt; treat `NoNetwork` as a `Result.retry()`.
+- Pick exactly one conflict-resolution strategy per entity type and document it on the repository.
+- Use exponential backoff with bounded jitter for transient failures; cap at `maxAttempts`.
+- Invalidate caches on every write that mutates the affected key(s).
+- Treat partial sync failures as success-with-failures, not full failure; surface counts to the UI.
+- Test offline behaviour with `FakeNetworkMonitor.setConnected(false)` and HTTP error injection.
 
-1. **Use local database as source of truth** - UI always observes local data
-2. **Write locally first (optimistic updates)** - Don't wait for network
-3. **Schedule background sync** with WorkManager for reliability
-4. **Monitor network state** before attempting sync
-5. **Implement conflict resolution** for diverging changes
-6. **Use exponential backoff** for retries to avoid overwhelming server
-7. **Add sync metadata** to entities (syncStatus, lastModified, serverVersion)
-8. **Invalidate caches** when data changes
-9. **Handle partial sync failures** gracefully
-10. **Test offline scenarios** - disable network in tests
-
-### ❌ Never Do
-
-1. **Never block UI** waiting for network operations
-2. **Never show stale data** - always emit cached data first, then refresh
-3. **Never lose user data** - persist locally even if sync fails
-4. **Never retry indefinitely** - set max retry limits
-5. **Never ignore conflicts** - implement proper resolution strategy
-6. **Never sync on metered connections** without user consent
-7. **Never assume sync will succeed** - handle failures gracefully
-8. **Never expose repository sync details** to UI - use ViewModel layer
-9. **Never use SharedPreferences** for large datasets (use Room)
-10. **Never forget to cancel coroutines** in repository when scope is cancelled
+Forbidden:
+- UI / ViewModels reading from `taskApi` directly. Network is repository-internal.
+- Returning stale data without scheduling a refresh when cache is invalid.
+- Dropping local edits because a sync failed.
+- Unbounded retry loops.
+- Silently swallowing conflicts.
+- Auto-syncing on metered networks without explicit user opt-in.
+- `SharedPreferences` / `DataStore` for relational or list data - that's Room's job.
+- Leaking `CoroutineScope`s from repositories; cancel scopes in `@PreDestroy` / lifecycle teardown.
 
 ### Sync Frequency Guidelines
 
@@ -2293,7 +2337,8 @@ fun `syncState reflects WorkInfo state`() = runTest {
 - [Repository Pattern - Android Developers](https://developer.android.com/topic/architecture/data-layer)
 - [Offline-First Architecture - Android Developers](https://developer.android.com/topic/architecture/data-layer/offline-first)
 - [WorkManager - Android Developers](https://developer.android.com/topic/libraries/architecture/workmanager)
-- [Room Database](https://developer.android.com/training/data-storage/room)
+- [Save data in a local database with Room](https://developer.android.com/training/data-storage/room)
+- [Room 3 releases](https://developer.android.com/jetpack/androidx/releases/room3)
 - [ConnectivityManager](https://developer.android.com/reference/android/net/ConnectivityManager)
 - [Network Callbacks](https://developer.android.com/training/monitoring-device-state/connectivity-status-type)
 - [Exponential Backoff](https://cloud.google.com/iot/docs/how-tos/exponential-backoff)

@@ -404,25 +404,4 @@ Before closing any task, confirm ALL of the following:
 
 ---
 
-## Skills
-
-**⚠️ MANDATORY: Read relevant skills BEFORE generating any code.**
-
-Skills are located in `.agents/skills/` — read the **SKILL.md** file inside each skill folder.
-
-### Design & Planning
-
-| Skill                | When to Use                                                       | Path                               |
-| :------------------- | :---------------------------------------------------------------- | :--------------------------------- |
-| **mermaid-diagrams** | Creating software diagrams (class, sequence, flow, C4, ERD, Git). | `.agents/skills/mermaid-diagrams/` |
-
-### Android & Kotlin
-
-| Skill             | When to Use                                                                      | Path                                    |
-| :---------------- | :------------------------------------------------------------------------------- | :-------------------------------------- |
-| **android-ninja** | Core Android architectural guidance (Kotlin, Compose, MVVM, Hilt, Multi-module). | `.agents/skills/claude-android-ninja/`  |
-| **material-3**    | Material 3 Expressive UI design, review, token specification, and motion.        | `.agents/skills/material-3-expressive/` |
-
----
-
-_Last Updated: 2026-03-19 (libxposed API 101 full migration: module.prop=101, ProGuard rewritten, 10 hookers, RemotePreferences config, AIDL=diagnostics-only)_
+_Last Updated: 2026-03-19_

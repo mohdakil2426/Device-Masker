@@ -1,18 +1,12 @@
 # Jetpack Compose Patterns
 
-Modern UI patterns following Google's Material 3 guidelines with Navigation3, adaptive layouts, and our modular architecture.
-All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
-
-**Accessibility:** All UI components must be accessible. See `references/android-accessibility.md` for semantic properties, touch targets, and TalkBack support.
-
-**Theming:** Use Material 3 theming with semantic color roles and typography. See `references/android-theming.md` for theme setup, dynamic colors, and dark/light mode.
-
-**Internationalization:** Use string resources for all text. See `references/android-i18n.md` for localization, RTL support, and plurals.
+Required: Material 3, Navigation 3, adaptive layouts, edge-to-edge, lifecycle-aware state collection. Kotlin code aligns with [kotlin-patterns.md](/references/kotlin-patterns.md). Accessibility (semantics, touch targets, TalkBack) is mandatory - [android-accessibility.md](/references/android-accessibility.md). Theming via Material 3 semantic roles - [android-theming.md](/references/android-theming.md). All user-facing text via string resources - [android-i18n.md](/references/android-i18n.md).
 
 ## Table of Contents
 
 1. [Screen Architecture](#screen-architecture)
 2. [State Management](#state-management)
+   - [Loading and refresh UX](#loading-and-refresh-ux)
 3. [Component Patterns](#component-patterns)
 4. [Adaptive UI](#adaptive-ui)
 5. [Theming & Design System](#theming--design-system)
@@ -22,20 +16,19 @@ All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
 9. [Side Effects](#side-effects)
 10. [Modifiers](#modifiers)
 11. [Deprecated Patterns & Migrations](#deprecated-patterns--migrations)
-11. [CompositionLocal](#compositionlocal)
-12. [Lists & Scrolling](#lists--scrolling)
-13. [View Composition Rules](#view-composition-rules)
+12. [CompositionLocal](#compositionlocal)
+13. [Lists & Scrolling](#lists--scrolling)
+14. [View Composition Rules](#view-composition-rules)
+15. [Forms & Input](#forms--input)
 
 ## Screen Architecture
 
 ### Feature Screen Pattern
 
-Separate navigation, state management, and pure UI concerns with our modular approach:
+Split each feature screen into a `Route` (state collection + navigation glue) and a stateless `Screen` (pure UI). `Navigator` interfaces live in the feature module; implementations live in `app` (see [modularization.md](/references/modularization.md)).
 
 ```kotlin
 // feature-auth/presentation/AuthRoute.kt
-// Note: AuthNavigator is defined in feature-auth/navigation/AuthNavigator.kt
-// and implemented in the app module. See references/modularization.md
 @Composable
 fun AuthRoute(
     authNavigator: AuthNavigator,
@@ -45,11 +38,14 @@ fun AuthRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     // Collect one-time navigation events
-    LaunchedEffect(viewModel) {
-        viewModel.navigationEvents.collect { event ->
-            when (event) {
-                is AuthNavigationEvent.LoginSuccess -> authNavigator.navigateToMainApp()
-                is AuthNavigationEvent.RegisterSuccess -> authNavigator.navigateToMainApp()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel.navigationEvents, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.navigationEvents.collect { event ->
+                when (event) {
+                    is AuthNavigationEvent.LoginSuccess -> authNavigator.navigateToMainApp()
+                    is AuthNavigationEvent.RegisterSuccess -> authNavigator.navigateToMainApp()
+                }
             }
         }
     }
@@ -92,18 +88,103 @@ fun LoginScreen(
 }
 ```
 
-### Benefits with Our Architecture:
+Navigation setup, destinations, and `Navigator` interfaces: [android-navigation.md](/references/android-navigation.md).
 
-- **Feature Isolation**: Screens are self-contained within feature modules
-- **Testable Components**: Pure UI without ViewModel dependencies
-- **Navigation Decoupling**: Screens call Navigator interfaces, not NavController directly
-- **Lifecycle Awareness**: Built-in support with `collectAsStateWithLifecycle()`
-- **Adaptive Ready**: Designed for `NavigationSuiteScaffold` and responsive layouts
+## Naming Conventions
 
-Navigation setup, destination definitions, and navigator interfaces live in
-`references/android-navigation.md`.
+Follow these conventions when naming Compose functions:
+
+### Components
+
+Components are functions that emit UI elements.
+
+- **Name:** `UpperCamelCase` (e.g., `FancyButton`, `ScrollAwareHeader`)
+- **Return Type:** `Unit` (does not return a value)
+- **Parameters:** Should have a `modifier` parameter at the first optional position
+- **Usage:** Uses the `modifier` parameter at the top of the UI root
+
+```kotlin
+@Composable
+fun FancyButton(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        modifier = modifier
+    )
+}
+```
+
+### Factory Functions
+
+Factory functions create objects or state and typically pair with `remember`.
+
+- **Name:** `lowerCamelCase` (e.g., `defaultStyle`, `rememberCoroutineScope`)
+- **Return Type:** Returns a result (e.g., `Style`, `CoroutineScope`)
+- **UI Emission:** Does not emit UI
+- **Usage:** Uses `@Composable` only if it needs to `remember` or use `CompositionLocal`
+
+```kotlin
+@Composable
+fun defaultStyle(): Style = // ...
+
+@Composable
+fun rememberCoroutineScope(): CoroutineScope = // ...
+```
 
 ## State Management
+
+### Loading and refresh UX
+
+**Required:** keep **stable layout** and **preserved context** during loads and refresh — retain visible content, scroll position, and in-flight form state while network work runs.
+
+| Situation                                                  | Default                                                                                           |
+|------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| First load, layout shape is known                          | Skeleton or placeholder in a **fixed-height** slot                                                |
+| Refresh while previous data exists                         | Keep previous content; show **inline** progress (pull-to-refresh, small indicator on the section) |
+| Recalculate / refine result while an older result is valid | Keep old result visible; show "updating" until the new payload arrives                            |
+| Empty and idle                                             | Empty state copy, not a blocking spinner                                                          |
+| Blocking work with **no** stable structure                 | Full-screen spinner is acceptable but should be rare                                              |
+
+**Do not:** replace the whole screen with a spinner on every refresh, clear forms when a reload runs, or drop the last good result on transient errors.
+
+```kotlin
+// Bad
+@Composable
+fun SummarySection(summary: SummaryUi?, isLoading: Boolean) {
+    if (isLoading) {
+        CircularProgressIndicator()
+    } else if (summary != null) {
+        SummaryContent(summary = summary, refreshing = false)
+    }
+}
+
+// Good
+@Composable
+fun SummarySection(summary: SummaryUi?, isLoading: Boolean) {
+    SummaryCardSlot {
+        when {
+            summary != null -> SummaryContent(summary = summary, refreshing = isLoading)
+            isLoading -> SummarySkeleton()
+            else -> SummaryEmptyState()
+        }
+    }
+}
+
+@Composable
+private fun SummaryCardSlot(content: @Composable BoxScope.() -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 180.dp)
+    ) {
+        content()
+    }
+}
+```
+
+Model **refreshing** as a flag on the content state (e.g. `isRefreshing` on a data class) or a small overlay, not as a mode that **hides** the main UI unless there is nothing to show yet.
 
 ### Sealed Interface for UI State
 
@@ -172,10 +253,9 @@ sealed class AuthAction {
 }
 ```
 
-### Modern ViewModel with Form State
+### ViewModel with Form State
 
-Use delegation for shared behavior (validation, analytics, feature flags) instead of base classes.
-See `references/kotlin-delegation.md` for guidance and tradeoffs.
+Use delegation for shared behaviour (validation, analytics, feature flags); never an inheritance base class. See [kotlin-delegation.md](/references/kotlin-delegation.md).
 
 For process-death survival, include `SavedStateHandle` in ViewModels and persist critical UI state (forms, in-progress flows) using `savedStateHandle.getStateFlow()` for automatic restoration.
 
@@ -214,13 +294,17 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.LoginForm())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     
-    // One-time navigation events (SharedFlow with no replay)
-    private val _navigationEvents = MutableSharedFlow<AuthNavigationEvent>(
-        replay = 0,
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    val navigationEvents: SharedFlow<AuthNavigationEvent> = _navigationEvents.asSharedFlow()
+    // Preferred for one-shot navigation commands (unicast); see references/coroutines-patterns.md
+    private val _navigationEvents = Channel<AuthNavigationEvent>(Channel.BUFFERED)
+    val navigationEvents: Flow<AuthNavigationEvent> = _navigationEvents.receiveAsFlow()
+
+    // Alternative: SharedFlow when several collectors need the same stream or replay is intended
+    // private val _navigationEvents = MutableSharedFlow<AuthNavigationEvent>(
+    //     replay = 0,
+    //     extraBufferCapacity = 1,
+    //     onBufferOverflow = BufferOverflow.DROP_OLDEST
+    // )
+    // val navigationEvents: SharedFlow<AuthNavigationEvent> = _navigationEvents.asSharedFlow()
     
     // Process-death survival: persist form state
     private val email = savedStateHandle.getStateFlow("email", "")
@@ -277,7 +361,8 @@ class AuthViewModel @Inject constructor(
             loginUseCase(currentState.email, currentState.password).fold(
                 onSuccess = { user -> 
                     // Emit navigation event - AuthRoute will call authNavigator.navigateToMainApp()
-                    _navigationEvents.emit(AuthNavigationEvent.LoginSuccess)
+                    _navigationEvents.send(AuthNavigationEvent.LoginSuccess) // Channel
+                    // _navigationEvents.emit(AuthNavigationEvent.LoginSuccess) // SharedFlow
                 },
                 onFailure = { error ->
                     _uiState.update { 
@@ -292,6 +377,84 @@ class AuthViewModel @Inject constructor(
 }
 ```
 
+### Initial Data Load Strategies
+
+| Pattern                            | Use when                                                                          | Avoid when                                       |
+|------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------|
+| ViewModel `init {}`                | Data is always needed; no retry / refresh; one-shot fetch.                        | You need pull-to-refresh, retry, or trigger UI. |
+| `LaunchedEffect(Unit)`             | Trivial, UI-scoped one-shot load with no retry.                                  | Logic must survive config change or be retried. |
+| `.onStart + stateIn`               | Reactive screen backed by a `Flow`; survives config changes.                      | Users need explicit retry / refresh.            |
+| Reactive trigger + `flatMapLatest` | Pull-to-refresh, retry, action-driven reload; reactive screen.                    | Trivial one-shot screens (overkill).            |
+
+Default: reactive trigger + `flatMapLatest` for any screen that may need retry or refresh; `.onStart + stateIn` otherwise.
+
+#### ViewModel `init {}`
+
+```kotlin
+class MyViewModel(private val repository: MyRepository) : ViewModel() {
+    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    val uiState = _uiState.asStateFlow()
+
+    init { loadData() }
+
+    private fun loadData() {
+        viewModelScope.launch { _uiState.value = repository.getData() }
+    }
+}
+```
+
+#### `LaunchedEffect(Unit)`
+
+```kotlin
+@Composable
+fun MyScreen(viewModel: MyViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) { viewModel.loadData() }
+}
+```
+
+#### `.onStart + stateIn`
+
+```kotlin
+class MyViewModel(repository: MyRepository) : ViewModel() {
+    val uiState: StateFlow<UiState> = repository.dataFlow()
+        .map { UiState.Success(it) }
+        .onStart { emit(UiState.Loading) }
+        .catch { emit(UiState.Error(it)) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UiState.Loading
+        )
+}
+```
+
+#### Reactive trigger + `flatMapLatest`
+
+```kotlin
+class MyViewModel(private val repository: MyRepository) : ViewModel() {
+    private val loadTrigger = MutableSharedFlow<Unit>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    val uiState: StateFlow<UiState> = loadTrigger
+        .onStart { emit(Unit) }
+        .flatMapLatest {
+            repository.dataFlow()
+                .map { UiState.Success(it) }
+                .onStart { emit(UiState.Loading) }
+                .catch { emit(UiState.Error(it)) }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UiState.Loading
+        )
+
+    fun retry() { loadTrigger.tryEmit(Unit) }
+}
+```
+
 ### State Collection with Lifecycle
 
 ```kotlin
@@ -302,12 +465,15 @@ fun AuthRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    // Collect one-time navigation events
-    LaunchedEffect(viewModel) {
-        viewModel.navigationEvents.collect { event ->
-            when (event) {
-                is AuthNavigationEvent.LoginSuccess -> authNavigator.navigateToMainApp()
-                is AuthNavigationEvent.RegisterSuccess -> authNavigator.navigateToMainApp()
+    // Collect one-time navigation events using repeatOnLifecycle
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel.navigationEvents, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.navigationEvents.collect { event ->
+                when (event) {
+                    is AuthNavigationEvent.LoginSuccess -> authNavigator.navigateToMainApp()
+                    is AuthNavigationEvent.RegisterSuccess -> authNavigator.navigateToMainApp()
+                }
             }
         }
     }
@@ -391,12 +557,12 @@ fun AuthScreen(
 }
 ```
 
-Key points:
+**Required:** match the collector to the work:
 
-- Use `collectAsStateWithLifecycle()` for state that drives UI
-- Use `flowWithLifecycle` for a single side-effect flow
-- Use `repeatOnLifecycle` for multiple flows or complex scoped operations
-- Both prevent leaked collectors and wasted background work during lifecycle changes
+- UI-bound state → `collectAsStateWithLifecycle()`.
+- Single side-effect stream → `flowWithLifecycle`.
+- Multiple streams or complex lifecycle scopes → `repeatOnLifecycle`.
+- These APIs stop leaked collectors and idle background collection during lifecycle churn.
 
 ### Primitive State Specializations
 
@@ -430,14 +596,14 @@ fun SearchScreen(viewModel: SearchViewModel) {
 ```
 
 ```kotlin
-// Bad: accessing state directly in LaunchedEffect doesn't track changes
+// Bad: captures initial value only
 LaunchedEffect(Unit) {
-    viewModel.search(query) // captures initial value only
+    viewModel.search(query)
 }
 
-// Bad: using query as key restarts the entire effect on every keystroke
+// Bad: restarts the effect on every keystroke
 LaunchedEffect(query) {
-    delay(300) // crude debounce, cancelled on every change
+    delay(300)
     viewModel.search(query)
 }
 ```
@@ -460,18 +626,39 @@ cache["key"] = user
 **Gotcha:** In-place mutation of elements does NOT trigger recomposition:
 
 ```kotlin
-// Bad: mutating in place - Compose won't see the change
+// Bad: in-place mutation
 items[0].name = "Updated"
 
-// Good: replace with copy
+// Good: replace via copy
 items[0] = items[0].copy(name = "Updated")
 ```
 
 For ViewModel-level state, prefer `StateFlow<PersistentList<T>>` (see [Persistent Collections](#persistent-collections-for-performance)) over `SnapshotStateList`. Use `SnapshotStateList` only for UI-local state.
 
-### rememberSaveable with Custom Types
+### remember, rememberSaveable, and rememberSerializable
 
-`rememberSaveable` survives process death and configuration changes. Custom types require a `Saver` or `@Parcelize`:
+These APIs differ in **how long** state is kept and **what types** you can store. Official overview: [State lifespans in Compose](https://developer.android.com/develop/ui/compose/state-lifespans).
+
+|                                       | `remember`           | `rememberSaveable`                                                                                                                     | `rememberSerializable`                                                     |
+|---------------------------------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| Survives recompositions               | Yes                  | Yes                                                                                                                                    | Yes                                                                        |
+| Survives activity / config recreation | No                   | Yes (restored value may be a **new** instance, `==` but not `===`)                                                                     | Same as `rememberSaveable`                                                 |
+| Survives process death                | No                   | Yes                                                                                                                                    | Yes                                                                        |
+| Custom / complex types                | Any (in memory only) | Primitives, `String`, arrays, built-in support for common types (`List`, `Map`, `State`, …), **`@Parcelize`**, or a **custom `Saver`** | Types you can represent with **`kotlinx.serialization`** (`@Serializable`) |
+
+**When to use which**
+
+- **`remember`** - Default for composable-scoped state that can be recreated without harming UX: animation state, internal helpers, `LazyListState` when you do not need process death, ephemeral expand/collapse, hover. **Do not** store irreplaceable user input or form data in plain `remember`; it is cleared on configuration change and process death.
+
+- **`rememberSaveable`** - User-visible state the app cannot easily reload from elsewhere: text fields, toggles, scroll position, selected tab, navigation arguments mirrored in UI. Use this when your type is already `Parcelable`, fits the built-in `Saver` rules, or you hand-write a `Saver` / `mapSaver` / `listSaver`.
+
+- **`rememberSerializable`** - Same persistence guarantees as `rememberSaveable`, but **automatic persistence for `@Serializable` models** via `kotlinx.serialization`. Use it when your domain or UI model is already (or can be) marked `@Serializable`; use **`rememberSaveable`** for primitives, `Parcelable`, or manual `Saver`s when you are not using kotlinx.serialization.
+
+Both saveable variants serialize into a `Bundle`, so restored values are **equivalent** copies, not the same object identity.
+
+#### rememberSaveable with custom types
+
+`rememberSaveable` survives process death and configuration changes. Custom types need a `Saver`, `@Parcelize`, or supported primitives/collections:
 
 ```kotlin
 // Option 1: Saver (pure Kotlin, no Android dependency)
@@ -499,7 +686,23 @@ val filterSaver = mapSaver(
 )
 ```
 
-Use `rememberSaveable` for user input, form state, scroll positions, and selected tabs. Use plain `remember` for transient UI state (expanded/collapsed, hover).
+#### rememberSerializable with @Serializable types
+
+Use when your state is modeled with kotlinx.serialization (same lifecycle as `rememberSaveable`; do not wrap the same state in both `rememberSaveable` and `rememberSerializable`). The `MutableState` overload infers a `KSerializer` for the reified type `T`:
+
+```kotlin
+import androidx.compose.runtime.saveable.rememberSerializable
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class FilterState(val category: String, val sortOrder: String)
+
+var filter by rememberSerializable { mutableStateOf(FilterState("all", "newest")) }
+```
+
+For a non-state value, use the overload whose `init` returns `T` directly. If you need an explicit `KSerializer` (custom serializers, polymorphism, etc.), use the overloads that take `serializer:` or `stateSerializer:` - see [`rememberSerializable`](https://developer.android.com/reference/kotlin/androidx/compose/runtime/saveable/package-summary#rememberSerializable(kotlin.Array,kotlinx.serialization.KSerializer,androidx.savedstate.serialization.SavedStateConfiguration,kotlin.Function0)).
+
+For other APIs that sit between these lifespans (for example **`retain`**, which survives configuration change but not process death), see the same [State lifespans](https://developer.android.com/develop/ui/compose/state-lifespans) guide.
 
 ### Edge-to-Edge (Mandatory on API 36)
 
@@ -551,11 +754,182 @@ fun ScrollableContentWithInsets(modifier: Modifier = Modifier) {
 }
 ```
 
+**Picking the right `safe*Padding` modifier:**
+
+| Modifier                         | Insets applied                                          | Use for                                                                                                                                          |
+|----------------------------------|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Modifier.safeDrawingPadding()`  | System bars + IME (keyboard)                            | Default for **text input screens** and any surface that must stay clear of the keyboard.                                                         |
+| `Modifier.safeContentPadding()`  | System bars + IME + display cutouts + waterfall         | Default for **top-level content surfaces** (AnimatedPane, full-screen hosts). Use when content could land behind a camera cutout or curved edge. |
+| `Modifier.safeGesturesPadding()` | System gesture regions (back-gesture edges, nav handle) | **Draggable** UI (sliders, pull-to-refresh, horizontal pagers near screen edges) to avoid gesture conflicts.                                     |
+
+Rule of thumb: start with `safeDrawingPadding()` for form screens, `safeContentPadding()` for hosts/panes, and add `safeGesturesPadding()` on any composable that consumes drag gestures. Do not stack more than one `safe*Padding` on the same node.
+
+**Target SDK floor:** the inset APIs below require **target SDK 35+**. `targetSdk = 36` is the project default; 35 is the minimum on which these APIs are guaranteed available.
+
+#### IME (soft keyboard) insets
+
+Wire IME insets in two places:
+
+1. **Manifest:** every Activity that hosts text input must set `android:windowSoftInputMode="adjustResize"`. `SOFT_INPUT_ADJUST_RESIZE` is deprecated; do not use the runtime constant.
+2. **Composable:** apply IME insets to the input container. Use **one** of the patterns below. Combining them double-pads.
+
+**Use `Modifier.fitInside(WindowInsetsRulers.Ime.current)` by default.** It fits content inside the IME inset regardless of upstream `consumeWindowInsets` calls, so an ancestor that forgets to consume cannot break it.
+
+```kotlin
+Scaffold { innerPadding ->
+    Column(
+        modifier = Modifier
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding)
+            .fitInside(WindowInsetsRulers.Ime.current)
+            .verticalScroll(rememberScrollState())
+    ) { /* TextField + content */ }
+}
+```
+
+**Use `Modifier.imePadding()`** when `WindowInsetsRulers` is unavailable. Two ordering rules apply:
+
+- `imePadding()` **must come before** `Modifier.verticalScroll(...)`. Reversing the order makes the keyboard cover the focused field on tall content.
+- Do **not** combine `imePadding()` with `Scaffold(contentWindowInsets = WindowInsets.safeDrawing)`. `safeDrawing` already includes the IME.
+
+```kotlin
+// CORRECT: default contentWindowInsets does not include IME; imePadding() applies it once.
+Scaffold { innerPadding ->
+    Column(
+        modifier = Modifier
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding)
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+    ) { /* TextField + content */ }
+}
+
+// WRONG: IME padding applied twice (once via safeDrawing, once via imePadding()).
+Scaffold(contentWindowInsets = WindowInsets.safeDrawing) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .padding(innerPadding)
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+    ) { /* … */ }
+}
+```
+
+For **non-Scaffold** layouts, consume the parent insets explicitly so children do not re-apply them:
+
+```kotlin
+// CORRECT: safeDrawingPadding consumes insets for descendants.
+Box(modifier = Modifier.safeDrawingPadding()) {
+    Column(modifier = Modifier.imePadding()) { /* TextField + content */ }
+}
+
+// WRONG: outer padding does not consume insets; imePadding() double-pads.
+Box(modifier = Modifier.padding(WindowInsets.safeDrawing.asPaddingValues())) {
+    Column(modifier = Modifier.imePadding()) { /* … */ }
+}
+```
+
+#### System bar appearance & contrast
+
+Status- and navigation-bar icon legibility is controlled in the theme/Activity, not in screen code.
+
+- **`ComponentActivity.enableEdgeToEdge`** (default entry point) auto-flips icon colors per system theme. **Do not** set `isAppearanceLightStatusBars` / `isAppearanceLightNavigationBars` manually when using this entry point.
+- **`WindowCompat.enableEdgeToEdge`** does **not** auto-flip. Set both manually:
+
+  ```kotlin
+  @Composable
+  fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+      val view = LocalView.current
+      if (!view.isInEditMode) {
+          SideEffect {
+              val window = (view.context as? Activity)?.window ?: return@SideEffect
+              val controller = WindowCompat.getInsetsController(window, view)
+              controller.isAppearanceLightStatusBars = !darkTheme
+              controller.isAppearanceLightNavigationBars = !darkTheme
+          }
+      }
+      MaterialTheme(content = content)
+  }
+  ```
+
+- **Three-button nav contrast scrim:** `enableEdgeToEdge` defaults `window.isNavigationBarContrastEnforced = true`, which paints a translucent scrim under three-button navigation. When the screen draws its own bottom bar (`BottomAppBar`, `NavigationBar`, `NavigationSuiteScaffold` with a bar), set it to `false` so the bar colour reaches the screen edge:
+
+  ```kotlin
+  // In MainActivity.onCreate(), after enableEdgeToEdge()
+  if (Build.VERSION.SDK_INT >= 29) {
+      window.isNavigationBarContrastEnforced = false
+  }
+  ```
+
+- **Status-bar protection scrim:** use when content scrolls under a translucent status bar and icons need extra contrast.
+
+  ```kotlin
+  @Composable
+  fun StatusBarProtection(color: Color = MaterialTheme.colorScheme.surfaceContainer) {
+      Spacer(
+          modifier = Modifier
+              .fillMaxWidth()
+              .height(
+                  with(LocalDensity.current) {
+                      (WindowInsets.statusBars.getTop(this) * 1.2f).toDp()
+                  }
+              )
+              .background(
+                  brush = Brush.verticalGradient(
+                      colors = listOf(color, color.copy(alpha = 0.8f), Color.Transparent)
+                  )
+              )
+      )
+  }
+  ```
+
+  Render it **after** the main content in the same `Box`/`Scaffold` so it sits on top of the scrolling region.
+
+#### NavigationSuiteScaffold and adaptive-pane scaffolds
+
+`NavigationSuiteScaffold` and the `*PaneScaffold` family (`ListDetailPaneScaffold`, `SupportingPaneScaffold`) **do not propagate `PaddingValues`** to their inner content lambdas. The scaffolds manage insets for their own chrome (rail, bar, drawer); each pane is responsible for its own content insets.
+
+- Apply insets per-pane / per-screen, e.g. `LazyColumn(contentPadding = …)` and `Modifier.safeContentPadding()` on `AnimatedPane`.
+- **Do not** wrap the `NavigationSuiteScaffold` itself in `safeDrawingPadding()` / `safeContentPadding()` - that clips the chrome and breaks edge-to-edge.
+
+#### Full-screen Dialogs
+
+`AlertDialog` handles insets internally. A **full-screen** `Dialog` (opts out of platform width sizing **and** fills the screen) requires an explicit edge-to-edge opt-in:
+
+```kotlin
+Dialog(
+    onDismissRequest = onDismiss,
+    properties = DialogProperties(
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = false,
+    )
+) {
+    Surface(modifier = Modifier.fillMaxSize().safeDrawingPadding()) { /* content */ }
+}
+```
+
+If the dialog uses platform width or does not call `fillMaxSize()`, leave `decorFitsSystemWindows` at its default. Flipping it on a non-full-screen dialog misaligns content.
+
+#### Edge-to-edge checklist
+
+Run before considering an Activity edge-to-edge complete:
+
+- [ ] `enableEdgeToEdge()` is called in every Activity's `onCreate()` before `setContent`.
+- [ ] `android:windowSoftInputMode="adjustResize"` is set in `AndroidManifest.xml` for every Activity that hosts a soft keyboard.
+- [ ] Every `TextField` / `OutlinedTextField` / `BasicTextField` has an ancestor that applies IME insets (`fitInside(WindowInsetsRulers.Ime.current)`, `imePadding()`, `safeDrawingPadding()`, `safeContentPadding()`, `safeGesturesPadding()`, or `Scaffold(contentWindowInsets = WindowInsets.safeDrawing)`).
+- [ ] Lists pass insets to `contentPadding`, **not** as a parent `Modifier.padding()` (otherwise content cannot scroll behind the system bars).
+- [ ] FABs and floating overlays sit inside a `Scaffold` **or** apply `Modifier.safeDrawingPadding()`.
+- [ ] If using `WindowCompat.enableEdgeToEdge` (not the `ComponentActivity` API), `isAppearanceLightStatusBars` / `isAppearanceLightNavigationBars` are wired to the theme.
+- [ ] If the Activity draws its own bottom bar, `window.isNavigationBarContrastEnforced = false` is set (SDK 29+).
+- [ ] `./gradlew build` succeeds.
+
 **Do NOT:**
 
 - Set `fitsSystemWindows` in XML
 - Use `windowOptOutEdgeToEdgeEnforcement` -- it is disabled on API 36
 - Assume the content area excludes system bars
+- Apply `safe*Padding` to a `NavigationSuiteScaffold` or `*PaneScaffold` parent - apply it inside each pane instead
+- Combine `Scaffold(contentWindowInsets = WindowInsets.safeDrawing)` with `Modifier.imePadding()` on the same column (double padding)
 
 ### Predictive Back (Mandatory on API 36)
 
@@ -779,12 +1153,15 @@ fun ScreenWithSheet(
 }
 ```
 
-**Key Points:**
+**Required:**
 
-- **Nested handlers**: Innermost enabled `BackHandler` takes precedence
-- **Conditional interception**: Use `enabled` parameter to control when back is intercepted
-- **Lifecycle-aware**: Automatically cleaned up when composable leaves composition
-- **Don't block permanently**: Always provide a way to exit the screen eventually
+- Innermost enabled `BackHandler` handles the gesture first.
+- Gate interception with the `enabled` flag.
+- Registration ends when the composable leaves the composition.
+
+**Forbidden:**
+
+- Intercepting back with no path off the screen.
 
 ## Component Patterns
 
@@ -958,6 +1335,101 @@ fun ErrorContent(
     }
 }
 ```
+
+### Card Variants (Filled / Outlined / Elevated)
+
+M3 ships three `Card` variants. Picking the right one is purely a function of how much the card needs to **separate from its background**, not how "important" the content is. Mixing variants on the same surface is the most common slip-up - pick one per region and stick with it.
+
+| Variant  | Composable     | Surface role at rest                | Use when                                                                                      |
+|----------|----------------|-------------------------------------|-----------------------------------------------------------------------------------------------|
+| Filled   | `Card`         | `surfaceContainerHighest`           | Card sits directly on `surface`; default choice for list items, content tiles                 |
+| Outlined | `OutlinedCard` | `surface` + `outlineVariant` border | Low-emphasis grouping; content-heavy lists where elevation noise hurts (table rows, settings) |
+| Elevated | `ElevatedCard` | `surfaceContainerLow` + 1dp shadow  | Card must read as floating over a busy/photo background; rarely needed otherwise              |
+
+```kotlin
+@Composable
+fun ProductCard(product: Product, onClick: () -> Unit) {
+    Card(onClick = onClick) {
+        ProductCardContent(product)
+    }
+}
+
+@Composable
+fun SettingRow(setting: Setting, onClick: () -> Unit) {
+    OutlinedCard(onClick = onClick) {
+        SettingRowContent(setting)
+    }
+}
+
+@Composable
+fun FloatingHero(item: Item, onClick: () -> Unit) {
+    ElevatedCard(onClick = onClick) {
+        HeroContent(item)
+    }
+}
+```
+
+`Card` / `OutlinedCard` / `ElevatedCard` already pull the right surface, content color, border, and (for Elevated) shadow from `MaterialTheme`. Don't pass `colors = CardDefaults.cardColors(containerColor = ...)` to swap variants - use the dedicated composable instead, otherwise the on-color and border defaults silently drift out of sync. See [Color Pairing Rules](/references/android-theming.md#color-pairing-rules) and [Surface Container Hierarchy](/references/android-theming.md#surface-container-hierarchy) for the underlying tokens.
+
+#### Clickable card → use the `onClick` overload
+
+`Card { ... }` is a static container. The moment the card is tappable, switch to the `Card(onClick = ...)` overload (same for `OutlinedCard` / `ElevatedCard`) - it wires up the M3 ripple, focus ring, hover state, and `Role.Button` semantics that a `.clickable { }` modifier on a static card silently misses.
+
+```kotlin
+Card(
+    onClick = onClick,
+    modifier = Modifier.semantics { contentDescription = product.name },
+) {
+    ProductCardContent(product)
+}
+```
+
+#### Variant anti-patterns
+
+- **Don't elevate by default.** `ElevatedCard` adds a real shadow; using it for every list item produces the cluttered MD2-style look M3 was designed to retire. Default to `Card`.
+- **Don't mix variants in the same list.** A grid of `Card`s with one `ElevatedCard` reads as a bug, not emphasis. Use selection state, a badge, or a `surfaceContainerHigh` background instead.
+- **Don't outline a card that already sits on `surfaceContainer*`.** The border vanishes against the tonal step. Use `OutlinedCard` only when the parent is `surface`.
+
+### Touch Targets
+
+Every interactive element must have a minimum touch area of **48x48dp**. If the visual element is
+smaller, expand the touch area. Keep at least **8dp** between adjacent targets to prevent mis-taps.
+
+```kotlin
+IconButton(onClick = onClose) {
+    Icon(Icons.Default.Close, contentDescription = "Close")
+}
+
+Box(
+    modifier = Modifier
+        .minimumInteractiveComponentSize()
+        .clickable { onAction() },
+    contentAlignment = Alignment.Center
+) {
+    Icon(modifier = Modifier.size(24.dp), imageVector = Icons.Default.Star, contentDescription = "Rate")
+}
+```
+
+### Haptic Feedback
+
+Use haptics to confirm significant actions - destructive operations, toggles, long-press confirmations:
+
+```kotlin
+@Composable
+fun DeleteButton(onDelete: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    Button(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onDelete()
+        }
+    ) {
+        Text("Delete")
+    }
+}
+```
+
+Do not add haptics to every tap - reserve them for actions where physical confirmation improves UX.
 
 ## Adaptive UI
 
@@ -1171,7 +1643,7 @@ fun ThreePaneScaffoldPaneScope.MainPane(
 
 ## Theming & Design System
 
-### Modern Material 3 Theme
+### Material 3 Theme
 
 ```kotlin
 // core/ui/theme/AppTheme.kt
@@ -1232,6 +1704,64 @@ val AppTypography = Typography(
     // Add other text styles...
 )
 ```
+
+### Component Shape Defaults
+
+Every M3 component reads its corner radius from `MaterialTheme.shapes` via a `*Defaults.shape` constant. Override at the **token** level (in `AppShapes`) to retheme everything consistently; override at the **component** level (`shape = ...`) only for genuine one-offs. Mixing radii across components on the same screen is the most common visual-polish bug.
+
+| Component                                                                       | `*Defaults.shape` source                                                   | Token                                                               | Notes                                                                        |
+|---------------------------------------------------------------------------------|----------------------------------------------------------------------------|---------------------------------------------------------------------|------------------------------------------------------------------------------|
+| `Button`, `FilledTonalButton`, `OutlinedButton`, `TextButton`, `ElevatedButton` | `ButtonDefaults.shape`                                                     | `shapes.full` (pill)                                                | M3 Expressive ships pill-shaped buttons                                      |
+| `IconButton`, `FilledIconButton`, etc.                                          | `IconButtonDefaults.*Shape`                                                | `shapes.full`                                                       | Always circular at rest                                                      |
+| `FloatingActionButton`                                                          | `FloatingActionButtonDefaults.shape`                                       | `shapes.large`                                                      | 16dp corners                                                                 |
+| `ExtendedFloatingActionButton`                                                  | `FloatingActionButtonDefaults.extendedFabShape`                            | `shapes.large`                                                      |                                                                              |
+| `Card`, `OutlinedCard`, `ElevatedCard`                                          | `CardDefaults.shape` / `outlinedShape` / `elevatedShape`                   | `shapes.medium`                                                     | 12dp corners; see [Card Variants](#card-variants-filled--outlined--elevated) |
+| `AssistChip`, `FilterChip`, `InputChip`, `SuggestionChip`                       | `ChipDefaults.*Shape`                                                      | `shapes.small`                                                      | 8dp corners                                                                  |
+| `TextField`, `OutlinedTextField`                                                | `TextFieldDefaults.shape` / `OutlinedTextFieldDefaults.shape`              | top-only `extraSmall` (filled), `extraSmall` all corners (outlined) | Filled rounds **top corners only**                                           |
+| `AlertDialog`, `BasicAlertDialog`                                               | `AlertDialogDefaults.shape`                                                | `shapes.extraLarge`                                                 | 28dp corners                                                                 |
+| `ModalBottomSheet`, `BottomSheetScaffold`                                       | `BottomSheetDefaults.ExpandedShape`                                        | top-only `extraLarge`                                               | Top corners only; bottom is flush                                            |
+| `ModalNavigationDrawer`, `DismissibleNavigationDrawer`                          | `DrawerDefaults.shape`                                                     | end-only `extraLarge`                                               | Right edge corners only                                                      |
+| `Snackbar`                                                                      | `SnackbarDefaults.shape`                                                   | `shapes.extraSmall`                                                 | 4dp corners                                                                  |
+| `Menu` (`DropdownMenu`, `ExposedDropdownMenu`)                                  | `MenuDefaults.shape`                                                       | `shapes.extraSmall`                                                 |                                                                              |
+| `Tooltip` (`PlainTooltip`, `RichTooltip`)                                       | `TooltipDefaults.plainTooltipContainerShape` / `richTooltipContainerShape` | `shapes.extraSmall` (plain), `shapes.medium` (rich)                 |                                                                              |
+| `SearchBar`, `DockedSearchBar`                                                  | `SearchBarDefaults.inputFieldShape`                                        | `shapes.full`                                                       | Pill                                                                         |
+| `Switch`, `RadioButton`, `Checkbox`                                             | (handle-driven, no public shape token)                                     | -                                                                   | Don't override; baked into the component                                     |
+| `TopAppBar`, `BottomAppBar`, `NavigationBar`, `NavigationRail`                  | (none - full-bleed)                                                        | -                                                                   | Never round these                                                            |
+
+#### Override at the token level, not per component
+
+```kotlin
+val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(2.dp),
+    small      = RoundedCornerShape(6.dp),
+    medium     = RoundedCornerShape(10.dp),
+    large      = RoundedCornerShape(14.dp),
+    extraLarge = RoundedCornerShape(24.dp),
+)
+
+MaterialTheme(colorScheme = colorScheme, typography = AppTypography, shapes = AppShapes) {
+    // Card → 10dp, Dialog → 24dp, Snackbar → 2dp, etc. - automatic.
+}
+```
+
+#### Per-component override is for one-offs only
+
+```kotlin
+Card(
+    shape = MaterialTheme.shapes.large,
+) {
+    HeroContent()
+}
+```
+
+Reach for `shape = ...` only when a single instance must visually break the system rhythm - a hero card on a marketing screen, a custom-shaped CTA. Doing this across every `Card` / `Button` is the same as not having a shape system at all.
+
+#### Shape anti-patterns
+
+- **Don't `RoundedCornerShape(8.dp)` directly on a component.** Use `MaterialTheme.shapes.small` so a future token bump rethemes the whole app.
+- **Don't round full-bleed bars.** `TopAppBar`, `BottomAppBar`, `NavigationBar`, `NavigationRail` are designed to sit edge-to-edge - corners on them clip incorrectly under gesture insets.
+- **Don't round all four corners on `ModalBottomSheet` / drawers.** Use the `*ExpandedShape` / `*Shape` defaults; the asymmetric corners are load-bearing for the affordance.
+- **Don't override `Switch` / `RadioButton` / `Checkbox` shape.** They're not derived from `MaterialTheme.shapes`; the visual is baked in by spec.
 
 ### Component-Specific Themes
 
@@ -1345,30 +1875,30 @@ fun LoginScreenAllStatesPreview(
 
 ### Stability Annotations: `@Immutable` vs `@Stable`
 
-Compose can skip recomposition when inputs are stable. Use these annotations to help Compose's compiler understand stability contracts:
+Compose skips more work when the compiler can prove stability. Declare that contract with `@Immutable` / `@Stable`.
 
-**Important:** `@Immutable` and `@Stable` come from `androidx.compose.runtime`. To use them in domain models:
+**Required:** Import `@Immutable` / `@Stable` from `androidx.compose.runtime`.
 
-- **Option 1**: Make your domain module depend on `androidx.compose.runtime` (it's a Kotlin-only library, no Android dependencies):
-  ```kotlin
-  // core/domain/build.gradle.kts
-  plugins {
-      alias(libs.plugins.app.android.library)  // or app.jvm.library
-  }
-
-  dependencies {
-      implementation(platform(libs.androidx.compose.bom))
-      implementation(libs.androidx.compose.runtime)  // For @Immutable/@Stable
-  }
-  ```
-- **Option 2**: Only annotate UI-layer models (e.g., `UserUi` in feature modules) and use a stability configuration file for domain models (see [android-strictmode.md](android-strictmode.md#compose-stability-guardrails))
-
-#### When to Use `@Immutable`
-
-Use `@Immutable` when a type is **deeply immutable**: all properties are `val`, and all property types are primitives or also immutable. Once created, the object never changes.
+**Domain models:** Either add `androidx.compose.runtime` to the Gradle module that owns annotated domain types (Kotlin-only) or keep annotations on UI-layer models and cover domain types with the stability configuration in [`android-strictmode.md`](/references/android-strictmode.md#compose-stability-guardrails).
 
 ```kotlin
-// ✅ Correct: All properties are val and immutable
+// core/domain/build.gradle.kts
+plugins {
+    alias(libs.plugins.app.android.library)  // or app.jvm.library
+}
+
+dependencies {
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.runtime)  // For @Immutable/@Stable
+}
+```
+
+#### Use `@Immutable` when:
+
+**Contract:** every property is `val`, nested types are immutable, and instances never mutate after construction.
+
+```kotlin
+// CORRECT: All properties are val and immutable
 @Immutable
 data class User(
     val id: String,
@@ -1377,7 +1907,7 @@ data class User(
     val profileUrl: String?
 )
 
-// ✅ Correct: Nested types are also immutable
+// CORRECT: Nested types are also immutable
 @Immutable
 data class AuthState(
     val user: User?, // User is @Immutable
@@ -1385,7 +1915,7 @@ data class AuthState(
     val error: String?
 )
 
-// ✅ Correct: Sealed class with immutable children
+// CORRECT: Sealed class with immutable children
 @Immutable
 sealed interface UiState {
     data object Loading : UiState
@@ -1393,26 +1923,26 @@ sealed interface UiState {
     data class Error(val message: String) : UiState
 }
 
-// ❌ Wrong: Contains mutable property
+// WRONG: Contains mutable property
 @Immutable // This is a lie!
 data class MutableUser(
     val id: String,
     var name: String // var makes this mutable
 )
 
-// ❌ Wrong: Contains mutable collection
+// WRONG: Contains mutable collection
 @Immutable // This is a lie!
 data class UserList(
     val users: MutableList<User> // Mutable collection
 )
 ```
 
-#### When to Use `@Stable`
+#### Use `@Stable` when:
 
-Use `@Stable` when a type has **observable mutations**: it may be mutable, but Compose will be notified of all changes (e.g., via `mutableStateOf`, `StateFlow`, or MutableState).
+**Contract:** the type mutates, yet every change is observable (`mutableStateOf`, `StateFlow`, or `MutableState`).
 
 ```kotlin
-// ✅ Correct: Mutable but observable by Compose
+// CORRECT: Mutable but observable by Compose
 @Stable
 class AuthFormState {
     var email by mutableStateOf("")
@@ -1437,7 +1967,7 @@ class AuthFormState {
     }
 }
 
-// ✅ Correct: Wraps StateFlow (observable)
+// CORRECT: Wraps StateFlow (observable)
 @Stable
 class SearchRepository @Inject constructor(
     private val api: SearchApi
@@ -1450,7 +1980,7 @@ class SearchRepository @Inject constructor(
     }
 }
 
-// ✅ Correct: Interface can be marked @Stable if implementations guarantee stability
+// CORRECT: Interface can be marked @Stable if implementations guarantee stability
 // See references/crashlytics.md → "Provider-Agnostic Interface" for full implementation
 @Stable
 interface CrashReporter {
@@ -1458,14 +1988,14 @@ interface CrashReporter {
     fun recordException(throwable: Throwable)
 }
 
-// ❌ Wrong: Mutable and NOT observable by Compose
+// WRONG: Mutable and NOT observable by Compose
 @Stable // This is a lie!
 class BadFormState {
     var email: String = "" // No mutableStateOf - Compose won't see changes!
     var password: String = ""
 }
 
-// ❌ Wrong: Truly immutable, should use @Immutable instead
+// WRONG: Truly immutable, should use @Immutable instead
 @Stable // Use @Immutable instead
 data class Config(
     val apiUrl: String,
@@ -1476,13 +2006,16 @@ data class Config(
 #### Decision Matrix
 
 
-| Type Characteristics           | Annotation   | Example                                             |
-| ------------------------------ | ------------ | --------------------------------------------------- |
-| All `val`, deeply immutable    | `@Immutable` | `data class User(val id: String, val name: String)` |
-| Mutable with `mutableStateOf`  | `@Stable`    | `var count by mutableStateOf(0)`                    |
-| Mutable with `StateFlow`       | `@Stable`    | `val state: StateFlow<T>`                           |
-| Interface with stable contract | `@Stable`    | `interface Repository`                              |
-| Regular mutable class          | **None**     | Let Compose treat as unstable                       |
+| Type Characteristics           | Annotation   | Example                                                         |
+|--------------------------------|--------------|-----------------------------------------------------------------|
+| All `val`, deeply immutable    | `@Immutable` | `data class User(val id: String, val name: String)`             |
+| Mutable with `mutableStateOf`  | `@Stable`    | `var count by mutableStateOf(0)`                                |
+| Mutable with `StateFlow`       | `@Stable`    | `val state: StateFlow<T>`                                       |
+| Interface with stable contract | `@Stable`    | `interface Repository`                                          |
+| Regular mutable class          | **None**     | Let Compose treat as unstable                                   |
+| `java.time` classes            | **None**     | `LocalDate`, `LocalTime`, `LocalDateTime` (Unstable by default) |
+
+> **Warning:** Standard Java time classes like `LocalDate`, `LocalTime`, and `LocalDateTime` are considered **unstable** by Compose. If you use them in your state, you must either wrap them in a stable class, map them to primitives (like epoch milliseconds), or configure them as stable via a stability configuration file.
 
 
 #### Persistent Collections for Performance
@@ -1597,9 +2130,50 @@ fun SearchableAuthActivity(
 }
 ```
 
-### Remember/Lambda Best Practices
+### Hoistable Stable State Pattern
 
-**Default approach (99% of cases):** Keep it simple. Let Compose handle optimizations automatically when your data types are stable/immutable.
+For complex components, extract state into a hoistable stable state interface with a private implementation and a factory function. This allows callers to either provide their own state or let the component manage it.
+
+```kotlin
+@Stable
+interface VerticalScrollerState {
+    var scrollPosition: Int
+    var scrollRange: Int
+}
+
+private class VerticalScrollerStateImpl(
+    scrollPosition: Int = 0,
+    scrollRange: Int = 0
+) : VerticalScrollerState {
+    private var _scrollPosition by mutableIntStateOf(scrollPosition)
+    
+    override var scrollRange by mutableIntStateOf(scrollRange)
+    
+    override var scrollPosition: Int
+        get() = _scrollPosition
+        set(value) {
+            _scrollPosition = value.coerceIn(0, scrollRange)
+        }
+}
+
+// Factory function
+fun VerticalScrollerState(): VerticalScrollerState = VerticalScrollerStateImpl()
+
+@Composable
+fun VerticalScroller(
+    modifier: Modifier = Modifier,
+    state: VerticalScrollerState = remember { VerticalScrollerState() }
+) {
+    val scrollPosition = state.scrollPosition
+    val scrollRange = state.scrollRange
+    
+    // Use state...
+}
+```
+
+### `remember` and lambda routing
+
+**Start here:** Immutable stable parameter types; skip `remember`-wrapping lambdas until a trace ties recompositions to unstable captures.
 
 ```kotlin
 @Composable
@@ -1626,7 +2200,7 @@ data class AuthEvent(
 )
 ```
 
-**When `onClick` changes frequently and performance matters (deeply nested/large lists):** Use `rememberUpdatedState` to always reference the latest callback without recreating the lambda.
+**Use when:** `onClick` identity churns and the composable is expensive (deep nesting or large lists). Hold the latest callback with `rememberUpdatedState` so the lambda body stays stable.
 
 ```kotlin
 @Composable
@@ -1647,7 +2221,7 @@ fun AuthEventCard(
 }
 ```
 
-**When both `event` and `onClick` change independently and you need true memoization (rare):**
+**Use when:** `event` and `onClick` both churn and profiling shows allocation or recomposition cost tied to the handler lambda:
 
 ```kotlin
 @Composable
@@ -1670,7 +2244,7 @@ fun AuthEventCard(
 }
 ```
 
-**Key takeaway:** Start simple. Only optimize if profiling shows actual performance issues. Premature optimization adds complexity without benefit.
+Optimize only when profiling identifies a real recomposition or allocation hotspot.
 
 ## Animation
 
@@ -1753,9 +2327,11 @@ var count by remember { mutableIntStateOf(0) }
 AnimatedContent(
     targetState = count,
     transitionSpec = {
-        slideInVertically { it } + fadeIn() togetherWith
-            slideOutVertically { -it } + fadeOut() using
-            SizeTransform(clip = false)
+        if (targetState > initialState) {
+            slideInVertically { it } + fadeIn() togetherWith slideOutVertically { -it } + fadeOut()
+        } else {
+            slideInVertically { -it } + fadeIn() togetherWith slideOutVertically { it } + fadeOut()
+        }.using(SizeTransform(clip = false))
     },
     label = "counter"
 ) { target ->
@@ -1919,7 +2495,34 @@ keyframes {
 }
 ```
 
-Prefer `spring` for user-driven interactions. Use `tween` for choreographed sequences.
+Use `spring` for user-driven interactions. Use `tween` for choreographed sequences.
+
+### Material Design motion (duration and easing)
+
+Material motion uses consistent **durations** and **easing** so transitions feel intentional. Align `tween`/`keyframes` with these bands when you pick fixed timings (springs stay physics-driven).
+
+**Durations by interaction type**
+
+| Band   | Duration   | Typical use                                 |
+|--------|------------|---------------------------------------------|
+| Micro  | 50-100 ms  | Ripples, small state toggles, hover         |
+| Short  | 100-200 ms | Simple transitions, fades                   |
+| Medium | 200-300 ms | Expand/collapse, bottom sheet motion        |
+| Long   | 300-500 ms | Larger choreography, complex screen changes |
+
+Keep most UI transitions under about **400 ms** unless you are showing loading or long-form motion. Tablet/desktop can feel slightly slower; wearables often use shorter motion. See [Motion](https://m3.material.io/styles/motion/overview) for the full system.
+
+**Easing roles** (Material names map to cubic-bezier curves in design specs; in Compose use `FastOutSlowInEasing`, `LinearEasing`, or custom `CubicBezierEasing` as needed)
+
+| Role       | Typical use                  |
+|------------|------------------------------|
+| Standard   | Default enter/exit           |
+| Emphasized | Prominent transitions        |
+| Decelerate | Elements entering the screen |
+| Accelerate | Elements leaving permanently |
+| Sharp      | Temporary exit and return    |
+
+**Reduced motion:** Always respect `LocalReducedMotion` for enter/exit (see **Animation Anti-Patterns** below).
 
 ### Layout Animations
 
@@ -2011,18 +2614,18 @@ Image(
 - `sharedElement` - exact match (same content, animates position/size)
 - `sharedBounds` - bounds morph (different content, animates container bounds)
 
-For Navigation3-specific shared elements, see `references/android-navigation.md`.
+Navigation 3 shared elements: [android-navigation.md](/references/android-navigation.md).
 
 ### graphicsLayer for Animation Performance
 
 GPU-accelerated transforms that skip recomposition and relayout.
 
 ```kotlin
-// Good: GPU-accelerated, no recomposition or relayout
+// Good
 val offset by animateFloatAsState(targetValue = 100f, label = "offset")
 Box(modifier = Modifier.graphicsLayer(translationX = offset))
 
-// Bad: triggers relayout every frame
+// Bad: relayout every frame
 val offsetDp by animateDpAsState(targetValue = 100.dp, label = "offset")
 Box(modifier = Modifier.offset(x = offsetDp))
 ```
@@ -2034,28 +2637,37 @@ Box(modifier = Modifier.offset(x = offsetDp))
 ### Animation Anti-Patterns
 
 ```kotlin
-// Bad: no animation on visibility change
+// Bad: instant visibility flip
 if (visible) { Text("Content") }
-// Good: animated
+// Good
 AnimatedVisibility(visible = visible) { Text("Content") }
 
-// Bad: Animatable recreated every recomposition
+// Bad: recreated every recomposition
 val animatable = Animatable(0f)
-// Good: wrapped in remember
+// Good
 val animatable = remember { Animatable(0f) }
 
-// Bad: animating state in composition phase (infinite recomposition loop)
+// Bad: state mutation during composition (infinite loop)
 var position by remember { mutableFloatStateOf(0f) }
 position += 10f
-// Good: animate in a coroutine
+// Good: drive from a coroutine
 LaunchedEffect(Unit) {
     repeat(10) { position += 10f; delay(16) }
 }
 
-// Bad: missing label (harder to debug in Layout Inspector)
+// Bad: missing label
 val size by animateDpAsState(targetValue = 100.dp)
-// Good: labeled
+// Good
 val size by animateDpAsState(targetValue = 100.dp, label = "card_size")
+
+// Bad: ignores reduced-motion preference
+AnimatedVisibility(visible = visible, enter = fadeIn() + slideInVertically()) { Content() }
+// Good
+val reducedMotion = LocalReducedMotion.current
+AnimatedVisibility(
+    visible = visible,
+    enter = if (reducedMotion) EnterTransition.None else fadeIn() + slideInVertically()
+) { Content() }
 ```
 
 ## Side Effects
@@ -2143,7 +2755,7 @@ fun ScreenWithLifecycle(onResume: () -> Unit, onPause: () -> Unit) {
 }
 ```
 
-Prefer over `LaunchedEffect` when cleanup isn't coroutine-based (removing listeners, unregistering callbacks).
+Use `DisposableEffect` instead of `LaunchedEffect` when cleanup is not coroutine-based (unregistering listeners, receivers, or callbacks).
 
 ```kotlin
 @Composable
@@ -2207,7 +2819,7 @@ Button(onClick = {
     runBlocking { fetchData() }
 }) { Text("Fetch") }
 
-// Good: launches on proper scope
+// Good
 val scope = rememberCoroutineScope()
 Button(onClick = {
     scope.launch { fetchData() }
@@ -2237,16 +2849,16 @@ fun TimedMessage(
 Without it, changing `onTimeout` either restarts the effect (if used as key) or calls a stale callback (if captured directly):
 
 ```kotlin
-// Bad: effect restarts when onTimeout changes (common with lambda parameters)
+// Bad: restarts on every lambda identity change
 LaunchedEffect(onTimeout) {
     delay(5000)
     onTimeout()
 }
 
-// Bad: captures initial onTimeout, ignores later changes
+// Bad: captures stale onTimeout
 LaunchedEffect(Unit) {
     delay(5000)
-    onTimeout() // stale reference
+    onTimeout()
 }
 ```
 
@@ -2344,15 +2956,15 @@ fun LocationTracker(locationManager: LocationManager) {
 }
 ```
 
-#### When to Use Which Lifecycle Effect
+#### Lifecycle effect routing
 
 | Effect | Active During | Use For |
 |--------|--------------|---------|
 | `LifecycleResumeEffect` | `onResume` to `onPause` | Camera, media playback, interactive features |
 | `LifecycleStartEffect` | `onStart` to `onStop` | Location, sensors, background-visible work |
-| `DisposableEffect` | Composition to disposal | Not lifecycle-dependent, just composition-scoped |
+| `DisposableEffect` | Composition to disposal | Composition-scoped setup with no lifecycle callbacks |
 
-**Rule:** Prefer `LifecycleResumeEffect`/`LifecycleStartEffect` over manually observing `LocalLifecycleOwner` with `DisposableEffect` + `LifecycleEventObserver`. They provide the same behavior with less boilerplate and no risk of forgetting cleanup.
+**Required:** Use `LifecycleResumeEffect` / `LifecycleStartEffect` instead of hand-rolling `DisposableEffect` + `LifecycleEventObserver` on `LocalLifecycleOwner`; they match lifecycle edges with less code and mandatory cleanup hooks.
 
 ```kotlin
 // BAD: Manual lifecycle observer boilerplate
@@ -2394,53 +3006,49 @@ LifecycleResumeEffect(Unit) {
 ### Side Effect Anti-Patterns
 
 ```kotlin
-// Bad: LaunchedEffect(Unit) when key should change - only loads first userId
+// Bad: wrong key - never re-runs on userId change
 @Composable
 fun UserProfile(userId: String) {
     var user by remember { mutableStateOf<User?>(null) }
     LaunchedEffect(Unit) {
-        user = repository.loadUser(userId) // never re-runs when userId changes
+        user = repository.loadUser(userId)
     }
 }
-// Good: use userId as key
+// Good
 LaunchedEffect(userId) {
     user = repository.loadUser(userId)
 }
 
-// Bad: forgetting onDispose (resource leak)
+// Bad: missing onDispose
 DisposableEffect(Unit) {
     val listener = Listener()
     manager.register(listener)
-    // missing onDispose!
 }
-// Good: always clean up
+// Good
 DisposableEffect(Unit) {
     val listener = Listener()
     manager.register(listener)
     onDispose { manager.unregister(listener) }
 }
 
-// Bad: reading state directly in LaunchedEffect(Unit) - captures initial value only
+// Bad: stale capture
 var count by remember { mutableIntStateOf(0) }
 LaunchedEffect(Unit) {
     delay(1000)
-    println(count) // always prints 0
+    println(count)
 }
-// Good: use snapshotFlow to observe state changes in effects
+// Good
 LaunchedEffect(Unit) {
-    snapshotFlow { count }
-        .collect { println("Count: $it") }
+    snapshotFlow { count }.collect { println("Count: $it") }
 }
 
-// Bad: navigating during composition (runs on every recomposition)
+// Bad: navigation during composition
 if (isLoggedIn) {
     navigator.navigateToHome()
 }
-// Good: navigate in a LaunchedEffect
+// Good
 LaunchedEffect(isLoggedIn) {
-    if (isLoggedIn) {
-        navigator.navigateToHome()
-    }
+    if (isLoggedIn) navigator.navigateToHome()
 }
 ```
 
@@ -2513,6 +3121,24 @@ Box(
 }
 ```
 
+#### Drawing
+
+Use `drawWithCache` to optimize drawing operations by persisting objects across draw calls. The cache is re-created only when the drawing area size changes or any state objects read within the cache block change.
+
+```kotlin
+Box(
+    Modifier
+        .drawWithCache {
+            // Objects created here are cached
+            val brush = Brush.linearGradient(listOf(Color.Red, Color.Blue))
+            onDrawBehind {
+                // Drawing logic using cached objects
+                drawRect(brush)
+            }
+        }
+)
+```
+
 ### Clickable and CombinedClickable
 
 ```kotlin
@@ -2544,7 +3170,7 @@ Place `clickable` AFTER `clip` (for ripple bounds) but BEFORE `padding` (for lar
 Use `Modifier.then()` for conditional chaining:
 
 ```kotlin
-// Good: conditional modifier with then()
+// Good
 Box(
     Modifier
         .fillMaxWidth()
@@ -2552,7 +3178,7 @@ Box(
         .padding(16.dp)
 )
 
-// Bad: breaks chain readability
+// Bad
 val mod = if (isSelected) Modifier.background(selectedColor) else Modifier
 Box(mod.padding(16.dp))
 ```
@@ -2615,7 +3241,7 @@ fun Modifier.onSwipeRight(onSwipe: () -> Unit) = pointerInput(Unit) {
 
 ### graphicsLayer - GPU Transforms
 
-Applies transforms at the GPU level - no recomposition, no relayout. Prefer for animations.
+Applies transforms at the GPU level - no recomposition, no relayout. Use for animations that should skip composition/layout work.
 
 ```kotlin
 Box(
@@ -2651,14 +3277,14 @@ Box(Modifier.testTag("submit_button"))
 composeTestRule.onNodeWithTag("submit_button").performClick()
 ```
 
-For comprehensive accessibility patterns, see `references/android-accessibility.md`.
+Comprehensive accessibility patterns: [android-accessibility.md](/references/android-accessibility.md).
 
 ### Always Accept Modifier Parameter
 
-Every public composable must accept a `modifier` parameter with `Modifier` as default:
+Every public composable must accept `modifier: Modifier = Modifier`.
 
 ```kotlin
-// Good: accepts and applies modifier
+// Good
 @Composable
 fun UserCard(
     user: User,
@@ -2670,7 +3296,7 @@ fun UserCard(
     }
 }
 
-// Bad: no modifier parameter - caller cannot customize layout
+// Bad
 @Composable
 fun UserCard(user: User, onClick: () -> Unit) {
     Card { Text(user.name) }
@@ -2680,27 +3306,27 @@ fun UserCard(user: User, onClick: () -> Unit) {
 ### Modifier Anti-Patterns
 
 ```kotlin
-// Bad: size after padding - padding excluded from final size
+// Bad: padding before size
 Modifier.padding(16.dp).size(100.dp)
-// Good: size first
+// Good
 Modifier.size(100.dp).padding(16.dp)
 
-// Bad: clickable before clip - ripple extends beyond bounds
+// Bad: clickable before clip (ripple overflows)
 Modifier.clickable { }.clip(RoundedCornerShape(8.dp))
-// Good: clip before clickable
+// Good
 Modifier.clip(RoundedCornerShape(8.dp)).clickable { }
 
-// Bad: background before clip - background extends beyond shape
+// Bad: background before clip
 Modifier.background(Color.Blue).clip(RoundedCornerShape(8.dp))
-// Good: clip before background
+// Good
 Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Blue)
 
-// Bad: hardcoded modifier in composable body
+// Bad: hardcoded modifier
 @Composable
 fun BadCard() {
     Box(Modifier.padding(16.dp).background(Color.Blue)) { }
 }
-// Good: accept modifier parameter
+// Good
 @Composable
 fun GoodCard(modifier: Modifier = Modifier) {
     Box(modifier.padding(16.dp).background(Color.Blue)) { }
@@ -2757,37 +3383,42 @@ Values are scoped to descendants. Inner providers override outer ones.
 
 ### Built-In CompositionLocals
 
-| Local | Type | Access Pattern |
-|-------|------|---------------|
-| `LocalContext` | `Context` | `val context = LocalContext.current` |
-| `LocalConfiguration` | `Configuration` | Screen size, orientation, density |
-| `LocalDensity` | `Density` | dp/px conversions |
-| `LocalLayoutDirection` | `LayoutDirection` | LTR/RTL |
-| `LocalLifecycleOwner` | `LifecycleOwner` | Activity/Fragment lifecycle |
-| `LocalView` | `View` | Underlying Android View |
+| Local                             | Type                          | Access Pattern                             |
+|-----------------------------------|-------------------------------|--------------------------------------------|
+| `LocalContext`                    | `Context`                     | `val context = LocalContext.current`       |
+| `LocalConfiguration`              | `Configuration`               | Screen size, orientation, density          |
+| `LocalDensity`                    | `Density`                     | dp/px conversions                          |
+| `LocalLayoutDirection`            | `LayoutDirection`             | LTR/RTL                                    |
+| `LocalLifecycleOwner`             | `LifecycleOwner`              | Activity/Fragment lifecycle                |
+| `LocalView`                       | `View`                        | Underlying Android View                    |
+| `LocalSoftwareKeyboardController` | `SoftwareKeyboardController?` | Control software keyboard (hide/show)      |
+| `LocalFocusManager`               | `FocusManager`                | Control focus within Compose (clear focus) |
+| `LocalClipboard`                  | `Clipboard`                   | Platform clipboard service (copy/paste)    |
+| `LocalUriHandler`                 | `UriHandler`                  | Open URIs (e.g., in a browser)             |
+| `LocalHapticFeedback`             | `HapticFeedback`              | Provide haptic feedback (vibrations)       |
 
-### When to Use vs When NOT to Use
+### CompositionLocal routing
 
-**Use CompositionLocal for:**
-- Values needed by many descendants across the tree
-- Configuration data (theme, locale, feature flags)
-- Avoiding deep parameter drilling (5+ levels)
+**Use when:**
+- Many descendants need the same read-only value.
+- The value is configuration-shaped (theme, locale, feature flags).
+- Parameter drilling would cross five or more layers.
 
-**Do NOT use CompositionLocal for:**
-- Data only 1-2 levels deep - pass as parameters
-- Frequently changing values that need precise control - use State/ViewModel
-- General dependency injection - use Hilt
+**Forbidden:**
+- Data only one or two levels deep — pass parameters.
+- Rapidly changing values that need explicit ownership — model them in state or a `ViewModel`.
+- App-wide service graphs — wire those through Hilt, not `CompositionLocal`.
 
 ### CompositionLocal Anti-Patterns
 
 ```kotlin
-// Bad: using CompositionLocal as generic DI container
+// Bad: generic DI container
 val LocalEverything = compositionLocalOf { AppContainer() }
 
-// Bad: storing MutableState in CompositionLocal - changes won't propagate correctly
+// Bad: MutableState inside CompositionLocal
 val LocalCounter = compositionLocalOf { mutableStateOf(0) }
 
-// Good: provide the value, not the State
+// Good: provide the value, hoist the state
 val LocalCount = compositionLocalOf { 0 }
 @Composable
 fun Parent() {
@@ -2799,6 +3430,121 @@ fun Parent() {
 ```
 
 ## Lists & Scrolling
+
+### Paging 3
+
+Paging 3 is the standard for loading large datasets in chunks.
+
+#### Five Critical Rules
+1. **Never embed `PagingData` in `UiState`**: `PagingData` is a self-contained stream. Expose it as a separate `Flow<PagingData<T>>`.
+2. **No new `Pager` per recomposition**: Create the `Pager` once in the ViewModel.
+3. **Always use `cachedIn(viewModelScope)`**: Prevents duplicate network requests and crashes on configuration changes.
+4. **Stable keys**: Always provide a stable `key` in `items()` using the item's unique ID.
+5. **Dynamic queries**: Use `flatMapLatest` for parameter changes (e.g., search query), not naive `combine`.
+
+#### ViewModel Pattern
+```kotlin
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val repository: SearchRepository
+) : ViewModel() {
+
+    private val _query = MutableStateFlow("")
+    val query = _query.asStateFlow()
+
+    // Separate Flow for PagingData, distinct from regular UiState
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val searchResults: Flow<PagingData<SearchResult>> = _query
+        .debounce(300)
+        .distinctUntilChanged()
+        .flatMapLatest { q ->
+            Pager(
+                config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+                pagingSourceFactory = { repository.search(q) }
+            ).flow
+        }
+        .cachedIn(viewModelScope) // CRITICAL
+
+    fun setQuery(newQuery: String) {
+        _query.value = newQuery
+    }
+}
+```
+
+#### Compose UI Pattern
+```kotlin
+@Composable
+fun SearchScreen(viewModel: SearchViewModel = hiltViewModel()) {
+    val query by viewModel.query.collectAsStateWithLifecycle()
+    val searchResults = viewModel.searchResults.collectAsLazyPagingItems()
+
+    Column {
+        SearchBar(query = query, onQueryChange = viewModel::setQuery)
+
+        LazyColumn {
+            items(
+                count = searchResults.itemCount,
+                key = searchResults.itemKey { it.id }, // CRITICAL: Stable key
+                contentType = searchResults.itemContentType { "search_result" }
+            ) { index ->
+                val item = searchResults[index]
+                if (item != null) {
+                    SearchResultRow(item)
+                } else {
+                    SearchResultPlaceholder()
+                }
+            }
+
+            // LoadState handling
+            when (val appendState = searchResults.loadState.append) {
+                is LoadState.Loading -> item { LoadingSpinner() }
+                is LoadState.Error -> item { ErrorRow(appendState.error) }
+                is LoadState.NotLoading -> Unit
+            }
+        }
+    }
+}
+```
+
+**Anti-pattern:** Never call `searchResults.refresh()` directly in the composable body (it will loop infinitely). Call it only in event handlers (e.g., `PullToRefresh` or a retry button).
+
+#### Offline-first paging and RemoteMediator
+
+Use `RemoteMediator` when the list reads a Room 3 `PagingSource` and each page is fetched from a remote API and written into Room inside `load`.
+
+Wire `Pager(config = ..., remoteMediator = ..., pagingSourceFactory = { dao.pagingSource() }).flow`, then `cachedIn(viewModelScope)` using the same ViewModel rules as server-only paging. Keep entities and keys only in Room; the UI still collects one `Flow<PagingData<T>>`.
+
+**Required:**
+- Implement `initialize()`. Return `InitializeAction.LAUNCH_INITIAL_REFRESH` when the first open must hit the network before trusting cached rows. Return `InitializeAction.SKIP_INITIAL_REFRESH` when warm Room data is valid until scroll-driven loads or explicit invalidation. Match return value to product rules for cold start vs cache. Read [RemoteMediator](https://developer.android.com/topic/libraries/architecture/paging/v3-network-db) for `InitializeAction` and `load`.
+- Store remote page keys in Room (for example a `RemoteKeys` entity with `nextKey`, `prevKey`, and a query or feed id column). Read keys at the start of `load`, persist updated keys in the same transaction as entity inserts for that page.
+- After backend writes or sync completion that change list contents, invalidate the backing `PagingSource` or trigger mediator refresh so `Pager` reloads.
+
+Add `androidx.room3:room3-paging` and `@DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)` on the DAO or `@Database` per [Room 3 release notes](https://developer.android.com/jetpack/androidx/releases/room3). Conflict handling, backoff, and non-paged sync: [android-data-sync.md](/references/android-data-sync.md).
+
+**Forbidden:**
+- Returning `LAUNCH_INITIAL_REFRESH` when `SKIP_INITIAL_REFRESH` matches the warm-cache entry rule (forces avoidable network on every launch that already has Room pages).
+- Feeding the `Pager` from in-memory caches while the `PagingSource` reads Room (split sources of truth for the same list).
+
+### Flow Layouts
+
+Use `FlowRow` and `FlowColumn` for wrapping content (like chips or tags) when it exceeds the available space.
+
+```kotlin
+FlowRow(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+    maxItemsInEachRow = 3 // Optional: force wrapping after N items
+) {
+    tags.forEach { tag ->
+        FilterChip(
+            selected = tag.isSelected,
+            onClick = { onTagClick(tag) },
+            label = { Text(tag.name) }
+        )
+    }
+}
+```
 
 ### contentType for Recycling Optimization
 
@@ -2814,7 +3560,13 @@ sealed class FeedItem {
 LazyColumn {
     items(
         items = feedItems,
-        key = { it.id },
+        key = { item ->
+            when (item) {
+                is FeedItem.Header -> "header-${item.title}"
+                is FeedItem.Post -> item.id
+                is FeedItem.Ad -> item.id
+            }
+        },
         contentType = { item ->
             when (item) {
                 is FeedItem.Header -> "header"
@@ -2832,9 +3584,24 @@ LazyColumn {
 }
 ```
 
-Without `contentType`, all items share one pool. With it, items reuse layouts efficiently.
+Without `contentType`, all items share one pool. With it, items reuse layouts efficiently. If two headers could share the same title, give `Header` a stable unique id and use that in the `key` lambda instead of `title`.
 
 ### LazyListState - Programmatic Scrolling
+
+`LazyColumn` and `LazyRow` take `state: LazyListState = rememberLazyListState()` by default. **If you do not need a reference to the list's scroll state, omit `state` entirely** - the default remembers scroll for you inside the lazy list.
+
+**Hoist `LazyListState` explicitly** (create `val listState = rememberLazyListState()` and pass `state = listState`) only when something in **your** composable tree must call into that same instance - for example:
+
+- `animateScrollToItem` / `scrollToItem` (FAB, deep link, 'jump to')
+- Reading `firstVisibleItemIndex`, `firstVisibleItemScrollOffset`, or `layoutInfo` (progress indicators, scroll-aware headers)
+- `derivedStateOf { … }` tied to scroll (e.g. show/hide scroll-to-top)
+- `Modifier.nestedScroll` or other APIs that need the list's `NestedScrollConnection` / state
+
+If none of that applies, use a plain `LazyColumn { … }` with no `state` parameter.
+
+**Do not** copy `firstVisibleItemIndex`, `firstVisibleItemScrollOffset`, or similar into the ViewModel's `StateFlow` for a normal feed - those values change constantly and will spam state updates without business value.
+
+Hoist or persist scroll only when there is a **clear requirement**: e.g. **process death** / configuration recovery (persist minimal scroll hints via `SavedStateHandle` or `rememberSaveable` when you own the saver), or a spec that ties list position to something outside the composable. Otherwise treat scroll position as **UI-local**, like other transient layout state.
 
 ```kotlin
 val listState = rememberLazyListState()
@@ -2906,7 +3673,7 @@ LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 120.dp)) {
 }
 ```
 
-Prefer `GridCells.Adaptive` for responsive layouts.
+Use `GridCells.Adaptive` for responsive layouts.
 
 ### Staggered Grid
 
@@ -2950,7 +3717,7 @@ Button(onClick = { scope.launch { pagerState.animateScrollToPage(2) } }) {
 ### Nested Scrolling Pitfalls
 
 ```kotlin
-// Bad: scrollable modifier inside LazyColumn - two scroll containers fight
+// Bad: nested same-axis scrollables fight
 LazyColumn {
     item {
         Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -2959,7 +3726,7 @@ LazyColumn {
     }
 }
 
-// OK: nested LazyRow inside LazyColumn (different scroll axes)
+// OK: nested LazyRow in LazyColumn (different axes)
 LazyColumn {
     item {
         LazyRow {
@@ -2988,6 +3755,8 @@ LazyColumn(Modifier.nestedScroll(nestedScrollConnection)) {
 - Use `Column`/`Row` for small fixed lists (< 10 items) - `LazyColumn` is overkill
 - Never use indices as keys - list mutations corrupt item state
 - Use `derivedStateOf` for scroll-dependent UI
+- Omit `state` on `LazyColumn`/`LazyRow` when you do not need programmatic scroll APIs; default `rememberLazyListState()` inside the lazy list is enough
+- When you do hoist `LazyListState`, keep it in composition; avoid mirroring scroll indices into ViewModel state unless restoring scroll or meeting an explicit product requirement
 
 ## View Composition Rules
 
@@ -3045,7 +3814,7 @@ Pass `@Composable` lambdas, not pre-composed values. Optional slots use nullable
 Composables execute during composition at unpredictable times. Always use callbacks:
 
 ```kotlin
-// Bad: composables don't return values
+// Bad: composables must not return values
 @Composable
 fun UserInput(): String {
     var text by remember { mutableStateOf("") }
@@ -3053,7 +3822,7 @@ fun UserInput(): String {
     return text
 }
 
-// Good: callback pattern
+// Good
 @Composable
 fun UserInput(onValueChange: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
@@ -3089,11 +3858,11 @@ private fun ProductDetailContent(
     // Pure UI rendering - no ViewModel dependency
 }
 
-// Bad: passing ViewModel to children
+// Bad: ViewModel reaches a child
 @Composable
-fun ProductCard(viewModel: ProductDetailViewModel) { } // couples child to ViewModel
+fun ProductCard(viewModel: ProductDetailViewModel) { }
 
-// Good: pass only data
+// Good: child takes only data + callbacks
 @Composable
 fun ProductCard(product: Product, onClick: () -> Unit) { }
 ```
@@ -3113,238 +3882,144 @@ fun ProductCard(product: Product, onClick: () -> Unit) { }
 
 ## Deprecated Patterns & Migrations
 
-When encountering legacy code, apply these migrations. Each shows the old pattern and its modern replacement.
+All migration guides have been consolidated into [migration.md](/references/migration.md). It covers:
 
-### Accompanist -> Official APIs
+- Accompanist to official APIs
+- Compose API migrations (`collectAsStateWithLifecycle`, `mutableIntStateOf`, `animateItem`, `Modifier.Node`)
+- Material 2 to Material 3
+- Scaffold `innerPadding` (mandatory)
+- `@ExperimentalMaterial3Api` graduations
+- Edge-to-edge
+- Navigation string routes to Navigation3
+- XML to Compose
+- LiveData to StateFlow
+- RxJava to Coroutines
 
-All Accompanist libraries listed below are deprecated. Use the official replacements.
+## Forms & Input
 
-#### System UI Controller -> enableEdgeToEdge()
+### Keyboard Configuration
+
+Set semantic `KeyboardOptions` so the system shows the correct keyboard layout:
 
 ```kotlin
-// Old (remove accompanist-systemuicontroller dependency)
-val systemUiController = rememberSystemUiController()
-systemUiController.setSystemBarsColor(color = Color.Transparent)
-
-// New: call in Activity.onCreate() before setContent
-enableEdgeToEdge()
+TextField(
+    value = email,
+    onValueChange = { email = it },
+    keyboardOptions = KeyboardOptions(
+        keyboardType = KeyboardType.Email,
+        imeAction = ImeAction.Next
+    ),
+    keyboardActions = KeyboardActions(
+        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+    )
+)
 ```
 
-#### Pager -> Foundation HorizontalPager/VerticalPager
+Common keyboard types:
+
+| Input type | `keyboardType`          |
+|------------|-------------------------|
+| Email      | `KeyboardType.Email`    |
+| Phone      | `KeyboardType.Phone`    |
+| Integer    | `KeyboardType.Number`   |
+| Decimal    | `KeyboardType.Decimal`  |
+| Password   | `KeyboardType.Password` |
+| URL        | `KeyboardType.Uri`      |
+
+### Autofill
+
+Enable autofill by setting `contentType` in semantics:
 
 ```kotlin
-// Old (remove accompanist-pager dependency)
-val pagerState = rememberPagerState()
-HorizontalPager(count = items.size, state = pagerState) { page -> }
-
-// New: Foundation pager (page count is a lambda)
-val pagerState = rememberPagerState(pageCount = { items.size })
-HorizontalPager(state = pagerState) { page -> }
-```
-
-#### SwipeRefresh -> PullToRefreshBox
-
-```kotlin
-// Old (remove accompanist-swiperefresh dependency)
-SwipeRefresh(
-    state = rememberSwipeRefreshState(isRefreshing),
-    onRefresh = { load() }
-) { content() }
-
-// New: Material3 PullToRefreshBox
-PullToRefreshBox(
-    isRefreshing = isRefreshing,
-    onRefresh = { load() }
-) { content() }
-```
-
-#### FlowLayout -> Foundation FlowRow/FlowColumn
-
-```kotlin
-// Old (remove accompanist-flowlayout dependency)
-FlowRow(mainAxisSize = SizeMode.Expand) {
-    items.forEach { Chip(it) }
-}
-
-// New: Foundation FlowRow
-FlowRow(modifier = Modifier.fillMaxWidth()) {
-    items.forEach { Chip(it) }
-}
-```
-
-#### Permissions -> activity-compose
-
-```kotlin
-// Old (remove accompanist-permissions dependency)
-// import com.google.accompanist.permissions.rememberPermissionState
-
-// New: same API, different dependency (androidx.activity:activity-compose)
-val permissionState = rememberPermissionState(Manifest.permission.CAMERA) { granted ->
-    // handle result
-}
-```
-
-### Compose API Migrations
-
-#### collectAsState -> collectAsStateWithLifecycle
-
-```kotlin
-// Old: collects even when app is backgrounded (wastes resources)
-val state by viewModel.uiState.collectAsState()
-
-// New: stops collecting when lifecycle is below STARTED
-val state by viewModel.uiState.collectAsStateWithLifecycle()
-```
-
-Requires `androidx.lifecycle:lifecycle-runtime-compose`.
-
-#### mutableStateOf(0) -> mutableIntStateOf(0)
-
-Primitive specializations avoid boxing overhead:
-
-```kotlin
-// Old
-var count by remember { mutableStateOf(0) }
-var progress by remember { mutableStateOf(0.5f) }
-var timestamp by remember { mutableStateOf(0L) }
-
-// New
-var count by remember { mutableIntStateOf(0) }
-var progress by remember { mutableFloatStateOf(0.5f) }
-var timestamp by remember { mutableLongStateOf(0L) }
-```
-
-Available: `mutableIntStateOf`, `mutableLongStateOf`, `mutableFloatStateOf`, `mutableDoubleStateOf`.
-
-#### animateItemPlacement -> animateItem
-
-```kotlin
-// Old
-LazyColumn {
-    items(items, key = { it.id }) { item ->
-        ItemRow(modifier = Modifier.animateItemPlacement())
+TextField(
+    value = email,
+    onValueChange = { email = it },
+    modifier = Modifier.semantics {
+        contentType = ContentType.EmailAddress
     }
-}
+)
 
-// New: handles insert, remove, and reorder animations
-LazyColumn {
-    items(items, key = { it.id }) { item ->
-        ItemRow(modifier = Modifier.animateItem())
+TextField(
+    value = password,
+    onValueChange = { password = it },
+    visualTransformation = PasswordVisualTransformation(),
+    modifier = Modifier.semantics {
+        contentType = ContentType.Password
     }
-}
+)
 ```
 
-#### Modifier.composed -> Modifier.Node
+### Password Visibility Toggle
 
 ```kotlin
-// Old (deprecated - creates composition scope overhead)
-fun Modifier.myModifier(value: Int) = composed {
-    val state = remember { mutableStateOf(value) }
-    this.background(if (state.value > 0) Color.Blue else Color.Gray)
-}
-
-// New: Modifier.Node API (no composition scope)
-// See Modifiers > Custom Modifiers with Modifier.Node section above
-```
-
-#### String Routes -> Type-Safe Routes -> Navigation3
-
-```kotlin
-// Old: string-based navigation (pre Navigation 2.8)
-navController.navigate("details/$itemId")
-
-// Migration step: type-safe routes (Navigation 2.8+)
-@Serializable data class Details(val itemId: Int)
-navController.navigate(Details(itemId = 42))
-
-// Current: Navigation3 (see references/android-navigation.md)
-@Serializable data class ProductDetail(val productId: String) : NavKey
-backStack.add(ProductDetail(productId = "42"))
-```
-
-### Material & Scaffold Migrations
-
-#### Scaffold innerPadding (Mandatory)
-
-Since Compose 1.6, `Scaffold` requires using `innerPadding`. Ignoring it causes content overlap with system bars.
-
-```kotlin
-// Bad: ignoring innerPadding (won't compile in modern Compose)
-Scaffold(topBar = { TopAppBar { } }) {
-    LazyColumn { }
-}
-
-// Required: apply innerPadding
-Scaffold(topBar = { TopAppBar { } }) { innerPadding ->
-    LazyColumn(modifier = Modifier.padding(innerPadding)) { }
-}
-```
-
-#### @ExperimentalMaterial3Api Graduations
-
-These APIs are stable - remove `@OptIn` annotations:
-
-- `DatePicker` / `DateRangePicker`
-- `TimePicker`
-- `ExposedDropdownMenuBox`
-- `SearchBar` / `DockedSearchBar`
-- `ModalBottomSheet`
-- `TopAppBar` / `MediumTopAppBar` / `LargeTopAppBar`
-
-```kotlin
-// Old
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyScreen() {
-    DatePicker(state = rememberDatePickerState())
-}
+fun PasswordField(
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-// New: no opt-in needed
-@Composable
-fun MyScreen() {
-    DatePicker(state = rememberDatePickerState())
+    TextField(
+        value = password,
+        onValueChange = onPasswordChange,
+        visualTransformation = if (passwordVisible) {
+            VisualTransformation.None
+        } else {
+            PasswordVisualTransformation()
+        },
+        trailingIcon = {
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                )
+            }
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        modifier = modifier
+    )
 }
 ```
 
-#### Material 2 -> Material 3
+### Validation Timing
 
-Key changes when migrating from `androidx.compose.material` to `androidx.compose.material3`:
-
-| Material 2 | Material 3 |
-|-----------|-----------|
-| `MaterialTheme.colors` | `MaterialTheme.colorScheme` |
-| `Surface(color = ...)` | `Surface(color = ...)` (same API) |
-| `TextField` | `TextField` (same API, new defaults) |
-| `BottomNavigation` | `NavigationBar` |
-| `BottomNavigationItem` | `NavigationBarItem` |
-| `TopAppBar` | `TopAppBar` (different parameters) |
-| `Scaffold` (no padding requirement) | `Scaffold` (must use `innerPadding`) |
-
-Never mix Material 2 and Material 3 imports in the same module.
-
-### Edge-to-Edge (API 35+ Default)
-
-Edge-to-edge is the default on Android 15+ and mandatory on API 36. See [Edge-to-Edge](#edge-to-edge-mandatory-on-api-36) section above for full setup.
+Validate on focus-out, not on every keystroke. Per-keystroke validation creates a noisy experience
+where errors flash while the user is still typing.
 
 ```kotlin
-// Old: manual system bar padding
-Surface(modifier = Modifier.systemBarsPadding()) { }
+@Composable
+fun ValidatedEmailField(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var hasBlurred by rememberSaveable { mutableStateOf(false) }
+    val isError = hasBlurred && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
 
-// New: enableEdgeToEdge() + Scaffold handles it
-enableEdgeToEdge()  // in Activity.onCreate()
-Scaffold { innerPadding ->
-    Content(modifier = Modifier.padding(innerPadding))
+    TextField(
+        value = email,
+        onValueChange = onEmailChange,
+        isError = isError,
+        supportingText = if (isError) {{ Text("Invalid email address") }} else null,
+        modifier = modifier.onFocusChanged { state ->
+            if (!state.isFocused && email.isNotEmpty()) {
+                hasBlurred = true
+            }
+        }
+    )
 }
 ```
 
-## Related Guides
+## Cross-references
 
-- [Architecture Guide](architecture.md) - ViewModel patterns and state management
-- [Modularization Guide](modularization.md) - Feature modules and dependency rules
-- [Navigation Guide](android-navigation.md) - Navigation3 architecture and adaptive navigation
-- [Android Accessibility](android-accessibility.md) - Semantic properties and TalkBack support
-- [Android Theming](android-theming.md) - Material 3 theming, dynamic colors, typography
-- [Android i18n](android-i18n.md) - Localization, RTL support, and string resources
-- [Kotlin Patterns](kotlin-patterns.md) - Immutability and data class usage
-- [Testing Guide](testing.md) - UI testing with Compose
+- [architecture.md](/references/architecture.md) — ViewModel patterns and state management
+- [modularization.md](/references/modularization.md) — Feature modules and dependency rules
+- [android-navigation.md](/references/android-navigation.md) — Navigation 3 and adaptive navigation
+- [android-accessibility.md](/references/android-accessibility.md) — Semantics and TalkBack
+- [android-theming.md](/references/android-theming.md) — Material 3, dynamic color, typography
+- [android-i18n.md](/references/android-i18n.md) — Localization, RTL, string resources
+- [kotlin-patterns.md](/references/kotlin-patterns.md) — Immutability and data classes
+- [testing.md](/references/testing.md) — Compose UI tests
+- [migration.md](/references/migration.md) — Accompanist, Compose, Material, RxJava, Navigation migrations
 

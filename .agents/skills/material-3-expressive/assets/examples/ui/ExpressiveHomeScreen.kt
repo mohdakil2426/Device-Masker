@@ -29,64 +29,62 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ExpressiveHomeScreen(onPrimaryAction: () -> Unit = {}, categoryIcon: ImageVector? = null) {
+fun ExpressiveHomeScreen(
+    onPrimaryAction: () -> Unit = {},
+    categoryIcon: ImageVector? = null
+) {
     Column(
-        modifier =
-            Modifier.fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                // Replace with token-derived values from references/m3-*-specs-tokens.md where
-                // applicable.
-                .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            // Replace with token-derived values from references/m3-*-specs-tokens.md where applicable.
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
             text = "Discover new plans",
             style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.ExtraBold
         )
 
         ElevatedCard(
             shape = RoundedCornerShape(28.dp),
-            colors =
-                CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
-                ),
-            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+            ),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                // Replace with token-derived values from references/m3-*-specs-tokens.md where
-                // applicable.
+                // Replace with token-derived values from references/m3-*-specs-tokens.md where applicable.
                 modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = "Weekend escape",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "Curated stays with bold views and quiet mornings.",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     AssistChip(
                         onClick = {},
                         label = { Text("2 nights") },
-                        colors =
-                            AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            ),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
                     )
                     AssistChip(
                         onClick = {},
                         label = { Text("Outdoor") },
-                        colors =
-                            AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            ),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        )
                     )
                 }
             }
@@ -94,37 +92,37 @@ fun ExpressiveHomeScreen(onPrimaryAction: () -> Unit = {}, categoryIcon: ImageVe
 
         Button(
             onClick = onPrimaryAction,
-            modifier =
-                Modifier.fillMaxWidth()
-                    // Replace with token-derived values from references/m3-*-specs-tokens.md where
-                    // applicable.
-                    .height(56.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                // Replace with token-derived values from references/m3-*-specs-tokens.md where applicable.
+                .height(56.dp),
             shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
         ) {
             Text(
                 text = "Start planning",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Bold
             )
         }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (categoryIcon != null) {
                 Icon(
                     imageVector = categoryIcon,
                     contentDescription = null,
-                    // Replace with token-derived values from references/m3-*-specs-tokens.md where
-                    // applicable.
-                    modifier = Modifier.size(28.dp),
+                    // Replace with token-derived values from references/m3-*-specs-tokens.md where applicable.
+                    modifier = Modifier.size(28.dp)
                 )
             }
             Text(
                 text = "Pick a theme that matches your mood",
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge
             )
         }
 

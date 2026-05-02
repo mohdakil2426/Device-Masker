@@ -1,12 +1,8 @@
 # Android Notifications
 
-Modern notification patterns following Material Design 3 guidelines with proper channel management, actions, and foreground services.
+Notification patterns aligned with Material Design 3: channel management, actions, and foreground services.
 
-All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
-
-**Related guides:** 
-- See `references/android-permissions.md` for POST_NOTIFICATIONS permission handling
-- See `references/android-data-sync.md` for WorkManager background sync patterns
+All Kotlin code must align with `references/kotlin-patterns.md`. Permission handling lives in `references/android-permissions.md`. WorkManager-backed background sync lives in `references/android-data-sync.md`.
 
 ## Table of Contents
 
@@ -17,10 +13,12 @@ All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
 - [Progress Notifications](#progress-notifications)
 - [Progress-Centric Notifications (API 36+)](#progress-centric-notifications-api-36)
 - [Foreground Service Notifications](#foreground-service-notifications)
+- [Media, PiP, Sharing, and Background Work](#media-pip-sharing-and-background-work)
+- [Navigation State (Navigation3)](#navigation-state-navigation3)
 - [Notification Manager Interface](#notification-manager-interface)
 - [Architecture Integration](#architecture-integration)
 - [Testing](#testing)
-- [Best Practices](#best-practices)
+- [Notification routing](#notification-routing)
 
 ## Notification Channels (API 26+)
 
@@ -759,9 +757,57 @@ Declare in AndroidManifest.xml:
 </application>
 ```
 
+## Media, PiP, Sharing, and Background Work
+
+### Audio focus
+
+If your app plays audio, request audio focus with `AudioManager` / `AudioFocusRequest`. React when other apps take focus:
+
+| Change              | Typical app action                                   |
+|---------------------|------------------------------------------------------|
+| Permanent loss      | Stop playback and release resources                  |
+| Transient loss      | Pause until focus returns                            |
+| Transient, can duck | Lower volume (duck) instead of full pause            |
+| Focus gained        | Resume or restore volume if the user had not stopped |
+
+Do not start playback without focus. For long-running playback in the background, use a **foreground service** with a **MediaStyle** notification and a **`MediaSession`** so lock screen and Bluetooth controls stay in sync. Exact service types and permissions depend on API level and use case; follow [playback](https://developer.android.com/media/legacy/audio/mediaplayer) and [foreground service](https://developer.android.com/develop/background-work/services/foreground-services) documentation.
+
+### Picture-in-picture (video)
+
+For video activities, support **PiP** when users leave during playback: declare `android:supportsPictureInPicture="true"` on the activity, call `enterPictureInPictureMode()` when appropriate, and keep aspect ratio within supported bounds. Pair with ongoing media notifications when playback continues in the background.
+
+### System sharesheet
+
+Use the system **chooser** for sharing content instead of custom share UIs for the same job:
+
+```kotlin
+val send = Intent(Intent.ACTION_SEND).apply {
+    type = "text/plain"
+    putExtra(Intent.EXTRA_TEXT, shareText)
+}
+context.startActivity(Intent.createChooser(send, null))
+```
+
+### Background work vs long-running services
+
+- **Deferrable work** (sync, uploads, cleanup): **WorkManager** (see `references/android-data-sync.md`).
+- **User-visible ongoing work**: foreground service with notification.
+- **Push-triggered updates**: **FCM** or high-priority pushes where appropriate, not a permanent background socket unless the product truly requires it.
+
+Avoid holding wake locks or silent background services for tasks WorkManager can schedule.
+
+## Navigation State (Navigation3)
+
+Notification actions and deep links often need to align with **where** the user lands in the app.
+
+- Use **Navigation3** `rememberNavBackStack` / `NavDisplay` patterns from `references/android-navigation.md` so the **back stack** matches user expectations when opening a screen from a notification.
+- Persist **process death** state with **SavedStateHandle** in ViewModels and `references/compose-patterns.md` (not a separate "NavController" graph for Navigation3-only apps).
+
+Treat notification taps like cold entry: resolve the target destination, then push or replace stack entries so **Back** returns to a sensible place.
+
 ## Notification Manager Interface
 
-Follow our architecture patterns with testable interfaces:
+Wrap notification dispatch behind an interface in `core/notifications`. Inject the interface, never `NotificationManagerCompat`, into ViewModels and use cases. This keeps the dispatcher swappable for fakes in unit tests.
 
 ```kotlin
 // core/notifications/NotificationManager.kt
@@ -1120,9 +1166,9 @@ fun `startSync shows progress notification`() = runTest {
 }
 ```
 
-## Best Practices
+## Notification routing
 
-### ✅ Always Do
+### Required
 
 1. **Create notification channels** at app startup (no-op on API < 26)
 2. **Check POST_NOTIFICATIONS permission** on API 33+ before showing notifications
@@ -1135,10 +1181,10 @@ fun `startSync shows progress notification`() = runTest {
 9. **Use interfaces** for testability in repositories/ViewModels
 10. **Handle notification permission** gracefully (don't crash if denied)
 
-### ❌ Never Do
+### Forbidden
 
 1. **Never show notifications without permission check** on API 33+
-2. **Never use FLAG_MUTABLE** for PendingIntents unless absolutely necessary (security risk)
+2. **Never use FLAG_MUTABLE** for PendingIntents except APIs that require mutable extras (security-sensitive default is immutable)
 3. **Never hardcode notification IDs** (use unique IDs or timestamp-based IDs)
 4. **Never forget to call startForeground()** within 5 seconds of starting a foreground service
 5. **Never use setOngoing(true)** for dismissible notifications

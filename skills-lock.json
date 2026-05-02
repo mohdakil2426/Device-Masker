@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "edge-to-edge": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "system/edge-to-edge/SKILL.md",
+      "computedHash": "cb59d95bb03e21c894dd7f1aa8e995fbc48c57b283d68845f4be13e210ca9855"
+    },
+    "navigation-3": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "navigation/navigation-3/SKILL.md",
+      "computedHash": "02ba8a42e95432084f37b37668262fe0a0a285e97de2b4e6b3d8004892c602bb"
+    },
+    "r8-analyzer": {
+      "source": "android/skills",
+      "sourceType": "github",
+      "skillPath": "performance/r8-analyzer/SKILL.md",
+      "computedHash": "fa6ec477f4bd4aece1d615a61ba3d4cb824722d3fdcb42c23f7930cf6ed8e67d"
+    }
+  }
+}

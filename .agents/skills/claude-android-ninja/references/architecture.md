@@ -1,19 +1,17 @@
-# Architecture Guide
+# Architecture
 
-Based on Google's official Android architecture guidance with modern Jetpack Compose, Navigation3, and our modular best practices.
-All Kotlin code in this architecture must align with `references/kotlin-patterns.md`.
-
-**Data Synchronization:** For offline-first patterns, sync strategies, and conflict resolution, see `references/android-data-sync.md`.
+Layer rules for Android apps using Jetpack Compose, Navigation 3, Hilt, and a multi-module setup. All Kotlin code must align with `references/kotlin-patterns.md`. Offline-first sync, conflict resolution, and retry policy: `references/android-data-sync.md`.
 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
 2. [Architecture Principles](#architecture-principles)
-3. [Data Layer](#data-layer)
-4. [Domain Layer](#domain-layer)
-5. [Presentation Layer](#presentation-layer)
-6. [UI Layer](#ui-layer)
-7. [Navigation](#navigation)
-8. [Complete Architecture Flow](#complete-architecture-flow)
+3. [Cross-cutting anti-patterns (quick reference)](#cross-cutting-anti-patterns-quick-reference)
+4. [Data Layer](#data-layer)
+5. [Domain Layer](#domain-layer)
+6. [Presentation Layer](#presentation-layer)
+7. [UI Layer](#ui-layer)
+8. [Navigation](#navigation)
+9. [Complete Architecture Flow](#complete-architecture-flow)
 
 ## Architecture Overview
 
@@ -60,7 +58,7 @@ Four-layer architecture with strict module separation and unidirectional data fl
 │   │            │                     │                        │         │
 │   │  ┌─────────▼─────────┐  ┌────────▼──────────────┐         │         │
 │   │  │  Local DataSource │  │  Remote DataSource    │         │         │
-│   │  │   (Room + DAO)    │  │     (Retrofit)        │         │         │
+│   │  │   (Room 3 + DAO)  │  │     (Retrofit)        │         │         │
 │   │  └─────────┬─────────┘  └───────────────────────┘         │         │
 │   │            │                                              │         │
 │   │  ┌─────────▼──────────────────────────────────────┐       │         │
@@ -99,6 +97,25 @@ Four-layer architecture with strict module separation and unidirectional data fl
 7. **Dependency direction**: Features depend on Core modules, not on other features
 8. **Navigation coordination**: App module coordinates navigation between features
 9. **Pattern fit**: Choose patterns that match Android constraints and the module boundaries (see `references/design-patterns.md`)
+
+## Cross-cutting anti-patterns (quick reference)
+
+Domain-specific pitfalls (navigation, Room 3, Paging, etc.) live in their topic references. **Scope:** layering and state shape. Deeper guidance on recomposition and stability: `references/android-performance.md` and `references/compose-patterns.md`.
+
+| Anti-pattern                                                                       | Failure mode                                                             | Use instead                                                                                                                                                                                    |
+|------------------------------------------------------------------------------------|--------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Business logic in composables                                                      | Competing sources of truth, hard to test, work reruns during composition | ViewModel / domain services / repositories; composables map state → UI                                                                                                                         |
+| Oversized "god" ViewModel                                                          | Hard to own and change safely                                            | One ViewModel per screen or one coherent flow                                                                                                                                                  |
+| Unstable `UiState` (mutable collections, non-stable lambdas in state)              | Weakens Compose skipping, extra recompositions                           | Immutable `data class` / persistent collections; stable types                                                                                                                                  |
+| Duplicated derived fields (`total`, `formattedTotal`, `hasTotal` all stored)       | Fields drift out of sync                                                 | One canonical value; derive the rest (computed properties or at the UI edge)                                                                                                                   |
+| Parent reads too much `StateFlow` / state                                          | Recomposition fans out to the whole subtree                              | Pass only the slices each child needs                                                                                                                                                          |
+| One-shot UI as sticky state (`showSnackbarOnce = true`)                            | Can replay after config change or rotation                               | One-shot commands: `Channel` + `receiveAsFlow()` (or a carefully configured `SharedFlow`) collected in the Route; see `references/compose-patterns.md` and `references/coroutines-patterns.md` |
+| `StateFlow` updates when nothing changed                                           | Wasted recompositions                                                    | Compare before `update` / avoid redundant `copy`                                                                                                                                               |
+| ViewModel performs platform work (navigation, share sheet, analytics side effects) | Couples logic to Android, harder to test                                 | Emit one-shot events or callbacks; handle in Route / Activity edge                                                                                                                             |
+| Display strings fully formatted in ViewModel                                       | Locale/layout rigidity, duplicated presentation                          | Keep canonical values; format with resources at the Compose boundary (`references/android-i18n.md`)                                                                                            |
+| Lazy list keys missing or index-based                                              | Wrong item state after reorder/delete                                    | Stable domain id as key (`references/compose-patterns.md`)                                                                                                                                     |
+| Many trivial composables (thin wrappers around one `Text` / `Spacer`)              | Noise, weak boundaries                                                   | Extract only meaningful, reused UI blocks                                                                                                                                                      |
+| Fully qualified package names inline                                               | Hard to read                                                             | Top-level imports; `import … as …` when names clash (`references/kotlin-patterns.md`)                                                                                                          |
 
 ## Module Structure
 
@@ -193,9 +210,237 @@ internal class AuthRepositoryImpl @Inject constructor(
 
 | Type        | Module         | Implementation  | Purpose                             |
 |-------------|----------------|-----------------|-------------------------------------|
-| Local       | core/database  | Room DAO        | Persistent storage, source of truth |
+| Local       | core/database  | Room 3 DAO      | Persistent storage, source of truth |
 | Remote      | core/network   | Retrofit API    | Network data fetching               |
 | Preferences | core/datastore | Proto DataStore | User settings, simple key-value     |
+
+### DataStore (Preferences & Typed)
+
+**Storage routing:**
+- **Room 3:** Relational data, SQL queries (`WHERE` / `JOIN`), indexes, unbounded or **large** collections (order-of **~100+ entries** signals Room over DataStore), partial updates, referential integrity.
+- **DataStore:** Small preference blobs: simple key-value pairs, typed settings objects, feature flags. Does **not** support partial updates, ad hoc queries, or relational integrity-use Room 3 when you need those.
+- **Files:** Large media, blobs.
+- **MultiProcessDataStoreFactory:** Only if accessing data across multiple processes-and then **every** reader/writer for that file must use the multi-process path (see Critical Rules).
+
+**Critical Rules:**
+1. **Never** create more than one instance of `DataStore` for a given file in the same process (it will throw `IllegalStateException`).
+2. The generic type `T` in `DataStore<T>` **must be immutable**. Mutating it breaks consistency.
+3. **Never mix access modes for the same file:** If any code path uses `MultiProcessDataStoreFactory`, **all** access to that file must use it. Do not combine it with single-process `PreferenceDataStoreFactory` or the `preferencesDataStore` delegate for the same backing store.
+
+#### Preferences DataStore
+Use for simple key-value pairs without type safety.
+
+```kotlin
+// Define keys
+object PrefsKeys {
+    val THEME_MODE = intPreferencesKey("theme_mode")
+    val HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
+}
+
+// Read with error handling
+fun getThemeMode(dataStore: DataStore<Preferences>): Flow<Int> = dataStore.data
+    .catch { exception ->
+        if (exception is IOException) emit(emptyPreferences()) else throw exception
+    }
+    .map { prefs -> prefs[PrefsKeys.THEME_MODE] ?: ThemeMode.SYSTEM }
+
+// Write
+suspend fun setThemeMode(dataStore: DataStore<Preferences>, mode: Int) {
+    dataStore.edit { prefs ->
+        prefs[PrefsKeys.THEME_MODE] = mode
+    }
+}
+```
+
+#### Typed DataStore (JSON / Proto)
+Use for custom classes with type safety. Requires a `Serializer`.
+
+```kotlin
+@Serializable
+data class UserSettings(
+    val themeMode: Int = 0,
+    val hasSeenOnboarding: Boolean = false
+)
+
+object UserSettingsSerializer : Serializer<UserSettings> {
+    override val defaultValue: UserSettings = UserSettings()
+
+    override suspend fun readFrom(input: InputStream): UserSettings = try {
+        Json.decodeFromString(input.readBytes().decodeToString())
+    } catch (e: SerializationException) {
+        throw CorruptionException("Unable to read UserSettings", e)
+    }
+
+    override suspend fun writeTo(t: UserSettings, output: OutputStream) {
+        output.write(Json.encodeToString(t).encodeToByteArray())
+    }
+}
+```
+
+#### SharedPreferences Migration
+
+**Required:** pass `SharedPreferencesMigration` when replacing legacy `SharedPreferences` keys backed by the same file:
+
+```kotlin
+val dataStore = PreferenceDataStoreFactory.create(
+    migrations = listOf(SharedPreferencesMigration(context, "legacy_prefs")),
+    produceFile = { context.preferencesDataStoreFile("settings") }
+)
+```
+
+#### Hilt Setup
+
+**Scope:** preference and typed `DataStore` wiring only. For **Hilt module rules** (`@Binds` vs `@Provides`, scopes, anti-patterns, Navigation3 + `hiltViewModel`), see [Dependency Injection Setup](#dependency-injection-setup) under **Domain Layer**.
+
+The `preferencesDataStore(name = ...)` property delegate on `Context` is acceptable only for trivial wiring. For injectable `DataStore<T>` graphs, expose `@Singleton` `@Provides` factories like `DataStoreModule` so tests swap fakes without static `Context`.
+
+Always provide `DataStore` as a `@Singleton` to guarantee a single instance per file.
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object DataStoreModule {
+    
+    @Provides
+    @Singleton
+    fun provideUserSettingsDataStore(
+        @ApplicationContext context: Context
+    ): DataStore<UserSettings> = DataStoreFactory.create(
+        serializer = UserSettingsSerializer,
+        produceFile = { context.dataStoreFile("user_settings.json") },
+        corruptionHandler = ReplaceFileCorruptionHandler { UserSettings() }
+    )
+}
+```
+
+### Network Layer Setup (core/network)
+
+#### Retrofit Service Interfaces
+
+All endpoint functions must be `suspend`. Use `Response<T>` only when you need access to status
+codes or error bodies; use the body type directly when 2xx is the only expected success case.
+
+```kotlin
+interface AuthApiService {
+
+    @POST("auth/login")
+    suspend fun login(@Body request: LoginRequest): LoginResponse
+
+    @POST("auth/register")
+    suspend fun register(@Body request: RegisterRequest): Response<Unit>
+
+    @GET("users/{id}")
+    suspend fun getUser(@Path("id") userId: String): NetworkUser
+
+    @GET("users/search")
+    suspend fun searchUsers(
+        @Query("q") query: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): PaginatedResponse<NetworkUser>
+
+    @Multipart
+    @PUT("users/{id}/avatar")
+    suspend fun uploadAvatar(
+        @Path("id") userId: String,
+        @Part avatar: MultipartBody.Part
+    ): NetworkUser
+}
+```
+
+#### Network DTOs and nullable JSON fields
+
+Wire formats do not match your ideal domain model: fields can be **missing**, **null**, or **renamed** across API versions. Types used only for JSON (network DTOs) should reflect that.
+
+- Use **nullable** properties for fields the server can omit or null out; map to non-null domain types in the repository or mapper after defaults are defined.
+- Keep `Json { ignoreUnknownKeys = true }` (see `NetworkModule`) so new server fields do not crash deserialization.
+- Avoid fake non-nulls such as `String = ""` for "missing" JSON keys unless you have a strict, documented contract. Empty string is ambiguous versus "present but empty".
+
+```kotlin
+@Serializable
+data class NetworkUser(
+    val id: String? = null,
+    val displayName: String? = null,
+    val avatarUrl: String? = null,
+)
+```
+
+Use `@SerialName("json_name")` when wire names differ from Kotlin properties. Gson users apply the same idea with `@SerializedName`.
+
+#### Hilt NetworkModule
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideJson(): Json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+        isLenient = true
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor
+    ): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                level = if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+            }
+        )
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit =
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+
+    @Provides
+    @Singleton
+    fun provideAuthApiService(retrofit: Retrofit): AuthApiService =
+        retrofit.create(AuthApiService::class.java)
+}
+```
+
+#### Authentication Interceptor
+
+Inject auth tokens via an `Interceptor` instead of adding `@Header` parameters to every endpoint:
+
+```kotlin
+class AuthInterceptor @Inject constructor(
+    private val tokenProvider: TokenProvider
+) : Interceptor {
+
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val token = tokenProvider.getToken()
+            ?: return chain.proceed(chain.request())
+
+        val request = chain.request().newBuilder()
+            .header("Authorization", "Bearer $token")
+            .build()
+        return chain.proceed(request)
+    }
+}
+```
+
+Network exceptions (`HttpException`, `IOException`) are caught and mapped to domain error types
+in the repository layer - see [Repository Pattern](#repository-pattern) above and
+[Domain-Specific Error Types](#domain-specific-error-types) below.
 
 ### Model Mapping Strategy
 
@@ -315,9 +560,47 @@ dependencies {
 }
 ```
 
-**Note:** `androidx.compose.runtime` is a Kotlin-only library despite the `androidx` namespace. It contains `@Immutable` and `@Stable` annotations used for Compose compiler optimizations. See [compose-patterns.md](compose-patterns.md#stability-annotations-immutable-vs-stable) for details.
+`androidx.compose.runtime` is Kotlin-only despite its namespace. Use it from `core/domain` to access `@Immutable` and `@Stable` without pulling in Android dependencies. See [compose-patterns.md](/references/compose-patterns.md#stability-annotations-immutable-vs-stable).
 
 ### Dependency Injection Setup
+
+Hilt provides **compile-time DI** across features and core modules: `@Module` / `@InstallIn`, with `@HiltAndroidApp` and `@AndroidEntryPoint` entry points in the app module.
+
+**Constructor injection:** Use `@Inject constructor(...)` on types Hilt builds. Avoid `@Inject lateinit var` on app or domain types (their dependencies are hidden and tests get harder). Platform types may still use field injection where the API requires it.
+
+**`@Binds` vs `@Provides`:**
+- **`@Binds`** - `abstract` method in a module; map an interface to an `@Inject`-constructable implementation (Hilt generates the binding).
+- **`@Provides`** - you construct the instance (`OkHttpClient.Builder()`, `DataStoreFactory.create`, third-party SDKs). See **Hilt NetworkModule** and **DataStore** `#### Hilt Setup` in this Data Layer for real `@Provides` examples.
+
+**Scopes (match real lifetime):**
+
+| Annotation                | Lifetime                                       | Typical use                                          |
+|---------------------------|------------------------------------------------|------------------------------------------------------|
+| `@Singleton`              | Application                                    | Retrofit, `OkHttp`, Room 3, `DataStore`, dispatchers |
+| `@ActivityRetainedScoped` | Survives config change until activity finished | Session-like state that must survive rotation        |
+| `@ViewModelScoped`        | Same as hosting `ViewModel`                    | Feature helpers (validators, calculators)            |
+| `@ActivityScoped`         | Activity instance                              | Rare in Compose-first apps                           |
+| `@FragmentScoped`         | Fragment instance                              | Rare when using Compose                              |
+
+Over-scoping wastes memory; under-scoping duplicates heavy types or breaks singleton expectations.
+
+**Modules:** Colocate modules with the **feature or layer** they wire (`AuthModule` in a feature, `DatabaseModule` in `core/data`). The app module owns the application graph entry points.
+
+**Anti-patterns:**
+
+| Problem                                                  | Failure mode                   | Use instead                                                               |
+|----------------------------------------------------------|--------------------------------|---------------------------------------------------------------------------|
+| `Activity` / `Fragment` in a `ViewModel`                 | Leaks, lifecycle mismatch      | Ids via `SavedStateHandle`, navigation args, repositories                 |
+| Raw `Context` in a `ViewModel`                           | Same                           | `@ApplicationContext` in data/repository wiring, not in `ViewModel`       |
+| `ViewModel` with `@Inject` but no `@HiltViewModel`       | Hilt does not own the instance | `@HiltViewModel` + `@Inject constructor` + `hiltViewModel()` in Compose   |
+| Manual `ViewModel(...)` factories everywhere             | Bypasses graph                 | `hiltViewModel()` or Hilt-assisted factories                              |
+| Feature-only deps parked in `SingletonComponent` preemptively | Wrong lifetime, memory         | `ViewModelComponent` / `@ViewModelScoped` when only screens need the type |
+
+**Navigation arguments and assisted injection:** `SavedStateHandle`, `@AssistedInject`, and `hiltViewModel` factory lambdas with Navigation3 - see `references/android-navigation.md` as the source of truth.
+
+Official docs: [Hilt Android](https://developer.android.com/training/dependency-injection/hilt-android), [Hilt with Compose](https://developer.android.com/develop/ui/compose/libraries#hilt).
+
+**Example - repository bindings in `core/data`:**
 
 ```kotlin
 // core/data/di/DataModule.kt
@@ -341,15 +624,16 @@ abstract class DataModule {
 
 ### Use Case Pattern
 
-Use cases are **optional** but recommended when:
-1. Combining data from multiple repositories
-2. Complex business logic that shouldn't be in ViewModels
-3. Reusable operations across multiple features
+**Use when:**
 
-**Simple pass-through use cases add unnecessary boilerplate.** ViewModels can call repositories directly for simple operations.
+1. The operation combines data from multiple repositories.
+2. The operation centralizes domain logic reused across features or ViewModels.
+3. The logic is too heavy for the `ViewModel` but does not belong in a repository.
+
+**Forbidden:** pass-through use cases that only wrap a single repository call — call the repository from the `ViewModel` instead.
 
 ```kotlin
-// ❌ Unnecessary use case (simple pass-through)
+// WRONG: Unnecessary use case (simple pass-through)
 class LoginUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
@@ -357,7 +641,7 @@ class LoginUseCase @Inject constructor(
         authRepository.login(email, password) // No added value
 }
 
-// ✅ Valuable use case (combines multiple repositories)
+// CORRECT: Valuable use case (combines multiple repositories)
 class GetUserProfileWithStatsUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val activityRepository: ActivityRepository,
@@ -383,7 +667,7 @@ class GetUserProfileWithStatsUseCase @Inject constructor(
     }
 }
 
-// ✅ Valuable use case (complex validation logic)
+// CORRECT: Valuable use case (complex validation logic)
 class ValidateRegistrationUseCase @Inject constructor() {
     operator fun invoke(email: String, password: String, confirmPassword: String): Result<Unit> {
         if (!email.matches(EMAIL_REGEX)) {
@@ -412,7 +696,7 @@ class ValidateRegistrationUseCase @Inject constructor() {
 
 ```kotlin
 // core/domain/repository/AuthRepository.kt
-// ✅ @Stable: Interface contract guarantees observable changes
+// CORRECT: @Stable: Interface contract guarantees observable changes
 @Stable
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<AuthToken>
@@ -431,7 +715,7 @@ Domain models should be annotated with `@Immutable` for Compose stability. Use `
 ```kotlin
 // core/domain/model/
 
-// ✅ @Immutable: Deeply immutable data
+// CORRECT: @Immutable: Deeply immutable data
 @Immutable
 data class User(
     val id: String,
@@ -557,7 +841,7 @@ User Action → Screen → Navigator Interface → App Module → Navigation3
 │  │                    DATA SOURCES / NAVIGATION ENGINE                          │  │
 │  │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────────────────────┐  │  │
 │  │  │  Local Storage  │  │  Remote API     │  │  Navigation3                 │  │  │
-│  │  │   (Room)        │  │   (Retrofit)    │  │  (NavController)             │  │  │
+│  │  │   (Room 3)      │  │   (Retrofit)    │  │  (NavController)             │  │  │
 │  │  └─────────────────┘  └─────────────────┘  └──────────────────────────────┘  │  │
 │  └──────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                    │
@@ -640,13 +924,6 @@ Call navigate() → Contract → Implementation → Routing → Render New UI
 7. UI: Shows registration form
 ```
 
-This architecture ensures:
-- **Responsive UI**: Immediate optimistic updates
-- **Data consistency**: Single source of truth in local database
-- **Offline support**: Works without network connection
-- **Testability**: Each layer can be tested independently
-- **Scalability**: Modular structure supports feature growth
-- **Modern patterns**: Navigation3, Material3 adaptive design, predictive back gestures
 - **Features are independent** (no feature-to-feature dependencies)
 - **Navigation is coordinated centrally** (app module)
 - **Data flows through defined layers** (UI → Domain → Data)

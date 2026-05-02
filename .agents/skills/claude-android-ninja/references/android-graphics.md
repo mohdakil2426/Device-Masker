@@ -1,27 +1,21 @@
 # Android Graphics & Icons
 
-Guide to icons, vector graphics, and custom drawing in Jetpack Compose.
+Required: ship every icon as Material Symbols (drawable XML) or `ImageVector`. Custom drawing goes through `Canvas` / `Modifier.drawWithCache`. Never depend on the deprecated `androidx.compose.material.icons` artifact.
 
 ## Table of Contents
 1. [Material Symbols Icons](#material-symbols-icons)
-2. [ImageVector Patterns](#imagevector-patterns)
-3. [Custom Drawing with Canvas](#custom-drawing-with-canvas)
-4. [Performance Optimizations](#performance-optimizations)
+2. [Adaptive Launcher Icons](#adaptive-launcher-icons)
+3. [ImageVector Patterns](#imagevector-patterns)
+4. [Custom Drawing with Canvas](#custom-drawing-with-canvas)
+5. [Performance Optimizations](#performance-optimizations)
 
 ## Material Symbols Icons
 
-Material Symbols is Google's current icon set (2,500+ glyphs) with variable font support.
-
-### Why Material Symbols?
-
-- **Modern**: Supersedes deprecated Material Icons library
-- **Flexible**: Adjustable weight, fill, grade, and optical size
-- **Performant**: Doesn't increase build time like the old `androidx.compose.material.icons` library
-- **Consistent**: Follows Material Design 3 guidelines
+Use Material Symbols (drawable XML) for every standard glyph. Avoid `androidx.compose.material.icons.*`: it is deprecated, ships M2 visuals, and inflates build time.
 
 ### Downloading Icons
 
-**Option 1: Using Iconify API (Recommended for automation)**
+Iconify API (preferred for automation):
 
 ```bash
 # Download icon as SVG using curl
@@ -34,20 +28,12 @@ curl -o app/src/main/res/drawable/ic_person.xml \
 curl -o app/src/main/res/drawable/ic_settings.xml \
   "https://api.iconify.design/material-symbols:settings.svg?download=true"
 
-# With customization (outlined style)
+# Outlined variant
 curl -o app/src/main/res/drawable/ic_home_outlined.xml \
   "https://api.iconify.design/material-symbols:home-outline.svg?download=true"
 ```
 
-**Option 2: Using Google Fonts Material Symbols**
-
-1. Go to https://fonts.google.com/icons
-2. Search for icon (e.g., "lock", "person", "settings")
-3. Click icon → Download (downloads SVG)
-4. Convert SVG to Android Vector Drawable:
-   - Use Android Studio: Right-click `res/drawable` → New → Vector Asset → Local file
-   - Or use online converter: https://svg2vector.com/
-5. Place resulting XML in `app/src/main/res/drawable/`
+Manual fallback: download SVG from https://fonts.google.com/icons, convert to a Vector Drawable via Android Studio (`res/drawable` → New → Vector Asset → Local file) or https://svg2vector.com/, place under `app/src/main/res/drawable/`.
 
 ### Usage in Compose
 
@@ -63,33 +49,22 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun MaterialSymbolExample() {
-    // ✅ Recommended: Using Material Symbols
     Icon(
         painter = painterResource(R.drawable.ic_lock),
         contentDescription = stringResource(R.string.lock_icon),
         modifier = Modifier.size(24.dp),
         tint = Color.Unspecified // Use SVG colors
     )
-    
-    // With theme color
+
     Icon(
         painter = painterResource(R.drawable.ic_settings),
         contentDescription = stringResource(R.string.settings_icon),
         tint = MaterialTheme.colorScheme.primary
     )
 }
-
-// ❌ Avoid: Deprecated Material Icons library
-// import androidx.compose.material.icons.Icons
-// import androidx.compose.material.icons.filled.Lock
-// Icon(Icons.Default.Lock, contentDescription = null) // Don't use this!
 ```
 
-**Why avoid `Icons.Default.*`?**
-- No longer maintained by Google
-- Contains older Material Design 2 look
-- Significantly increases build time
-- Missing many modern icons
+Forbidden: `androidx.compose.material.icons.Icons.*` (e.g. `Icons.Default.Lock`). The artifact is unmaintained, ships M2 visuals, and inflates build time.
 
 ### Icon Organization
 
@@ -110,16 +85,26 @@ Icon(
 )
 ```
 
+## Adaptive Launcher Icons
+
+Launcher icons are **adaptive** on API 26+: foreground and background layers mask to different shapes per OEM.
+
+**Key specs**
+
+| Item                   | Value                                                      |
+|------------------------|------------------------------------------------------------|
+| Layer canvas           | 108 x 108 dp per layer (foreground and background)         |
+| Safe zone (full asset) | Keep critical logo inside center **66 dp** diameter circle |
+| Logo artwork           | Often ~48-66 dp so it is not clipped by masks              |
+| Monochrome             | API 33+ optional monochrome layer for themed icons         |
+
+Place `mipmap-anydpi-v26/ic_launcher.xml` with `<adaptive-icon>` pointing at foreground and background drawables. Provide legacy mipmaps (mdpi through xxxhdpi) for older APIs as needed.
+
+See [Adaptive icons](https://developer.android.com/develop/ui/views/launch/icon_design_adaptive) for exports from design tools.
+
 ## ImageVector Patterns
 
-`ImageVector` is Compose's native format for vector graphics, offering pure Kotlin definitions without XML.
-
-### Why ImageVector?
-
-- **Pure Kotlin**: No XML parsing overhead
-- **Type-safe**: Compile-time checking
-- **Performant**: Lightweight, GPU-accelerated
-- **Dynamic**: Generate icons programmatically
+Use `ImageVector` for icons that must be parameterized at runtime (themed colors, dynamic counts, generated paths). Use Material Symbols drawables for everything static.
 
 ### Basic ImageVector Creation
 
@@ -826,7 +811,7 @@ fun extractVibrantColor(bitmap: Bitmap, isDark: Boolean = true): Color {
 
     val palette = Palette.from(softwareBitmap).generate()
 
-    // Prefer vibrant swatches for dynamic colors
+    // Use vibrant swatches when sampling wallpaper colors
     val vibrantSwatch = if (isDark) {
         palette.darkVibrantSwatch
             ?: palette.vibrantSwatch
@@ -926,7 +911,113 @@ fun DynamicSizeCanvas() {
 
 ### Image Loading with Coil3
 
-Load images and extract colors:
+#### AsyncImage (Primary API)
+
+Use `AsyncImage` for the vast majority of cases. It resolves image size from layout constraints
+automatically, avoiding oversized bitmap loading.
+
+```kotlin
+AsyncImage(
+    model = ImageRequest.Builder(LocalContext.current)
+        .data("https://example.com/avatar.jpg")
+        .crossfade(true)
+        .build(),
+    contentDescription = stringResource(R.string.user_avatar),
+    contentScale = ContentScale.Crop,
+    placeholder = painterResource(R.drawable.ic_placeholder),
+    error = painterResource(R.drawable.ic_error),
+    modifier = Modifier
+        .size(64.dp)
+        .clip(CircleShape)
+)
+```
+
+#### SubcomposeAsyncImage (Custom State Composables)
+
+Use only when you need fully custom composables for loading, success, and error states.
+**Never use inside `LazyColumn` / `LazyRow`** - subcomposition is significantly slower than
+regular composition and causes scroll jank.
+
+```kotlin
+SubcomposeAsyncImage(
+    model = "https://example.com/hero.jpg",
+    contentDescription = null
+) {
+    when (painter.state) {
+        is AsyncImagePainter.State.Loading -> CircularProgressIndicator()
+        is AsyncImagePainter.State.Error -> Icon(Icons.Default.BrokenImage, null)
+        else -> SubcomposeAsyncImageContent()
+    }
+}
+```
+
+#### rememberAsyncImagePainter (Low-Level)
+
+Use only when a `Painter` is strictly required (e.g., `Canvas`, `Icon`, or a custom draw
+operation). Unlike `AsyncImage`, it does **not** infer display size - without an explicit
+`.size()`, it loads the image at original dimensions, wasting memory.
+
+```kotlin
+val painter = rememberAsyncImagePainter(
+    model = ImageRequest.Builder(LocalContext.current)
+        .data("https://example.com/image.jpg")
+        .size(Size.ORIGINAL)
+        .build()
+)
+Image(painter = painter, contentDescription = null)
+```
+
+#### ImageRequest Configuration
+
+```kotlin
+ImageRequest.Builder(context)
+    .data(imageUrl)
+    .crossfade(300)
+    .size(200, 200)
+    .scale(Scale.CROP)
+    .transformations(CircleCropTransformation())
+    .memoryCachePolicy(CachePolicy.ENABLED)
+    .diskCachePolicy(CachePolicy.ENABLED)
+    .build()
+```
+
+#### Hilt ImageLoader Setup
+
+Provide a single `ImageLoader` instance app-wide to share disk and memory caches:
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object ImageModule {
+
+    @Provides
+    @Singleton
+    fun provideImageLoader(@ApplicationContext context: Context): ImageLoader =
+        ImageLoader.Builder(context)
+            .crossfade(true)
+            .respectCacheHeaders(false)
+            .build()
+}
+```
+
+Pass it to `AsyncImage` via injection or `CompositionLocal`:
+
+```kotlin
+AsyncImage(
+    model = url,
+    contentDescription = null,
+    imageLoader = imageLoader
+)
+```
+
+#### Which API to Use
+
+- **Standard image loading** → `AsyncImage`
+- **Need `Painter` for `Canvas` / `Icon`** → `rememberAsyncImagePainter` + explicit `.size()`
+- **Custom loading/error composables** → `SubcomposeAsyncImage` (never in lists)
+- **Decorative image** → `contentDescription = null`
+
+#### Color Extraction from Loaded Images
 
 ```kotlin
 import coil3.ImageLoader
@@ -988,30 +1079,19 @@ fun ImageWithExtractedGlow(imageUrl: String) {
 
 ### Performance: drawWithCache vs drawBehind
 
+`drawWithCache` allocates expensive objects (`Brush`, `Path`, gradients) once and reuses them across draws. `drawBehind` re-runs its block on every frame; reserve it for cheap, layout-dependent operations.
+
 ```kotlin
-// ✅ Good: Expensive operations cached
 @Composable
 fun CachedDrawing() {
     Box(
         modifier = Modifier.drawWithCache {
-            val gradient = createExpensiveGradient() // Cached
-            val path = createComplexPath() // Cached
-            
+            val gradient = createExpensiveGradient()
+            val path = createComplexPath()
+
             onDrawBehind {
                 drawPath(path, brush = gradient)
             }
-        }
-    )
-}
-
-// ❌ Bad: Recalculated every frame
-@Composable
-fun UncachedDrawing() {
-    Box(
-        modifier = Modifier.drawBehind {
-            val gradient = createExpensiveGradient() // ❌ Recreated every draw
-            val path = createComplexPath() // ❌ Recreated every draw
-            drawPath(path, brush = gradient)
         }
     )
 }
@@ -1051,7 +1131,7 @@ Use `remember` and `derivedStateOf` appropriately:
 ```kotlin
 @Composable
 fun AnimatedIcon(isActive: Boolean) {
-    // ✅ Icon only recreated when isActive changes
+    // CORRECT: Icon only recreated when isActive changes
     val icon = remember(isActive) {
         createAnimatedIcon(isActive)
     }
@@ -1061,7 +1141,7 @@ fun AnimatedIcon(isActive: Boolean) {
 
 @Composable
 fun DerivedIcon(data: List<Int>) {
-    // ✅ Icon only recreated when sum changes, not when list instance changes
+    // CORRECT: Icon only recreated when sum changes, not when list instance changes
     val icon = remember {
         derivedStateOf { createIcon(data.sum()) }
     }.value
@@ -1076,37 +1156,33 @@ Don't create all icons upfront:
 
 ```kotlin
 object AppIcons {
-    // ✅ Lazy initialization
+    // CORRECT: Lazy initialization
     val Home: ImageVector by lazy { createHomeIcon() }
     val Settings: ImageVector by lazy { createSettingsIcon() }
     val Profile: ImageVector by lazy { createProfileIcon() }
     
-    // ❌ Avoid: Eager initialization
+    // WRONG: Avoid Eager initialization
     // val All = listOf(createHomeIcon(), createSettingsIcon(), ...) // Creates all immediately
 }
 ```
 
-## Best Practices
+## Rules
 
-### DO ✅
-- Use Material Symbols from Google Fonts (not deprecated library)
-- Download icons via Iconify API for automation
-- Use `ImageVector` for programmatic/dynamic icons
-- Cache generated `ImageVector` instances
-- Use `drawWithCache` for expensive drawing operations
-- Layer paths from back to front
-- Use alpha for shadows and highlights
-- Organize icons in centralized objects
-- Use `remember` to avoid unnecessary recreations
+Required:
+- Source standard glyphs from Material Symbols (drawable XML).
+- Reserve `ImageVector` for programmatic / themed / dynamic icons; cache results behind `by lazy` or `remember(keys)`.
+- Wrap expensive draw setup in `Modifier.drawWithCache`; keep `Modifier.drawBehind` for cheap, per-frame work only.
+- Layer paths bottom-to-top inside one `ImageVector.Builder`; close every sub-path with `close()`.
+- Centralize icon references in an `AppIcons` / `CustomIcons` object.
+- Resolve theme colors via `MaterialTheme.colorScheme.*` and pass them in; never hard-code theme-specific colors inside an icon definition.
+- Use `AsyncImage` for network/disk images; `SubcomposeAsyncImage` only outside lazy lists; `rememberAsyncImagePainter` only when a `Painter` is required (with explicit `.size()`).
 
-### DON'T ❌
-- Use deprecated `androidx.compose.material.icons` library
-- Generate `ImageVector` in `@Composable` without caching
-- Use `drawBehind` for expensive operations (use `drawWithCache`)
-- Hardcode theme-specific colors in icons
-- Create custom icons for standard Material Symbols
-- Mix absolute and relative path coordinates unnecessarily
-- Forget to `close()` paths
+Forbidden:
+- `androidx.compose.material.icons.Icons.*` and any artifact under `androidx.compose.material.icons:*`.
+- Building an `ImageVector` inside a `@Composable` without `remember` / `by lazy`.
+- Replacing a standard Material Symbol with a hand-rolled custom icon.
+- Mixing absolute and relative path commands within the same path without reason.
+- `SubcomposeAsyncImage` inside `LazyColumn` / `LazyRow` (causes scroll jank).
 
 ## Additional Resources
 

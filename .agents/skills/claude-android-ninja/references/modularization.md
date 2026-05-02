@@ -1,37 +1,30 @@
-# Modularization Guide
+# Modularization
 
-Based on our modern Android multi-module architecture with Navigation3, Jetpack Compose, and strict dependency rules.
-All Kotlin code in this guide must align with `references/kotlin-patterns.md`.
+Multi-module Android setup with Navigation 3, Jetpack Compose, and strict dependency direction. All Kotlin code must align with `references/kotlin-patterns.md`.
+
+Multi-module is **required** for any project beyond a single throwaway sample. Use it when:
+
+- The project has 2+ user-facing features.
+- Build times exceed 30s clean.
+- More than one engineer ships changes in parallel.
+- `core/domain` will be reused across product surfaces (app, Wear, TV).
 
 ## Table of Contents
-1. [Benefits](#benefits)
-2. [Module Types](#module-types)
-3. [Module Structure](#module-structure)
-4. [Dependency Rules](#dependency-rules)
-5. [Creating Modules](#creating-modules)
-6. [Navigation Coordination](#navigation-coordination)
-7. [Build Configuration](#build-configuration)
+1. [Module Types](#module-types)
+2. [Module Structure](#module-structure)
+3. [Dependency Rules](#dependency-rules)
+4. [Creating Modules](#creating-modules)
+5. [Navigation Coordination](#navigation-coordination)
+6. [Build Configuration](#build-configuration)
 
 ## Build Configuration
 
 Convention plugin definitions and examples live in:
-- `templates/convention/` - All plugin source files (.kt)
+- `assets/convention/` - All plugin source files (.kt)
 - `references/gradle-setup.md` - Detailed build configuration patterns
-- `templates/convention/QUICK_REFERENCE.md` - Setup instructions and examples
+- `assets/convention/QUICK_REFERENCE.md` - Setup instructions and examples
 
-Copy plugin files from `templates/convention/` to `build-logic/convention/src/main/kotlin/` in your project.
-
-## Benefits
-
-- **Scalability**: Changes in one module don't cascade to others
-- **Parallel development**: Teams work independently on different features
-- **Build speed**: Incremental builds only recompile changed modules
-- **Reusability**: Core modules can be shared across apps
-- **Encapsulation**: Clear boundaries and visibility controls
-- **Testability**: Each module can be tested in isolation
-- **Feature Independence**: Features don't depend on each other
-- **Navigation Centralization**: App module coordinates all navigation
-- **Adaptive UI Support**: Navigation3 enables responsive designs across form factors
+Copy plugin files from `assets/convention/` to `build-logic/convention/src/main/kotlin/` in your project.
 
 ## Module Types
 
@@ -56,16 +49,16 @@ See [Feature Module Structure](#feature-module-structure) for the full directory
 ### Core Modules (`core/`)
 Shared library code used across features with strict dependency direction.
 
-| Module           | Purpose                                         | Dependencies                                        | Key Classes                                                                            |
-|------------------|-------------------------------------------------|-----------------------------------------------------|----------------------------------------------------------------------------------------|
-| `core:domain`    | Domain models, use cases, repository interfaces | None (pure Kotlin)                                  | `AuthToken`, `User`, `LoginUseCase`, `AuthRepository` interface                        |
-| `core:data`      | Repository implementations, data coordination   | `core:domain`                                       | `AuthRepositoryImpl`, `AuthRemoteDataSource`, `AuthLocalDataSource`                    |
-| `core:database`  | Room database, DAOs, entities                   | `core:model` (if separate), otherwise `core:domain` | `AuthDatabase`, `AuthTokenDao`, `UserEntity`                                           |
-| `core:network`   | Retrofit API, network models                    | `core:model` (if separate), otherwise `core:domain` | `AuthApi`, `NetworkAuthResponse`                                                       |
-| `core:datastore` | Proto DataStore preferences                     | None                                                | `AuthPreferencesDataSource`                                                            |
-| `core:common`    | Shared utilities, extensions                    | None                                                | `AppDispatchers`, `ResultExtensions`                                                   |
-| `core:ui`        | Reusable UI components, themes, base ViewModels | `core:domain` (optional)                            | `AuthForm`, `AuthTheme`, `BaseViewModel`                                               |
-| `core:testing`   | Test utilities, test doubles                    | Depends on module being tested                      | `TestDispatcherRule`, `FakeAuthRepository`                                             |
+| Module           | Purpose                                         | Dependencies                                        | Key Classes                                                         |
+|------------------|-------------------------------------------------|-----------------------------------------------------|---------------------------------------------------------------------|
+| `core:domain`    | Domain models, use cases, repository interfaces | None (pure Kotlin)                                  | `AuthToken`, `User`, `LoginUseCase`, `AuthRepository` interface     |
+| `core:data`      | Repository implementations, data coordination   | `core:domain`                                       | `AuthRepositoryImpl`, `AuthRemoteDataSource`, `AuthLocalDataSource` |
+| `core:database`  | Room 3 database, DAOs, entities                 | `core:model` (if separate), otherwise `core:domain` | `AuthDatabase`, `AuthTokenDao`, `UserEntity`                        |
+| `core:network`   | Retrofit API, network models                    | `core:model` (if separate), otherwise `core:domain` | `AuthApi`, `NetworkAuthResponse`                                    |
+| `core:datastore` | Proto DataStore preferences                     | None                                                | `AuthPreferencesDataSource`                                         |
+| `core:common`    | Shared utilities, extensions                    | None                                                | `AppDispatchers`, `ResultExtensions`                                |
+| `core:ui`        | Reusable UI components, themes, base ViewModels | `core:domain` when composables read shared models     | `AuthForm`, `AuthTheme`, `BaseViewModel`                            |
+| `core:testing`   | Test utilities, test doubles                    | Depends on module being tested                      | `TestDispatcherRule`, `FakeAuthRepository`                          |
 
 ## Module Structure
 
@@ -84,7 +77,7 @@ core/
   ├── data/             # Data layer: Repository impl, DataSources, Data models
   ├── ui/               # Shared UI components, themes, base ViewModels
   ├── network/          # Retrofit, API models, network utilities
-  ├── database/         # Room DAOs, entities, migrations
+  ├── database/         # Room 3 DAOs, entities, migrations
   ├── datastore/        # Preferences storage
   ├── common/           # Shared utilities, extensions
   └── testing/          # Test utilities, test doubles
@@ -185,7 +178,7 @@ core/domain/
 ```
 feature/* → core/domain → core/data
     ↓                       ↓
-core/ui (optional)       (no circular dependencies)
+core/ui (when shared UI exists)   (no circular dependencies)
 
 app → all feature modules (for navigation coordination)
 app → all core modules (for DI setup)
@@ -198,7 +191,7 @@ NO feature-to-feature dependencies allowed
 2. **Feature modules cannot depend on other feature modules**
 3. **Core/Domain has no Android dependencies** (pure Kotlin)
 4. **Core/Data depends on Core/Domain** (implements interfaces)
-5. **Core/UI is optional** for features that need shared UI components
+5. **Core/UI** ships once multiple features share composables, themes, or base `ViewModel` chrome; presentation-only features can defer it until reuse appears
 6. **App module depends on all features** for navigation coordination
 7. **No circular dependencies** between any modules
 
@@ -378,37 +371,24 @@ fun EntryProviderScope<NavKey>.authGraph(
 
 ### 2. Create Core Module
 
-**Step 1: Create directory structure**
+Required directory layout for a `core/domain` module:
+
 ```
-mkdir -p core/domain/src/main/kotlin/com/example/core/domain/{model,repository,usecase}
-mkdir -p core/domain/src/test/kotlin/com/example/core/domain
+core/domain/
+  build.gradle.kts                                               # Apply Core Domain template from references/gradle-setup.md
+  src/main/kotlin/com/example/core/domain/{model,repository,usecase}/
+  src/test/kotlin/com/example/core/domain/
 ```
 
-**Step 2: Configure build.gradle.kts**
-Use the Core Domain module build file template in `references/gradle-setup.md`.
-It keeps the module pure Kotlin and includes serialization and test dependencies.
-
-**Step 3: Create domain models and contracts**
-
-Define domain models, repository interfaces, and use cases in `core/domain`.
-For detailed patterns and examples, see the Domain Layer section in
-`references/architecture.md`.
+The build file applies the Core Domain template from `references/gradle-setup.md` (pure Kotlin + serialization + test deps). Domain models, repository interfaces, and use cases go under `core/domain`; pattern details: `references/architecture.md` → Domain Layer.
 
 ### 3. Create App Module Configuration
 
-**Step 1: Configure app module dependencies**
-Use the App module build file template in `references/gradle-setup.md`.
-It includes feature/core module wiring, Navigation3, and DI configuration.
+Required wiring in the `:app` module:
 
-**Step 2: Create navigation state and navigator**
-
-Create `NavigationState.kt` and `Navigator.kt` for managing app navigation state.
-See `references/android-navigation.md` → "Navigation 3 State Management" for complete implementation.
-
-**Step 3: Create app navigation**
-
-See `references/android-navigation.md` → "App Navigation Setup" for the complete `AppNavigation` composable
-with `NavigationSuiteScaffold`, `TopLevelRoute`, navigator implementations, and icon resources.
+- `build.gradle.kts`: apply the App module template from `references/gradle-setup.md` (feature/core wiring, Navigation 3, Hilt).
+- `NavigationState.kt` and `Navigator.kt`: see `references/android-navigation.md` → "Navigation 3 State Management".
+- `AppNavigation.kt`: see `references/android-navigation.md` → "App Navigation Setup" (`NavigationSuiteScaffold`, `TopLevelRoute`, navigator implementations, icon resources).
 
 ## Navigation Coordination
 
@@ -419,16 +399,3 @@ key principles, and migration guidance, see `references/android-navigation.md`.
 
 Convention plugin definitions and examples live in `references/gradle-setup.md`
 so all build logic stays centralized in one place.
-
-## Best Practices
-
-1. **Start Simple**: Begin with app + core modules, add features as needed
-2. **Feature Independence**: Features should work in isolation
-3. **Navigation Contracts**: Use interfaces, not direct NavController access
-4. **Pure Kotlin Core**: Keep `core:domain` free of Android dependencies
-5. **Consistent Naming**: Use `feature-{name}` pattern for features
-6. **Test Isolation**: Each module should have its own test suite
-7. **Build Caching**: Use convention plugins for consistent configuration
-8. **Dependency Direction**: Always follow `feature → core:domain → core:data`
-9. **No Feature-to-Feature**: Never create dependencies between features
-10. **Adaptive UI Ready**: Design for all form factors with Navigation3

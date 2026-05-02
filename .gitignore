@@ -60,6 +60,7 @@ api_keys.xml
 secrets.properties
 .env
 .env.local
+.mcp.json
 
 # ═══════════════════════════════════════════════════════════
 # RELEASE BUILDS & SIGNING

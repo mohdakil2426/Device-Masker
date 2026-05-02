@@ -1,7 +1,6 @@
 # Testing Patterns
 
-Testing approach following our multi-module architecture with test doubles strategy (no mocking libraries)
-and Google Truth for assertions.
+Required: hand-written fakes (no mocking libraries) in feature/core modules; Google Truth for assertions; Turbine for `Flow`; Hilt + Robolectric/Compose UI for integration. MockK is permitted only inside the `app` module for Navigation 3 framework types. Layered targets follow [architecture.md](/references/architecture.md) and [modularization.md](/references/modularization.md).
 
 ## Table of Contents
 1. [Testing Philosophy](#testing-philosophy)
@@ -15,24 +14,23 @@ and Google Truth for assertions.
 9. [Navigation Tests](#navigation-tests)
 10. [Compose Stability Testing](#testing-compose-stability-annotations)
 11. [UI Tests](#ui-tests)
-12. [Performance Benchmarks](#performance-benchmarks)
-13. [Test Utilities](#test-utilities)
-14. [Paging 3 Testing](#paging-3-testing)
-15. [Localization Testing](#localization-testing)
+12. [Screenshot Testing](#screenshot-testing)
+13. [Performance Benchmarks](#performance-benchmarks)
+14. [Test Utilities](#test-utilities)
+15. [Rules](#rules)
+16. [Paging 3 Testing](#paging-3-testing)
+17. [Localization Testing](#localization-testing)
 
 ## Testing Philosophy
 
 ### No Mocking Libraries
 
-Our architecture avoids mocking libraries in feature and core modules, using test doubles instead.
-We make an exception in the app module for navigation testing, where MockK is used to mock framework classes.
-- **Feature modules**: No mocking libraries - use fake implementations that implement interfaces
-- **Core modules**: No mocking libraries - use fakes and in-memory databases
-- **App module**: **Use MockK** for Navigation3 testing only (NavigationState, Navigator)
-- Create fake implementations that provide realistic behavior with test hooks
-- Fakes provide working implementations, not just stubs
-- Results in less brittle tests that exercise more production code
-- Use Google Truth for fluent, readable assertions
+Required:
+- **Feature modules**: hand-written fakes implementing the production interface; no mocking libraries.
+- **Core modules**: fakes plus Room in-memory databases.
+- **App module**: MockK is permitted **only** for Navigation 3 framework types (`NavigationState`, `Navigator`).
+- Fakes carry real state and test hooks; never stub-only.
+- Use Google Truth for assertions.
 
 ### Test Doubles Naming Convention
 
@@ -321,7 +319,7 @@ class AuthViewModelTest {
         viewModel.onAction(AuthAction.LoginClicked)
         advanceUntilIdle()
 
-        // Verify we're in error state
+        // Verify error state
         assertThat(viewModel.uiState.value).isInstanceOf(AuthUiState.Error::class.java)
 
         // Act
@@ -378,7 +376,7 @@ See [Coroutine Testing → Test Dispatcher Rule](#test-dispatcher-rule-in-corete
 
 ### Testing StateFlow with Turbine and Truth
 
-Turbine is best for testing Flow emissions over time. Use `advanceUntilIdle()` for simple async operations.
+Required: Turbine for multi-emission `Flow` assertions; `advanceUntilIdle()` for simple async completion.
 
 **When to use Turbine:**
 - Testing multiple emissions from a Flow
@@ -824,6 +822,22 @@ fun `session refresh flow emits at correct intervals`() = runTest {
         cancelAndIgnoreRemainingEvents()
     }
 }
+
+@Test
+fun `channel events are received correctly`() = runTest {
+    // Arrange
+    val viewModel = AuthViewModel(loginUseCase, savedStateHandle)
+    
+    // Act & Assert
+    viewModel.navigationEvents.test {
+        viewModel.login()
+        advanceUntilIdle()
+        
+        assertThat(awaitItem()).isEqualTo(AuthNavigationEvent.LoginSuccess)
+        
+        cancelAndIgnoreRemainingEvents()
+    }
+}
 ```
 
 ### Testing Cancellation
@@ -873,25 +887,24 @@ fun `camera cleanup happens even when cancelled`() = runTest {
 }
 ```
 
-### Key Coroutine Testing Principles
+### Coroutine test rules
 
-1. **Always use `runTest`**: Provides virtual time and automatic completion waiting
-2. **Share test scheduler**: Use `UnconfinedTestDispatcher(testScheduler)` or `StandardTestDispatcher()`
-3. **Inject dispatchers**: Never hardcode dispatchers in production code - always inject for testability
-4. **Use `advanceUntilIdle()`**: Wait for all pending coroutines before assertions
-5. **Use `advanceTimeBy()`**: Fast-forward time for delay/timeout testing without actually waiting
-6. **Test cancellation**: Verify coroutines handle cancellation correctly
-7. **Test cleanup**: Ensure resources are released even on cancellation
+Required:
+- Wrap every coroutine test in `runTest { }`.
+- Share the scheduler: `UnconfinedTestDispatcher(testScheduler)` or `StandardTestDispatcher(testScheduler)`.
+- Inject dispatchers in production code; never hardcode `Dispatchers.IO` / `Dispatchers.Default`.
+- `advanceUntilIdle()` before assertions; `advanceTimeBy(...)` for delay/timeout coverage.
+- Cover cancellation paths and cleanup of resources held inside `NonCancellable`/`finally` blocks.
 
 ### Dispatcher Choices in Tests
 
-```kotlin
-// UnconfinedTestDispatcher: Executes coroutines immediately (eager)
-// Good for: Most tests, when you want synchronous behavior
-val unconfinedDispatcher = UnconfinedTestDispatcher(testScheduler)
+| Dispatcher                  | Use when                                                      |
+|-----------------------------|---------------------------------------------------------------|
+| `UnconfinedTestDispatcher`  | Default - eager execution, synchronous-style assertions.      |
+| `StandardTestDispatcher`    | Need explicit ordering or virtual-time stepping.              |
 
-// StandardTestDispatcher: Queues coroutines (requires advanceUntilIdle)
-// Good for: Testing execution order, complex timing scenarios
+```kotlin
+val unconfinedDispatcher = UnconfinedTestDispatcher(testScheduler)
 val standardDispatcher = StandardTestDispatcher(testScheduler)
 ```
 
@@ -991,12 +1004,17 @@ fun `ViewModel without Hilt injection`() = runTest {
 
 ## Room Database Testing
 
+Room 3 requires a [`SQLiteDriver`](https://developer.android.com/kotlin/multiplatform/sqlite#sqlite-driver) on the database builder (the `app.android.room` convention adds `sqlite-bundled`). Use [`BundledSQLiteDriver`](https://developer.android.com/reference/kotlin/androidx/sqlite/driver/bundled/BundledSQLiteDriver) in tests the same way as in production code.
+
+For **migration** instrumentation tests, add **`androidTestImplementation(libs.room3.testing)`** and ensure exported schemas are available to the test APK (the Room Gradle plugin can copy schemas into `androidTest` assets; see [Test migrations](https://developer.android.com/training/data-storage/room/migrating-db-versions#test) and [`MigrationTestHelper`](https://developer.android.com/reference/kotlin/androidx/room3/testing/MigrationTestHelper)).
+
 ### In-Memory Database for Tests
 
 ```kotlin
 // core/database/src/androidTest/kotlin/com/example/database/AuthDaoTest.kt
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
@@ -1010,10 +1028,9 @@ class AuthDaoTest {
     @Before
     fun createDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        database = Room.inMemoryDatabaseBuilder(
-            context,
-            AppDatabase::class.java
-        ).build()
+        database = Room.inMemoryDatabaseBuilder<AppDatabase>(context)
+            .setDriver(BundledSQLiteDriver())
+            .build()
         authDao = database.authDao()
     }
 
@@ -1099,40 +1116,50 @@ class AuthDaoTest {
 
 ### Testing Database Migrations
 
+`MigrationTestHelper` APIs are **suspend** and return [`SQLiteConnection`](https://developer.android.com/reference/kotlin/androidx/sqlite/SQLiteConnection) (not `SupportSQLiteDatabase`). Use **`runBlocking`** (or another coroutine test harness) from instrumentation tests. Validate rows with **`prepare` / `step` / `getText`** (see [`SQLiteStatement`](https://developer.android.com/reference/kotlin/androidx/sqlite/SQLiteStatement)).
+
 ```kotlin
 // core/database/src/androidTest/kotlin/com/example/database/MigrationTest.kt
-import androidx.room.testing.MigrationTestHelper
+import androidx.room3.testing.MigrationTestHelper
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.sqlite.execSQL
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.runBlocking
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
 
 class MigrationTest {
 
+    private val instrumentation = InstrumentationRegistry.getInstrumentation()
+
     @get:Rule
     val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java
+        instrumentation = instrumentation,
+        file = instrumentation.targetContext.getDatabasePath(TEST_DB),
+        driver = BundledSQLiteDriver(),
+        databaseClass = AppDatabase::class,
     )
 
+    @Before
+    fun deleteDb() {
+        instrumentation.targetContext.deleteDatabase(TEST_DB)
+    }
+
     @Test
-    fun migrate1To2_containsCorrectData() {
-        // Create database at version 1
-        helper.createDatabase(TEST_DB, 1).apply {
+    fun migrate1To2_containsCorrectData() = runBlocking {
+        helper.createDatabase(1).apply {
             execSQL("INSERT INTO users VALUES ('1', 'test@example.com', 'Test User')")
             close()
         }
 
-        // Run migration
-        helper.runMigrationsAndValidate(TEST_DB, 2, true, MIGRATION_1_2)
-
-        // Validate data after migration
-        helper.runMigrationsAndValidate(TEST_DB, 2, true).apply {
-            query("SELECT * FROM users WHERE id = '1'").use { cursor ->
-                assertThat(cursor.moveToFirst()).isTrue()
-                assertThat(cursor.getString(cursor.getColumnIndex("email")))
-                    .isEqualTo("test@example.com")
-            }
-            close()
+        val migrated = helper.runMigrationsAndValidate(2, listOf(MIGRATION_1_2))
+        migrated.prepare("SELECT email FROM users WHERE id = '1'").use { stmt ->
+            assertThat(stmt.step()).isTrue()
+            assertThat(stmt.getText(0)).isEqualTo("test@example.com")
         }
+        migrated.close()
     }
 
     companion object {
@@ -1406,7 +1433,7 @@ class FakeNavBackStack<T : NavKey>(startRoute: T) {
 
 ### Testing Compose Stability Annotations
 
-Verify that `@Immutable` and `@Stable` annotations are correctly applied:
+Required: assert `@Immutable` / `@Stable` on UI-owned models in unit tests before relying on Compose compiler stability output:
 
 ```kotlin
 // core/domain/src/test/kotlin/com/example/domain/model/StabilityTest.kt
@@ -1455,36 +1482,127 @@ class StabilityTest {
 }
 ```
 
-**Note**: Use Compose Compiler reports (`composeStabilityAnalyzer` Gradle plugin) to verify stability
-at build time. See `references/gradle-setup.md` → "Compose Stability Analyzer".
+Required after changing `@Immutable` / `@Stable` on UI-facing models: run Compose Compiler reports via the `composeStabilityAnalyzer` Gradle plugin ([gradle-setup.md](gradle-setup.md) → "Compose Stability Analyzer").
 
 ### Testing Deep Links
 
-**ADB commands:**
+Required: wait at least 20 seconds after `adb install` before the first `pm get-app-links` read - the verifier runs asynchronously.
+
+#### Launch deep links (`am start`)
+
 ```bash
-# Test HTTPS deep link
 adb shell am start -W -a android.intent.action.VIEW \
     -d "https://example.com/products/abc123" \
     com.example.app
 
-# Test custom scheme
 adb shell am start -W -a android.intent.action.VIEW \
     -d "myapp://open/profile/user42" \
     com.example.app
 
-# Test with query parameters
 adb shell am start -W -a android.intent.action.VIEW \
     -d "https://example.com/search?query=shoes&category=footwear" \
     com.example.app
 
-# Simulate new task (as if opened from another app)
 adb shell am start -W -a android.intent.action.VIEW \
     --activity-new-task \
     -d "https://example.com/products/abc123" \
     com.example.app
 ```
 
-**Unit test for deep link parsing:**
+#### Custom-scheme launch (`am start`)
+
+Required: when validating custom-scheme routing, run the `adb shell am start` line that uses `-d "myapp://open/profile/user42"` from Launch deep links (`am start`).
+
+Forbidden: treating a successful custom-scheme launch as proof of HTTPS App Links verification - `pm get-app-links` never inspects custom schemes; the disambiguation dialog and default-handler state apply only to `http`/`https` filters with `autoVerify`.
+
+Forbidden: security-critical flows (auth callback, payment return) on custom schemes in production - any package can register the same scheme (see [android-navigation.md → Custom-Scheme Deep Linking](android-navigation.md#custom-scheme-deep-linking)).
+
+#### App Links verification (`pm` + `dumpsys`)
+
+```bash
+adb shell pm set-app-links --package com.example.app 0 all
+
+adb shell pm verify-app-links --re-verify com.example.app
+
+adb shell pm get-app-links com.example.app
+
+adb shell pm get-app-links --user cur com.example.app
+
+adb shell dumpsys package d
+```
+
+| Command                                  | Use when                                                                       |
+|------------------------------------------|--------------------------------------------------------------------------------|
+| `pm set-app-links --package <pkg> 0 all` | Reset every domain to unselected before a clean re-verify.                     |
+| `pm verify-app-links --re-verify <pkg>`  | Force the verifier to re-fetch `assetlinks.json` after server changes.         |
+| `pm get-app-links <pkg>`                 | Read per-host verification state for the default user.                         |
+| `pm get-app-links --user cur <pkg>`      | Same as above when multiple users exist on the device.                         |
+| `dumpsys package d`                      | Dump domain-preferred-apps for every package (alias: `domain-preferred-apps`). |
+
+#### Domain verification state legend
+
+Required: read the `Domain verification state:` block from `pm get-app-links` output before interpreting host status.
+
+| State               | Meaning                                                                |
+|---------------------|------------------------------------------------------------------------|
+| `verified`          | Digital Asset Links succeeded for that host.                           |
+| `approved`          | User or shell forced approval; not the same as automatic verification. |
+| `denied`            | User or shell forced denial.                                           |
+| `legacy_failure`    | Legacy verifier rejected the host; reason not surfaced.                |
+| `migrated`          | Result carried over from legacy verification.                          |
+| `restored`          | Approved after backup restore; assumed previously verified.            |
+| `system_configured` | OEM or policy pre-approved the domain.                                 |
+| `none`              | No record yet - wait, re-run `--re-verify`, or confirm network.        |
+| `1024` or higher    | Device-specific verifier error code; retry after network is stable.    |
+
+Required: treat the hex suffix after `Status: always` in `dumpsys package d` as user preference metadata - it does not replace per-host `verified` / `none` lines from `pm get-app-links`.
+
+#### Pre-Android-12 verification compat
+
+Use when the app targets below API 31 and you need the Android-12+ verifier behaviour on an older test image:
+
+```bash
+adb shell am compat enable 175408749 com.example.app
+```
+
+#### Digital Asset Links REST (no device)
+
+```bash
+curl 'https://digitalassetlinks.googleapis.com/v1/statements:list?\
+source.web.site=https://example.com&\
+relation=delegate_permission/common.handle_all_urls'
+```
+
+Required: HTTP 200 JSON body with a non-empty `statements` array before expecting `verified` on device.
+
+#### Dynamic App Links REST validation
+
+Required when server-side `dynamic_app_link_components` exists: query with `return_relation_extensions=true` and assert the extension payload before writing device tests (see [android-navigation.md → Dynamic App Links](android-navigation.md#dynamic-app-links-android-15-api-35)).
+
+```bash
+curl 'https://digitalassetlinks.googleapis.com/v1/statements:list?\
+source.web.site=https://example.com&\
+relation=delegate_permission/common.handle_all_urls&\
+return_relation_extensions=true'
+```
+
+Required: locate `dynamic_app_link_components` under the relation-extension map for `delegate_permission/common.handle_all_urls` inside a `statements[]` entry; assert it is a non-empty JSON array when dynamic rules are active.
+
+Forbidden: omitting `return_relation_extensions=true` when the test asserts dynamic path/query/fragment behaviour - the verifier omits that field without the flag.
+
+#### Dynamic rules device refresh
+
+Required after every deploy that edits `dynamic_app_link_components` in `assetlinks.json`:
+
+```bash
+adb shell pm verify-app-links --re-verify com.example.app
+adb shell pm get-app-links com.example.app
+```
+
+Required: every host that participates in dynamic routing shows `verified` in `pm get-app-links` output before closing the change (or document an intentional `approved` / `selected` user override from [Domain verification state legend](#domain-verification-state-legend)).
+
+#### Unit tests (parsing + stack)
+
 ```kotlin
 class DeepLinkParsingTest {
 
@@ -1523,7 +1641,50 @@ class DeepLinkParsingTest {
 }
 ```
 
-For deep link patterns, validation, and synthetic back stack setup, see `references/android-navigation.md` → "Deep Links".
+#### Instrumented `onNewIntent` test
+
+Required: the deep-link `Activity` uses `android:launchMode="singleTask"` and forwards `onNewIntent` through the same parser as `onCreate` ([android-navigation.md → onNewIntent for singleTask](android-navigation.md#onnewintent-for-singletask)).
+
+Required: the destination composable root exposes `Modifier.testTag("…")` for every node the test asserts.
+
+Forbidden: launching a second `Activity` with `startActivity` to simulate a second link - `singleTask` reuses the instance; call `onNewIntent` on the running `Activity` only.
+
+```kotlin
+// app/src/androidTest/kotlin/com/example/app/MainActivityDeepLinkTest.kt
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.example.app.MainActivity
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class MainActivityDeepLinkTest {
+
+    @get:Rule(order = 1)
+    val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun onNewIntentNavigatesToParsedDestination() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com/products/deeplink-id"))
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            composeRule.activity.onNewIntent(intent)
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("product_detail_screen").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("product_detail_screen").assertIsDisplayed()
+    }
+}
+```
+
+Patterns, manifest, App Links, Dynamic App Links, security: [android-navigation.md](android-navigation.md#deep-links).
 
 ## UI Tests
 
@@ -1708,6 +1869,158 @@ class AuthScreenTest {
 
 ```
 
+## Screenshot Testing
+
+Required: use [Compose Preview Screenshot Testing](https://developer.android.com/studio/preview/compose-screenshot-testing) (host JVM, reuses `@Preview`). One test per meaningful state (loading, success, error, empty) for every key screen.
+
+### Setup
+
+**1. `gradle.properties`:**
+```properties
+android.experimental.enableScreenshotTest=true
+```
+
+**2. Version catalog:** The `screenshot` version, `screenshot-validation-api` library, and `screenshot` plugin are defined in `assets/libs.versions.toml.template`.
+
+**3. Module `build.gradle.kts`:**
+```kotlin
+plugins {
+    alias(libs.plugins.screenshot)
+}
+
+android {
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
+}
+
+dependencies {
+    screenshotTestImplementation(libs.screenshot.validation.api)
+    screenshotTestImplementation(libs.androidx.compose.ui.tooling)
+}
+```
+
+### Writing Screenshot Tests
+
+Place tests in the `screenshotTest` source set. Annotate with both `@PreviewTest` and `@Preview`:
+
+```kotlin
+// app/src/screenshotTest/kotlin/com/example/app/LoginScreenScreenshotTest.kt
+package com.example.app
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import com.android.tools.screenshot.PreviewTest
+import com.example.app.ui.theme.AppTheme
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+fun LoginScreen_Loading() {
+    AppTheme {
+        LoginScreen(uiState = LoginUiState.Loading, onAction = {})
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+fun LoginScreen_Success() {
+    AppTheme {
+        LoginScreen(
+            uiState = LoginUiState.LoginForm(
+                email = "user@example.com",
+                password = "password123"
+            ),
+            onAction = {}
+        )
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true)
+@Composable
+fun LoginScreen_Error() {
+    AppTheme {
+        LoginScreen(
+            uiState = LoginUiState.Error("Invalid credentials", canRetry = true),
+            onAction = {}
+        )
+    }
+}
+```
+
+### Multi-Preview for Theme/Device Variants
+
+Use `@Preview` parameters or custom multi-preview annotations to test across configurations:
+
+```kotlin
+@PreviewTest
+@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Composable
+fun LoginScreen_Themes() {
+    AppTheme {
+        LoginScreen(uiState = LoginUiState.LoginForm(), onAction = {})
+    }
+}
+
+@PreviewTest
+@Preview(showBackground = true, fontScale = 1.0f, name = "Default font")
+@Preview(showBackground = true, fontScale = 1.5f, name = "Large font")
+@Preview(showBackground = true, fontScale = 2.0f, name = "Largest font")
+@Composable
+fun LoginScreen_FontScales() {
+    AppTheme {
+        LoginScreen(uiState = LoginUiState.LoginForm(), onAction = {})
+    }
+}
+```
+
+### Configuring Image Difference Threshold
+
+```kotlin
+// module build.gradle.kts
+android {
+    testOptions {
+        screenshotTests {
+            imageDifferenceThreshold = 0.0001f // 0.01% tolerance
+        }
+    }
+}
+```
+
+### Gradle Commands
+
+```bash
+# Generate/update reference images (run once, then commit to VCS)
+./gradlew updateDebugScreenshotTest
+
+# Update for a specific module
+./gradlew :feature:auth:updateDebugScreenshotTest
+
+# Validate screenshots against references (run in CI)
+./gradlew validateDebugScreenshotTest
+
+# Validate for a specific module
+./gradlew :feature:auth:validateDebugScreenshotTest
+```
+
+Reference images: `{module}/src/screenshotTestDebug/reference/` - commit to VCS. Validation report: `{module}/build/reports/screenshotTest/preview/debug/index.html`.
+
+### Requirements
+
+- AGP 8.5+ (Gradle tasks); AGP 9.0+ for full IDE integration.
+- JDK 17+.
+- `com.android.compose.screenshot` plugin 0.0.1-alpha13+.
+
+### Rules
+
+Required:
+- Wrap every preview in the app theme (`AppTheme { }`).
+- Cover light and dark via `uiMode` or a multi-preview annotation.
+- Cover at least one large `fontScale` to catch overflow.
+- Keep tests in the `screenshotTest` source set; do not mix with unit or instrumented tests.
+- Commit reference images alongside source.
+
 ## Performance Benchmarks
 
 Use Macrobenchmark for end-to-end performance checks (startup, navigation, and Compose scrolling).
@@ -1824,62 +2137,23 @@ object TestData {
 ./gradlew test --info
 ```
 
-## Key Testing Principles with Google Truth
+## Rules
 
-1. **Fluent Assertions**: Use Truth's fluent API for readable, maintainable tests:
-   ```kotlin
-   // Instead of: assertEquals(expected, actual)
-   assertThat(actual).isEqualTo(expected)
-   
-   // Instead of: assertTrue(condition)
-   assertThat(condition).isTrue()
-   
-   // Instead of: assertNotNull(value)
-   assertThat(value).isNotNull()
-   ```
+Required:
+- Use Google Truth (`assertThat(actual).isEqualTo(expected)`); never JUnit `assertEquals` / `assertTrue` / `assertNotNull`.
+- Use Truth subject methods (`hasSize`, `contains`, `isInstanceOf`, `isNull`, `isNotNull`) instead of hand-rolled boolean assertions.
+- Hand-written fakes mirror production behaviour with state and test hooks; never stub-only.
+- Test each feature module's ViewModel and UI in isolation; never depend on another feature module from tests.
+- Test `Navigator` interfaces with fakes; MockK only for Navigation 3 framework types in `app`.
+- Use `@HiltAndroidTest` with a test-scoped `@Module` for DI tests.
+- Use Room 3 in-memory builder with `setDriver(BundledSQLiteDriver())` for DAO tests; use `room3-testing` + `MigrationTestHelper` + `SQLiteConnection` for migration tests.
+- Cover `SavedStateHandle` paths (navigation args + process-death restore).
+- Use Turbine for any `Flow` that emits more than once.
 
-2. **Rich Failure Messages**: Truth provides detailed failure messages:
-   ```kotlin
-   // Failure message shows both values
-   assertThat(actualUser.email).isEqualTo("expected@email.com")
-   // Output: Not true that <actual@email.com> is equal to <expected@email.com>
-   ```
-
-3. **Collection Assertions**: Easy collection testing:
-   ```kotlin
-   assertThat(userList).hasSize(3)
-   assertThat(userList).contains(user1)
-   assertThat(userList).doesNotContain(invalidUser)
-   ```
-
-4. **Nullability Support**: Kotlin-friendly null checks:
-   ```kotlin
-   assertThat(nullableValue).isNull()
-   assertThat(nonNullValue).isNotNull()
-   ```
-
-5. **Custom Subjects**: Extend Truth for domain-specific assertions:
-   ```kotlin
-   // In TestData.kt
-   fun assertUserEquals(expected: User, actual: User) {
-       assertThat(actual.id).isEqualTo(expected.id)
-       assertThat(actual.email).isEqualTo(expected.email)
-       assertThat(actual.name).isEqualTo(expected.name)
-   }
-   ```
-
-## Key Testing Principles in Our Architecture
-
-1. **Fakes Over Mocks**: Create realistic fake implementations that mirror production behavior
-2. **Feature Isolation**: Each feature module tests its own ViewModel and UI independently  
-3. **Navigation Testing**: Test navigator interfaces with fakes, not MockK
-4. **Integration Testing**: Test repository implementations with fake data sources
-5. **UI Testing**: Test composable screens with fake ViewModels and navigators
-6. **No Feature Dependencies**: Test utilities in `core:testing` avoid feature-to-feature dependencies
-7. **Hilt for DI Tests**: Use `@HiltAndroidTest` for testing with dependency injection
-8. **In-Memory Database**: Use Room's in-memory database for DAO tests
-9. **SavedStateHandle**: Test navigation arguments and process death scenarios
-10. **Turbine for Flow**: Use Turbine for testing multiple Flow emissions over time
+Forbidden:
+- Mocking libraries in `feature:*` and `core:*` modules.
+- Sharing test fixtures across feature modules (place them in `core:testing`).
+- Relying on `Dispatchers.Main` directly; always use the project's `MainDispatcherRule`.
 
 ## Paging 3 Testing
 
@@ -1897,8 +2171,7 @@ class FakeProductRepository : ProductRepository {
     }
     
     fun emitError() {
-        // Note: PagingData doesn't directly support error states
-        // Use a separate error flow or Result wrapper
+        // CORRECT: PagingData has no error channel — surface failures via Result or a parallel error Flow
         pagingFlow.tryEmit(PagingData.empty())
     }
     
@@ -1929,7 +2202,7 @@ fun `when products loaded then state is success`() = runTest {
 **Warning:** `cachedIn(viewModelScope)` caches `PagingData` and can swallow exceptions, making error-state testing unreliable.
 
 ```kotlin
-// ❌ Problematic for error testing
+// WRONG: Problematic for error testing
 class ProductsViewModel @Inject constructor(
     private val repository: ProductRepository
 ) : ViewModel() {
@@ -2031,31 +2304,51 @@ fun `paging data contains expected items`() = runTest {
 }
 ```
 
-### Best Practices
+### `paging-testing`: `asSnapshot` and `TestPager`
 
-1. **Keep it simple**: Use `PagingData.from()` for most tests
-2. **Test error handling separately**: Don't rely on PagingData flows for error scenarios
-3. **Use separate state flows**: Combine `PagingData` with `StateFlow<Error>` or `StateFlow<Loading>` for testable error/loading states
-4. **Avoid testing pagination logic**: Focus on ViewModel business logic, not Paging library internals
-5. **Use `advanceUntilIdle()`**: Ensure all coroutines complete before assertions
+Required: `testImplementation(libs.androidx.paging.testing)` and catalog rules in [dependencies.md](/references/dependencies.md#paging-3-test-artifact). Keep the `paging` version ref aligned with `paging-runtime` and `paging-compose`.
+
+Use `Flow<PagingData<T>>.asSnapshot { }` when the test drives the same `Flow` the UI collects and asserts the rendered item list after explicit loads, scrolls, or refresh.
+
+Inside the block the receiver is `SnapshotLoader`: call `scrollTo`, `refresh`, `appendScrollWhile`, `prependScrollWhile`, or `flingTo`, then return the snapshot list. `asSnapshot` is suspending; invoke it only from `runTest` (`kotlinx-coroutines-test`).
+
+```kotlin
+import androidx.paging.testing.asSnapshot
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class ProductsPagingTest {
+    @Test
+    fun first_page_matches_repository() = runTest {
+        val items: List<Product> = viewModel.products.asSnapshot {
+            refresh()
+        }
+        assertEquals(2, items.size)
+    }
+}
+```
+
+Use `TestPager` when the test targets a `PagingSource` in isolation (page keys, invalidation, error paths) without a ViewModel or `Flow` wrapper. [`androidx.paging.testing`](https://developer.android.com/reference/kotlin/androidx/paging/testing/package-summary) lists `TestPager` and related types.
+
+Use `PagingData.from()` / fakes when only static list-shaped `PagingData` is required.
+
+Use `AsyncPagingDataDiffer` when verifying diff callbacks and `ListUpdateCallback` behavior against submitted `PagingData`.
+
+### Paging rules
+
+Required:
+- Use `PagingData.from(list)` for the common path.
+- Hold error and loading state in a sibling `StateFlow`; do not assert errors through `PagingData` because `cachedIn` swallows them.
+- Use `AsyncPagingDataDiffer` only when verifying actual loaded items.
+- Use `asSnapshot` when asserting loaded content through the real `Flow<PagingData<T>>` pipeline.
+- Use `TestPager` for direct `PagingSource` unit tests.
+- `advanceUntilIdle()` before every assertion when the test mixes `runTest` with non-suspending collection patterns.
+
+Forbidden:
+- Testing the Paging library's internal pagination logic.
 
 ## Localization Testing
 
-For testing internationalization and localization (i18n/l10n), including:
-- Testing different locales and languages
-- Testing plurals and quantity strings
-- Testing RTL (Right-to-Left) layouts
-- Parameterized tests for multiple locales
-- Screenshot testing for RTL
-- Testing date/time/currency formatting
-
-See [Internationalization & Localization Guide](android-i18n.md#testing-localization) for detailed examples and strategies.
-
-## Related Guides
-
-- [Architecture Guide](architecture.md) - Repository patterns and testing layers
-- [Modularization Guide](modularization.md) - Multi-module testing strategies
-- [Code Coverage Guide](android-code-coverage.md) - JaCoCo setup and CI integration
-- [Internationalization & Localization Guide](android-i18n.md) - Localization testing strategies
-- [Android Testing Docs](https://developer.android.com/training/testing) - Official testing documentation
+See [android-i18n.md](/references/android-i18n.md#testing-localization) for locales, plurals, RTL, parameterized locale tests, RTL screenshots, and date/time/currency formatting.
 - [Hilt Testing](https://developer.android.com/training/dependency-injection/hilt-testing) - Official Hilt testing guide

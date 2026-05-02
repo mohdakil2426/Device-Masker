@@ -1,28 +1,42 @@
 # Android Accessibility (Compose)
 
-Modern accessibility patterns for Jetpack Compose applications. Following WCAG 2.1 Level AA guidelines and Android accessibility best practices for production apps.
-
-Accessibility is not optional-it's required for Google Play, benefits all users, and is often a legal requirement. Build it in from the start.
+Required target: **WCAG 2.2 Level AA** plus the Android-specific rules below (48dp touch targets, TalkBack semantics, Material 3 contrast tokens). WCAG 2.2 is backwards-compatible with 2.1; every 2.1 AA criterion still applies.
 
 ## Table of Contents
-1. [Semantic Properties](#semantic-properties)
-2. [Touch Target Sizes](#touch-target-sizes)
-3. [Screen Reader Navigation](#screen-reader-navigation)
-4. [Color & Visual Accessibility](#color--visual-accessibility)
-5. [Focus Management](#focus-management)
-6. [Common Patterns](#common-patterns)
-7. [Testing Accessibility](#testing-accessibility)
+1. [WCAG 2.2 Criteria That Apply Here](#wcag-22-criteria-that-apply-here)
+2. [Semantic Properties](#semantic-properties)
+3. [Touch Target Sizes](#touch-target-sizes)
+4. [Screen Reader Navigation](#screen-reader-navigation)
+5. [Color & Visual Accessibility](#color--visual-accessibility)
+6. [Focus Management](#focus-management)
+7. [Common Patterns](#common-patterns)
+8. [Testing Accessibility](#testing-accessibility)
+
+## WCAG 2.2 Criteria That Apply Here
+
+WCAG 2.2 adds nine success criteria on top of 2.1. Required on Android Compose:
+
+| Criterion                                 | Rule                                                                                                                                                               | Where it is handled                                                                                                  |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| 2.4.11 Focus Not Obscured (Minimum)       | A focused element must not be fully hidden by author-created overlays (bottom sheets, IME, snackbars).                                                             | `#focus-management`; apply `Modifier.imePadding()` and inset-aware Scaffolds (see `references/compose-patterns.md`). |
+| 2.5.7 Dragging Movements                  | Every drag gesture must have a single-pointer alternative (tap, long-press, button).                                                                               | Sliders, reorderable lists, maps, swipe-to-dismiss. Provide explicit buttons.                                        |
+| 2.5.8 Target Size (Minimum)               | Interactive targets must be at least 24 × 24 CSS px.                                                                                                               | Android's 48dp × 48dp rule is stricter; enforce 48dp. See `#touch-target-sizes`.                                     |
+| 3.2.6 Consistent Help                     | Help mechanisms (contact, chat, FAQ) must appear in the same relative order on every screen.                                                                       | App-level navigation, not per-screen.                                                                                |
+| 3.3.7 Redundant Entry                     | Do not ask the user for the same info twice in one session. Prefill or pull from state.                                                                            | Multi-step forms, signup-then-onboarding flows.                                                                      |
+| 3.3.8 Accessible Authentication (Minimum) | Do not require a cognitive test (puzzle, exact recall, captcha without alternative) unless another factor exists. Paste and autofill must work on password fields. | Login, signup, password reset. Use Credential Manager - see `references/android-security.md`.                        |
+
+Always-applicable 2.1 AA criteria still in force: **1.4.3 Contrast (Minimum)** and **2.4.7 Focus Visible** - see `#color--visual-accessibility` and `#focus-management`.
 
 ## Semantic Properties
 
-Compose provides semantic properties that screen readers (TalkBack) use to describe UI to users.
+Set semantics on every interactive composable. TalkBack reads only the semantics tree.
 
 ### Content Description
 
-The most important semantic property. Describes non-text elements to screen readers.
+Required on every non-text interactive element (icons, image buttons, decorative-but-tappable surfaces). Set `contentDescription = null` only when an adjacent text label already conveys the action.
 
 ```kotlin
-// ✅ Good: Descriptive, action-oriented
+// CORRECT: Descriptive, action-oriented
 IconButton(
     onClick = { onDeleteItem(item.id) },
     modifier = Modifier.semantics {
@@ -32,19 +46,19 @@ IconButton(
     Icon(painterResource(R.drawable.ic_delete), contentDescription = null)
 }
 
-// ✅ Good: Icon already has description
+// CORRECT: Icon already has description
 Icon(
     painterResource(R.drawable.ic_home),
     contentDescription = "Home"
 )
 
-// ❌ Bad: Missing description
+// WRONG: Missing description
 Icon(
     painterResource(R.drawable.ic_settings),
     contentDescription = null  // Only use null if parent has description
 )
 
-// ❌ Bad: Redundant description
+// WRONG: Redundant description
 Button(onClick = { }) {
     Icon(
         painterResource(R.drawable.ic_save),
@@ -59,6 +73,19 @@ Button(onClick = { }) {
 - **Set to null** if the element is decorative or its parent already describes it
 - **Be specific**: "Delete Shopping List" not "Delete"
 - **Include state**: "Favorite, added" not just "Favorite"
+
+### Label copy (TalkBack)
+
+TalkBack already announces the **role** (button, image). Labels should describe **purpose**, not control type.
+
+| Use                     | Avoid                  |
+|-------------------------|------------------------|
+| "Save"                  | "Save button"          |
+| "Submit"                | "Click here to submit" |
+| "Profile photo of Alex" | "Image" or "Image 1"   |
+| "Delete message"        | "Button" (generic)     |
+
+Do not put "tap" or "click" in descriptions (input method varies). Keep labels **short** and **unique in context** (for example "Delete draft" vs "Delete message" when both exist). For **editable fields**, use Material `label` / `placeholder` semantics; do not duplicate the same text in `contentDescription` in a way that makes TalkBack repeat itself.
 
 ### State Description
 
@@ -231,17 +258,21 @@ fun EmailListItem(
 }
 ```
 
-### Merge Descendants
+### Merge Descendants vs ClearAndSetSemantics
 
-Combine multiple elements into a single accessibility node.
+Use `mergeDescendants = true` when you want to combine the semantics of child elements into a single announcement (e.g., a card with a title and subtitle).
+
+Use `clearAndSetSemantics` when you want to completely replace the semantics of child elements with a custom description, ignoring what the children would normally announce.
 
 ```kotlin
-// ✅ Good: Merge card content for single announcement
+// CORRECT: Merge card content for single announcement
 @Composable
 fun ArticleCard(article: Article, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.semantics(mergeDescendants = true) {
+            // Screen reader will read this, plus any other semantics from children
+            // that aren't explicitly overridden here.
             contentDescription = "${article.title}. ${article.author}. ${article.date}"
         }
     ) {
@@ -253,7 +284,7 @@ fun ArticleCard(article: Article, onClick: () -> Unit) {
     }
 }
 
-// ✅ Good: Merge form label and input
+// CORRECT: Merge form label and input
 @Composable
 fun LabeledTextField(
     label: String,
@@ -286,24 +317,38 @@ fun LabeledTextField(
 Hide or override default semantics when needed.
 
 ```kotlin
-// ✅ Good: Hide decorative image from screen readers
+// CORRECT: Hide decorative image from screen readers
 Image(
     painterResource(R.drawable.decorative_pattern),
     contentDescription = null,
     modifier = Modifier.semantics { invisibleToUser() }
 )
 
-// ✅ Good: Clear default semantics for custom implementation
+// CORRECT: Clear default semantics for custom implementation
 Box(
     modifier = Modifier
         .clearAndSetSemantics {
-            // Completely replace default semantics
+            // Completely replace default semantics. Children are ignored.
             contentDescription = "Custom rating: 4 out of 5 stars"
             role = Role.Button
         }
         .clickable { showRatingDialog() }
 ) {
     CustomStarRating(rating = 4)
+}
+```
+
+### Semantic Keys
+
+Compose uses `SemanticsPropertyKey` to define semantic properties. You can create custom keys for specific use cases, though the built-in ones (`contentDescription`, `stateDescription`, `role`, etc.) cover most needs.
+
+```kotlin
+// Define a custom semantic key
+val IsFavoriteKey = SemanticsPropertyKey<Boolean>("IsFavorite")
+
+// Apply it
+Modifier.semantics {
+    set(IsFavoriteKey, true)
 }
 ```
 
@@ -314,21 +359,21 @@ All interactive elements must have a minimum touch target size of **48dp × 48dp
 ### Minimum Touch Targets
 
 ```kotlin
-// ✅ Good: Sufficient touch target
+// CORRECT: Sufficient touch target
 IconButton(
     onClick = { onDeleteClick() }  // IconButton defaults to 48dp
 ) {
     Icon(painterResource(R.drawable.ic_delete), contentDescription = "Delete")
 }
 
-// ❌ Bad: Too small
+// WRONG: Too small
 Icon(
     painterResource(R.drawable.ic_settings),
     contentDescription = "Settings",
     modifier = Modifier.clickable { }  // Only 24dp by default
 )
 
-// ✅ Good: Explicit padding to meet minimum
+// CORRECT: Explicit padding to meet minimum
 Icon(
     painterResource(R.drawable.ic_settings),
     contentDescription = "Settings",
@@ -338,7 +383,7 @@ Icon(
         .padding(12.dp)  // Total: 48dp
 )
 
-// ✅ Good: Minimum touch target with custom size
+// CORRECT: Minimum touch target with custom size
 Box(
     modifier = Modifier
         .clickable { onItemClick() }
@@ -359,7 +404,7 @@ Box(
 Maintain adequate spacing between interactive elements.
 
 ```kotlin
-// ✅ Good: Proper spacing between actions
+// CORRECT: Proper spacing between actions
 Row(
     modifier = Modifier.padding(16.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp)  // Minimum 8dp spacing
@@ -375,7 +420,7 @@ Row(
     }
 }
 
-// ❌ Bad: Actions too close together
+// WRONG: Actions too close together
 Row(modifier = Modifier.padding(16.dp)) {
     Icon(
         painterResource(R.drawable.ic_favorite),
@@ -502,6 +547,10 @@ fun ArticleScreen(article: Article) {
 
 Announce dynamic content changes to screen readers.
 
+**Modes:** In `Modifier.semantics`, `liveRegion = LiveRegionMode.Polite` queues announcements when the user is idle; `LiveRegionMode.Assertive` interrupts — reserve it for critical errors. Default to **polite** live regions on the composable that changed, or rely on **stateDescription** / **error** semantics so TalkBack picks up updates without extra noise.
+
+**Avoid** firing raw `AccessibilityEvent.TYPE_ANNOUNCEMENT` for every minor UI tick. Drive updates through semantics; emit one-off announcements only when no stable node can carry the change.
+
 ```kotlin
 @Composable
 fun ToastMessage(message: String?, onDismiss: () -> Unit) {
@@ -604,10 +653,10 @@ Ensure sufficient color contrast and don't rely on color alone.
 
 ### Color Contrast Requirements
 
-**WCAG 2.1 Level AA:**
+**WCAG 2.2 Level AA (1.4.3 Contrast Minimum, 1.4.11 Non-text Contrast):**
 - **Normal text:** 4.5:1 contrast ratio
 - **Large text** (18pt+/14pt+ bold): 3:1 contrast ratio
-- **UI components:** 3:1 contrast ratio
+- **UI components and graphical objects:** 3:1 contrast ratio
 
 ```kotlin
 @Composable
@@ -629,7 +678,7 @@ fun AccessibleButton(
     }
 }
 
-// ❌ Bad: Insufficient contrast
+// WRONG: Insufficient contrast
 @Composable
 fun PoorContrastText() {
     Text(
@@ -639,7 +688,7 @@ fun PoorContrastText() {
     )
 }
 
-// ✅ Good: Check contrast programmatically
+// CORRECT: Check contrast programmatically
 @Composable
 fun DynamicContrastText(
     text: String,
@@ -664,7 +713,7 @@ fun DynamicContrastText(
 Use multiple indicators (color + icon + text).
 
 ```kotlin
-// ❌ Bad: Color only
+// WRONG: Color only
 @Composable
 fun StatusBadge(status: Status) {
     Box(
@@ -681,7 +730,7 @@ fun StatusBadge(status: Status) {
     )
 }
 
-// ✅ Good: Color + Icon + Text
+// CORRECT: Color + Icon + Text
 @Composable
 fun AccessibleStatusBadge(status: Status) {
     val (icon, color, text) = when (status) {
@@ -707,7 +756,7 @@ fun AccessibleStatusBadge(status: Status) {
     }
 }
 
-// ✅ Good: Form validation with multiple indicators
+// CORRECT: Form validation with multiple indicators
 @Composable
 fun AccessibleTextField(
     value: String,
@@ -1366,6 +1415,21 @@ fun toggleButton_announcesState() {
 }
 ```
 
+### Espresso accessibility checks (instrumented)
+
+For **View-based** or hybrid screens, enable Espresso's built-in checks so basic a11y violations fail tests early. Add the `espresso-accessibility` artifact (see `references/testing.md` and your version catalog), then:
+
+```kotlin
+import androidx.test.espresso.accessibility.AccessibilityChecks
+
+@Before
+fun enableA11yChecks() {
+    AccessibilityChecks.enable()
+}
+```
+
+Compose UI tests assert **semantics** directly for most flows. Use Espresso accessibility checks when `ActivityScenario` / `Espresso` or `AndroidView` interop still owns the surface under test.
+
 ### Accessibility Scanner
 
 Use Android Accessibility Scanner for manual testing:
@@ -1412,7 +1476,7 @@ fun AppContent() {
 **Test Color Contrast:**
 1. Enable high contrast mode (Android 14+)
 2. Use Accessibility Scanner app
-3. Verify contrast ratios meet WCAG AA standards
+3. Verify contrast ratios meet WCAG 2.2 AA (1.4.3, 1.4.11)
 
 ### Integration with CI/CD
 
@@ -1433,28 +1497,30 @@ android {
 }
 ```
 
-## Best Practices Summary
+## Rules
 
-**Always:**
-- ✅ Provide `contentDescription` for all icons and images
-- ✅ Ensure 48dp × 48dp minimum touch targets
-- ✅ Use `mergeDescendants` to group related content
-- ✅ Announce state changes with `stateDescription`
-- ✅ Support dark mode and high contrast
-- ✅ Test with TalkBack enabled
+**Required:**
+- Provide `contentDescription` for all icons and images
+- Write concise labels (purpose, not "button" / "tap here")
+- Ensure 48dp × 48dp minimum touch targets
+- Use `mergeDescendants` to group related content
+- Announce state changes with `stateDescription`
+- Support dark mode and high contrast
+- Test with TalkBack enabled
 
-**Never:**
-- ❌ Rely on color alone to convey information
-- ❌ Use small touch targets (< 48dp)
-- ❌ Ignore form validation error announcements
-- ❌ Use `contentDescription` on decorative images
-- ❌ Forget to test with accessibility services enabled
-- ❌ Hardcode text (use string resources for i18n)
+**Forbidden:**
+- Rely on color alone to convey information
+- Use small touch targets (< 48dp)
+- Ignore form validation error announcements
+- Use `contentDescription` on decorative images
+- Forget to test with accessibility services enabled
+- Hardcode text (use string resources for i18n)
 
 ## References
 
 - Official Android Accessibility: https://developer.android.com/guide/topics/ui/accessibility
 - Compose Accessibility: https://developer.android.com/jetpack/compose/accessibility
-- WCAG 2.1 Guidelines: https://www.w3.org/WAI/WCAG21/quickref/
+- WCAG 2.2 Guidelines: https://www.w3.org/WAI/WCAG22/quickref/
+- WCAG 2.2 What's New: https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/
 - Material Design Accessibility: https://m3.material.io/foundations/accessible-design/overview
 - TalkBack User Guide: https://support.google.com/accessibility/android/answer/6283677

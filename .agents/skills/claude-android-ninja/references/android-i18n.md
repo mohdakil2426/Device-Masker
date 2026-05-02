@@ -1,14 +1,12 @@
 # Internationalization & Localization (i18n/l10n)
 
-This guide covers internationalization (i18n) and localization (l10n) for Android apps, with a Compose-first approach.
+Required for every user-visible string and date/time/number value in Compose:
 
-## Goals
-
-- Support multiple languages and locales
-- Handle RTL (Right-to-Left) layouts automatically
-- Format dates, times, and currencies correctly for each locale
-- Use plurals and quantity strings correctly
-- Test localization thoroughly
+- Move all user-visible text to `strings.xml`. No hardcoded literals in composables.
+- Use `LocalLayoutDirection` and `Modifier.padding(start = ..., end = ...)`. Never `left`/`right`.
+- Format dates, times, currencies, and numbers via `kotlinx-datetime` + `NumberFormat.getInstance(locale)`. Never string-concatenate.
+- Use `pluralStringResource` (or ICU `plurals`) for any quantity-bearing string. Never `"%d items"`.
+- Test every screen with pseudo-locale `en-XA` and an RTL locale (`ar` or `he`).
 
 ## String Resources
 
@@ -155,7 +153,7 @@ fun TimestampText(minutesAgo: Int) {
 }
 ```
 
-**Note**: The first `count` parameter is the quantity for plural selection, the second `count` is the formatting argument for `%d`.
+**Required:** the first `count` selects the plural branch; the second `count` fills `%d` in the formatted string.
 
 ## RTL (Right-to-Left) Support
 
@@ -224,11 +222,11 @@ fun ProfileCard(user: User) {
 }
 ```
 
-**Best Practices:**
-- Use `padding(start = ...)` and `padding(end = ...)` instead of `padding(left = ...)` and `padding(right = ...)`
-- Use `Arrangement.Start` and `Arrangement.End` instead of `Arrangement.Left` and `Arrangement.Right`
-- Use `TextAlign.Start` and `TextAlign.End` instead of `TextAlign.Left` and `TextAlign.Right`
-- Icons that indicate direction should be mirrored in RTL (use `Modifier.mirror()` for custom icons)
+**Required:**
+- Use `padding(start = ...)` / `padding(end = ...)` instead of `left` / `right`.
+- Use `Arrangement.Start` / `Arrangement.End` instead of `Left` / `Right`.
+- Use `TextAlign.Start` / `TextAlign.End` instead of `Left` / `Right`.
+- Mirror directional icons in RTL (`Modifier.mirror()` for custom artwork).
 
 ### Force RTL for Testing
 
@@ -269,7 +267,7 @@ Use `kotlinx-datetime` for locale-aware date/time formatting.
 ### Dependencies
 
 ```kotlin
-// Already in templates/libs.versions.toml.template
+// Already in assets/libs.versions.toml.template
 implementation(libs.kotlinx.datetime)
 ```
 
@@ -589,12 +587,12 @@ fun ProductsListView(state: ProductsUiState) {
 }
 ```
 
-**Best practices:**
-- **Never duplicate strings** across modules, even if they have the same text
-- Use import aliases (`as CoreUiR`) for clarity when accessing cross-module resources
-- If multiple features need the same string, move it to `core:common` or `core:ui`
-- Feature modules should depend on `core:ui` for shared UI strings
-- See [gradle-setup.md](gradle-setup.md#non-transitive-r-classes) for technical details on non-transitive R classes
+**Required:**
+- **Never duplicate strings** across modules, even if the English text matches.
+- Use import aliases (`as CoreUiR`) when a file reads strings from multiple modules.
+- Promote shared copy to `core:common` or `core:ui` when multiple features need the same key.
+- Shared UI chrome strings live in `core:ui`; feature modules depend on that module instead of copying XML.
+- Non-transitive R class wiring: [gradle-setup.md → Non-transitive R classes](/references/gradle-setup.md#non-transitive-r-classes).
 
 ## Architecture Integration
 
@@ -839,42 +837,42 @@ fun testRTLScreenshots() {
 }
 ```
 
-## Best Practices
+## Rules
 
-### 1. Always Use String Resources
+### String resources
 
-❌ **Bad:**
+**Wrong:**
 ```kotlin
 Text("Welcome to My App")
 Button(onClick = {}) { Text("Submit") }
 ```
 
-✅ **Good:**
+**Correct:**
 ```kotlin
 Text(stringResource(R.string.welcome_message))
 Button(onClick = {}) { Text(stringResource(R.string.submit_button)) }
 ```
 
-### 2. Use Plurals for Quantities
+### Plurals for quantities
 
-❌ **Bad:**
+**Wrong:**
 ```kotlin
 val text = if (count == 1) "$count item" else "$count items"
 ```
 
-✅ **Good:**
+**Correct:**
 ```kotlin
 val text = pluralStringResource(R.plurals.item_count, count, count)
 ```
 
-### 3. Never Concatenate Strings
+### No string concatenation
 
-❌ **Bad:**
+**Wrong:**
 ```kotlin
 Text("Hello " + userName + ", welcome back!")
 ```
 
-✅ **Good:**
+**Correct:**
 ```xml
 <string name="welcome_back">Hello %1$s, welcome back!</string>
 ```
@@ -882,19 +880,19 @@ Text("Hello " + userName + ", welcome back!")
 Text(stringResource(R.string.welcome_back, userName))
 ```
 
-### 4. Use Start/End Instead of Left/Right
+### Start/end layout
 
-❌ **Bad:**
+**Wrong:**
 ```kotlin
 Modifier.padding(left = 16.dp, right = 16.dp)
 ```
 
-✅ **Good:**
+**Correct:**
 ```kotlin
 Modifier.padding(start = 16.dp, end = 16.dp)
 ```
 
-### 5. Test RTL Layouts
+### RTL testing
 
 Always test with RTL locales (Arabic, Hebrew, Persian):
 ```kotlin
@@ -905,21 +903,21 @@ fun PreviewArabic() {
 }
 ```
 
-### 6. Use Locale-Aware Formatting
+### Locale-aware formatting
 
-❌ **Bad:**
+**Wrong:**
 ```kotlin
 Text("Price: $${amount}")
 Text("Date: ${year}-${month}-${day}")
 ```
 
-✅ **Good:**
+**Correct:**
 ```kotlin
 Text(currencyFormatter.formatCurrency(amount, "USD"))
 Text(dateFormatter.formatDate(instant))
 ```
 
-### 7. Handle Text Expansion
+### Text expansion
 
 Some languages (German, Finnish) have longer words. Design UI with flexibility:
 ```kotlin
@@ -935,7 +933,7 @@ Button(
 }
 ```
 
-### 8. Provide Context for Translators
+### Translator context comments
 
 ```xml
 <!-- Add context comments for translators -->
@@ -948,7 +946,7 @@ Button(
 </resources>
 ```
 
-### 9. Use ICU MessageFormat for Complex Plurals
+### ICU MessageFormat
 
 For very complex plural rules, consider using ICU MessageFormat:
 ```xml
@@ -962,7 +960,7 @@ For very complex plural rules, consider using ICU MessageFormat:
 </resources>
 ```
 
-### 10. Avoid Hardcoded Measurements
+### Relative measurements
 
 Some languages (Thai, Japanese) may need different line heights or text sizes:
 ```kotlin
@@ -1007,22 +1005,22 @@ jobs:
 
 ## Common Pitfalls
 
-### 1. Forgetting RTL Support
+### Pitfall: RTL skipped
 
 Always enable RTL and test with Arabic/Hebrew:
 ```xml
 <application android:supportsRtl="true">
 ```
 
-### 2. Using String Concatenation
+### Pitfall: string concatenation
 
 This breaks word order in other languages. Always use parameterized strings.
 
-### 3. Hardcoding Dates/Times
+### Pitfall: hardcoded dates/times
 
 Always use locale-aware formatters.
 
-### 4. Assuming English Word Order
+### Pitfall: English-only word order
 
 Different languages have different grammar rules. Use placeholders:
 ```xml
@@ -1033,15 +1031,9 @@ Different languages have different grammar rules. Use placeholders:
 <string name="search_results">%1$d個のアイテムが見つかりました</string>
 ```
 
-### 5. Not Testing Text Expansion
+### Pitfall: no expansion testing
 
 German and Finnish translations can be 30-40% longer. Test UI flexibility.
-
-## Related Guides
-
-- [Compose Patterns](compose-patterns.md) - Compose UI patterns including RTL support
-- [Testing Guide](testing.md) - Testing strategies including localization tests
-- [Kotlin Patterns](kotlin-patterns.md) - String formatting and handling
 
 ## External Resources
 
