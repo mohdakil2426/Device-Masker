@@ -82,8 +82,10 @@ object ConfigManager {
                 // Try loading from local file first
                 if (configFile.baseFile.exists()) {
                     val json = String(configFile.readFully())
-                    val loadedConfig = JsonConfig.parse(json)
+                    val loadedConfig =
+                        JsonConfig.parse(json).withDerivedAppConfigsFromAssignedApps()
                     _config.value = loadedConfig
+                    ConfigSync.syncFromConfig(appContext, loadedConfig)
                     Timber.tag(TAG).i("Config loaded from local file")
                     return@withContext
                 }
@@ -103,6 +105,11 @@ object ConfigManager {
     /** Saves the current configuration to local file and syncs to service. */
     fun saveConfig() {
         scope.launch { saveConfigInternal(_config.value) }
+    }
+
+    fun syncCurrentConfig() {
+        if (!::appContext.isInitialized) return
+        scope.launch { ConfigSync.syncFromConfig(appContext, _config.value) }
     }
 
     /**
@@ -253,36 +260,39 @@ object ConfigManager {
 
     /** Assigns an app to a group. */
     fun assignAppToGroup(packageName: String, groupId: String) {
-        // Remove from old group if any
-        val oldGroup = getGroupForApp(packageName)
-        if (oldGroup != null && oldGroup.id != groupId) {
-            val updatedOld = oldGroup.copy(assignedApps = oldGroup.assignedApps - packageName)
-            updateConfig { it.addOrUpdateGroup(updatedOld) }
-        }
+        updateConfig { config ->
+            if (config.getGroup(groupId) == null) return@updateConfig config
 
-        // Add to new group
-        val newGroup = getGroup(groupId)
-        if (newGroup != null) {
-            val updatedNew = newGroup.copy(assignedApps = newGroup.assignedApps + packageName)
-            updateConfig { it.addOrUpdateGroup(updatedNew) }
+            val groups =
+                config.groups.mapValues { (_, group) ->
+                    when {
+                        group.id == groupId ->
+                            group.copy(assignedApps = group.assignedApps + packageName)
+                        packageName in group.assignedApps ->
+                            group.copy(assignedApps = group.assignedApps - packageName)
+                        else -> group
+                    }
+                }
+            val appConfig =
+                config.getAppConfig(packageName)?.copy(groupId = groupId, isEnabled = true)
+                    ?: AppConfig(packageName = packageName, groupId = groupId)
+            config.copy(groups = groups).setAppConfig(appConfig)
         }
-
-        // Update app config
-        val appConfig =
-            getAppConfig(packageName)?.copy(groupId = groupId)
-                ?: AppConfig(packageName = packageName, groupId = groupId)
-        updateConfig { it.setAppConfig(appConfig) }
     }
 
     /** Unassigns an app from its group. */
     fun unassignApp(packageName: String) {
-        val group = getGroupForApp(packageName)
-        if (group != null) {
-            val updated = group.copy(assignedApps = group.assignedApps - packageName)
-            updateConfig { it.addOrUpdateGroup(updated) }
+        updateConfig { config ->
+            val groups =
+                config.groups.mapValues { (_, group) ->
+                    if (packageName in group.assignedApps) {
+                        group.copy(assignedApps = group.assignedApps - packageName)
+                    } else {
+                        group
+                    }
+                }
+            config.copy(groups = groups).removeAppConfig(packageName)
         }
-
-        updateConfig { it.removeAppConfig(packageName) }
     }
 
     /** Sets whether spoofing is enabled for an app. */

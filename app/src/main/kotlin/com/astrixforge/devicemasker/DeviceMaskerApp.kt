@@ -39,6 +39,7 @@ class DeviceMaskerApp : Application() {
 
         // Local JSON config — loads existing config.json from filesDir
         ConfigManager.init(this)
+        XposedPrefs.addServiceBindCallback { ConfigManager.syncCurrentConfig() }
         Timber.d("ConfigManager initialised")
 
         // Diagnostics-only AIDL client — non-fatal if service is unavailable
@@ -71,27 +72,8 @@ class DeviceMaskerApp : Application() {
         val serviceClient: ServiceClient
             get() = getInstance()._serviceClient
 
-        /**
-         * Whether the Xposed module is currently active in the running process.
-         *
-         * After YukiHookAPI removal this is checked via a sentinel field that the Xposed framework
-         * sets to `true` when the module is loaded. The field is defined in [XposedModuleActive]
-         * and set by the hook entry class.
-         */
+        /** Whether the app is currently connected to LSPosed's libxposed service. */
         val isXposedModuleActive: Boolean
-            get() = XposedModuleActive.active
+            get() = XposedPrefs.isConnected()
     }
-}
-
-/**
- * Sentinel for module-active detection without YukiHookAPI.
- *
- * `XposedEntry.init` sets [active] to `true` via reflection when the module is loaded into a
- * process. In the module app's own process this field stays `false` — the module app is never
- * hooked into itself (libxposed API 101 guarantees this).
- *
- * This pattern replaces `YukiHookAPI.Status.isModuleActive`.
- */
-object XposedModuleActive {
-    @Volatile @JvmField var active: Boolean = false
 }

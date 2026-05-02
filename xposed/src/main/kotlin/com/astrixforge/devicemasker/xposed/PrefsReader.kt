@@ -29,17 +29,25 @@ import com.astrixforge.devicemasker.common.SpoofType
  */
 object PrefsHelper {
 
+    fun getStoredSpoofValue(
+        prefs: SharedPreferences,
+        packageName: String,
+        type: SpoofType,
+    ): String? {
+        val typeEnabled =
+            prefs.getBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), false)
+        if (!typeEnabled) return null
+
+        val stored = prefs.getString(SharedPrefsKeys.getSpoofValueKey(packageName, type), null)
+        return stored?.takeIf { it.isNotBlank() }
+    }
+
     /**
-     * Gets the spoof value for a type, or invokes the fallback generator if not configured.
+     * Gets the stored spoof value for a type, or invokes [fallback] when no configured value
+     * exists.
      *
-     * Check cascade: spoof type enabled? → get value → non-blank? → return value ↓ ↓ fallback()
-     * fallback()
-     *
-     * @param prefs RemotePreferences from XposedEntry.getRemotePreferences(PREFS_GROUP)
-     * @param packageName Target app package name (the app being hooked)
-     * @param type The SpoofType to look up
-     * @param fallback Called if the type is disabled or no value is stored
-     * @return The configured spoof value, or fallback() if not configured
+     * Hook callbacks should prefer [getStoredSpoofValue] and return the original method result when
+     * it returns `null`. This compatibility wrapper is retained only for non-callback helpers.
      */
     fun getSpoofValue(
         prefs: SharedPreferences,
@@ -47,14 +55,7 @@ object PrefsHelper {
         type: SpoofType,
         fallback: () -> String,
     ): String {
-        // If this spoof type is not enabled for this package, return real value
-        val typeEnabled =
-            prefs.getBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), false)
-        if (!typeEnabled) return fallback()
-
-        // Return the stored spoof value, or generate fallback if not set
-        val stored = prefs.getString(SharedPrefsKeys.getSpoofValueKey(packageName, type), null)
-        return stored?.takeIf { it.isNotBlank() } ?: fallback()
+        return getStoredSpoofValue(prefs, packageName, type) ?: fallback()
     }
 
     /**

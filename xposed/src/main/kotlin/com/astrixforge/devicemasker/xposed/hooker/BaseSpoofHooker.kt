@@ -40,8 +40,8 @@ import java.lang.reflect.Method
  *         safeHook("getImei()") {
  *             tmClass.methodOrNull("getImei")?.let { m ->
  *                 xi.hook(m).intercept { chain ->
- *                     chain.proceed() // call original method
- *                     getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+ *                     val original = chain.proceed()
+ *                     getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI) ?: original
  *                 }
  *                 xi.deoptimize(m)  // bypass ART inlining — CRITICAL for guaranteed delivery
  *             }
@@ -112,6 +112,12 @@ abstract class BaseSpoofHooker(protected val tag: String) {
         type: SpoofType,
         fallback: () -> String,
     ): String = PrefsHelper.getSpoofValue(prefs, pkg, type, fallback)
+
+    protected fun getConfiguredSpoofValue(
+        prefs: SharedPreferences,
+        pkg: String,
+        type: SpoofType,
+    ): String? = PrefsHelper.getStoredSpoofValue(prefs, pkg, type)
 
     /**
      * Checks if a spoof type is explicitly enabled for a package in RemotePreferences. Returns

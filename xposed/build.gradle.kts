@@ -66,4 +66,6 @@ dependencies {
 
     // Serialization for config parsing
     implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(libs.junit)
 }

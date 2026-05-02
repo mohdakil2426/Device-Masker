@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.ServiceClient
 import kotlinx.coroutines.delay
@@ -40,6 +41,12 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
 
     init {
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
+
+        viewModelScope.launch {
+            XposedPrefs.isServiceConnected.collect { connected ->
+                _state.update { it.copy(isXposedActive = connected) }
+            }
+        }
 
         // Observe connection state live
         viewModelScope.launch {

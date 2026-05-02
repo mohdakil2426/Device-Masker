@@ -38,7 +38,6 @@
 # DEVICE MASKER — Application class (referenced in AndroidManifest)
 # =============================================================================
 -keep class com.astrixforge.devicemasker.DeviceMaskerApp { *; }
--keep class com.astrixforge.devicemasker.XposedModuleActive { *; }
 
 # =============================================================================
 # DEVICE MASKER — Service layer

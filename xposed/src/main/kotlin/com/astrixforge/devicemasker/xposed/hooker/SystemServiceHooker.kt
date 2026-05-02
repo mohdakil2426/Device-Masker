@@ -62,6 +62,7 @@ object SystemServiceHooker {
                         TAG,
                         "AMS.systemReady(${method.parameterCount} params) hook registered",
                     )
+                    xi.deoptimize(method)
                 }
         } catch (t: Throwable) {
             // AMS hook unavailable — fall back to SystemServer.run() hook
@@ -82,6 +83,7 @@ object SystemServiceHooker {
                 }
                 result
             }
+            xi.deoptimize(runMethod)
             DualLog.info(TAG, "SystemServer.run() hook registered")
         } catch (t: Throwable) {
             DualLog.warn(TAG, "SystemServer.run() hook unavailable", t)

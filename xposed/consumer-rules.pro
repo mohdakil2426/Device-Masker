@@ -22,7 +22,6 @@
 }
 
 # Module-active sentinel — field set by libxposed at load time
--keep class com.astrixforge.devicemasker.XposedModuleActive { *; }
 
 # XposedModule base class — kept for subclassing
 -keep class io.github.libxposed.api.XposedModule { *; }

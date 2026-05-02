@@ -93,6 +93,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     if (changed) reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
                     result
                 }
+                xi.deoptimize(m)
             }
         }
     }
@@ -172,6 +173,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         result
                     }
                 }
+                xi.deoptimize(m)
             }
         }
     }

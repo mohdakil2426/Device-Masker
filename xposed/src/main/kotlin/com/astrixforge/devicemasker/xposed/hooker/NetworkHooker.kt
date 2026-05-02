@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.common.generators.MACGenerator
 import io.github.libxposed.api.XposedInterface
 import java.net.NetworkInterface
 
@@ -41,7 +40,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) { MACGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                     spoofed
                 }
@@ -52,7 +52,9 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
             wifiInfoClass.methodOrNull("getSSID")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val ssid = getSpoofValue(prefs, pkg, SpoofType.WIFI_SSID) { "HomeNetwork" }
+                    val ssid =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_SSID)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.WIFI_SSID)
                     if (ssid.startsWith("\"")) ssid else "\"$ssid\""
                 }
@@ -64,7 +66,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID) { MACGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.WIFI_BSSID)
                     spoofed
                 }
@@ -95,9 +98,11 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         return@intercept result
                     }
                     val mac =
-                        getSpoofValue(prefs, pkg, SpoofType.WIFI_MAC) { MACGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
-                    mac.split(":").map { it.toInt(16).toByte() }.toByteArray()
+                    runCatching { mac.split(":").map { it.toInt(16).toByte() }.toByteArray() }
+                        .getOrElse { result }
                 }
                 xi.deoptimize(m)
             }
@@ -116,9 +121,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC) {
-                            MACGenerator.generate()
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.BLUETOOTH_MAC)
                     spoofed
                 }
@@ -139,9 +143,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME) {
-                            (result as? String) ?: "Carrier"
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                     spoofed
                 }
@@ -153,9 +156,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) {
-                            (result as? String) ?: "310260"
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                     spoofed
                 }

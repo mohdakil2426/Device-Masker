@@ -2,7 +2,6 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.common.generators.UUIDGenerator
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -36,9 +35,8 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID) {
-                            UUIDGenerator.generateAdvertisingId()
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.ADVERTISING_ID)
                     spoofed
                 }
@@ -66,12 +64,12 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                         val key = chain.args.getOrNull(1) as? String ?: return@intercept result
                         if (key != "android_id") return@intercept result
                         val spoofed =
-                            getSpoofValue(prefs, pkg, SpoofType.GSF_ID) {
-                                UUIDGenerator.generateGSFId()
-                            }
+                            getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
+                                ?: return@intercept result
                         reportSpoofEvent(pkg, SpoofType.GSF_ID)
                         spoofed
                     }
+                    xi.deoptimize(m)
                 }
         }
         safeHook("Gservices.getLong(ContentResolver, String, long)") {
@@ -85,14 +83,14 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                         val key = chain.args.getOrNull(1) as? String ?: return@intercept result
                         if (key != "android_id") return@intercept result
                         val spoofed =
-                            getSpoofValue(prefs, pkg, SpoofType.GSF_ID) {
-                                UUIDGenerator.generateGSFId()
-                            }
+                            getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
+                                ?: return@intercept result
                         val finalVal =
                             runCatching { spoofed.toLong(16) }.getOrElse { result as Long }
                         reportSpoofEvent(pkg, SpoofType.GSF_ID)
                         finalVal
                     }
+                    xi.deoptimize(m)
                 }
         }
     }
@@ -111,18 +109,21 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     val property = chain.args.firstOrNull() as? String ?: return@intercept result
                     if (property != "deviceUniqueId") return@intercept result
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID) {
-                            UUIDGenerator.generateMediaDrmId()
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID)
+                            ?: return@intercept result
+                    val bytes = hexToBytes(spoofed) ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.MEDIA_DRM_ID)
-                    hexToBytes(spoofed)
+                    bytes
                 }
                 xi.deoptimize(m)
             }
         }
     }
 
-    private fun hexToBytes(hex: String): ByteArray =
-        runCatching { hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
-            .getOrElse { ByteArray(32) }
+    private fun hexToBytes(hex: String): ByteArray? {
+        val cleanHex = hex.trim()
+        if (cleanHex.length < 2 || cleanHex.length % 2 != 0) return null
+        return runCatching { cleanHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
+            .getOrNull()
+    }
 }

@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.service
 
 import android.content.Context
+import android.os.Build
 import android.os.IBinder
 import com.astrixforge.devicemasker.IDeviceMaskerService
 import kotlinx.coroutines.Dispatchers
@@ -180,7 +181,9 @@ class ServiceClient(private val context: Context) {
 
     private fun getBinder(): IBinder? =
         runCatching {
-                HiddenApiBypass.addHiddenApiExemptions("Landroid/os/ServiceManager;")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    HiddenApiBypass.addHiddenApiExemptions("Landroid/os/ServiceManager;")
+                }
                 val serviceManagerClass = Class.forName("android.os.ServiceManager")
                 val getServiceMethod =
                     serviceManagerClass.getDeclaredMethod("getService", String::class.java)

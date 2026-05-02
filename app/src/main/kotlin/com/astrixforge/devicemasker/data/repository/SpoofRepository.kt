@@ -69,8 +69,11 @@ class SpoofRepository(private val context: Context) {
 
     /** Flow of enabled app count. */
     val enabledAppCount: Flow<Int> =
-        groups.map { groupList ->
-            groupList.filter { it.isEnabled }.flatMap { it.assignedApps }.distinct().size
+        ConfigManager.config.map { config ->
+            config.appConfigs.values.count { appConfig ->
+                appConfig.isEnabled &&
+                    config.getGroupForApp(appConfig.packageName)?.isEnabled == true
+            }
         }
 
     /** Combined UI state flow for dashboard. */
@@ -564,16 +567,19 @@ class SpoofRepository(private val context: Context) {
 
     /** Adds an app to a group. */
     suspend fun addAppToGroup(groupId: String, packageName: String) {
-        val group = ConfigManager.getGroup(groupId) ?: return
-        val updatedGroup = group.addApp(packageName)
-        ConfigManager.updateGroup(updatedGroup)
+        ConfigManager.assignAppToGroup(packageName, groupId)
     }
 
     /** Removes an app from a group. */
     suspend fun removeAppFromGroup(groupId: String, packageName: String) {
-        val group = ConfigManager.getGroup(groupId) ?: return
-        val updatedGroup = group.removeApp(packageName)
-        ConfigManager.updateGroup(updatedGroup)
+        val appConfig = ConfigManager.getAppConfig(packageName)
+        val isAssignedByCanonicalConfig = appConfig?.groupId == groupId
+        val isAssignedByLegacyGroup =
+            ConfigManager.getGroup(groupId)?.isAppAssigned(packageName) == true
+
+        if (isAssignedByCanonicalConfig || isAssignedByLegacyGroup) {
+            ConfigManager.unassignApp(packageName)
+        }
     }
 
     // ═══════════════════════════════════════════════════════════

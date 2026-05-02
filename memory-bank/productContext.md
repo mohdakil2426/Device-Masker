@@ -1,186 +1,65 @@
 # Product Context: Device Masker
 
-## Why This Project Exists
+## Problem
 
-### The Problem
+Android apps can collect many identifiers and signals to build a device fingerprint:
+- Telephony identifiers such as IMEI, IMSI, ICCID, carrier, and phone number.
+- Android and Google identifiers such as Android ID, GSF ID, Advertising ID, and Media DRM ID.
+- Network identifiers such as Wi-Fi/Bluetooth MAC, SSID, and BSSID.
+- System profile values such as model, manufacturer, build fingerprint, and serial.
+- Locale, timezone, location, and sensor metadata.
+- Installed package and stack trace evidence that a hook framework is present.
 
-Modern Android applications extensively collect device identifiers for:
-- **User Tracking**: Building groups across apps and sessions
-- **Device Fingerprinting**: Creating unique identifiers even without explicit permissions
-- **Multi-Account Detection**: Preventing users from having multiple accounts
-- **Ban Evasion Detection**: Tracking devices across account changes
-- **Analytics**: Understanding device demographics
+Users and researchers need a controlled way to present consistent alternate identities to selected apps without modifying APKs.
 
-These identifiers include IMEI, Serial Number, MAC Address, Android ID, Advertising ID, and many more. Even privacy-conscious users have limited control over this information leakage.
+## Product Shape
 
-### The Solution
+Device Masker has two user-visible parts:
 
-Device Masker intercepts system API calls that retrieve device identifiers and returns user-configured spoofed values instead. This allows users to:
-- Present a different device identity to each app
-- Regenerate identifiers at will
-- Protect against device fingerprinting
-- Maintain privacy without removing legitimate app functionality
+1. The Android app
+   - Configure the global module switch.
+   - Create and edit spoof groups.
+   - Assign apps to groups.
+   - Regenerate or customize identifier values.
+   - See module/framework health and diagnostics.
 
-### Why LSPosed/Xposed?
+2. The LSPosed module
+   - Loads in scoped target app processes.
+   - Reads configuration through libxposed RemotePreferences.
+   - Applies spoof hooks only when the app and spoof type are enabled.
+   - Hides selected LSPosed/module/package traces.
+   - Reports diagnostics to the system_server service.
 
-LSPosed (built on the Xposed framework) allows modifying app behavior without:
-- Modifying APK files (no signature breaking)
-- Root detection in most apps (with companion modules)
-- Breaking app updates
+## Expected User Flow
 
-This makes it ideal for privacy-focused modifications that need to work across many apps.
+1. Install the APK.
+2. Enable Device Masker in LSPosed.
+3. Ensure required scope is available (`android`, `system`, and selected target apps as applicable).
+4. Open Device Masker.
+5. Create or select a spoof group.
+6. Assign target apps to that group.
+7. Enable and configure specific spoof types.
+8. Restart target apps if needed.
+9. Verify with diagnostics and external identifier-checking apps.
 
-## Problems It Solves
+## UX Principles
 
-| Problem | Solution |
-|---------|----------|
-| Apps track device across reinstalls | Spoof Android ID, Advertising ID, GSF ID |
-| Apps detect multi-accounts by IMEI | Spoof IMEI per group |
-| Location-based fingerprinting | Spoof GPS, Timezone, Locale |
-| Hardware fingerprinting | Spoof Build properties, Serial |
-| Network fingerprinting | Spoof MAC Address, SSID, BSSID |
-| Xposed detection breaks app | Anti-detection layer hides hooks |
+- Make current status clear: module switch, LSPosed service connection, protected app count, and configured identifiers.
+- Avoid false health claims. The app can show service connection and diagnostics availability, but a target app is only proven hooked after hook registration or spoof events appear.
+- Keep configuration changes immediate and recoverable.
+- Prefer coherent group/persona configuration over one-off values that break correlation.
+- Make development-state limitations visible rather than pretending the module is stable.
 
-## How It Should Work
+## Correct Behavior
 
-### User Journey
+For each target app and spoof type:
+- If the module is disabled, return the original value.
+- If the app is not enabled in `AppConfig`, return the original value.
+- If the assigned group is missing or disabled, return the original value.
+- If the spoof type is disabled, blank, missing, or malformed, return the original value.
+- If a valid stored value exists and the type is enabled, return the stored spoofed value.
 
-1. **Install & Enable**
-   - User installs Device Masker APK
-   - Opens LSPosed Manager, enables the module
-   - Reboots device (or soft reboot for LSPosed)
+## Primary Risk To Avoid
 
-2. **Configure Apps**
-   - Open Device Masker app
-   - Go to "Apps" screen
-   - Select apps to protect (enable spoofing)
-   - Optionally assign specific groups to apps
+Target apps can get stuck during startup if they see inconsistent or changing identifiers. Therefore hooks must not generate random values in target processes. Values should be generated and persisted in app-side configuration, then read by hooks as stable stored values.
 
-3. **Manage Groups**
-   - Create named groups with different identities
-   - Set one group as default
-   - Assign groups to specific apps if needed
-
-4. **Customize Values**
-   - View/edit individual spoofed values
-   - Regenerate values with one tap
-   - Copy values for reference
-
-5. **Verify Protection**
-   - Use Diagnostics screen to verify spoofing
-   - Check that detection apps don't find hooks
-
-### Data Flow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     TARGET APP PROCESS                       │
-│                                                              │
-│   App Code → TelephonyManager.getImei()                     │
-│                    │                                         │
-│                    ▼                                         │
-│   ┌─────────────────────────────────────────────────────┐   │
-│   │            LSPOSED HOOK INTERCEPTION                 │   │
-│   │                                                      │   │
-│   │   1. AntiDetectHooker (runs first)                   │   │
-│   │      └─→ Hides Xposed presence                       │   │
-│   │                                                      │   │
-│   │   2. DeviceHooker                                    │   │
-│   │      └─→ Intercepts getImei()                        │   │
-│   │      └─→ Reads from XSharedPreferences (prefs)       │   │
-│   │      └─→ Returns spoofed IMEI                        │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                    │                                         │
-│                    ▼                                         │
-│   App receives "358673912845672" (spoofed)                  │
-└─────────────────────────────────────────────────────────────┘
-               ↑ XSharedPreferences reads config
-┌─────────────────────────────────────────────────────────────┐
-│                       APP UI PROCESS                         │
-│                                                              │
-│   User configures spoofing → ConfigManager.saveConfig()     │
-│                    ↓                                         │
-│   1. Local file (config.json)                               │
-│   2. ConfigSync → XposedPrefs (fallback)                    │
-│   3. syncToAidlService() → DeviceMaskerService              │
-│                                                              │
-│   Config changes apply in real-time via AIDL (Jan 2026)     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Real-Time Updates (Jan 2026)**: The AIDL service in system_server now provides
-instant config updates without requiring target app restart.
-
-## User Experience Goals
-
-### Primary UX Goals
-
-1. **Simplicity First**
-   - Default "just works" with minimal configuration
-   - One-tap enable per app
-   - One-tap regenerate all values
-
-2. **Visual Clarity**
-   - Clear status indicators (Active/Inactive)
-   - Organized by category (Device, Network, Advertising, etc.)
-   - Masked values for security on home screen
-
-3. **Modern Feel**
-   - Material 3 Expressive design language
-   - Dynamic colors that adapt to wallpaper
-   - Smooth spring-based animations (10 expressive components)
-   - AMOLED pure black for battery efficiency
-
-4. **Power User Options**
-   - Per-app group assignment
-   - Selective spoof types per app
-   - Custom value entry with validation
-   - Detailed diagnostics
-
-### UI/UX Principles
-
-| Principle | Implementation |
-|-----------|----------------|
-| **Immediate Feedback** | Changes save instantly, UI updates immediately |
-| **Error Prevention** | Validate values before saving, show format hints |
-| **Recognition over Recall** | Show current values, use icons for actions |
-| **Flexibility** | Support both quick setup and detailed customization |
-| **Aesthetic Integrity** | Consistent use of Material 3 components and motion |
-
-## Target Audience Personas
-
-### 1. Privacy-Conscious User (Primary)
-- **Goal**: Protect device identity from apps
-- **Technical Level**: Basic to intermediate
-- **Usage**: Enable for social media, shopping apps
-- **Needs**: Simple setup, group switching, clear status
-
-### 2. Security Researcher
-- **Goal**: Test app behavior with different identities
-- **Technical Level**: Advanced
-- **Usage**: Multiple groups, frequent regeneration
-- **Needs**: Valid value formats, quick group switching
-
-### 3. Developer/Learner
-- **Goal**: Understand Xposed hooking and Android security
-- **Technical Level**: Advanced
-- **Usage**: Study code, extend functionality
-- **Needs**: Clean architecture, good documentation
-
-## Competition & Differentiation
-
-### Similar Modules
-- **Device ID Masker**: Basic spoofing, limited identifiers
-- **XPrivacy/XPrivacyLua**: Comprehensive but complex, heavy
-- **DeviceFaker**: Outdated, limited Android version support
-
-### Device Masker Differentiators
-1. **Modern Stack**: YukiHookAPI, Jetpack Compose, Material 3
-2. **Anti-Detection Built-in**: Not just spoofing, but hiding the hooks
-3. **Android 16 Support**: Latest API level compatibility
-4. **Beautiful UI**: Modern design, not utilitarian
-5. **Focused Scope**: Does spoofing well, doesn't try to do everything
-6. **Active Development**: January 2026 tech stack
-7. **Clean Architecture**: 3-module structure + Pure MVVM UI layer
-8. **Hybrid Config Delivery**: AIDL service for real-time + XSharedPreferences fallback (Jan 2026)
-9. **Centralized Logging**: All hook logs in system_server for easy debugging

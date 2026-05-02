@@ -87,6 +87,11 @@ fun GroupsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val exportSuccessMessage = stringResource(R.string.group_export_success)
+    val exportErrorMessage = stringResource(R.string.group_export_error)
+    val importEmptyMessage = stringResource(R.string.group_import_empty_error)
+    val importSuccessMessage = stringResource(R.string.group_import_success)
+    val importErrorMessage = stringResource(R.string.group_import_error)
 
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var editGroupId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -116,15 +121,11 @@ fun GroupsScreen(
                                             }
                                         }
                                         .fold(
-                                            onSuccess = {
-                                                context.getString(R.string.group_export_success)
-                                            },
-                                            onFailure = {
-                                                context.getString(R.string.group_export_error)
-                                            },
+                                            onSuccess = { exportSuccessMessage },
+                                            onFailure = { exportErrorMessage },
                                         )
                                 },
-                                onFailure = { context.getString(R.string.group_export_error) },
+                                onFailure = { exportErrorMessage },
                             )
                         snackbarHostState.showSnackbar(message)
                     }
@@ -149,20 +150,12 @@ fun GroupsScreen(
                         }
 
                     if (jsonResult.isNullOrBlank()) {
-                        snackbarHostState.showSnackbar(
-                            context.getString(R.string.group_import_empty_error)
-                        )
+                        snackbarHostState.showSnackbar(importEmptyMessage)
                     } else {
                         viewModel.importGroups(jsonResult) { success ->
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    context.getString(
-                                        if (success) {
-                                            R.string.group_import_success
-                                        } else {
-                                            R.string.group_import_error
-                                        }
-                                    )
+                                    if (success) importSuccessMessage else importErrorMessage
                                 )
                             }
                         }

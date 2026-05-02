@@ -6,6 +6,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
 import com.astrixforge.devicemasker.xposed.DualLog
 import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.ExceptionMode
 
 /**
  * Anti-Detection Hooker — hides Xposed/LSPosed presence from apps.
@@ -103,6 +104,7 @@ object AntiDetectHooker {
                         val stack = result as? Array<StackTraceElement> ?: return@intercept result
                         filterStackTrace(stack)
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Thread.getStackTrace() hook failed", t)
@@ -120,6 +122,7 @@ object AntiDetectHooker {
                         val stack = result as? Array<StackTraceElement> ?: return@intercept result
                         filterStackTrace(stack)
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Throwable.getStackTrace() hook failed", t)
@@ -143,7 +146,7 @@ object AntiDetectHooker {
                 }
                 .forEach { method ->
                     method.isAccessible = true
-                    xi.hook(method).intercept { chain ->
+                    xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
                         val className = chain.args.firstOrNull() as? String
                         if (
                             className != null &&
@@ -155,6 +158,7 @@ object AntiDetectHooker {
                         }
                         chain.proceed()
                     }
+                    xi.deoptimize(method)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "ClassLoader.loadClass() hook failed", t)
@@ -178,7 +182,7 @@ object AntiDetectHooker {
                 }
                 .forEach { method ->
                     method.isAccessible = true
-                    xi.hook(method).intercept { chain ->
+                    xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
                         val className = chain.args.firstOrNull() as? String
                         if (
                             className != null &&
@@ -190,6 +194,7 @@ object AntiDetectHooker {
                         }
                         chain.proceed()
                     }
+                    xi.deoptimize(method)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Class.forName() hook failed", t)
@@ -219,6 +224,7 @@ object AntiDetectHooker {
                             result
                         }
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "BufferedReader.readLine() hook failed", t)
@@ -240,7 +246,7 @@ object AntiDetectHooker {
                     .getDeclaredMethod("getPackageInfo", *params)
                     .also { it.isAccessible = true }
                     .let { m ->
-                        xi.hook(m).intercept { chain ->
+                        xi.hook(m).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
                             val pkgName = chain.args.firstOrNull() as? String
                             if (
                                 pkgName != null &&
@@ -252,6 +258,7 @@ object AntiDetectHooker {
                             }
                             chain.proceed()
                         }
+                        xi.deoptimize(m)
                     }
             } catch (_: NoSuchMethodException) {}
         }
@@ -266,7 +273,7 @@ object AntiDetectHooker {
                 )
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
+                    xi.hook(m).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
                         val pkgName = chain.args.firstOrNull() as? String
                         if (
                             pkgName != null &&
@@ -276,6 +283,7 @@ object AntiDetectHooker {
                         }
                         chain.proceed()
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "getApplicationInfo hook failed", t)
@@ -290,13 +298,12 @@ object AntiDetectHooker {
                     xi.hook(m).intercept { chain ->
                         val result = chain.proceed()
                         @Suppress("UNCHECKED_CAST")
-                        val packages =
-                            result as? MutableList<PackageInfo> ?: return@intercept result
-                        packages.removeAll { info ->
+                        val packages = result as? List<PackageInfo> ?: return@intercept result
+                        packages.filterNot { info ->
                             HIDDEN_PACKAGES.any { info.packageName.equals(it, ignoreCase = true) }
                         }
-                        packages
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "getInstalledPackages hook failed", t)
@@ -311,13 +318,12 @@ object AntiDetectHooker {
                     xi.hook(m).intercept { chain ->
                         val result = chain.proceed()
                         @Suppress("UNCHECKED_CAST")
-                        val apps =
-                            result as? MutableList<ApplicationInfo> ?: return@intercept result
-                        apps.removeAll { info ->
+                        val apps = result as? List<ApplicationInfo> ?: return@intercept result
+                        apps.filterNot { info ->
                             HIDDEN_PACKAGES.any { info.packageName.equals(it, ignoreCase = true) }
                         }
-                        apps
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "getInstalledApplications hook failed", t)
@@ -335,14 +341,14 @@ object AntiDetectHooker {
                     xi.hook(m).intercept { chain ->
                         val result = chain.proceed()
                         @Suppress("UNCHECKED_CAST")
-                        val infos = result as? MutableList<ResolveInfo> ?: return@intercept result
-                        infos.removeAll { info ->
+                        val infos = result as? List<ResolveInfo> ?: return@intercept result
+                        infos.filterNot { info ->
                             val packageName =
-                                info.activityInfo?.packageName ?: return@removeAll false
+                                info.activityInfo?.packageName ?: return@filterNot false
                             HIDDEN_PACKAGES.any { packageName.equals(it, ignoreCase = true) }
                         }
-                        infos
                     }
+                    xi.deoptimize(m)
                 }
         } catch (t: Throwable) {
             DualLog.warn(TAG, "queryIntentActivities hook failed", t)

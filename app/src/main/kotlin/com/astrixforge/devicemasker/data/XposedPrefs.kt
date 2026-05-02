@@ -6,6 +6,10 @@ import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
 
 /**
@@ -38,6 +42,9 @@ object XposedPrefs {
     const val PREFS_GROUP = "device_masker_config"
 
     @Volatile private var xposedService: XposedService? = null
+    private val serviceBindCallbacks = CopyOnWriteArrayList<() -> Unit>()
+    private val _isServiceConnected = MutableStateFlow(false)
+    val isServiceConnected: StateFlow<Boolean> = _isServiceConnected.asStateFlow()
 
     /**
      * Registers the [XposedServiceHelper] listener.
@@ -49,16 +56,34 @@ object XposedPrefs {
             object : XposedServiceHelper.OnServiceListener {
                 override fun onServiceBind(service: XposedService) {
                     xposedService = service
+                    _isServiceConnected.value = true
                     Timber.tag(TAG).i("XposedService connected (%s)", service.frameworkName)
+                    serviceBindCallbacks.forEach { callback ->
+                        runCatching(callback).onFailure { e ->
+                            Timber.tag(TAG).w(e, "XposedService bind callback failed")
+                        }
+                    }
                 }
 
                 override fun onServiceDied(service: XposedService) {
                     xposedService = null
+                    _isServiceConnected.value = false
                     Timber.tag(TAG).w("XposedService died")
                 }
             }
         )
     }
+
+    fun addServiceBindCallback(callback: () -> Unit) {
+        serviceBindCallbacks += callback
+        if (xposedService != null) {
+            runCatching(callback).onFailure { e ->
+                Timber.tag(TAG).w(e, "Immediate XposedService callback failed")
+            }
+        }
+    }
+
+    fun isConnected(): Boolean = xposedService != null
 
     /**
      * Returns the [SharedPreferences] instance backed by [XposedService.getRemotePreferences].

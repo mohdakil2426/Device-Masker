@@ -31,9 +31,10 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         )
 
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        // Load preset at hook-registration time — constant for this process
-        val presetId = getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
-        val preset = if (presetId.isNotEmpty()) DeviceProfilePreset.findById(presetId) else null
+        // Load preset at hook-registration time. If DEVICE_PROFILE is disabled, missing, or
+        // invalid, leave all sensor APIs untouched for this process.
+        val presetId = getConfiguredSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) ?: return
+        val preset = DeviceProfilePreset.findById(presetId) ?: return
 
         hookSensorManager(cl, xi, pkg)
         hookSensorMetadata(cl, xi, preset)
@@ -67,6 +68,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     }
                     filtered
                 }
+                xi.deoptimize(m)
             }
         }
     }
@@ -84,6 +86,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     if (preset != null && preset.manufacturer.isNotEmpty()) preset.manufacturer
                     else result
                 }
+                xi.deoptimize(m)
             }
         }
         safeHook("Sensor.getVersion()") {
@@ -93,6 +96,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     val version = result as? Int ?: return@intercept result
                     if (version > 3) 1 else result
                 }
+                xi.deoptimize(m)
             }
         }
         safeHook("Sensor.getName()") {
@@ -106,6 +110,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     }
                     name
                 }
+                xi.deoptimize(m)
             }
         }
     }

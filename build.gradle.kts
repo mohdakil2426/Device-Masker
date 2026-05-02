@@ -20,12 +20,16 @@ ext {
 
 spotless {
     kotlin {
-        target("**/*.kt")
+        target("app/**/*.kt", "common/**/*.kt", "xposed/**/*.kt")
         targetExclude("**/build/**/*.kt")
         targetExclude("**/memory-bank/**")
         targetExclude("**/openspec/**")
         targetExclude("**/scripts/**")
+        targetExclude(".agents/**")
+        targetExclude(".agents/**/*.kt")
         targetExclude("**/.agents/**")
+        targetExclude(".claude/**")
+        targetExclude(".claude/**/*.kt")
         targetExclude("**/.claude/**")
         targetExclude("**/docs/**")
         ktfmt("0.54").kotlinlangStyle()
@@ -34,12 +38,21 @@ spotless {
         endWithNewline()
     }
     kotlinGradle {
-        target("**/*.gradle.kts")
+        target(
+            "*.gradle.kts",
+            "app/**/*.gradle.kts",
+            "common/**/*.gradle.kts",
+            "xposed/**/*.gradle.kts",
+        )
         targetExclude("**/build/**/*.gradle.kts")
         targetExclude("**/memory-bank/**")
         targetExclude("**/openspec/**")
         targetExclude("**/scripts/**")
+        targetExclude(".agents/**")
+        targetExclude(".agents/**/*.gradle.kts")
         targetExclude("**/.agents/**")
+        targetExclude(".claude/**")
+        targetExclude(".claude/**/*.gradle.kts")
         targetExclude("**/.claude/**")
         targetExclude("**/docs/**")
         ktfmt("0.54").kotlinlangStyle()

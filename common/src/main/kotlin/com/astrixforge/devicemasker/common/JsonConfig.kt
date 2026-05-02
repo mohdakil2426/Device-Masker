@@ -82,7 +82,8 @@ data class JsonConfig(
     fun removeGroup(groupId: String): JsonConfig {
         val newGroups = groups.toMutableMap()
         newGroups.remove(groupId)
-        return copy(groups = newGroups)
+        val newAppConfigs = appConfigs.filterValues { it.groupId != groupId }
+        return copy(groups = newGroups, appConfigs = newAppConfigs)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -147,6 +148,28 @@ data class JsonConfig(
         val newAppConfigs = appConfigs.toMutableMap()
         newAppConfigs.remove(packageName)
         return copy(appConfigs = newAppConfigs)
+    }
+
+    /**
+     * Migrates legacy configs that only stored app scope in [SpoofGroup.assignedApps].
+     *
+     * Current runtime sync uses [appConfigs] as the canonical per-app scope table. If a loaded
+     * development config predates that table, derive enabled app configs from group assignments.
+     * Once appConfigs exist, they remain authoritative and stale group assignment sets are ignored.
+     */
+    fun withDerivedAppConfigsFromAssignedApps(): JsonConfig {
+        if (appConfigs.isNotEmpty()) return this
+
+        val derivedAppConfigs =
+            groups.values
+                .flatMap { group ->
+                    group.assignedApps.map { packageName ->
+                        packageName to AppConfig(packageName = packageName, groupId = group.id)
+                    }
+                }
+                .toMap()
+
+        return copy(appConfigs = derivedAppConfigs)
     }
 
     // ═══════════════════════════════════════════════════════════

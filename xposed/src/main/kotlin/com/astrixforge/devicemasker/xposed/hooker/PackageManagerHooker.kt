@@ -5,6 +5,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
 import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.ExceptionMode
+import java.lang.reflect.Method
 
 /**
  * Package Manager Hooker — new in libxposed API 101 migration (Gap 4.10).
@@ -42,66 +44,86 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
 
     private fun hookPackageManager(cl: ClassLoader, xi: XposedInterface) {
         val pmClass = cl.loadClassOrNull("android.app.ApplicationPackageManager") ?: return
-        val intPrimitive = Int::class.javaPrimitiveType!!
 
-        safeHook("ApplicationPackageManager.getPackageInfo(String, int)") {
-            pmClass.methodOrNull("getPackageInfo", String::class.java, intPrimitive)?.let { m ->
-                xi.hook(m).intercept { chain ->
+        safeHook("ApplicationPackageManager.getPackageInfo(String, flags)") {
+            pmClass.packageLookupMethods("getPackageInfo").forEach { m ->
+                xi.hook(m).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
                     val pkgName = chain.args.firstOrNull() as? String
                     if (pkgName == SELF_PACKAGE) {
                         throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
                     }
                     chain.proceed()
                 }
+                xi.deoptimize(m)
             }
         }
-        safeHook("ApplicationPackageManager.getApplicationInfo(String, int)") {
-            pmClass.methodOrNull("getApplicationInfo", String::class.java, intPrimitive)?.let { m ->
-                xi.hook(m).intercept { chain ->
+        safeHook("ApplicationPackageManager.getApplicationInfo(String, flags)") {
+            pmClass.packageLookupMethods("getApplicationInfo").forEach { m ->
+                xi.hook(m).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
                     val pkgName = chain.args.firstOrNull() as? String
                     if (pkgName == SELF_PACKAGE) {
                         throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
                     }
                     chain.proceed()
                 }
+                xi.deoptimize(m)
             }
         }
-        safeHook("ApplicationPackageManager.getInstalledPackages(int)") {
-            pmClass.methodOrNull("getInstalledPackages", intPrimitive)?.let { m ->
+        safeHook("ApplicationPackageManager.getInstalledPackages(flags)") {
+            pmClass.singleFlagMethods("getInstalledPackages").forEach { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    @Suppress("UNCHECKED_CAST") val packages = result as? MutableList<PackageInfo>
-                    packages?.removeAll { it.packageName == SELF_PACKAGE }
-                    result
+                    @Suppress("UNCHECKED_CAST")
+                    val packages = result as? List<PackageInfo> ?: return@intercept result
+                    packages.filterNot { it.packageName == SELF_PACKAGE }
                 }
+                xi.deoptimize(m)
             }
         }
-        safeHook("ApplicationPackageManager.getInstalledApplications(int)") {
-            pmClass.methodOrNull("getInstalledApplications", intPrimitive)?.let { m ->
+        safeHook("ApplicationPackageManager.getInstalledApplications(flags)") {
+            pmClass.singleFlagMethods("getInstalledApplications").forEach { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    @Suppress("UNCHECKED_CAST") val apps = result as? MutableList<ApplicationInfo>
-                    apps?.removeAll { it.packageName == SELF_PACKAGE }
-                    result
+                    @Suppress("UNCHECKED_CAST")
+                    val apps = result as? List<ApplicationInfo> ?: return@intercept result
+                    apps.filterNot { it.packageName == SELF_PACKAGE }
                 }
+                xi.deoptimize(m)
             }
         }
-        safeHook("ApplicationPackageManager.queryIntentActivities(Intent, int)") {
-            pmClass
-                .methodOrNull(
-                    "queryIntentActivities",
-                    android.content.Intent::class.java,
-                    intPrimitive,
-                )
-                ?.let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        @Suppress("UNCHECKED_CAST")
-                        val activities = result as? MutableList<ResolveInfo>
-                        activities?.removeAll { it.activityInfo?.packageName == SELF_PACKAGE }
-                        result
-                    }
+        safeHook("ApplicationPackageManager.queryIntentActivities(Intent, flags)") {
+            pmClass.intentQueryMethods("queryIntentActivities").forEach { m ->
+                xi.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    @Suppress("UNCHECKED_CAST")
+                    val activities = result as? List<ResolveInfo> ?: return@intercept result
+                    activities.filterNot { it.activityInfo?.packageName == SELF_PACKAGE }
                 }
+                xi.deoptimize(m)
+            }
         }
     }
+
+    private fun Class<*>.packageLookupMethods(name: String): List<Method> =
+        declaredMethods
+            .filter {
+                it.name == name &&
+                    it.parameterCount == 2 &&
+                    it.parameterTypes.firstOrNull() == String::class.java
+            }
+            .onEach { it.isAccessible = true }
+
+    private fun Class<*>.singleFlagMethods(name: String): List<Method> =
+        declaredMethods
+            .filter { it.name == name && it.parameterCount == 1 }
+            .onEach { it.isAccessible = true }
+
+    private fun Class<*>.intentQueryMethods(name: String): List<Method> =
+        declaredMethods
+            .filter {
+                it.name == name &&
+                    it.parameterCount == 2 &&
+                    it.parameterTypes.firstOrNull() == android.content.Intent::class.java
+            }
+            .onEach { it.isAccessible = true }
 }

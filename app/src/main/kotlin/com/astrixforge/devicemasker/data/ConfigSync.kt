@@ -36,6 +36,16 @@ object ConfigSync {
 
     private const val TAG = "ConfigSync"
 
+    data class Snapshot(
+        val booleans: Map<String, Boolean>,
+        val strings: Map<String, String>,
+        val stringSets: Map<String, Set<String>>,
+        val longs: Map<String, Long>,
+        val removeKeys: Set<String>,
+        val currentApps: Set<String>,
+        val removedApps: Set<String>,
+    )
+
     /**
      * Syncs everything from [config] to [XposedPrefs] (RemotePreferences).
      *
@@ -52,35 +62,16 @@ object ConfigSync {
         }
 
         Timber.tag(TAG).d("Syncing config to RemotePreferences...")
+        val previousEnabledApps =
+            prefs.getStringSet(SharedPrefsKeys.KEY_ENABLED_APPS, emptySet()) ?: emptySet()
+        val snapshot = buildSnapshot(config, previousEnabledApps)
 
         prefs.edit {
-            // Master switch
-            putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, config.isModuleEnabled)
-
-            // Sync each group's apps
-            for (group in config.groups.values) {
-                for (packageName in group.assignedApps) {
-                    val appEnabled = config.isModuleEnabled && group.isEnabled
-                    putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
-
-                    // Sync each spoof type for this package
-                    for (type in SpoofType.entries) {
-                        val typeEnabled = appEnabled && group.isTypeEnabled(type)
-                        val value = if (typeEnabled) group.getValue(type) else null
-
-                        putBoolean(
-                            SharedPrefsKeys.getSpoofEnabledKey(packageName, type),
-                            typeEnabled,
-                        )
-
-                        if (value != null) {
-                            putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
-                        } else {
-                            remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
-                        }
-                    }
-                }
-            }
+            snapshot.removeKeys.forEach { remove(it) }
+            snapshot.booleans.forEach { (key, value) -> putBoolean(key, value) }
+            snapshot.strings.forEach { (key, value) -> putString(key, value) }
+            snapshot.stringSets.forEach { (key, value) -> putStringSet(key, value) }
+            snapshot.longs.forEach { (key, value) -> putLong(key, value) }
         }
         Timber.tag(TAG).d("Config synced to RemotePreferences — live delivery active")
     }
@@ -152,5 +143,67 @@ object ConfigSync {
             }
         }
         Timber.tag(TAG).d("App $packageName cleared from RemotePreferences")
+    }
+
+    fun buildSnapshot(config: JsonConfig, previousEnabledApps: Set<String>): Snapshot {
+        val booleans = linkedMapOf<String, Boolean>()
+        val strings = linkedMapOf<String, String>()
+        val stringSets = linkedMapOf<String, Set<String>>()
+        val longs = linkedMapOf<String, Long>()
+        val removeKeys = linkedSetOf<String>()
+        val currentApps = config.appConfigs.keys.toSortedSet()
+        val removedApps = previousEnabledApps - currentApps
+
+        booleans[SharedPrefsKeys.KEY_MODULE_ENABLED] = config.isModuleEnabled
+        stringSets[SharedPrefsKeys.KEY_ENABLED_APPS] = currentApps
+        longs[SharedPrefsKeys.KEY_CONFIG_VERSION] = System.currentTimeMillis()
+
+        for (packageName in removedApps) {
+            removeKeys += keysForPackage(packageName)
+        }
+
+        for ((packageName, appConfig) in config.appConfigs.toSortedMap()) {
+            val group = appConfig.groupId?.let(config::getGroup) ?: config.getDefaultGroup()
+            val appEnabled =
+                config.isModuleEnabled && appConfig.isEnabled && group?.isEnabled == true
+            booleans[SharedPrefsKeys.getAppEnabledKey(packageName)] = appEnabled
+
+            for (type in SpoofType.entries) {
+                val typeEnabled = appEnabled && group.isTypeEnabled(type)
+                val value =
+                    if (typeEnabled) group.getValue(type)?.takeIf { it.isNotBlank() } else null
+                booleans[SharedPrefsKeys.getSpoofEnabledKey(packageName, type)] =
+                    typeEnabled && value != null
+
+                val valueKey = SharedPrefsKeys.getSpoofValueKey(packageName, type)
+                if (value != null) {
+                    strings[valueKey] = value
+                } else {
+                    removeKeys += valueKey
+                }
+            }
+        }
+
+        return Snapshot(
+            booleans = booleans,
+            strings = strings,
+            stringSets = stringSets,
+            longs = longs,
+            removeKeys = removeKeys,
+            currentApps = currentApps,
+            removedApps = removedApps,
+        )
+    }
+
+    private fun keysForPackage(packageName: String): Set<String> {
+        return buildSet {
+            add(SharedPrefsKeys.getAppEnabledKey(packageName))
+            for (type in SpoofType.entries) {
+                add(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
+                add(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+            }
+            add(SharedPrefsKeys.getPersonaBlobKey(packageName))
+            add(SharedPrefsKeys.getPersonaVersionKey(packageName))
+        }
     }
 }

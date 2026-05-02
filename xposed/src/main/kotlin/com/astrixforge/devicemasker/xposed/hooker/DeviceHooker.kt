@@ -2,10 +2,6 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.common.generators.ICCIDGenerator
-import com.astrixforge.devicemasker.common.generators.IMEIGenerator
-import com.astrixforge.devicemasker.common.generators.IMSIGenerator
-import com.astrixforge.devicemasker.common.generators.SerialGenerator
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -67,7 +63,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.IMEI)
                     spoofed
                 }
@@ -80,7 +77,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.IMEI)
                     spoofed
                 }
@@ -93,7 +91,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.IMEI)
                     spoofed
                 }
@@ -106,7 +105,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.IMEI) { IMEIGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.IMEI)
                     spoofed
                 }
@@ -119,7 +119,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.IMSI) { IMSIGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMSI)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.IMSI)
                     spoofed
                 }
@@ -132,7 +133,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.IMSI) { IMSIGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMSI)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.IMSI)
                     spoofed
                 }
@@ -145,7 +147,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.ICCID) { ICCIDGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.ICCID)
                     spoofed
                 }
@@ -158,7 +161,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.ICCID) { ICCIDGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.ICCID)
                     spoofed
                 }
@@ -170,7 +174,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getSimCountryIso")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
                     spoofed
                 }
@@ -181,7 +187,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getSimCountryIso", intClass)?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO) { "us" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
                     spoofed
                 }
@@ -193,7 +201,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getNetworkCountryIso")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO) { "us" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
                     spoofed
                 }
@@ -204,7 +214,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getNetworkCountryIso", intClass)?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO) { "us" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
                     spoofed
                 }
@@ -217,7 +229,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME) { "Carrier" }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
                     spoofed
                 }
@@ -229,7 +242,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME) { "Carrier" }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
                     spoofed
                 }
@@ -241,7 +255,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getSimOperator")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) { "310260" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                     spoofed
                 }
@@ -252,7 +268,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getSimOperator", intClass)?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC) { "310260" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                     spoofed
                 }
@@ -264,7 +282,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getNetworkOperator")?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR) { "310260" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
                     spoofed
                 }
@@ -275,7 +295,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             tm.methodOrNull("getNetworkOperator", intClass)?.let { m ->
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
-                    val spoofed = getSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR) { "310260" }
+                    val spoofed =
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
                     spoofed
                 }
@@ -288,10 +310,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER) {
-                            com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
-                                .generate()
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
                     spoofed
                 }
@@ -316,7 +336,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m).intercept { chain ->
                     val result = chain.proceed()
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.SERIAL) { SerialGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SERIAL)
                     spoofed
                 }
@@ -346,10 +367,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val key = chain.args.getOrNull(1) as? String ?: return@intercept result
                     if (key != "android_id") return@intercept result
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) {
-                            com.astrixforge.devicemasker.common.generators.UUIDGenerator
-                                .generateAndroidId()
-                        }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
                     spoofed
                 }
@@ -374,10 +393,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         val key = chain.args.getOrNull(1) as? String ?: return@intercept result
                         if (key != "android_id") return@intercept result
                         val spoofed =
-                            getSpoofValue(prefs, pkg, SpoofType.ANDROID_ID) {
-                                com.astrixforge.devicemasker.common.generators.UUIDGenerator
-                                    .generateAndroidId()
-                            }
+                            getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
+                                ?: return@intercept result
                         reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
                         spoofed
                     }
@@ -406,7 +423,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val key = chain.args.firstOrNull() as? String ?: return@intercept result
                     if (key !in SERIAL_KEYS) return@intercept result
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.SERIAL) { SerialGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SERIAL)
                     spoofed
                 }
@@ -421,7 +439,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     val key = chain.args.firstOrNull() as? String ?: return@intercept result
                     if (key !in SERIAL_KEYS) return@intercept result
                     val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.SERIAL) { SerialGenerator.generate() }
+                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                            ?: return@intercept result
                     reportSpoofEvent(pkg, SpoofType.SERIAL)
                     spoofed
                 }

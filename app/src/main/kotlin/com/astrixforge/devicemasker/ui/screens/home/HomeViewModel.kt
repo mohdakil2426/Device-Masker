@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.DeviceMaskerApp
+import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,12 @@ class HomeViewModel(private val repository: SpoofRepository) : ViewModel() {
     init {
         // Set initial Xposed status
         _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
+
+        viewModelScope.launch {
+            XposedPrefs.isServiceConnected.collect { connected ->
+                _state.update { it.copy(isXposedActive = connected) }
+            }
+        }
 
         // Collect groups
         viewModelScope.launch {

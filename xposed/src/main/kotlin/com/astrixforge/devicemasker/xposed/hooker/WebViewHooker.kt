@@ -66,6 +66,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
                     }
                     chain.proceed()
                 }
+                xi.deoptimize(m)
             }
         }
     }

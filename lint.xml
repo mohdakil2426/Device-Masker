@@ -8,5 +8,6 @@
         <ignore path=".agents/**" />
         <ignore path=".claude/**" />
         <ignore path="docs/**" />
+        <ignore path="local.properties" />
     </issue>
 </lint>

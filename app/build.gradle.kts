@@ -114,8 +114,7 @@ android {
         // in library modules (:common, :xposed)
         checkDependencies = true
 
-        // Treat lint errors as warnings in debug builds
-        abortOnError = false
+        abortOnError = true
 
         // Generate HTML report for review
         htmlReport = true
