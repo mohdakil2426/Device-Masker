@@ -236,6 +236,7 @@ fun DeviceMaskerMainApp(
                     amoledDarkMode = amoledMode,
                     dynamicColors = dynamicColors,
                     isExportingLogs = settingsState.isExportingLogs,
+                    exportMode = settingsState.exportMode,
                     exportResult = settingsState.exportResult,
                     onThemeModeChange = { mode ->
                         Timber.d("Theme mode changed: $mode")
@@ -249,18 +250,19 @@ fun DeviceMaskerMainApp(
                         Timber.d("Dynamic colors changed: $enabled")
                         settingsViewModel.setDynamicColors(enabled)
                     },
-                    onExportLogsToUri = { uri ->
+                    onExportModeChange = settingsViewModel::setExportMode,
+                    onExportLogsToUri = { uri, mode ->
                         Timber.d("Exporting logs to: $uri")
-                        settingsViewModel.exportLogsToUri(uri)
+                        settingsViewModel.exportLogsToUri(uri, mode)
                     },
-                    onShareLogs = {
+                    onShareLogs = { mode ->
                         Timber.d("Sharing logs...")
-                        settingsViewModel.createShareableLogs { result ->
+                        settingsViewModel.createShareableLogs(mode) { result ->
                             when (result) {
                                 is ShareableLogResult.Success -> {
                                     val shareIntent =
                                         Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
+                                            type = "application/zip"
                                             putExtra(Intent.EXTRA_STREAM, result.uri)
                                             putExtra(Intent.EXTRA_SUBJECT, shareLogsChooserTitle)
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

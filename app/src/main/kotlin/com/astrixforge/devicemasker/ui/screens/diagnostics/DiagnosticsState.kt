@@ -12,7 +12,16 @@ data class DiagnosticsState(
     val antiDetectionResults: List<AntiDetectionTest> = emptyList(),
     val serviceStatus: ServiceStatus = ServiceStatus(),
     val hookLogs: List<String> = emptyList(),
+    val reproCaptureState: ReproCaptureState = ReproCaptureState.IDLE,
 )
+
+enum class ReproCaptureState {
+    IDLE,
+    CAPTURING,
+    STOPPING,
+    EXPORT_READY,
+    ERROR,
+}
 
 /** Status information about the AIDL service running in system_server. */
 data class ServiceStatus(

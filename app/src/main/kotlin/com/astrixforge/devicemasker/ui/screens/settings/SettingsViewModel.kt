@@ -8,6 +8,7 @@ import com.astrixforge.devicemasker.data.SettingsDataStore
 import com.astrixforge.devicemasker.service.LogExportResult
 import com.astrixforge.devicemasker.service.LogManager
 import com.astrixforge.devicemasker.service.ShareableLogResult
+import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,18 +65,23 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
         viewModelScope.launch { settingsStore.setDynamicColors(enabled) }
     }
 
+    fun setExportMode(mode: BundleExportMode) {
+        _state.update { it.copy(exportMode = mode) }
+    }
+
     // ═══════════════════════════════════════════════════════════
     // EXPORT LOGS
     // ═══════════════════════════════════════════════════════════
 
     /** Exports app-owned structured logs and available diagnostics logs to a custom URI. */
-    fun exportLogsToUri(uri: Uri) {
+    fun exportLogsToUri(uri: Uri, mode: BundleExportMode = state.value.exportMode) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result =
                 withContext(Dispatchers.IO) {
-                    LogManager.exportLogsToUri(getApplication(), uri).toExportResult()
+                    LogManager.exportLogsToUri(getApplication(), uri, mode.toSupportMode())
+                        .toExportResult()
                 }
 
             _state.update { it.copy(isExportingLogs = false, exportResult = result) }
@@ -86,12 +92,17 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
      * Creates a shareable log file and returns the result. The caller should use the URI to launch
      * a share intent.
      */
-    fun createShareableLogs(onResult: (ShareableLogResult) -> Unit) {
+    fun createShareableLogs(
+        mode: BundleExportMode = state.value.exportMode,
+        onResult: (ShareableLogResult) -> Unit,
+    ) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result =
-                withContext(Dispatchers.IO) { LogManager.createShareableLogFile(getApplication()) }
+                withContext(Dispatchers.IO) {
+                    LogManager.createShareableLogFile(getApplication(), mode.toSupportMode())
+                }
 
             _state.update { it.copy(isExportingLogs = false) }
             onResult(result)
@@ -108,6 +119,13 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
 
     /** Generate filename for Export Logs file picker */
     fun generateLogFileName(): String = LogManager.generateLogFileName()
+
+    private fun BundleExportMode.toSupportMode(): SupportBundleMode =
+        when (this) {
+            BundleExportMode.BASIC -> SupportBundleMode.BASIC
+            BundleExportMode.FULL_DEBUG -> SupportBundleMode.FULL
+            BundleExportMode.ROOT_MAXIMUM -> SupportBundleMode.ROOT_MAXIMUM
+        }
 
     private fun LogExportResult.toExportResult(): ExportResult {
         return when (this) {

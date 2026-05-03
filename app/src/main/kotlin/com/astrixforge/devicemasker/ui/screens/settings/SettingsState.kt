@@ -9,8 +9,21 @@ data class SettingsState(
     val dynamicColors: Boolean = true,
     // Log export state
     val isExportingLogs: Boolean = false,
+    val exportMode: BundleExportMode = BundleExportMode.BASIC,
+    val redactionChoice: RedactionChoice = RedactionChoice.REDACTED,
     val exportResult: ExportResult? = null,
 )
+
+enum class BundleExportMode {
+    BASIC,
+    FULL_DEBUG,
+    ROOT_MAXIMUM,
+}
+
+enum class RedactionChoice {
+    REDACTED,
+    UNREDACTED_REQUIRES_CONFIRMATION,
+}
 
 /** Result of a log export operation. */
 sealed class ExportResult {

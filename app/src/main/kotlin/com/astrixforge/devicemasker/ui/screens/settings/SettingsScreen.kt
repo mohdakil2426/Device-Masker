@@ -85,12 +85,14 @@ fun SettingsScreen(
     amoledDarkMode: Boolean = true,
     dynamicColors: Boolean = true,
     isExportingLogs: Boolean = false,
+    exportMode: BundleExportMode = BundleExportMode.BASIC,
     exportResult: ExportResult? = null,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAmoledDarkModeChange: (Boolean) -> Unit = {},
     onDynamicColorChange: (Boolean) -> Unit = {},
-    onExportLogsToUri: (Uri) -> Unit = {},
-    onShareLogs: () -> Unit = {},
+    onExportModeChange: (BundleExportMode) -> Unit = {},
+    onExportLogsToUri: (Uri, BundleExportMode) -> Unit = { _, _ -> },
+    onShareLogs: (BundleExportMode) -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
@@ -105,6 +107,10 @@ fun SettingsScreen(
     val saveDesc = stringResource(R.string.settings_export_save_desc)
     val shareTitle = stringResource(R.string.settings_export_share)
     val shareDesc = stringResource(R.string.settings_export_share_desc)
+    val basicExportTitle = stringResource(R.string.settings_export_basic)
+    val fullExportTitle = stringResource(R.string.settings_export_full_debug)
+    val rootExportTitle = stringResource(R.string.settings_export_root_maximum)
+    val redactedDefault = stringResource(R.string.settings_export_redacted_default)
     val buildTypeValue =
         stringResource(
             if (BuildConfig.DEBUG) {
@@ -124,10 +130,11 @@ fun SettingsScreen(
         }
 
     // File picker launcher - opens native folder picker
+    var pendingExportMode by remember { mutableStateOf(exportMode) }
     val exportLogsLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) {
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) {
             uri ->
-            uri?.let { onExportLogsToUri(it) }
+            uri?.let { onExportLogsToUri(it, pendingExportMode) }
         }
 
     val exportMessage =
@@ -159,6 +166,7 @@ fun SettingsScreen(
             amoledDarkMode = amoledDarkMode,
             dynamicColors = dynamicColors,
             isExportingLogs = isExportingLogs,
+            exportMode = exportMode,
             isDarkModeActive = isDarkModeActive,
             buildTypeValue = buildTypeValue,
             moduleInfoValue = moduleInfoValue,
@@ -200,15 +208,39 @@ fun SettingsScreen(
                 listOf(
                     ActionItem(
                         icon = Icons.Outlined.Save,
-                        title = saveTitle,
+                        title = "$saveTitle - $basicExportTitle",
+                        description = redactedDefault,
+                        onClick = {
+                            pendingExportMode = BundleExportMode.BASIC
+                            onExportModeChange(BundleExportMode.BASIC)
+                            exportLogsLauncher.launch(generateLogFileName())
+                        },
+                    ),
+                    ActionItem(
+                        icon = Icons.Outlined.Save,
+                        title = "$saveTitle - $fullExportTitle",
                         description = saveDesc,
-                        onClick = { exportLogsLauncher.launch(generateLogFileName()) },
+                        onClick = {
+                            pendingExportMode = BundleExportMode.FULL_DEBUG
+                            onExportModeChange(BundleExportMode.FULL_DEBUG)
+                            exportLogsLauncher.launch(generateLogFileName())
+                        },
+                    ),
+                    ActionItem(
+                        icon = Icons.Outlined.Save,
+                        title = "$saveTitle - $rootExportTitle",
+                        description = stringResource(R.string.settings_export_unredacted_warning),
+                        onClick = {
+                            pendingExportMode = BundleExportMode.ROOT_MAXIMUM
+                            onExportModeChange(BundleExportMode.ROOT_MAXIMUM)
+                            exportLogsLauncher.launch(generateLogFileName())
+                        },
                     ),
                     ActionItem(
                         icon = Icons.Outlined.Share,
                         title = shareTitle,
                         description = shareDesc,
-                        onClick = onShareLogs,
+                        onClick = { onShareLogs(exportMode) },
                     ),
                 ),
             onDismiss = { showExportSheet = false },
@@ -223,6 +255,7 @@ private fun SettingsScreenContent(
     amoledDarkMode: Boolean,
     dynamicColors: Boolean,
     isExportingLogs: Boolean,
+    exportMode: BundleExportMode,
     isDarkModeActive: Boolean,
     buildTypeValue: String,
     moduleInfoValue: String,
@@ -296,7 +329,7 @@ private fun SettingsScreenContent(
                         if (isExportingLogs) {
                             stringResource(id = R.string.settings_exporting)
                         } else {
-                            stringResource(id = R.string.settings_export_logs_description)
+                            "${stringResource(id = R.string.settings_export_logs_description)} • ${exportMode.name}"
                         },
                     onClick = { if (!isExportingLogs) onExportLogsClick() },
                     trailingContent =

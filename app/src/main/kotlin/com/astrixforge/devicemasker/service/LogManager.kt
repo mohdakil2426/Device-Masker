@@ -28,9 +28,13 @@ object LogManager {
     private const val LOG_FILE_PREFIX = "devicemasker_support_"
     private const val LOG_FILE_EXTENSION = ".zip"
 
-    suspend fun exportLogsToUri(context: Context, uri: Uri): LogExportResult {
+    suspend fun exportLogsToUri(
+        context: Context,
+        uri: Uri,
+        mode: SupportBundleMode = SupportBundleMode.BASIC,
+    ): LogExportResult {
         return try {
-            val bundle = buildSupportBundle(context, SupportBundleMode.BASIC)
+            val bundle = buildSupportBundle(context, mode)
 
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                 bundle.inputStream().use { input -> input.copyTo(outputStream) }
@@ -42,7 +46,10 @@ object LogManager {
         }
     }
 
-    suspend fun createShareableLogFile(context: Context): ShareableLogResult {
+    suspend fun createShareableLogFile(
+        context: Context,
+        mode: SupportBundleMode = SupportBundleMode.BASIC,
+    ): ShareableLogResult {
         return try {
             if (!hasAnyLogs(context)) {
                 return ShareableLogResult.NoLogs
@@ -54,7 +61,7 @@ object LogManager {
             }
 
             val fileName = generateLogFileName()
-            val bundle = buildSupportBundle(context, SupportBundleMode.BASIC, logsDir)
+            val bundle = buildSupportBundle(context, mode, logsDir)
             val logFile = File(logsDir, fileName)
             if (bundle.name != logFile.name) {
                 bundle.copyTo(logFile, overwrite = true)

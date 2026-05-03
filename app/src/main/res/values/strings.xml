@@ -101,6 +101,11 @@
     <string name="settings_export_save_desc">Save logs to a file on your device</string>
     <string name="settings_export_share">Share</string>
     <string name="settings_export_share_desc">Share logs via another app</string>
+    <string name="settings_export_basic">Basic Export</string>
+    <string name="settings_export_full_debug">Full Debug Export</string>
+    <string name="settings_export_root_maximum">Root Maximum Export</string>
+    <string name="settings_export_redacted_default">Redacted by default</string>
+    <string name="settings_export_unredacted_warning">Unredacted logs may include package names and sensitive debugging data.</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_description">Check module health and hook status</string>
     <string name="settings_about">About</string>
