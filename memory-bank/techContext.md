@@ -19,7 +19,7 @@
 | IPC | AIDL diagnostics only |
 | Serialization | kotlinx.serialization JSON 1.10.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
-| Logging | Timber in `:app`, DualLog/XposedModule log in `:xposed` |
+| Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
 | Image loading | Coil Compose 3.4.0 |
 
 ## Modules
@@ -53,7 +53,10 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt` | Flattens config into RemotePreferences |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/ConfigManager.kt` | JSON config persistence and state |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/AppLogStore.kt` | Rootless app log storage |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Minimal export builder |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Support bundle export bridge |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/JsonlDiagnosticStore.kt` | Rotating diagnostic JSONL store |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/SupportBundleBuilder.kt` | Local support bundle ZIP builder |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCollector.kt` | Opt-in root maximum artifact collector |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config repository |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |

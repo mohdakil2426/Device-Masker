@@ -11,7 +11,7 @@
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
-| Diagnostics | Rootless app logs plus best-effort AIDL diagnostics |
+| Diagnostics | Structured JSONL app logs, best-effort AIDL diagnostics, support bundle export |
 | Target hook validation | Smoke-passed on `com.mantle.verify` |
 | Stable release readiness | Not ready; broader target validation required |
 
@@ -28,6 +28,8 @@
 - High-risk hooks pass through when config is unsafe.
 - Hook-side registration and spoof events are mirrored to LSPosed logs.
 - Rootless app log export works from app-owned storage.
+- Redacted support bundle export works for Basic, Full Debug, and Root Maximum modes at the unit level.
+- Root Maximum collector builds bounded root artifact files behind opt-in root execution.
 - `com.mantle.verify` launched after latest remediation and emitted spoof events.
 
 ## Completed Milestones
@@ -91,6 +93,17 @@
 - Updated stale libxposed migration comments and app keep rule naming to `RemotePreferences` / `XposedProvider`.
 - Added regression tests for chain args mutation, Xposed framework-error handling presence, and quick sync app enablement.
 
+### 2026-05-03 Maximum Diagnostics Logging
+
+- Added shared diagnostic event schema and deterministic redaction.
+- Replaced app TSV log persistence with structured JSONL diagnostic events.
+- Added Xposed structured event sink, hook health registry, and spoof aggregation.
+- Added diagnostics service log buffer cap and dropped-count tracking.
+- Added root command runner and Root Maximum log collector.
+- Added redacted snapshots and ZIP support bundle builder.
+- Added Settings export modes for Basic, Full Debug, and Root Maximum bundles.
+- Documented architecture in `docs/reports/MAXIMUM_DIAGNOSTICS_LOGGING_ARCHITECTURE_2026-05-03.md`.
+
 ## Verification Evidence
 
 Full gate:
@@ -139,6 +152,7 @@ Before calling this stable:
 - Reconsider class lookup hiding only behind a per-app kill switch.
 - Test package visibility hiding with API 33+ flag object overloads.
 - Export logs after target hook events and verify exported output is useful.
+- Smoke-test Basic, Full Debug, and Root Maximum bundle export on device.
 
 Engineering cleanup:
 - Clean AGP 10 deprecation warnings.

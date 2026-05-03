@@ -26,6 +26,7 @@ In scope:
 - Android ID, device profile, telephony, SIM/carrier, network, Advertising ID, Media DRM, location, sensor, WebView, and package visibility hooks.
 - Safer anti-detection surfaces: stack traces, package visibility, and maps filtering.
 - Rootless app logs and LSPosed hook-side runtime logs.
+- Local-first structured diagnostics, redacted support bundles, and opt-in root maximum evidence collection.
 
 Out of scope:
 - Root hiding.
@@ -106,6 +107,9 @@ sequenceDiagram
 - `SharedPrefsKeys` in `:common` is the only place to build preference keys.
 - Config delivery is RemotePreferences-first.
 - AIDL is diagnostics-only. Never use AIDL to deliver spoof config.
+- Diagnostics are local-first. Do not add cloud logging, crash SDKs, analytics SDKs, or network telemetry.
+- Redacted export is the default. Never log raw identifiers by default.
+- Root Maximum export is opt-in and requires root; root output must be bounded and redacted before export.
 - Generators live in `:common`.
 - Hookers must not generate fresh identifiers at runtime.
 - LSPosed logs are authoritative proof of target-process hook registration and spoof events.

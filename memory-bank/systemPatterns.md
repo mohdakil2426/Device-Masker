@@ -151,17 +151,24 @@ sequenceDiagram
     participant LS as LSPosed log
     participant Svc as DeviceMaskerService
     participant App as Device Masker app
-    participant Export as Log export
+    participant Store as JSONL store
+    participant Root as Root collector
+    participant Export as Support bundle
 
     Hook->>LS: Log hook registration and spoof events
     Hook->>Svc: Best-effort diagnostics event when reachable
     App->>Svc: Best-effort diagnostics read
-    App->>Export: Include app-owned persistent logs
+    App->>Store: Write structured app events
+    Store->>Export: Include app-owned JSONL events
     Svc-->>Export: Include diagnostics buffer if reachable
+    Root->>Export: Include opt-in root artifacts
 ```
 
 Diagnostics facts:
-- App logs are rootless and stored in app sandbox.
+- App logs are rootless structured `DiagnosticEvent` JSONL stored in app sandbox.
+- Support bundles are ZIP files with Basic, Full Debug, and Root Maximum modes.
+- Exports are redacted by default; raw identifiers must not be logged by default.
+- Root Maximum collection is opt-in and uses bounded fixed command templates.
 - LSPosed logs are the authoritative source for target-process hook events.
 - Custom system-server diagnostics Binder can be blocked by SELinux.
 - Target app processes must not discover `user.devicemasker_diag`.

@@ -70,6 +70,18 @@ Applied fixes from `docs/reports/LIBXPOSED_CODE_AUDIT_2026-05-03.md`:
 
 Target runtime smoke has not yet been rerun after these fixes.
 
+## 2026-05-03 Maximum Diagnostics Logging
+
+Implemented local-first structured diagnostics:
+- Shared `DiagnosticEvent` contract and redaction engine in `:common`.
+- Rotating app JSONL diagnostic store and app Timber migration.
+- Structured Xposed diagnostic sink and hook health registry with spoof event aggregation.
+- Diagnostics service ring buffer with dropped-log tracking.
+- Root shell and Root Maximum collector for bounded logcat, ANR, tombstone, dumpsys, and getprop artifacts.
+- Redacted snapshots and support bundle ZIP export modes: Basic, Full Debug, Root Maximum.
+
+Root Maximum still needs rooted-device smoke validation. Target LSPosed smoke has not been rerun after this diagnostics work.
+
 ## Latest Crash Lessons
 
 The working base came from fixing these failure modes:
