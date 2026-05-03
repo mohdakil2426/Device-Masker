@@ -2,11 +2,7 @@ package com.astrixforge.devicemasker.xposed.service
 
 import android.util.Log
 import com.astrixforge.devicemasker.IDeviceMaskerService
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -68,7 +64,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
     // ═══════════════════════════════════════════════════════════
 
     /** In-memory ring buffer of formatted log entries. Newest entries at tail. */
-    private val logs = ConcurrentLinkedDeque<String>()
+    private val logBuffer = DiagnosticsLogBuffer(MAX_LOGS)
 
     /**
      * Per-package spoof event counter. Key = package name. Value = total spoof events reported this
@@ -78,9 +74,6 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
 
     /** Packages that have had hooks registered during this boot session. */
     private val hookedPackages = ConcurrentHashMap.newKeySet<String>()
-
-    private val logDateFmt: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
     // ═══════════════════════════════════════════════════════════
     // REPORTING — oneway calls from hooked processes (non-blocking)
@@ -133,15 +126,13 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
         runCatching { hookedPackages.toList() }.getOrElse { emptyList() }
 
     override fun getLogs(maxCount: Int): List<String> =
-        runCatching { logs.toList().takeLast(maxCount.coerceIn(1, MAX_LOGS)) }
-            .getOrElse { emptyList() }
+        runCatching { logBuffer.getLogs(maxCount) }.getOrElse { emptyList() }
 
     override fun clearDiagnostics() {
         runCatching {
-            logs.clear()
             spoofCounts.clear()
             hookedPackages.clear()
-            appendLog(TAG, "Diagnostics cleared", Log.INFO)
+            logBuffer.clear()
         }
     }
 
@@ -152,19 +143,7 @@ class DeviceMaskerService private constructor() : IDeviceMaskerService.Stub() {
     // ═══════════════════════════════════════════════════════════
 
     private fun appendLog(tag: String, message: String, level: Int) {
-        val levelStr =
-            when (level) {
-                Log.ERROR -> "E"
-                Log.WARN -> "W"
-                Log.INFO -> "I"
-                else -> "D"
-            }
-        val entry = "[${logDateFmt.format(Instant.now())}] $levelStr/$tag: $message"
-        logs.addLast(entry)
-        // Ring-buffer: trim oldest entries when over capacity
-        while (logs.size > MAX_LOGS) {
-            logs.pollFirst()
-        }
+        logBuffer.append(tag, message, level)
         // Mirror to logcat for debugging (non-fatal if logcat is unavailable)
         runCatching {
             when (level) {
