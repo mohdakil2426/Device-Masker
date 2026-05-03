@@ -4,7 +4,10 @@ import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
+import android.util.Log
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
 import com.astrixforge.devicemasker.xposed.DualLog
+import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.ExceptionMode
 import io.github.libxposed.api.error.XposedFrameworkError
@@ -96,6 +99,12 @@ object AntiDetectHooker {
 
         hookStackTraces(cl, xi)
         DualLog.debug(TAG, "Class lookup hiding disabled for target startup safety")
+        XposedDiagnosticEventSink.log(
+            Log.INFO,
+            TAG,
+            "Class lookup hiding skipped for target startup safety",
+            eventType = DiagnosticEventType.HOOK_SKIPPED,
+        )
         hookProcMaps(cl, xi)
         hookPackageManager(cl, xi)
 

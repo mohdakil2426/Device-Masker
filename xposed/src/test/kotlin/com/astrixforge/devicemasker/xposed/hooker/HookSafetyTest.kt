@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HookSafetyTest {
 
@@ -60,5 +61,25 @@ class HookSafetyTest {
         assertTrue(AntiDetectHooker.shouldHideClassForTest("de.robv.android.xposed.XposedBridge"))
         assertTrue(AntiDetectHooker.shouldHideClassForTest("io.github.lsposed.lspd.LSPosedService"))
         assertTrue(AntiDetectHooker.shouldHideClassForTest("io.github.libxposed.api.XposedModule"))
+    }
+
+    @Test
+    fun `hooker files use safe hook or structured diagnostics`() {
+        val hookerDir = File("src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker")
+        val hookerFiles =
+            hookerDir.listFiles { file ->
+                file.isFile && file.name.endsWith("Hooker.kt") && file.name != "BaseSpoofHooker.kt"
+            }.orEmpty()
+
+        assertTrue("Expected hooker files", hookerFiles.isNotEmpty())
+        hookerFiles.forEach { file ->
+            val text = file.readText()
+            assertTrue(
+                "${file.name} must use safeHook or structured diagnostics",
+                text.contains("safeHook(") ||
+                    text.contains("XposedDiagnosticEventSink") ||
+                    text.contains("DualLog."),
+            )
+        }
     }
 }
