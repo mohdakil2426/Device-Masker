@@ -31,6 +31,7 @@ class DeviceMaskerApp : Application() {
 
         _appLogStore = AppLogStore.from(this)
         Timber.plant(PersistentAppLogTree(_appLogStore))
+        _appLogStore.appendEvent(_appLogStore.appStartEvent())
 
         // Debug logging — release builds strip DebugTree logcat calls via R8.
         if (BuildConfig.DEBUG) {

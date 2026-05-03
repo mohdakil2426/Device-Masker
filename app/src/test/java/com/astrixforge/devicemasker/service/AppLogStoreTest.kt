@@ -1,12 +1,14 @@
 package com.astrixforge.devicemasker.service
 
 import java.io.File
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import timber.log.Timber
 
 class AppLogStoreTest {
 
@@ -31,6 +33,7 @@ class AppLogStoreTest {
         assertEquals(1, entries.size)
         assertEquals("Config Manager", entries.single().tag)
         assertEquals("Loaded config", entries.single().message)
+        assertEquals(DiagnosticEventType.APP_LOG, store.readDiagnosticEvents().single().eventType)
     }
 
     @Test
@@ -44,6 +47,24 @@ class AppLogStoreTest {
         val entries = store.readEntries()
 
         assertEquals(listOf("second", "third"), entries.map { it.message })
+    }
+
+    @Test
+    fun `persistent app log tree writes structured exception events`() {
+        val store = AppLogStore(File(temp.root, "structured.log"), maxEntries = 10)
+        val tree = PersistentAppLogTree(store)
+
+        Timber.uprootAll()
+        Timber.plant(tree)
+        Timber.tag("ConfigManager").e(IllegalStateException("bad state"), "Config failed for 490154203237518")
+        Timber.uprootAll()
+
+        val event = store.readDiagnosticEvents().single()
+        assertEquals(DiagnosticEventType.APP_LOG, event.eventType)
+        assertEquals("IllegalStateException", event.throwableClass)
+        assertTrue(event.stacktrace.any { it.contains("IllegalStateException") })
+        assertFalse(event.message.contains("490154203237518"))
+        assertTrue(event.message.contains("[REDACTED_IMEI]"))
     }
 
     @Test

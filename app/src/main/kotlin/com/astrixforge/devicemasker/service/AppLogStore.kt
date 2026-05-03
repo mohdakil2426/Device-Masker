@@ -2,6 +2,13 @@ package com.astrixforge.devicemasker.service
 
 import android.content.Context
 import android.util.Log
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEvent
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticRedactor
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticSeverity
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticSource
+import com.astrixforge.devicemasker.common.diagnostics.RedactionMode
+import com.astrixforge.devicemasker.service.diagnostics.JsonlDiagnosticStore
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -18,78 +25,119 @@ data class AppLogEntry(
 )
 
 class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_MAX_ENTRIES) {
+    private val sessionId = "app-log"
+    private val bootId = "unknown"
+    private val redactor = DiagnosticRedactor(RedactionMode.REDACTED)
+    private val eventStore = JsonlDiagnosticStore(sessionDir = file.toSessionDir())
 
     @Synchronized
     fun append(entry: AppLogEntry) {
-        ensureParent()
-        val entries = readEntriesInternal().toMutableList()
-        entries.add(entry.sanitized())
-        writeEntries(entries.takeLast(maxEntries))
+        appendEvent(entry.toDiagnosticEvent())
     }
 
-    @Synchronized fun readEntries(): List<AppLogEntry> = readEntriesInternal()
+    @Synchronized
+    fun appendEvent(event: DiagnosticEvent) {
+        eventStore.append(redactor.redactEvent(event))
+    }
+
+    @Synchronized
+    fun readEntries(): List<AppLogEntry> =
+        readDiagnosticEvents().takeLast(maxEntries).map { event ->
+            AppLogEntry(
+                timestampMillis = event.timestampWallMillis,
+                level = event.severity.toLevel(),
+                source = event.source.name.lowercase(Locale.US),
+                tag = event.hooker ?: event.extras["tag"].orEmpty().ifBlank { "DeviceMasker" },
+                message = event.message,
+            )
+        }
+
+    @Synchronized fun readDiagnosticEvents(): List<DiagnosticEvent> = eventStore.readEvents()
 
     @Synchronized
     fun clear() {
-        if (file.exists()) {
-            file.writeText("")
-        }
+        file.toSessionDir().listFiles { candidate ->
+            candidate.isFile && (candidate.extension == "jsonl" || candidate.name == "store_state.json")
+        }?.forEach { it.delete() }
     }
 
-    private fun readEntriesInternal(): List<AppLogEntry> {
-        if (!file.exists()) return emptyList()
-        return file.readLines().mapNotNull { line ->
-            val parts = line.split('\t', limit = 5)
-            if (parts.size != 5) return@mapNotNull null
-            val timestamp = parts[0].toLongOrNull() ?: return@mapNotNull null
-            AppLogEntry(
-                timestampMillis = timestamp,
-                level = parts[1],
-                source = parts[2],
-                tag = parts[3],
-                message = parts[4],
-            )
-        }
-    }
+    fun appStartEvent(timestampMillis: Long = System.currentTimeMillis()): DiagnosticEvent =
+        baseEvent(
+            timestampMillis = timestampMillis,
+            severity = DiagnosticSeverity.INFO,
+            eventType = DiagnosticEventType.APP_START,
+            tag = "DeviceMaskerApp",
+            message = "Device Masker Application initialised",
+        )
 
-    private fun writeEntries(entries: List<AppLogEntry>) {
-        ensureParent()
-        file.writeText(entries.joinToString(separator = "\n") { it.toLine() })
-        if (entries.isNotEmpty()) {
-            file.appendText("\n")
-        }
-    }
-
-    private fun ensureParent() {
-        file.parentFile?.mkdirs()
-    }
-
-    private fun AppLogEntry.toLine(): String =
-        listOf(
-                timestampMillis.toString(),
-                level.cleanField(),
-                source.cleanField(),
-                tag.cleanField(),
-                message.cleanField(),
-            )
-            .joinToString(separator = "\t")
-
-    private fun AppLogEntry.sanitized(): AppLogEntry =
-        copy(
-            level = level.cleanField(),
-            source = source.cleanField(),
+    private fun AppLogEntry.toDiagnosticEvent(): DiagnosticEvent =
+        baseEvent(
+            timestampMillis = timestampMillis,
+            severity = level.toSeverity(),
+            eventType = DiagnosticEventType.APP_LOG,
             tag = tag.cleanField(),
             message = message.cleanField(),
+        )
+
+    private fun baseEvent(
+        timestampMillis: Long,
+        severity: DiagnosticSeverity,
+        eventType: DiagnosticEventType,
+        tag: String,
+        message: String,
+        throwable: Throwable? = null,
+    ): DiagnosticEvent =
+        DiagnosticEvent(
+            eventId = DiagnosticEvent.nextEventId(timestampMillis),
+            timestampWallMillis = timestampMillis,
+            timestampElapsedMillis = System.nanoTime() / 1_000_000,
+            sessionId = sessionId,
+            bootId = bootId,
+            source = DiagnosticSource.APP,
+            severity = severity,
+            eventType = eventType,
+            threadName = Thread.currentThread().name,
+            hooker = tag,
+            message = message.cleanField(),
+            throwableClass = throwable?.javaClass?.simpleName,
+            stacktrace = throwable?.stackTraceToString()?.lines().orEmpty(),
+            extras = mapOf("tag" to tag.cleanField()),
         )
 
     private fun String.cleanField(): String =
         replace('\t', ' ').replace('\n', ' ').replace('\r', ' ').trim()
 
+    private fun String.toSeverity(): DiagnosticSeverity =
+        when (this) {
+            "E" -> DiagnosticSeverity.ERROR
+            "W" -> DiagnosticSeverity.WARN
+            "I" -> DiagnosticSeverity.INFO
+            "V" -> DiagnosticSeverity.VERBOSE
+            else -> DiagnosticSeverity.DEBUG
+        }
+
+    private fun DiagnosticSeverity.toLevel(): String =
+        when (this) {
+            DiagnosticSeverity.ERROR,
+            DiagnosticSeverity.FATAL -> "E"
+            DiagnosticSeverity.WARN -> "W"
+            DiagnosticSeverity.INFO -> "I"
+            DiagnosticSeverity.VERBOSE -> "V"
+            DiagnosticSeverity.DEBUG -> "D"
+        }
+
+    private fun File.toSessionDir(): File =
+        if (extension == "log") {
+            parentFile ?: File(".")
+        } else {
+            this
+        }
+
     companion object {
         private const val DEFAULT_MAX_ENTRIES = 500
 
         fun from(context: Context): AppLogStore =
-            AppLogStore(File(File(context.filesDir, "logs"), "structured.log"))
+            AppLogStore(File(File(File(context.filesDir, "logs"), "sessions"), "session_app"))
     }
 }
 
@@ -103,26 +151,35 @@ class PersistentAppLogTree(private val store: AppLogStore) : Timber.Tree() {
                 "$message: ${t.javaClass.simpleName}: ${t.message.orEmpty()}"
             }
         runCatching {
-            store.append(
-                AppLogEntry(
-                    timestampMillis = System.currentTimeMillis(),
-                    level = priority.toLevel(),
-                    source = "app",
-                    tag = tag ?: "DeviceMasker",
+            val timestampMillis = System.currentTimeMillis()
+            store.appendEvent(
+                DiagnosticEvent(
+                    eventId = DiagnosticEvent.nextEventId(timestampMillis),
+                    timestampWallMillis = timestampMillis,
+                    timestampElapsedMillis = System.nanoTime() / 1_000_000,
+                    sessionId = "app-log",
+                    bootId = "unknown",
+                    source = DiagnosticSource.APP,
+                    severity = priority.toSeverity(),
+                    eventType = DiagnosticEventType.APP_LOG,
+                    threadName = Thread.currentThread().name,
+                    hooker = tag ?: "DeviceMasker",
                     message = fullMessage,
+                    throwableClass = t?.javaClass?.simpleName,
+                    stacktrace = t?.stackTraceToString()?.lines().orEmpty(),
+                    extras = mapOf("tag" to (tag ?: "DeviceMasker")),
                 )
             )
         }
     }
 
-    private fun Int.toLevel(): String =
+    private fun Int.toSeverity(): DiagnosticSeverity =
         when (this) {
-            Log.ERROR -> "E"
-            Log.WARN -> "W"
-            Log.INFO -> "I"
-            Log.DEBUG -> "D"
-            Log.VERBOSE -> "V"
-            else -> "D"
+            Log.ERROR -> DiagnosticSeverity.ERROR
+            Log.WARN -> DiagnosticSeverity.WARN
+            Log.INFO -> DiagnosticSeverity.INFO
+            Log.VERBOSE -> DiagnosticSeverity.VERBOSE
+            else -> DiagnosticSeverity.DEBUG
         }
 }
 
