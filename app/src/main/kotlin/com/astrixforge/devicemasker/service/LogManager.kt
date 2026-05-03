@@ -2,8 +2,16 @@ package com.astrixforge.devicemasker.service
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import androidx.core.content.FileProvider
 import com.astrixforge.devicemasker.DeviceMaskerApp
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEvent
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticJson
+import com.astrixforge.devicemasker.common.diagnostics.RedactionMode
+import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotBuilder
+import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotMetadata
+import com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilder
+import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -17,18 +25,18 @@ import java.util.Locale
  */
 object LogManager {
 
-    private const val LOG_FILE_PREFIX = "devicemasker_logs_"
-    private const val LOG_FILE_EXTENSION = ".log"
+    private const val LOG_FILE_PREFIX = "devicemasker_support_"
+    private const val LOG_FILE_EXTENSION = ".zip"
 
     suspend fun exportLogsToUri(context: Context, uri: Uri): LogExportResult {
         return try {
-            val logContent = buildLogContent(context)
+            val bundle = buildSupportBundle(context, SupportBundleMode.BASIC)
 
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                outputStream.write(logContent.toByteArray())
+                bundle.inputStream().use { input -> input.copyTo(outputStream) }
             } ?: return LogExportResult.Error("Failed to open file for writing")
 
-            LogExportResult.Success(uri.lastPathSegment ?: "logs.log", logContent.lines().size)
+            LogExportResult.Success(uri.lastPathSegment ?: bundle.name, bundle.length().toInt())
         } catch (e: Exception) {
             LogExportResult.Error("Export failed: ${e.message}")
         }
@@ -46,20 +54,27 @@ object LogManager {
             }
 
             val fileName = generateLogFileName()
+            val bundle = buildSupportBundle(context, SupportBundleMode.BASIC, logsDir)
             val logFile = File(logsDir, fileName)
-            logFile.writeText(buildLogContent(context))
+            if (bundle.name != logFile.name) {
+                bundle.copyTo(logFile, overwrite = true)
+            }
 
             val uri =
                 FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", logFile)
 
-            ShareableLogResult.Success(uri, fileName, logFile.readLines().size)
+            ShareableLogResult.Success(uri, fileName, logFile.length().toInt())
         } catch (e: Exception) {
             ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
         }
     }
 
-    private suspend fun buildLogContent(context: Context): String {
-        val appEntries = AppLogStore.from(context).readEntries()
+    private suspend fun buildSupportBundle(
+        context: Context,
+        mode: SupportBundleMode,
+        outputDir: File = File(context.cacheDir, "logs"),
+    ): File {
+        val appEvents = AppLogStore.from(context).readDiagnosticEvents()
         val serviceClient = DeviceMaskerApp.serviceClient
         if (!serviceClient.isConnected) {
             serviceClient.connect()
@@ -71,13 +86,37 @@ object LogManager {
             } else {
                 emptyList()
             }
-        val diagnosticsStatus = serviceClient.connectionState.value.name.lowercase(Locale.US)
+        val snapshots =
+            DiagnosticSnapshotBuilder(
+                    metadata =
+                        DiagnosticSnapshotMetadata(
+                            appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown",
+                            buildType = com.astrixforge.devicemasker.BuildConfig.BUILD_TYPE,
+                            androidSdk = Build.VERSION.SDK_INT,
+                            androidRelease = Build.VERSION.RELEASE ?: "unknown",
+                            device = "${Build.MANUFACTURER} ${Build.MODEL}",
+                            rootAvailable = false,
+                            xposedServiceConnected = serviceClient.isConnected,
+                            moduleEnabled = DeviceMaskerApp.isXposedModuleActive,
+                            targetPackage = null,
+                            scopePackages = listOf("android", "system"),
+                            droppedLogCount = 0,
+                        ),
+                    configJson = "{}",
+                    remotePrefs = emptyMap(),
+                    hookHealthJson = "{}",
+                )
+                .build(RedactionMode.REDACTED)
 
-        return LogFileFormatter.build(
-            appEntries = appEntries,
-            serviceLogs = serviceLogs,
-            diagnosticsStatus = diagnosticsStatus,
-        )
+        return SupportBundleBuilder(
+                appEvents = appEvents.map { event ->
+                    DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
+                },
+                xposedEvents = emptyList(),
+                serviceEvents = serviceLogs,
+                snapshots = snapshots,
+            )
+            .build(outputDir, mode, RedactionMode.REDACTED)
     }
 
     suspend fun getLogCount(): Int =
