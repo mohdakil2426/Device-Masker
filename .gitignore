@@ -116,6 +116,7 @@ Thumbs.db
 .playwright-cli/
 .playwright-mcp/
 scripts/logs/*.txt
+docs/references/
 
 # ═══════════════════════════════════════════════════════════
 # VERSION CONTROL
