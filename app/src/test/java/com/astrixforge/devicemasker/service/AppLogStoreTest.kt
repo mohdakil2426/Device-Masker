@@ -1,7 +1,7 @@
 package com.astrixforge.devicemasker.service
 
-import java.io.File
 import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -56,7 +56,8 @@ class AppLogStoreTest {
 
         Timber.uprootAll()
         Timber.plant(tree)
-        Timber.tag("ConfigManager").e(IllegalStateException("bad state"), "Config failed for 490154203237518")
+        Timber.tag("ConfigManager")
+            .e(IllegalStateException("bad state"), "Config failed for 490154203237518")
         Timber.uprootAll()
 
         val event = store.readDiagnosticEvents().single()

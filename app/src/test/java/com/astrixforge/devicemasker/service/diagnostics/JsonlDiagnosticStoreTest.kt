@@ -61,7 +61,8 @@ class JsonlDiagnosticStoreTest {
 
         repeat(12) { manager.startSession() }
 
-        val sessionNames = File(root, "logs/sessions").listFiles().orEmpty().map { it.name }.sorted()
+        val sessionNames =
+            File(root, "logs/sessions").listFiles().orEmpty().map { it.name }.sorted()
         assertEquals(10, sessionNames.size)
         assertFalse("session_session-1" in sessionNames)
         assertFalse("session_session-2" in sessionNames)

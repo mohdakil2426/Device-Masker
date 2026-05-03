@@ -66,12 +66,7 @@ object DualLog {
     // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════
 
-    private fun report(
-        tag: String,
-        message: String,
-        priority: Int,
-        throwable: Throwable? = null,
-    ) {
+    private fun report(tag: String, message: String, priority: Int, throwable: Throwable? = null) {
         XposedDiagnosticEventSink.log(
             priority = priority,
             tag = tag,
@@ -100,9 +95,11 @@ object HookMetrics {
         )
     }
 
-    fun getSuccessCount(): Int = XposedDiagnosticEventSink.hookHealth.snapshot().registrationSuccesses.toInt()
+    fun getSuccessCount(): Int =
+        XposedDiagnosticEventSink.hookHealth.snapshot().registrationSuccesses.toInt()
 
-    fun getFailureCount(): Int = XposedDiagnosticEventSink.hookHealth.snapshot().registrationFailures.toInt()
+    fun getFailureCount(): Int =
+        XposedDiagnosticEventSink.hookHealth.snapshot().registrationFailures.toInt()
 
     fun getSummary(): String = buildString {
         val snapshot = XposedDiagnosticEventSink.hookHealth.snapshot()

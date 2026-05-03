@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.service.diagnostics
 
-import java.io.File
 import kotlin.io.path.createTempDirectory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,14 +19,7 @@ class RootShellTest {
 
     @Test
     fun `captures exit code stderr and capped stdout`() {
-        val shell =
-            RootShell(
-                FakeExecutor(
-                    stdout = "abcdef",
-                    stderr = "warning",
-                    exitCode = 7,
-                )
-            )
+        val shell = RootShell(FakeExecutor(stdout = "abcdef", stderr = "warning", exitCode = 7))
         val dir = createTempDirectory("root").toFile()
 
         val result = shell.run(RootCommand("id", maxOutputBytes = 3), dir)
@@ -42,7 +34,11 @@ class RootShellTest {
     fun `timeout returns timeout result`() {
         val shell = RootShell(FakeExecutor(timedOut = true))
 
-        val result = shell.run(RootCommand("logcat", timeoutMillis = 1), createTempDirectory("root").toFile())
+        val result =
+            shell.run(
+                RootCommand("logcat", timeoutMillis = 1),
+                createTempDirectory("root").toFile(),
+            )
 
         assertTrue(result.timedOut)
         assertEquals(RootCommandStatus.TIMED_OUT, result.status)

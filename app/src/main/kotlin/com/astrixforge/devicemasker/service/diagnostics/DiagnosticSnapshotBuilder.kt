@@ -34,15 +34,20 @@ class DiagnosticSnapshotBuilder(
         val redactedMetadata =
             metadata.copy(
                 targetPackage = metadata.targetPackage?.let(redactor::redactPackage),
-                scopePackages = metadata.scopePackages.map { pkg ->
-                    if (pkg == "android" || pkg == "system") pkg else redactor.redactPackage(pkg)
-                },
+                scopePackages =
+                    metadata.scopePackages.map { pkg ->
+                        if (pkg == "android" || pkg == "system") pkg
+                        else redactor.redactPackage(pkg)
+                    },
             )
         return mapOf(
             "summary.json" to json.encodeToString(redactedMetadata),
-            "config_snapshot_redacted.json" to redactPackages(redactor.redactMessage(configJson), redactor),
+            "config_snapshot_redacted.json" to
+                redactPackages(redactor.redactMessage(configJson), redactor),
             "remote_prefs_snapshot_redacted.json" to
-                json.encodeToString(remotePrefs.mapValues { (_, value) -> redactor.redactValue(value) }),
+                json.encodeToString(
+                    remotePrefs.mapValues { (_, value) -> redactor.redactValue(value) }
+                ),
             "scope_snapshot.json" to json.encodeToString(redactedMetadata.scopePackages),
             "hook_health.json" to hookHealthJson,
         )
@@ -50,7 +55,9 @@ class DiagnosticSnapshotBuilder(
 
     private fun redactPackages(value: String, redactor: DiagnosticRedactor): String {
         var redacted = value
-        metadata.targetPackage?.let { pkg -> redacted = redacted.replace(pkg, redactor.redactPackage(pkg)) }
+        metadata.targetPackage?.let { pkg ->
+            redacted = redacted.replace(pkg, redactor.redactPackage(pkg))
+        }
         metadata.scopePackages.forEach { pkg ->
             if (pkg != "android" && pkg != "system") {
                 redacted = redacted.replace(pkg, redactor.redactPackage(pkg))

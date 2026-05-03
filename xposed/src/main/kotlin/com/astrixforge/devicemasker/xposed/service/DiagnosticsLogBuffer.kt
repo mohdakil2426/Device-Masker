@@ -26,7 +26,9 @@ class DiagnosticsLogBuffer(
                 INFO -> "I"
                 else -> "D"
             }
-        logs.addLast("[${logDateFmt.format(Instant.ofEpochMilli(nowMillis()))}] $levelStr/$tag: $message")
+        logs.addLast(
+            "[${logDateFmt.format(Instant.ofEpochMilli(nowMillis()))}] $levelStr/$tag: $message"
+        )
         while (logs.size > maxLogs) {
             logs.pollFirst()
             droppedLogs.incrementAndGet()

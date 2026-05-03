@@ -29,9 +29,9 @@ object XposedDiagnosticEventSink {
         }
 
         val event = buildEvent(priority, tag, message, throwable, eventType)
-        val encoded = runCatching {
-            DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
-        }.getOrElse { message }
+        val encoded =
+            runCatching { DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event) }
+                .getOrElse { message }
 
         runCatching { XposedEntry.instance.log(priority, tag, message, throwable) }
         runCatching { XposedEntry.instance.reportLog(tag, encoded, priority) }

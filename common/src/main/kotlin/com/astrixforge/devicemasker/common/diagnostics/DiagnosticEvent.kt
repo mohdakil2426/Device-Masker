@@ -4,12 +4,11 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-val DiagnosticJson: Json =
-    Json {
-        encodeDefaults = true
-        ignoreUnknownKeys = true
-        prettyPrint = false
-    }
+val DiagnosticJson: Json = Json {
+    encodeDefaults = true
+    ignoreUnknownKeys = true
+    prettyPrint = false
+}
 
 @Serializable
 enum class DiagnosticSource {
@@ -101,9 +100,10 @@ data class DiagnosticEvent(
         private val nextSequence = AtomicInteger(0)
 
         fun nextEventId(timestampWallMillis: Long): String {
-            val sequence = nextSequence.updateAndGet { current ->
-                if (current >= MAX_SEQUENCE) 1 else current + 1
-            }
+            val sequence =
+                nextSequence.updateAndGet { current ->
+                    if (current >= MAX_SEQUENCE) 1 else current + 1
+                }
             return "evt_${timestampWallMillis}_${sequence.toString().padStart(6, '0')}"
         }
 

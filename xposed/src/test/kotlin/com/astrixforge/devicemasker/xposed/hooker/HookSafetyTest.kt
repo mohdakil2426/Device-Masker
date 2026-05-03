@@ -1,10 +1,10 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 class HookSafetyTest {
 
@@ -67,9 +67,13 @@ class HookSafetyTest {
     fun `hooker files use safe hook or structured diagnostics`() {
         val hookerDir = File("src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker")
         val hookerFiles =
-            hookerDir.listFiles { file ->
-                file.isFile && file.name.endsWith("Hooker.kt") && file.name != "BaseSpoofHooker.kt"
-            }.orEmpty()
+            hookerDir
+                .listFiles { file ->
+                    file.isFile &&
+                        file.name.endsWith("Hooker.kt") &&
+                        file.name != "BaseSpoofHooker.kt"
+                }
+                .orEmpty()
 
         assertTrue("Expected hooker files", hookerFiles.isNotEmpty())
         hookerFiles.forEach { file ->

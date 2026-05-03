@@ -23,7 +23,10 @@ class HookHealthRegistryTest {
         assertEquals(1, snapshot.skippedMethods)
         assertEquals(1, snapshot.deoptimizeFailures)
         assertTrue(snapshot.methods.containsKey("DeviceHooker.getImei"))
-        assertEquals("NoSuchMethodException", snapshot.methods.getValue("NetworkHooker.getWifiInfo").lastFailureClass)
+        assertEquals(
+            "NoSuchMethodException",
+            snapshot.methods.getValue("NetworkHooker.getWifiInfo").lastFailureClass,
+        )
     }
 
     @Test

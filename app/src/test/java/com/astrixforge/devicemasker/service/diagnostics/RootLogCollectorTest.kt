@@ -27,7 +27,11 @@ class RootLogCollectorTest {
             )
             .forEach { relativePath -> assertTrue(outputDir.resolve(relativePath).exists()) }
 
-        assertTrue(executor.commands.any { it.contains("logcat -d -v threadtime -b main,system,crash,events") })
+        assertTrue(
+            executor.commands.any {
+                it.contains("logcat -d -v threadtime -b main,system,crash,events")
+            }
+        )
         assertTrue(executor.commands.any { it.contains("dumpsys package com.mantle.verify") })
     }
 

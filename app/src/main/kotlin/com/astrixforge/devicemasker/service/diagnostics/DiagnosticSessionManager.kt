@@ -6,7 +6,9 @@ import java.util.UUID
 class DiagnosticSessionManager(
     private val filesDir: File,
     private val sessionIdProvider: () -> String = { UUID.randomUUID().toString() },
-    private val bootIdProvider: () -> String = { "elapsed-${System.currentTimeMillis() / BOOT_BUCKET_MS}" },
+    private val bootIdProvider: () -> String = {
+        "elapsed-${System.currentTimeMillis() / BOOT_BUCKET_MS}"
+    },
     private val maxSessions: Int = DEFAULT_MAX_SESSIONS,
 ) {
     var currentSessionId: String? = null
@@ -36,7 +38,8 @@ class DiagnosticSessionManager(
     private fun pruneOldSessions() {
         val root = sessionsRoot()
         val sessions =
-            root.listFiles { file -> file.isDirectory && file.name.startsWith("session_") }
+            root
+                .listFiles { file -> file.isDirectory && file.name.startsWith("session_") }
                 .orEmpty()
                 .sortedWith(compareBy<File> { it.lastModified() }.thenBy { it.name })
 

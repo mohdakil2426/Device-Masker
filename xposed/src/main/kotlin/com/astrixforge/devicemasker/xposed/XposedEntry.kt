@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.xposed
 
 import android.util.Log
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
+import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 import com.astrixforge.devicemasker.xposed.hooker.AdvertisingHooker
 import com.astrixforge.devicemasker.xposed.hooker.AntiDetectHooker
 import com.astrixforge.devicemasker.xposed.hooker.DeviceHooker
@@ -13,7 +14,6 @@ import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
-import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
@@ -88,7 +88,9 @@ class XposedEntry : XposedModule() {
             Log.INFO,
             TAG,
             "XposedEntry loaded for process: ${param.processName}",
-            eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.XPOSED_ENTRY_LOADED,
+            eventType =
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                    .XPOSED_ENTRY_LOADED,
         )
     }
 
@@ -151,7 +153,8 @@ class XposedEntry : XposedModule() {
                     TAG,
                     "RemotePreferences unavailable for $pkg",
                     t,
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.REMOTE_PREFS_UNAVAILABLE,
+                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                        .REMOTE_PREFS_UNAVAILABLE,
                 )
                 log(
                     Log.WARN,
@@ -170,7 +173,9 @@ class XposedEntry : XposedModule() {
             Log.INFO,
             TAG,
             "Target package selected: $hookPackage",
-            eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.TARGET_PACKAGE_SELECTED,
+            eventType =
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                    .TARGET_PACKAGE_SELECTED,
         )
 
         // Per-app toggle — only hook apps that the user explicitly enabled
@@ -249,7 +254,9 @@ class XposedEntry : XposedModule() {
                 Log.DEBUG,
                 TAG,
                 "[$name] Hook registration started for $pkg",
-                eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_REGISTRATION_STARTED,
+                eventType =
+                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                        .HOOK_REGISTRATION_STARTED,
             )
             block()
             XposedDiagnosticEventSink.hookHealth.recordRegistrationSuccess(name, "hook")
@@ -257,7 +264,9 @@ class XposedEntry : XposedModule() {
                 Log.DEBUG,
                 TAG,
                 "[$name] Hook registered for $pkg",
-                eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_REGISTERED,
+                eventType =
+                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                        .HOOK_REGISTERED,
             )
         } catch (e: XposedFrameworkError) {
             throw e

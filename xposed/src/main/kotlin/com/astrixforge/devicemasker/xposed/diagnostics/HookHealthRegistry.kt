@@ -66,8 +66,12 @@ class HookHealthRegistry {
     }
 
     fun recordSpoofEvent(pkg: String, spoofType: String): SpoofEventRecord {
-        val count = spoofEvents.computeIfAbsent("$pkg/$spoofType") { AtomicLong(0) }.incrementAndGet()
-        return SpoofEventRecord(count = count, shouldLog = count <= 5 || count == 10L || count == 100L || count == 1000L)
+        val count =
+            spoofEvents.computeIfAbsent("$pkg/$spoofType") { AtomicLong(0) }.incrementAndGet()
+        return SpoofEventRecord(
+            count = count,
+            shouldLog = count <= 5 || count == 10L || count == 100L || count == 1000L,
+        )
     }
 
     fun snapshot(): HookHealthSnapshot =

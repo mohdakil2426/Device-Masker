@@ -64,7 +64,8 @@ class RootShell(private val executor: RootCommandExecutor = SuCommandExecutor())
 
         return RootCommandResult(
             command = command.command,
-            status = if (execution.timedOut) RootCommandStatus.TIMED_OUT else RootCommandStatus.EXITED,
+            status =
+                if (execution.timedOut) RootCommandStatus.TIMED_OUT else RootCommandStatus.EXITED,
             exitCode = execution.exitCode,
             stdoutPath = stdoutFile,
             stderrPath = stderrFile,

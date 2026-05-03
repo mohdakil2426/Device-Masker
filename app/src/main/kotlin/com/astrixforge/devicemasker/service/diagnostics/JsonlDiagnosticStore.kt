@@ -40,9 +40,7 @@ class JsonlDiagnosticStore(
 
     fun readEvents(): List<DiagnosticEvent> =
         eventFiles().flatMap { file ->
-            file.readLines(Charsets.UTF_8).mapNotNull { line ->
-                decodeLine(line).getOrNull()
-            }
+            file.readLines(Charsets.UTF_8).mapNotNull { line -> decodeLine(line).getOrNull() }
         }
 
     fun stats(): StoreStats {
@@ -85,7 +83,8 @@ class JsonlDiagnosticStore(
             .orEmpty()
             .sortedBy { it.name }
 
-    private fun fileName(index: Int): String = "${filePrefix}_${index.toString().padStart(3, '0')}.jsonl"
+    private fun fileName(index: Int): String =
+        "${filePrefix}_${index.toString().padStart(3, '0')}.jsonl"
 
     private fun decodeLine(line: String): Result<DiagnosticEvent> =
         runCatching { DiagnosticJson.decodeFromString(DiagnosticEvent.serializer(), line) }
@@ -98,10 +97,8 @@ class JsonlDiagnosticStore(
             }
 
     private fun writeState() {
-        File(sessionDir, "store_state.json").writeText(
-            """{"droppedEvents":${droppedEvents.get()}}""",
-            Charsets.UTF_8,
-        )
+        File(sessionDir, "store_state.json")
+            .writeText("""{"droppedEvents":${droppedEvents.get()}}""", Charsets.UTF_8)
     }
 
     private companion object {

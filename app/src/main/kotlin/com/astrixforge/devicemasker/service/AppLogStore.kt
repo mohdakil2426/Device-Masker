@@ -56,9 +56,13 @@ class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_
 
     @Synchronized
     fun clear() {
-        file.toSessionDir().listFiles { candidate ->
-            candidate.isFile && (candidate.extension == "jsonl" || candidate.name == "store_state.json")
-        }?.forEach { it.delete() }
+        file
+            .toSessionDir()
+            .listFiles { candidate ->
+                candidate.isFile &&
+                    (candidate.extension == "jsonl" || candidate.name == "store_state.json")
+            }
+            ?.forEach { it.delete() }
     }
 
     fun appStartEvent(timestampMillis: Long = System.currentTimeMillis()): DiagnosticEvent =

@@ -132,8 +132,9 @@ fun SettingsScreen(
     // File picker launcher - opens native folder picker
     var pendingExportMode by remember { mutableStateOf(exportMode) }
     val exportLogsLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) {
-            uri ->
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/zip")
+        ) { uri ->
             uri?.let { onExportLogsToUri(it, pendingExportMode) }
         }
 

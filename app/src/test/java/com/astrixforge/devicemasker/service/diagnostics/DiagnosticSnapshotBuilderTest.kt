@@ -32,7 +32,17 @@ class DiagnosticSnapshotBuilderTest {
         val snapshots = builder.build(RedactionMode.REDACTED)
         val combined = snapshots.values.joinToString("\n")
 
-        assertTrue(snapshots.keys.containsAll(listOf("summary.json", "config_snapshot_redacted.json", "remote_prefs_snapshot_redacted.json", "scope_snapshot.json", "hook_health.json")))
+        assertTrue(
+            snapshots.keys.containsAll(
+                listOf(
+                    "summary.json",
+                    "config_snapshot_redacted.json",
+                    "remote_prefs_snapshot_redacted.json",
+                    "scope_snapshot.json",
+                    "hook_health.json",
+                )
+            )
+        )
         assertFalse(combined.contains("490154203237518"))
         assertFalse(combined.contains("a1b2c3d4e5f60789"))
         assertFalse(combined.contains("com.bank.example"))

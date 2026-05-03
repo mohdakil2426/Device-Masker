@@ -97,7 +97,10 @@ object LogManager {
             DiagnosticSnapshotBuilder(
                     metadata =
                         DiagnosticSnapshotMetadata(
-                            appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown",
+                            appVersion =
+                                context.packageManager
+                                    .getPackageInfo(context.packageName, 0)
+                                    .versionName ?: "unknown",
                             buildType = com.astrixforge.devicemasker.BuildConfig.BUILD_TYPE,
                             androidSdk = Build.VERSION.SDK_INT,
                             androidRelease = Build.VERSION.RELEASE ?: "unknown",
@@ -116,9 +119,10 @@ object LogManager {
                 .build(RedactionMode.REDACTED)
 
         return SupportBundleBuilder(
-                appEvents = appEvents.map { event ->
-                    DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
-                },
+                appEvents =
+                    appEvents.map { event ->
+                        DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
+                    },
                 xposedEvents = emptyList(),
                 serviceEvents = serviceLogs,
                 snapshots = snapshots,

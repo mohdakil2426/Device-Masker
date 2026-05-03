@@ -21,14 +21,22 @@ class RootLogCollector(private val rootShell: RootShell = RootShell()) {
             collectFile(outputDir, "anr/anr_traces.txt", "cat /data/anr/anr_*"),
             collectFile(outputDir, "tombstones/list.txt", "ls /data/tombstones"),
             collectFile(outputDir, "tombstones/tombstones.txt", "cat /data/tombstones/tombstone_*"),
-            collectFile(outputDir, "dumpsys_package_module.txt", "dumpsys package com.astrixforge.devicemasker"),
+            collectFile(
+                outputDir,
+                "dumpsys_package_module.txt",
+                "dumpsys package com.astrixforge.devicemasker",
+            ),
             collectFile(outputDir, "dumpsys_package_target.txt", "dumpsys package $target"),
             collectFile(outputDir, "dumpsys_activity_processes.txt", "dumpsys activity processes"),
             collectFile(outputDir, "getprop_redacted.txt", "getprop"),
         )
     }
 
-    private fun collectFile(outputDir: File, relativePath: String, command: String): RootCommandResult {
+    private fun collectFile(
+        outputDir: File,
+        relativePath: String,
+        command: String,
+    ): RootCommandResult {
         val commandDir = File(outputDir, ".commands/${relativePath.replace('/', '_')}")
         val result = rootShell.run(RootCommand(command), commandDir)
         val destination = File(outputDir, relativePath)

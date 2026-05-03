@@ -25,7 +25,7 @@ class DiagnosticRedactorTest {
 
         val redacted =
             redactor.redactMessage(
-                "imei=490154203237518 mac=02:00:00:12:34:56 androidId=a1b2c3d4e5f60789",
+                "imei=490154203237518 mac=02:00:00:12:34:56 androidId=a1b2c3d4e5f60789"
             )
 
         assertFalse(redacted.contains("490154203237518"))

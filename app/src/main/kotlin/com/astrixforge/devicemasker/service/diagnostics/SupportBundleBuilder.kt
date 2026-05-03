@@ -31,10 +31,19 @@ class SupportBundleBuilder(
                 "manifest.json",
                 """{"mode":"$mode","redaction":"$redactionMode","createdAt":"${timestamp()}"}""",
             )
-            zip.writeText("README_REPRO.md", "Reproduce the issue, then attach this local support bundle.\n")
+            zip.writeText(
+                "README_REPRO.md",
+                "Reproduce the issue, then attach this local support bundle.\n",
+            )
             zip.writeText("app/app_events.jsonl", appEvents.joinToString("\n").redact(redactor))
-            zip.writeText("xposed/xposed_events.jsonl", xposedEvents.joinToString("\n").redact(redactor))
-            zip.writeText("diagnostics/service_events.jsonl", serviceEvents.joinToString("\n").redact(redactor))
+            zip.writeText(
+                "xposed/xposed_events.jsonl",
+                xposedEvents.joinToString("\n").redact(redactor),
+            )
+            zip.writeText(
+                "diagnostics/service_events.jsonl",
+                serviceEvents.joinToString("\n").redact(redactor),
+            )
 
             if (mode == SupportBundleMode.FULL || mode == SupportBundleMode.ROOT_MAXIMUM) {
                 snapshots.forEach { (name, content) ->
@@ -49,10 +58,13 @@ class SupportBundleBuilder(
             }
 
             if (mode == SupportBundleMode.ROOT_MAXIMUM) {
-                rootArtifactsDir?.walkTopDown()?.filter { it.isFile }?.forEach { artifact ->
-                    val relative = artifact.relativeTo(rootArtifactsDir).invariantSeparatorsPath
-                    zip.writeText("root/$relative", artifact.readText().redact(redactor))
-                }
+                rootArtifactsDir
+                    ?.walkTopDown()
+                    ?.filter { it.isFile }
+                    ?.forEach { artifact ->
+                        val relative = artifact.relativeTo(rootArtifactsDir).invariantSeparatorsPath
+                        zip.writeText("root/$relative", artifact.readText().redact(redactor))
+                    }
             }
         }
         return file
