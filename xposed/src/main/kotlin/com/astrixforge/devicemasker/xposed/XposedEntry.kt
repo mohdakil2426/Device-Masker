@@ -13,6 +13,7 @@ import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
+import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
@@ -83,6 +84,12 @@ class XposedEntry : XposedModule() {
         instance = this
         processName = param.processName
         log(Log.INFO, TAG, "XposedEntry loaded for process: ${param.processName}", null)
+        XposedDiagnosticEventSink.log(
+            Log.INFO,
+            TAG,
+            "XposedEntry loaded for process: ${param.processName}",
+            eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.XPOSED_ENTRY_LOADED,
+        )
     }
 
     /**
@@ -139,6 +146,13 @@ class XposedEntry : XposedModule() {
             } catch (e: XposedFrameworkError) {
                 throw e
             } catch (t: Throwable) {
+                XposedDiagnosticEventSink.log(
+                    Log.WARN,
+                    TAG,
+                    "RemotePreferences unavailable for $pkg",
+                    t,
+                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.REMOTE_PREFS_UNAVAILABLE,
+                )
                 log(
                     Log.WARN,
                     TAG,
@@ -152,6 +166,12 @@ class XposedEntry : XposedModule() {
         if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return
 
         val hookPackage = selectHookPackage(pkg, prefs) ?: return
+        XposedDiagnosticEventSink.log(
+            Log.INFO,
+            TAG,
+            "Target package selected: $hookPackage",
+            eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.TARGET_PACKAGE_SELECTED,
+        )
 
         // Per-app toggle — only hook apps that the user explicitly enabled
         if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(hookPackage), false)) return
@@ -224,10 +244,36 @@ class XposedEntry : XposedModule() {
      */
     private fun hookSafely(pkg: String, name: String, block: () -> Unit) {
         try {
+            XposedDiagnosticEventSink.hookHealth.recordRegistrationAttempt(name, "hook")
+            XposedDiagnosticEventSink.log(
+                Log.DEBUG,
+                TAG,
+                "[$name] Hook registration started for $pkg",
+                eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_REGISTRATION_STARTED,
+            )
             block()
+            XposedDiagnosticEventSink.hookHealth.recordRegistrationSuccess(name, "hook")
+            XposedDiagnosticEventSink.log(
+                Log.DEBUG,
+                TAG,
+                "[$name] Hook registered for $pkg",
+                eventType = com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_REGISTERED,
+            )
         } catch (e: XposedFrameworkError) {
             throw e
         } catch (t: Throwable) {
+            XposedDiagnosticEventSink.hookHealth.recordRegistrationFailure(
+                name,
+                "hook",
+                t.javaClass.simpleName,
+            )
+            XposedDiagnosticEventSink.log(
+                Log.ERROR,
+                TAG,
+                "[$name] Hook registration failed for $pkg: ${t.javaClass.simpleName}: ${t.message}",
+                t,
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_FAILED,
+            )
             log(
                 Log.ERROR,
                 TAG,
@@ -277,8 +323,11 @@ class XposedEntry : XposedModule() {
      * Declared here so hookers can call XposedEntry.instance.reportSpoofEvent().
      */
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
-        log(Log.DEBUG, TAG, "Spoof event: $pkg/$spoofTypeName", null)
-        runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
+        val result = XposedDiagnosticEventSink.hookHealth.recordSpoofEvent(pkg, spoofTypeName)
+        if (result.shouldLog) {
+            log(Log.DEBUG, TAG, "Spoof event: $pkg/$spoofTypeName", null)
+            runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
+        }
     }
 
     fun reportLog(tag: String, message: String, level: Int) {

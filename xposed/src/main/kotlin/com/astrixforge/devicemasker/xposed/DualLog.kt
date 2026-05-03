@@ -1,6 +1,8 @@
 package com.astrixforge.devicemasker.xposed
 
 import android.util.Log
+import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 
 /**
  * Dual Logger — logs to Android logcat and mirrors structured entries to the diagnostics service.
@@ -31,51 +33,52 @@ object DualLog {
 
     /** Debug level log — for detailed debugging info. */
     fun debug(tag: String, message: String) {
-        Log.d(tag, message)
-        report("D", tag, message, Log.DEBUG)
+        report(tag, message, Log.DEBUG)
     }
 
     /** Info level log — for important events. */
     fun info(tag: String, message: String) {
-        Log.i(tag, message)
-        report("I", tag, message, Log.INFO)
+        report(tag, message, Log.INFO)
     }
 
     /** Warning level log — for recoverable issues. */
     fun warn(tag: String, message: String) {
-        Log.w(tag, message)
-        report("W", tag, message, Log.WARN)
+        report(tag, message, Log.WARN)
     }
 
     /** Warning level log with exception. */
     fun warn(tag: String, message: String, throwable: Throwable) {
         val fullMessage = "$message: ${throwable.message}"
-        Log.w(tag, fullMessage, throwable)
-        report("W", tag, fullMessage, Log.WARN)
+        report(tag, fullMessage, Log.WARN, throwable)
     }
 
     /** Error level log — for failures. */
     fun error(tag: String, message: String) {
-        Log.e(tag, message)
-        report("E", tag, message, Log.ERROR)
+        report(tag, message, Log.ERROR)
     }
 
     /** Error level log with exception. */
     fun error(tag: String, message: String, throwable: Throwable) {
-        Log.e(tag, message, throwable)
-        report("E", tag, "$message: ${throwable.message}", Log.ERROR)
-        throwable.stackTrace.take(5).forEach { element ->
-            report("E", tag, "  at $element", Log.ERROR)
-        }
+        report(tag, "$message: ${throwable.message}", Log.ERROR, throwable)
     }
 
     // ═══════════════════════════════════════════════════════════
     // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════
 
-    private fun report(level: String, tag: String, message: String, priority: Int) {
-        val entry = "[$level][$tag] $message"
-        runCatching { XposedEntry.instance.reportLog(tag, entry, priority) }
+    private fun report(
+        tag: String,
+        message: String,
+        priority: Int,
+        throwable: Throwable? = null,
+    ) {
+        XposedDiagnosticEventSink.log(
+            priority = priority,
+            tag = tag,
+            message = message,
+            throwable = throwable,
+            eventType = DiagnosticEventType.DIAGNOSTICS_SERVICE_LOG,
+        )
     }
 }
 
@@ -85,30 +88,31 @@ object DualLog {
  * Used by DiagnosticsViewModel to display hook health information.
  */
 object HookMetrics {
-    private val successCount = java.util.concurrent.ConcurrentHashMap<String, Int>()
-    private val failureCount = java.util.concurrent.ConcurrentHashMap<String, Int>()
-
     fun recordSuccess(hookerName: String, methodName: String) {
-        val key = "$hookerName.$methodName"
-        successCount[key] = successCount.getOrDefault(key, 0) + 1
+        XposedDiagnosticEventSink.hookHealth.recordRegistrationSuccess(hookerName, methodName)
     }
 
     fun recordFailure(hookerName: String, methodName: String) {
-        val key = "$hookerName.$methodName"
-        failureCount[key] = failureCount.getOrDefault(key, 0) + 1
+        XposedDiagnosticEventSink.hookHealth.recordRegistrationFailure(
+            hookerName,
+            methodName,
+            "unknown",
+        )
     }
 
-    fun getSuccessCount(): Int = successCount.values.sum()
+    fun getSuccessCount(): Int = XposedDiagnosticEventSink.hookHealth.snapshot().registrationSuccesses.toInt()
 
-    fun getFailureCount(): Int = failureCount.values.sum()
+    fun getFailureCount(): Int = XposedDiagnosticEventSink.hookHealth.snapshot().registrationFailures.toInt()
 
     fun getSummary(): String = buildString {
+        val snapshot = XposedDiagnosticEventSink.hookHealth.snapshot()
         appendLine("=== Hook Metrics ===")
-        appendLine("Success: ${getSuccessCount()} calls")
-        appendLine("Failures: ${getFailureCount()} calls")
-        if (failureCount.isNotEmpty()) {
+        appendLine("Success: ${snapshot.registrationSuccesses} calls")
+        appendLine("Failures: ${snapshot.registrationFailures} calls")
+        val failures = snapshot.methods.filterValues { it.failures > 0 }
+        if (failures.isNotEmpty()) {
             appendLine("Failed methods:")
-            failureCount.forEach { (method, count) -> appendLine("  - $method: $count") }
+            failures.forEach { (method, health) -> appendLine("  - $method: ${health.failures}") }
         }
     }
 

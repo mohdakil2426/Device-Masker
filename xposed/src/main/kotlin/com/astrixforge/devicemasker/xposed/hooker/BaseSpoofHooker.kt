@@ -5,6 +5,7 @@ import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import com.astrixforge.devicemasker.xposed.XposedEntry
+import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 import io.github.libxposed.api.error.XposedFrameworkError
 import java.lang.reflect.Method
 
@@ -66,10 +67,17 @@ abstract class BaseSpoofHooker(protected val tag: String) {
      */
     protected fun safeHook(methodName: String, block: () -> Unit) {
         try {
+            XposedDiagnosticEventSink.hookHealth.recordRegistrationAttempt(tag, methodName)
             block()
+            XposedDiagnosticEventSink.hookHealth.recordRegistrationSuccess(tag, methodName)
         } catch (e: XposedFrameworkError) {
             throw e
         } catch (t: Throwable) {
+            XposedDiagnosticEventSink.hookHealth.recordRegistrationFailure(
+                tag,
+                methodName,
+                t.javaClass.simpleName,
+            )
             val message = "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}"
             DualLog.warn(tag, message, t)
             runCatching { XposedEntry.instance.log(android.util.Log.WARN, tag, message, null) }
