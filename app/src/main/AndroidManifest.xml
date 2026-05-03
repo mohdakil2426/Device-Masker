@@ -13,6 +13,10 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28"
         tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android 10+: Uses MediaStore API (no permission needed for Downloads) -->
 
     <application
@@ -80,6 +84,24 @@
             android:authorities="${applicationId}.XposedService"
             android:exported="true"
             tools:ignore="ExportedContentProvider" />
+
+        <receiver
+            android:name=".service.diagnostics.BootCaptureReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".service.diagnostics.RootLogCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Local root diagnostics capture for LSPosed module validation and support bundles" />
+        </service>
 
     </application>
 

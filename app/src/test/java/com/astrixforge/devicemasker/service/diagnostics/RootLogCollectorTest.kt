@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.service.diagnostics
 
 import kotlin.io.path.createTempDirectory
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -33,6 +34,25 @@ class RootLogCollectorTest {
             }
         )
         assertTrue(executor.commands.any { it.contains("dumpsys package com.mantle.verify") })
+        assertTrue(outputDir.resolve("command_manifest.jsonl").exists())
+        assertTrue(outputDir.resolve("command_manifest.jsonl").readText().contains("rootAvailable"))
+    }
+
+    @Test
+    fun `collector skips target commands when package is blank or invalid`() {
+        val executor = RecordingExecutor()
+        val collector = RootLogCollector(RootShell(executor))
+        val outputDir = createTempDirectory("collector").toFile()
+
+        collector.collect(outputDir, targetPackage = "com.example.bad; rm -rf /")
+
+        assertFalse(executor.commands.any { it.contains("com.example.bad") })
+        assertFalse(outputDir.resolve("dumpsys_package_target.txt").exists())
+        assertTrue(
+            executor.commands.any {
+                it.contains("DeviceMasker|LSPosed|lspd|AndroidRuntime|FATAL EXCEPTION|ANR")
+            }
+        )
     }
 
     private class RecordingExecutor : RootCommandExecutor {

@@ -13,13 +13,21 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -37,6 +45,9 @@ import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.SettingsDataStore
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.ShareableLogResult
+import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
+import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
+import com.astrixforge.devicemasker.service.diagnostics.RootLogCaptureService
 import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
 import com.astrixforge.devicemasker.ui.navigation.NavRoutes
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
@@ -54,6 +65,7 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.LocalMotionPolicy
 import com.astrixforge.devicemasker.ui.theme.rememberMotionPolicy
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -85,7 +97,29 @@ class MainActivity : ComponentActivity() {
                 settingsStore.amoledMode.collectAsStateWithLifecycle(initialValue = true)
             val dynamicColors by
                 settingsStore.dynamicColors.collectAsStateWithLifecycle(initialValue = true)
+            val rootAccessState by RootAccessManager.state.collectAsStateWithLifecycle()
             val motionPolicy = rememberMotionPolicy()
+            var showRootWarning by rememberSaveable { mutableStateOf(false) }
+            val coroutineScope = rememberCoroutineScope()
+
+            LaunchedEffect(Unit) {
+                val result = RootAccessManager.requestRootAccess(applicationContext)
+                if (result == RootAccessState.GRANTED) {
+                    RootLogCaptureService.start(
+                        applicationContext,
+                        RootLogCaptureService.TRIGGER_STARTUP,
+                    )
+                }
+            }
+
+            LaunchedEffect(rootAccessState) {
+                if (
+                    rootAccessState == RootAccessState.DENIED ||
+                        rootAccessState == RootAccessState.UNAVAILABLE
+                ) {
+                    showRootWarning = true
+                }
+            }
 
             CompositionLocalProvider(LocalMotionPolicy provides motionPolicy) {
                 // Determine actual dark state for edge-to-edge styling
@@ -133,7 +167,31 @@ class MainActivity : ComponentActivity() {
                         themeMode = themeMode,
                         amoledMode = amoledMode,
                         dynamicColors = dynamicColors,
+                        rootAccessState = rootAccessState,
                     )
+
+                    if (showRootWarning) {
+                        RootAccessWarningDialog(
+                            rootAccessState = rootAccessState,
+                            onRetry = {
+                                coroutineScope.launch {
+                                    val result =
+                                        RootAccessManager.requestRootAccess(
+                                            applicationContext,
+                                            force = true,
+                                        )
+                                    if (result == RootAccessState.GRANTED) {
+                                        showRootWarning = false
+                                        RootLogCaptureService.start(
+                                            applicationContext,
+                                            RootLogCaptureService.TRIGGER_STARTUP,
+                                        )
+                                    }
+                                }
+                            },
+                            onDismiss = { showRootWarning = false },
+                        )
+                    }
                 }
             }
         }
@@ -148,6 +206,7 @@ fun DeviceMaskerMainApp(
     themeMode: ThemeMode,
     amoledMode: Boolean,
     dynamicColors: Boolean,
+    rootAccessState: RootAccessState,
     navController: NavHostController = rememberNavController(),
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -237,6 +296,7 @@ fun DeviceMaskerMainApp(
                     dynamicColors = dynamicColors,
                     isExportingLogs = settingsState.isExportingLogs,
                     exportMode = settingsState.exportMode,
+                    rootAccessState = rootAccessState,
                     exportResult = settingsState.exportResult,
                     onThemeModeChange = { mode ->
                         Timber.d("Theme mode changed: $mode")
@@ -323,4 +383,32 @@ fun DeviceMaskerMainApp(
             }
         }
     }
+}
+
+@Composable
+private fun RootAccessWarningDialog(
+    rootAccessState: RootAccessState,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.root_access_warning_title)) },
+        text = {
+            Text(
+                text =
+                    when (rootAccessState) {
+                        RootAccessState.UNAVAILABLE ->
+                            stringResource(R.string.root_access_unavailable_message)
+                        else -> stringResource(R.string.root_access_denied_message)
+                    }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.root_access_retry)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_confirm)) }
+        },
+    )
 }

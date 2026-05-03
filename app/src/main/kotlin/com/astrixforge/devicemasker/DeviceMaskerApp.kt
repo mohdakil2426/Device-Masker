@@ -6,6 +6,7 @@ import com.astrixforge.devicemasker.service.AppLogStore
 import com.astrixforge.devicemasker.service.ConfigManager
 import com.astrixforge.devicemasker.service.PersistentAppLogTree
 import com.astrixforge.devicemasker.service.ServiceClient
+import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import timber.log.Timber
 
 /**
@@ -47,6 +48,9 @@ class DeviceMaskerApp : Application() {
         ConfigManager.init(this)
         XposedPrefs.addServiceBindCallback { ConfigManager.syncCurrentConfig() }
         Timber.d("ConfigManager initialised")
+
+        RootAccessManager.init(this)
+        Timber.d("RootAccessManager initialised")
 
         // Diagnostics-only AIDL client — non-fatal if service is unavailable
         _serviceClient = ServiceClient(this)

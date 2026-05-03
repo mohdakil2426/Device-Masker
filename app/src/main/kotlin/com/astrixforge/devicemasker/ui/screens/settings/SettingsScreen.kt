@@ -58,6 +58,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.components.ActionBottomSheet
 import com.astrixforge.devicemasker.ui.components.ActionItem
 import com.astrixforge.devicemasker.ui.components.ScreenHeader
@@ -86,6 +87,7 @@ fun SettingsScreen(
     dynamicColors: Boolean = true,
     isExportingLogs: Boolean = false,
     exportMode: BundleExportMode = BundleExportMode.BASIC,
+    rootAccessState: RootAccessState = RootAccessState.UNKNOWN,
     exportResult: ExportResult? = null,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAmoledDarkModeChange: (Boolean) -> Unit = {},
@@ -111,6 +113,7 @@ fun SettingsScreen(
     val fullExportTitle = stringResource(R.string.settings_export_full_debug)
     val rootExportTitle = stringResource(R.string.settings_export_root_maximum)
     val redactedDefault = stringResource(R.string.settings_export_redacted_default)
+    val rootMaximumAvailable = rootAccessState == RootAccessState.GRANTED
     val buildTypeValue =
         stringResource(
             if (BuildConfig.DEBUG) {
@@ -168,6 +171,7 @@ fun SettingsScreen(
             dynamicColors = dynamicColors,
             isExportingLogs = isExportingLogs,
             exportMode = exportMode,
+            rootAccessState = rootAccessState,
             isDarkModeActive = isDarkModeActive,
             buildTypeValue = buildTypeValue,
             moduleInfoValue = moduleInfoValue,
@@ -230,7 +234,13 @@ fun SettingsScreen(
                     ActionItem(
                         icon = Icons.Outlined.Save,
                         title = "$saveTitle - $rootExportTitle",
-                        description = stringResource(R.string.settings_export_unredacted_warning),
+                        description =
+                            if (rootMaximumAvailable) {
+                                stringResource(R.string.settings_export_unredacted_warning)
+                            } else {
+                                stringResource(R.string.root_access_required_for_root_export)
+                            },
+                        enabled = rootMaximumAvailable,
                         onClick = {
                             pendingExportMode = BundleExportMode.ROOT_MAXIMUM
                             onExportModeChange(BundleExportMode.ROOT_MAXIMUM)
@@ -257,6 +267,7 @@ private fun SettingsScreenContent(
     dynamicColors: Boolean,
     isExportingLogs: Boolean,
     exportMode: BundleExportMode,
+    rootAccessState: RootAccessState,
     isDarkModeActive: Boolean,
     buildTypeValue: String,
     moduleInfoValue: String,
@@ -323,6 +334,14 @@ private fun SettingsScreenContent(
             SettingsSection(title = stringResource(id = R.string.settings_debug)) {
 
                 // Export In-Memory Logs
+                SettingsInfoItem(
+                    icon = Icons.Outlined.Shield,
+                    title = stringResource(id = R.string.root_access_status_title),
+                    value = stringResource(id = rootAccessState.labelRes()),
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 SettingsClickableItem(
                     icon = Icons.Outlined.FileDownload,
                     title = stringResource(id = R.string.settings_export_logs),
@@ -384,6 +403,15 @@ private fun SettingsScreenContent(
         item(key = "bottom_spacing") { Spacer(modifier = Modifier.height(24.dp)) }
     }
 }
+
+private fun RootAccessState.labelRes(): Int =
+    when (this) {
+        RootAccessState.UNKNOWN -> R.string.root_access_status_unknown
+        RootAccessState.REQUESTING -> R.string.root_access_status_requesting
+        RootAccessState.GRANTED -> R.string.root_access_status_granted
+        RootAccessState.DENIED -> R.string.root_access_status_denied
+        RootAccessState.UNAVAILABLE -> R.string.root_access_status_unavailable
+    }
 
 @Composable
 private fun LoadingIndicator() {

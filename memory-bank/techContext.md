@@ -20,6 +20,7 @@
 | Serialization | kotlinx.serialization JSON 1.10.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
 | Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
+| Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and Root Maximum support bundles |
 | Image loading | Coil Compose 3.4.0 |
 
 ## Modules
@@ -56,7 +57,10 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Support bundle export bridge |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/JsonlDiagnosticStore.kt` | Rotating diagnostic JSONL store |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/SupportBundleBuilder.kt` | Local support bundle ZIP builder |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCollector.kt` | Opt-in root maximum artifact collector |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCollector.kt` | Opt-in root maximum artifact collector and command manifest writer |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootAccessManager.kt` | Central root grant state and startup root request |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCaptureService.kt` | Foreground service for bounded root startup/boot capture |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/BootCaptureReceiver.kt` | Starts root capture after `BOOT_COMPLETED` when Android allows it |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config repository |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |

@@ -10,6 +10,9 @@ import com.astrixforge.devicemasker.common.diagnostics.DiagnosticJson
 import com.astrixforge.devicemasker.common.diagnostics.RedactionMode
 import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotBuilder
 import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotMetadata
+import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
+import com.astrixforge.devicemasker.service.diagnostics.RootCaptureStore
+import com.astrixforge.devicemasker.service.diagnostics.RootLogCollector
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilder
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
 import java.io.File
@@ -51,7 +54,7 @@ object LogManager {
         mode: SupportBundleMode = SupportBundleMode.BASIC,
     ): ShareableLogResult {
         return try {
-            if (!hasAnyLogs(context)) {
+            if (mode != SupportBundleMode.ROOT_MAXIMUM && !hasAnyLogs(context)) {
                 return ShareableLogResult.NoLogs
             }
 
@@ -93,6 +96,25 @@ object LogManager {
             } else {
                 emptyList()
             }
+        val rootArtifactsDir =
+            if (mode == SupportBundleMode.ROOT_MAXIMUM) {
+                RootCaptureStore.prepareExportArtifacts(context, outputDir).also { rootDir ->
+                    if (RootAccessManager.hasGrantedRoot()) {
+                        RootLogCollector().collect(File(rootDir, "export_snapshot"), null)
+                    } else {
+                        RootCaptureStore.writeManifest(
+                            dir = rootDir,
+                            trigger = "export",
+                            status = "ROOT_UNAVAILABLE",
+                            message =
+                                "Root access is not currently granted; export used captured root artifacts only.",
+                        )
+                    }
+                }
+            } else {
+                null
+            }
+        val rootAvailable = RootAccessManager.hasGrantedRoot()
         val snapshots =
             DiagnosticSnapshotBuilder(
                     metadata =
@@ -105,7 +127,7 @@ object LogManager {
                             androidSdk = Build.VERSION.SDK_INT,
                             androidRelease = Build.VERSION.RELEASE ?: "unknown",
                             device = "${Build.MANUFACTURER} ${Build.MODEL}",
-                            rootAvailable = false,
+                            rootAvailable = rootAvailable,
                             xposedServiceConnected = serviceClient.isConnected,
                             moduleEnabled = DeviceMaskerApp.isXposedModuleActive,
                             targetPackage = null,
@@ -123,9 +145,12 @@ object LogManager {
                     appEvents.map { event ->
                         DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
                     },
-                xposedEvents = emptyList(),
+                xposedEvents =
+                    if (serviceClient.isConnected) serviceLogs
+                    else listOf("""{"message":"Not available from service"}"""),
                 serviceEvents = serviceLogs,
                 snapshots = snapshots,
+                rootArtifactsDir = rootArtifactsDir,
             )
             .build(outputDir, mode, RedactionMode.REDACTED)
     }

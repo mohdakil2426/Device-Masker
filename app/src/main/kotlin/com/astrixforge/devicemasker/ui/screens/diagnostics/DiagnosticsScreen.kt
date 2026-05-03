@@ -386,7 +386,7 @@ private fun ServiceStatusCard(serviceStatus: ServiceStatus, hookLogs: List<Strin
                     stringResource(
                         id = R.string.diagnostics_service_status_summary,
                         serviceStatus.connectionState.name,
-                        serviceStatus.hookedAppCount,
+                        serviceStatus.hookEvidenceLabel(),
                     ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -416,6 +416,16 @@ private fun ServiceStatusCard(serviceStatus: ServiceStatus, hookLogs: List<Strin
         }
     }
 }
+
+@Composable
+private fun ServiceStatus.hookEvidenceLabel(): String =
+    when (hookEvidenceState) {
+        HookEvidenceState.UNKNOWN -> stringResource(id = R.string.diagnostics_unknown)
+        HookEvidenceState.UNAVAILABLE ->
+            stringResource(id = R.string.diagnostics_hook_evidence_unavailable)
+        HookEvidenceState.NONE_OBSERVED -> "0"
+        HookEvidenceState.OBSERVED -> hookedAppCount?.toString().orEmpty()
+    }
 
 /** Individual diagnostic result item. */
 @Composable

@@ -28,12 +28,22 @@ data class ServiceStatus(
     val connectionState: ServiceClient.ConnectionState = ServiceClient.ConnectionState.DISCONNECTED,
     val version: String? = null,
     val uptimeMs: Long = 0L,
-    val hookedAppCount: Int = 0,
+    val hookedAppCount: Int? = null,
     val totalFilterCount: Int = 0,
 ) {
     /** Checks if service is connected and responsive. */
     val isConnected: Boolean
         get() = connectionState == ServiceClient.ConnectionState.CONNECTED
+
+    val hookEvidenceState: HookEvidenceState
+        get() =
+            when {
+                connectionState != ServiceClient.ConnectionState.CONNECTED ->
+                    HookEvidenceState.UNAVAILABLE
+                hookedAppCount == null -> HookEvidenceState.UNKNOWN
+                hookedAppCount > 0 -> HookEvidenceState.OBSERVED
+                else -> HookEvidenceState.NONE_OBSERVED
+            }
 
     /** Formats uptime as human-readable string. */
     val uptimeFormatted: String
@@ -51,6 +61,13 @@ data class ServiceStatus(
                 else -> "${seconds}s"
             }
         }
+}
+
+enum class HookEvidenceState {
+    UNKNOWN,
+    UNAVAILABLE,
+    NONE_OBSERVED,
+    OBSERVED,
 }
 
 /** Data class representing a diagnostic result. */

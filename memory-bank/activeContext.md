@@ -80,6 +80,61 @@ Implemented local-first structured diagnostics:
 
 Root Maximum still needs rooted-device smoke validation. Target LSPosed smoke has not been rerun after this diagnostics work.
 
+## 2026-05-03 Diagnostics And Root Export Audit Fixes
+
+Implemented the follow-up audit fixes for diagnostics and root evidence:
+- Diagnostics UI state now distinguishes app-side framework connection from optional diagnostics service availability and hook evidence. Unavailable service-backed hook evidence is represented as unavailable/unknown instead of `0`.
+- Root Maximum share/export no longer short-circuits as `NoLogs` before root collection.
+- Root Maximum support bundles now invoke `RootLogCollector`, include `root/` artifacts, and snapshot actual root/service availability.
+- Production root command execution uses libsu core 6.0.0; the `RootCommandExecutor` interface remains for unit tests.
+- Root command output now includes per-command manifests and a collector `command_manifest.jsonl` with status, exit code, timeout, root availability, and stderr summary.
+- Target package names are validated before inclusion in root shell commands; invalid or blank target packages skip target-specific commands.
+- `LocationManager.getLastKnownLocation()` now returns a copied `Location` when spoofing coordinates instead of mutating the framework-returned instance in place.
+- PackageManager method discovery has regression coverage for API 33+ flags object overloads.
+
+Verification:
+
+```powershell
+.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`. Gradle emitted a transient Kotlin daemon session warning and compiled with fallback, but the command exited successfully.
+
+Rooted-device Root Maximum export and target LSPosed runtime smoke still need to be rerun.
+
+Runtime smoke rerun after these fixes:
+- Installed `app/build/outputs/apk/debug/app-debug.apk` on `emulator-5554`.
+- Force-stopped and launched `com.mantle.verify`.
+- `pidof com.mantle.verify` returned `7537`.
+- Logcat showed `XposedEntry loaded for process: com.mantle.verify`.
+- Logcat showed `All hooks registered for: com.mantle.verify`.
+- Logcat showed spoof events for LOCALE, ANDROID_ID, CARRIER_MCC_MNC, NETWORK_OPERATOR, IMEI, BLUETOOTH_MAC, WIFI_MAC, WIFI_SSID, PHONE_NUMBER, ADVERTISING_ID, MEDIA_DRM_ID, SIM_OPERATOR_NAME, and TIMEZONE.
+- No matching final-window fatal signatures were found for `FATAL EXCEPTION`, `PatternSyntaxException`, `Cannot hook abstract`, `AbstractMethodError`, or `WorkManagerInitializer`.
+
+Root Maximum in-app export still needs manual/UI validation on the rooted device.
+
+## 2026-05-04 Startup Root And Boot Capture
+
+Implemented root-first diagnostics flow:
+- `RootAccessManager` now owns root state: unknown, requesting, granted, denied, unavailable.
+- First app launch/startup requests root from `MainActivity`; denial/unavailable shows a warning dialog explaining that Root Maximum logging, boot capture, and privileged diagnostics will not work.
+- Settings shows root access status and disables Root Maximum export when root is not granted.
+- `RootShell` no longer probes with `Shell.getShell()` during export. Export uses root only when `Shell.isAppGrantedRoot()` already reports granted, avoiding the late root prompt after folder selection.
+- Added `RootLogCaptureService` as a `specialUse` foreground service for bounded root capture.
+- Added `BootCaptureReceiver` for `BOOT_COMPLETED`; it starts the foreground root capture service after device boot.
+- Startup root grant starts the same capture service immediately with trigger `startup`.
+- Root Maximum export packages the latest captured root artifacts and can add an export snapshot only if root is already granted.
+
+Validation:
+- `.\gradlew.bat :app:testDebugUnitTest --no-daemon` passed.
+- `.\gradlew.bat lint assembleDebug --no-daemon` passed.
+- `.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon` passed.
+- Installed debug APK on `emulator-5554`, launched the app, and confirmed process `11060` stayed running.
+- Startup root capture wrote `files/logs/root-capture/latest/root_capture_manifest.json` with status `COMPLETED` and produced root artifacts including logcat, dumpsys, getprop, and command manifest files.
+
+Limit:
+- `adb shell am broadcast -a android.intent.action.BOOT_COMPLETED` is blocked by Android with `SecurityException`, so actual boot receiver behavior still needs a real reboot validation.
+
 ## Latest Crash Lessons
 
 The working base came from fixing these failure modes:

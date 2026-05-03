@@ -42,6 +42,7 @@ data class ActionItem(
     val icon: ImageVector,
     val title: String,
     val description: String? = null,
+    val enabled: Boolean = true,
     val onClick: () -> Unit,
 )
 
@@ -92,6 +93,7 @@ fun ActionBottomSheet(
                     icon = action.icon,
                     title = action.title,
                     description = action.description,
+                    enabled = action.enabled,
                     onClick = {
                         action.onClick()
                         onDismiss()
@@ -108,6 +110,7 @@ private fun ActionItemRow(
     icon: ImageVector,
     title: String,
     description: String?,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -116,14 +119,16 @@ private fun ActionItemRow(
             modifier
                 .fillMaxWidth()
                 .semantics(mergeDescendants = true) {}
-                .clickable(onClick = onClick)
+                .clickable(enabled = enabled, onClick = onClick)
                 .padding(vertical = 14.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint =
+                if (enabled) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -131,7 +136,9 @@ private fun ActionItemRow(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color =
+                    if (enabled) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (description != null) {
                 Spacer(modifier = Modifier.height(2.dp))

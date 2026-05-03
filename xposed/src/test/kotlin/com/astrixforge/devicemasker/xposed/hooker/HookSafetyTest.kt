@@ -86,4 +86,62 @@ class HookSafetyTest {
             )
         }
     }
+
+    @Test
+    fun `package manager overload discovery includes api 33 flag object overloads`() {
+        val methods = FakePackageManager::class.java.declaredMethods.toList()
+
+        assertEquals(
+            setOf("getPackageInfo"),
+            PackageManagerHooker.packageLookupMethodsForTest(methods, "getPackageInfo")
+                .map { it.name }
+                .toSet(),
+        )
+        assertEquals(
+            setOf("getInstalledPackages"),
+            PackageManagerHooker.singleFlagMethodsForTest(methods, "getInstalledPackages")
+                .map { it.name }
+                .toSet(),
+        )
+    }
+
+    @Test
+    fun `location override helper returns copy metadata without mutating original`() {
+        val original =
+            LocationHooker.LocationSnapshot(
+                provider = "gps",
+                latitude = 1.0,
+                longitude = 2.0,
+                accuracy = 5.0f,
+                time = 123L,
+                elapsedRealtimeNanos = 456L,
+            )
+
+        val copy = LocationHooker.applySpoofForTest(original, "37.4219983", "-122.084")
+
+        assertEquals(1.0, original.latitude, 0.0)
+        assertEquals(2.0, original.longitude, 0.0)
+        assertEquals(37.4219983, copy.latitude, 0.0)
+        assertEquals(-122.084, copy.longitude, 0.0)
+        assertEquals("gps", copy.provider)
+        assertEquals(5.0f, copy.accuracy)
+        assertEquals(123L, copy.time)
+        assertEquals(456L, copy.elapsedRealtimeNanos)
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    private class FakePackageManager {
+        fun getPackageInfo(packageName: String, flags: Int): android.content.pm.PackageInfo? = null
+
+        fun getPackageInfo(
+            packageName: String,
+            flags: android.content.pm.PackageManager.PackageInfoFlags,
+        ): android.content.pm.PackageInfo? = null
+
+        fun getInstalledPackages(flags: Int): List<android.content.pm.PackageInfo> = emptyList()
+
+        fun getInstalledPackages(
+            flags: android.content.pm.PackageManager.PackageInfoFlags
+        ): List<android.content.pm.PackageInfo> = emptyList()
+    }
 }

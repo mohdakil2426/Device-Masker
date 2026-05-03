@@ -106,6 +106,20 @@
     <string name="settings_export_root_maximum">Root Maximum Export</string>
     <string name="settings_export_redacted_default">Redacted by default</string>
     <string name="settings_export_unredacted_warning">Unredacted logs may include package names and sensitive debugging data.</string>
+    <string name="root_access_warning_title">Root access required for maximum diagnostics</string>
+    <string name="root_access_denied_message">Root access was not granted. Basic configuration can still be edited, but Root Maximum logging, boot capture, and privileged diagnostics will not work.</string>
+    <string name="root_access_unavailable_message">Root access is unavailable on this device. Basic configuration can still be edited, but Root Maximum logging, boot capture, and privileged diagnostics will not work.</string>
+    <string name="root_access_retry">Grant root</string>
+    <string name="root_access_required_for_root_export">Root access is required. Grant root on app startup before using Root Maximum export.</string>
+    <string name="root_access_status_title">Root Access</string>
+    <string name="root_access_status_unknown">Unknown</string>
+    <string name="root_access_status_requesting">Requesting</string>
+    <string name="root_access_status_granted">Granted</string>
+    <string name="root_access_status_denied">Denied</string>
+    <string name="root_access_status_unavailable">Unavailable</string>
+    <string name="root_capture_notification_channel">Root diagnostics capture</string>
+    <string name="root_capture_notification_title">Capturing Root Maximum logs</string>
+    <string name="root_capture_notification_text">Collecting local LSPosed and Device Masker diagnostics.</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_description">Check module health and hook status</string>
     <string name="settings_about">About</string>
@@ -1856,6 +1870,7 @@
     <string name="group_import_error">Failed to import groups.</string>
     <string name="group_import_empty_error">Selected file is empty or unreadable.</string>
     <string name="diagnostics_service_status_title">Service Status</string>
-    <string name="diagnostics_service_status_summary">Connection: %1$s • Hooked apps: %2$d</string>
+    <string name="diagnostics_service_status_summary">Diagnostics service: %1$s • Hook evidence: %2$s</string>
+    <string name="diagnostics_hook_evidence_unavailable">Not available from service</string>
     <string name="diagnostics_recent_logs_title">Recent Hook Logs</string>
 </resources>

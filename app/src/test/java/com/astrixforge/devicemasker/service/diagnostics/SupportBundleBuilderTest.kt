@@ -12,6 +12,7 @@ class SupportBundleBuilderTest {
     fun `root maximum zip contains expected support artifacts`() {
         val rootDir = createTempDirectory("root-artifacts").toFile()
         rootDir.resolve("logcat_main_system_crash.txt").writeText("imei=490154203237518")
+        rootDir.resolve("command_manifest.jsonl").writeText("""{"status":"EXITED"}""")
         val outputDir = createTempDirectory("bundle").toFile()
         val bundle =
             SupportBundleBuilder(
@@ -41,6 +42,7 @@ class SupportBundleBuilderTest {
                     "config/remote_prefs_snapshot_redacted.json",
                     "scope/scope_snapshot.json",
                     "root/logcat_main_system_crash.txt",
+                    "root/command_manifest.jsonl",
                 )
                 .forEach { assertTrue("Missing $it", zip.getEntry(it) != null) }
 

@@ -10,11 +10,14 @@ class RootShellTest {
     @Test
     fun `su unavailable returns root unavailable`() {
         val shell = RootShell(FakeExecutor(available = false))
+        val dir = createTempDirectory("root").toFile()
 
-        val result = shell.run(RootCommand("id"), createTempDirectory("root").toFile())
+        val result = shell.run(RootCommand("id"), dir)
 
         assertFalse(result.rootAvailable)
         assertEquals(RootCommandStatus.ROOT_UNAVAILABLE, result.status)
+        assertTrue(dir.resolve("manifest.json").exists())
+        assertTrue(dir.resolve("manifest.json").readText().contains("ROOT_UNAVAILABLE"))
     }
 
     @Test
@@ -25,9 +28,12 @@ class RootShellTest {
         val result = shell.run(RootCommand("id", maxOutputBytes = 3), dir)
 
         assertEquals(7, result.exitCode)
+        assertEquals("warning", result.stderrSummary)
         assertEquals("abc", result.stdoutPath?.readText())
         assertEquals("warning", result.stderrPath?.readText())
         assertEquals(RootCommandStatus.EXITED, result.status)
+        assertTrue(dir.resolve("manifest.json").readText().contains(""""exitCode":7"""))
+        assertTrue(dir.resolve("manifest.json").readText().contains("warning"))
     }
 
     @Test
@@ -42,6 +48,7 @@ class RootShellTest {
 
         assertTrue(result.timedOut)
         assertEquals(RootCommandStatus.TIMED_OUT, result.status)
+        assertTrue(result.stderrSummary.isEmpty())
     }
 
     private class FakeExecutor(

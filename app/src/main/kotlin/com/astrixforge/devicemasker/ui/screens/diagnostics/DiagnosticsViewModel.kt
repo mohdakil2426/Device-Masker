@@ -122,8 +122,8 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
                 it.copy(
                     serviceStatus =
                         it.serviceStatus.copy(
-                            connectionState = ServiceClient.ConnectionState.ERROR,
-                            hookedAppCount = 0,
+                            connectionState = serviceClient.connectionState.value,
+                            hookedAppCount = null,
                         ),
                     hookLogs = emptyList(),
                 )

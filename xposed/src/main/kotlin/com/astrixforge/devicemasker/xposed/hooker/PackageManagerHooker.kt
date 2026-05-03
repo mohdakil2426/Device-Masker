@@ -105,18 +105,12 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
     }
 
     private fun Class<*>.packageLookupMethods(name: String): List<Method> =
-        declaredMethods
-            .filter {
-                it.name == name &&
-                    it.parameterCount == 2 &&
-                    it.parameterTypes.firstOrNull() == String::class.java
-            }
-            .onEach { it.isAccessible = true }
+        packageLookupMethodsForTest(declaredMethods.toList(), name).onEach {
+            it.isAccessible = true
+        }
 
     private fun Class<*>.singleFlagMethods(name: String): List<Method> =
-        declaredMethods
-            .filter { it.name == name && it.parameterCount == 1 }
-            .onEach { it.isAccessible = true }
+        singleFlagMethodsForTest(declaredMethods.toList(), name).onEach { it.isAccessible = true }
 
     private fun Class<*>.intentQueryMethods(name: String): List<Method> =
         declaredMethods
@@ -126,4 +120,22 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
                     it.parameterTypes.firstOrNull() == android.content.Intent::class.java
             }
             .onEach { it.isAccessible = true }
+
+    fun packageLookupMethodsForTest(methods: List<Method>, name: String): List<Method> =
+        methods.filter {
+            it.name == name &&
+                it.parameterCount == 2 &&
+                it.parameterTypes.firstOrNull() == String::class.java &&
+                it.parameterTypes.getOrNull(1).isSupportedPackageManagerFlagType()
+        }
+
+    fun singleFlagMethodsForTest(methods: List<Method>, name: String): List<Method> =
+        methods.filter {
+            it.name == name &&
+                it.parameterCount == 1 &&
+                it.parameterTypes[0].isSupportedPackageManagerFlagType()
+        }
+
+    private fun Class<*>?.isSupportedPackageManagerFlagType(): Boolean =
+        this == Int::class.javaPrimitiveType || this?.name?.endsWith("Flags") == true
 }

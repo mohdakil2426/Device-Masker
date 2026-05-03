@@ -29,7 +29,11 @@
 - Hook-side registration and spoof events are mirrored to LSPosed logs.
 - Rootless app log export works from app-owned storage.
 - Redacted support bundle export works for Basic, Full Debug, and Root Maximum modes at the unit level.
-- Root Maximum collector builds bounded root artifact files behind opt-in root execution.
+- Root Maximum collector builds bounded root artifact files behind opt-in libsu root execution.
+- Root Maximum support bundles include root artifacts and command-result manifests when exported.
+- Root access is requested on first app startup, tracked centrally, and surfaced in Settings.
+- Boot/startup Root Maximum capture writes latest root artifacts before export.
+- Diagnostics state distinguishes framework connection, optional diagnostics service availability, and service-backed hook evidence.
 - `com.mantle.verify` launched after latest remediation and emitted spoof events.
 
 ## Completed Milestones
@@ -104,6 +108,31 @@
 - Added Settings export modes for Basic, Full Debug, and Root Maximum bundles.
 - Documented architecture in `docs/reports/MAXIMUM_DIAGNOSTICS_LOGGING_ARCHITECTURE_2026-05-03.md`.
 
+### 2026-05-03 Diagnostics, Root Logging, And Spoofing Audit Fixes
+
+- Added libsu core 6.0.0 for production root command execution.
+- Kept `RootCommandExecutor` injectable for unit tests.
+- Wired `RootLogCollector` into Root Maximum support bundle creation.
+- Ensured Root Maximum share export can build a bundle even when app/service logs are empty.
+- Added root command manifests with status, exit code, timeout, root availability, and stderr summary.
+- Added target package validation before shell command construction and skipped target-specific commands for invalid package names.
+- Reworked Diagnostics service state so absent service evidence is unavailable/unknown instead of hooked app count `0`.
+- Labeled unavailable service bridge data instead of passing empty xposed events as meaningful target evidence.
+- Changed location last-known-location spoofing to return a copied location with coherent metadata.
+- Added API 33+ PackageManager flag-overload discovery coverage.
+
+### 2026-05-04 Startup Root And Boot Capture
+
+- Added `RootAccessManager` for central root grant state.
+- Requested root during app startup instead of during export.
+- Added warning dialog when root is denied or unavailable.
+- Added Settings root access status.
+- Disabled Root Maximum export UI when root is not granted.
+- Added `RootLogCaptureService` foreground service for bounded root capture.
+- Added `BootCaptureReceiver` for `BOOT_COMPLETED` root capture.
+- Added latest root capture artifact storage under app files.
+- Changed Root Maximum export to package captured artifacts and avoid surprise root prompts after folder selection.
+
 ## Verification Evidence
 
 Full gate:
@@ -122,7 +151,40 @@ Targeted post-audit remediation gate:
 
 Result: `BUILD SUCCESSFUL`.
 
-Note: target LSPosed runtime smoke has not yet been rerun after the 2026-05-03 remediation.
+Diagnostics/root audit gate:
+
+```powershell
+.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL` (Kotlin daemon emitted a transient invalid-session warning and Gradle used fallback compilation).
+
+Startup root/boot capture gate:
+
+```powershell
+.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+Startup capture runtime check:
+
+- Installed `app/build/outputs/apk/debug/app-debug.apk` on `emulator-5554`.
+- Launched `com.astrixforge.devicemasker`; `pidof` returned `11060`.
+- Confirmed latest root capture manifest: `{"trigger":"startup","status":"COMPLETED",...}`.
+- Confirmed root capture files exist under `files/logs/root-capture/latest/`.
+- Could not fake `BOOT_COMPLETED` through adb because Android rejects shell-sent protected boot broadcasts with `SecurityException`; real reboot validation remains open.
+
+Target LSPosed runtime smoke has been rerun after the diagnostics/root audit fixes.
+
+Post diagnostics/root audit runtime smoke:
+
+- Installed `app/build/outputs/apk/debug/app-debug.apk` on `emulator-5554`.
+- Launched `com.mantle.verify`; `pidof` returned `7537`.
+- LSPosed/logcat showed `XposedEntry loaded for process: com.mantle.verify`.
+- LSPosed/logcat showed `All hooks registered for: com.mantle.verify`.
+- Spoof events included LOCALE, ANDROID_ID, CARRIER_MCC_MNC, NETWORK_OPERATOR, IMEI, BLUETOOTH_MAC, WIFI_MAC, WIFI_SSID, PHONE_NUMBER, ADVERTISING_ID, MEDIA_DRM_ID, SIM_OPERATOR_NAME, and TIMEZONE.
+- The checked log window did not show `FATAL EXCEPTION`, `PatternSyntaxException`, `Cannot hook abstract`, `AbstractMethodError`, or `WorkManagerInitializer`.
 
 Target smoke evidence:
 
@@ -155,6 +217,7 @@ Before calling this stable:
 - Test package visibility hiding with API 33+ flag object overloads.
 - Export logs after target hook events and verify exported output is useful.
 - Smoke-test Basic, Full Debug, and Root Maximum bundle export on device.
+- Reboot emulator/device and verify `BootCaptureReceiver` creates a `boot` root capture.
 
 Engineering cleanup:
 
