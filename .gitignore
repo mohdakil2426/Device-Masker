@@ -115,6 +115,7 @@ Thumbs.db
 
 .playwright-cli/
 .playwright-mcp/
+.worktrees/
 scripts/logs/*.txt
 docs/references/
 
