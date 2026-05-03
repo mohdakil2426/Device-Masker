@@ -1,5 +1,5 @@
 ---
-name: libxposed
+name: libxposed-modern-xposed-api
 description: >
   Expert guide for developing Android Xposed modules using the modern libxposed API (API 101+).
   Covers the full development lifecycle: project setup with Gradle and Maven Central, module
