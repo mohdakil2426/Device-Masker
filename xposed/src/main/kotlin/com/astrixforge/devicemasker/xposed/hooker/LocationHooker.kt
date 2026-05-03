@@ -12,8 +12,8 @@ import io.github.libxposed.api.XposedInterface
  * - GPS latitude (Location.getLatitude())
  * - GPS longitude (Location.getLongitude())
  * - LocationManager.getLastKnownLocation() — mutates the returned Location object
- * - TimeZone.getDefault() / TimeZone.getID()
- * - Locale.getDefault() / Locale.toString()
+ * - TimeZone.getDefault()
+ * - Locale.getDefault()
  */
 object LocationHooker : BaseSpoofHooker("LocationHooker") {
 
@@ -120,21 +120,6 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                 xi.deoptimize(m)
             }
         }
-        safeHook("TimeZone.getID()") {
-            tzClass.methodOrNull("getID")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val tzId = getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
-                    if (tzId.isNotBlank()) {
-                        reportSpoofEvent(pkg, SpoofType.TIMEZONE)
-                        tzId
-                    } else {
-                        result
-                    }
-                }
-                xi.deoptimize(m)
-            }
-        }
     }
 
     private fun hookLocale(
@@ -152,23 +137,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     val localeStr = getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
                     if (localeStr.isNotBlank()) {
                         reportSpoofEvent(pkg, SpoofType.LOCALE)
-                        runCatching { java.util.Locale.forLanguageTag(localeStr.replace('_', '-')) }
-                            .getOrElse { current }
-                    } else {
-                        result
-                    }
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("Locale.toString()") {
-            localeClass.methodOrNull("toString")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val localeStr = getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
-                    if (localeStr.isNotBlank()) {
-                        reportSpoofEvent(pkg, SpoofType.LOCALE)
-                        localeStr
+                        buildLocale(localeStr, current)
                     } else {
                         result
                     }

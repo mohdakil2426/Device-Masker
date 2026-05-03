@@ -6,6 +6,7 @@ import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -109,5 +110,24 @@ class ConfigSyncSnapshotTest {
                 SharedPrefsKeys.getSpoofValueKey("com.example.removed", SpoofType.IMEI)
             )
         )
+    }
+
+    @Test
+    fun `sync app path honors canonical app enabled flag`() {
+        val syncFile =
+            projectFile("app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt")
+                .readText()
+
+        assertTrue(
+            "ConfigSync.syncApp must include AppConfig.isEnabled, matching full snapshot sync.",
+            syncFile.contains("configApp?.isEnabled == true"),
+        )
+    }
+
+    private fun projectFile(path: String): File {
+        val normalized = path.replace("/", File.separator)
+        return generateSequence(File("").absoluteFile) { it.parentFile }
+            .map { File(it, normalized) }
+            .first { it.exists() }
     }
 }

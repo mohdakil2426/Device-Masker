@@ -17,7 +17,7 @@ import timber.log.Timber
  * Client for the Device Masker diagnostics service running in `system_server`.
  *
  * **Post-migration scope (Option B):**
- * - Config delivery: **removed** — use [XposedPrefs] / [ModulePreferences] exclusively
+ * - Config delivery: **removed** — use [XposedPrefs] / RemotePreferences exclusively
  * - Diagnostics reads: `getSpoofEventCount`, `getHookedPackages`, `getLogs`, `clearDiagnostics`
  * - Health check: `isAlive`, `connectionState` [StateFlow]
  *

@@ -18,6 +18,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+import io.github.libxposed.api.error.XposedFrameworkError
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -25,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Each target process gets a NEW instance of this class — LSPosed reads
  * META-INF/xposed/java_init.list, instantiates this class via reflection, then calls
- * onPackageLoaded() or onSystemServerLoaded() as appropriate.
+ * onPackageReady() or onSystemServerStarting() as appropriate.
  *
  * Architecture decisions:
  * - `instance` singleton gives hookers access to the XposedModule log API
@@ -33,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap
  * - Each hooker is a stateless `object` with a `hook(cl, xi, prefs, pkg)` factory method
  * - All hook registrations wrapped in `hookSafely()` — one failed hooker never crashes others
  *
- * Config delivery path (post-migration): UI → ConfigSync → ModulePreferences → LSPosed DB →
+ * Config delivery path (post-migration): UI → ConfigSync → RemotePreferences → LSPosed DB →
  * getRemotePreferences() (in hooks)
  *
  * Diagnostics path: Hooks → oneway AIDL → DeviceMaskerService (system_server) →
@@ -53,7 +54,7 @@ class XposedEntry : XposedModule() {
 
         /**
          * Packages to skip entirely for app hooks. These are system-critical processes that must
-         * never be intercepted. Note: "android" is skipped separately in onPackageLoaded() since it
+         * never be intercepted. Note: "android" is skipped separately in onPackageReady() since it
          * is handled by onSystemServerStarting().
          */
         private val SKIP_PACKAGES =
@@ -75,9 +76,12 @@ class XposedEntry : XposedModule() {
         private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     }
 
+    private var processName: String = ""
+
     override fun onModuleLoaded(param: ModuleLoadedParam) {
         super.onModuleLoaded(param)
         instance = this
+        processName = param.processName
         log(Log.INFO, TAG, "XposedEntry loaded for process: ${param.processName}", null)
     }
 
@@ -97,6 +101,8 @@ class XposedEntry : XposedModule() {
         )
         try {
             SystemServiceHooker.hook(param.classLoader, this)
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             // Non-fatal — if service registration fails, hooks still work via RemotePreferences
             log(
@@ -118,49 +124,42 @@ class XposedEntry : XposedModule() {
     override fun onPackageReady(param: PackageReadyParam) {
         val pkg = param.packageName
 
-        // System server is handled by onSystemServerLoaded — do not double-hook
+        // System server is handled by onSystemServerStarting — do not double-hook
         if (pkg == "android") return
 
         // Skip own app and critical system processes
         if (pkg in SKIP_PACKAGES) return
 
-        // libxposed can invoke onPackageLoaded() multiple times for the same process.
-        // We hook once for the process' first package to keep process-global hook state stable.
-        if (!param.isFirstPackage) {
-            log(
-                Log.DEBUG,
-                TAG,
-                "Skipping secondary package load for process-stable hooks: $pkg",
-                null,
-            )
-            return
-        }
-
         // Obtain live RemotePreferences from LSPosed.
         // These reflect the latest values written by the module app — no restart needed.
         // getRemotePreferences() is fast (cached by LSPosed) and safe to call per-package load.
         val prefs =
-            runCatching { getRemotePreferences(PREFS_GROUP) }.getOrNull()
-                ?: run {
-                    log(
-                        Log.WARN,
-                        TAG,
-                        "RemotePreferences unavailable for $pkg — skipping hooks",
-                        null,
-                    )
-                    return
-                }
+            try {
+                getRemotePreferences(PREFS_GROUP)
+            } catch (e: XposedFrameworkError) {
+                throw e
+            } catch (t: Throwable) {
+                log(
+                    Log.WARN,
+                    TAG,
+                    "RemotePreferences unavailable for $pkg — skipping hooks: ${t.message}",
+                    t,
+                )
+                return
+            }
 
         // Master kill-switch — if module is disabled globally, skip all hooks
         if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return
 
+        val hookPackage = selectHookPackage(pkg, prefs) ?: return
+
         // Per-app toggle — only hook apps that the user explicitly enabled
-        if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(pkg), false)) return
+        if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(hookPackage), false)) return
 
         val cl = param.classLoader
         val classLoaderKey = System.identityHashCode(cl)
         if (!hookedClassLoaders.add(classLoaderKey)) {
-            log(Log.DEBUG, TAG, "Hooks already registered for classloader of $pkg", null)
+            log(Log.DEBUG, TAG, "Hooks already registered for classloader of $hookPackage", null)
             return
         }
 
@@ -173,21 +172,47 @@ class XposedEntry : XposedModule() {
         //    Apps cross-check TelephonyManager and SubscriptionManager results.
         // 3. Remaining hookers can run in any order.
         // ═══════════════════════════════════════════════════════════
-        hookSafely(pkg, "AntiDetectHooker") { AntiDetectHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "SubscriptionHooker") { SubscriptionHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "NetworkHooker") { NetworkHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "SystemHooker") { SystemHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "LocationHooker") { LocationHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "SensorHooker") { SensorHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "AdvertisingHooker") { AdvertisingHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "WebViewHooker") { WebViewHooker.hook(cl, this, prefs, pkg) }
-        hookSafely(pkg, "PackageManagerHooker") { PackageManagerHooker.hook(cl, this, prefs, pkg) }
+        hookSafely(hookPackage, "AntiDetectHooker") {
+            AntiDetectHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, hookPackage) }
+        hookSafely(hookPackage, "SubscriptionHooker") {
+            SubscriptionHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "NetworkHooker") {
+            NetworkHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "SystemHooker") { SystemHooker.hook(cl, this, prefs, hookPackage) }
+        hookSafely(hookPackage, "LocationHooker") {
+            LocationHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "SensorHooker") { SensorHooker.hook(cl, this, prefs, hookPackage) }
+        hookSafely(hookPackage, "AdvertisingHooker") {
+            AdvertisingHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "WebViewHooker") {
+            WebViewHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "PackageManagerHooker") {
+            PackageManagerHooker.hook(cl, this, prefs, hookPackage)
+        }
 
         // Report to diagnostics service (fire-and-forget, oneway AIDL — does not block hooks)
-        reportPackageHooked(pkg)
+        reportPackageHooked(hookPackage)
 
-        log(Log.INFO, TAG, "All hooks registered for: $pkg", null)
+        log(Log.INFO, TAG, "All hooks registered for: $hookPackage", null)
+    }
+
+    private fun selectHookPackage(
+        loadedPackage: String,
+        prefs: android.content.SharedPreferences,
+    ): String? {
+        val processBasePackage = processName.substringBefore(':').takeIf { it.isNotBlank() }
+        val candidates = listOfNotNull(loadedPackage, processBasePackage).distinct()
+        return candidates.firstOrNull { candidate ->
+            candidate !in SKIP_PACKAGES &&
+                prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(candidate), false)
+        }
     }
 
     /**
@@ -200,6 +225,8 @@ class XposedEntry : XposedModule() {
     private fun hookSafely(pkg: String, name: String, block: () -> Unit) {
         try {
             block()
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             log(
                 Log.ERROR,

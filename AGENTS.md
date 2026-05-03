@@ -132,6 +132,79 @@ Never do this:
 - Use custom `ServiceManager` lookup from target app processes.
 - Re-enable global `Class.forName` or `ClassLoader.loadClass` hooks without a per-app kill switch and fresh runtime validation.
 
+## Critical libxposed/Xposed Practices
+
+Use the local `libxposed` skill before any Xposed/libxposed implementation, review, debugging, or documentation work. The modern API differs from legacy XposedBridge in ways that can compile but fail silently at runtime.
+
+### API 101 Contract
+
+- Module entry classes must extend `io.github.libxposed.api.XposedModule` and use the framework-created no-arg constructor.
+- Use the modern lifecycle names exactly:
+  - `onModuleLoaded(ModuleLoadedParam)`
+  - `onPackageReady(PackageReadyParam)` for most app hooks
+  - `onSystemServerStarting(SystemServerStartingParam)` for system-server setup
+- Do not invent or use legacy callback names such as `onSystemServerLoaded`, `onServiceConnected`, `onScopeRequestGranted`, `beforeHookedMethod`, or `afterHookedMethod`.
+- `:xposed` must keep `io.github.libxposed:api` as `compileOnly`; add it to test runtime only when local unit tests instantiate code that references API classes.
+- `java_init.list` must contain `com.astrixforge.devicemasker.xposed.XposedEntry`.
+- `module.prop` must keep `minApiVersion=101` and `targetApiVersion=101`.
+- `scope.list` must keep `android` and `system`; target apps still need LSPosed scope plus force-stop/relaunch after changes.
+
+### Chain And Hook Calls
+
+- `chain.args` / `chain.getArgs()` is immutable. Never assign into it.
+- To change arguments, copy the args and call `chain.proceed(Object[])`.
+- Use `chain.proceed()` whenever the original value is needed for fallback.
+- Do not pass a `List` to `chain.proceed`; libxposed expects `Object[]`.
+- `chain.thisObject` can be `null` for static methods and constructors.
+- Skip abstract methods and other unhookable declarations before calling `xi.hook(m)`.
+- Call `xi.deoptimize(m)` after registering hooks for methods where ART/JIT inlining can bypass the hook.
+
+### Error Handling
+
+- `HookFailedError` extends `XposedFrameworkError`, which extends `Error`.
+- Hook registration and deoptimization wrappers must rethrow `XposedFrameworkError` before generic `Throwable` fallback handling.
+- Keep ordinary reflection/OEM API variation failures isolated so one missing method does not block unrelated hooks.
+- Intentional app-visible throws for anti-detection package/class hiding must use `ExceptionMode.PASSTHROUGH`.
+- Do not hide libxposed framework errors behind "safe" logging fallbacks.
+
+### Config And Identity Semantics
+
+- RemotePreferences is the config delivery channel. AIDL is diagnostics-only.
+- App-side config sync should use explicit `commit()` when sync success matters.
+- `JsonConfig.appConfigs` is canonical for app assignment and enablement; `SpoofGroup.assignedApps` is legacy/display compatibility.
+- `SharedPrefsKeys` in `:common` is the only source for RemotePreferences key names.
+- Hookers must read stored values and return originals for disabled, missing, blank, malformed, unsafe, or unsupported config.
+- Hookers must not generate fresh identifiers at runtime.
+- Do not read app-private JSON files from target processes.
+- Some hooks intentionally read config at registration time. Do not claim full live update behavior for those hooks unless callback-time reads are implemented and runtime-tested.
+
+### Process And Scope Behavior
+
+- libxposed may invoke package callbacks multiple times in one process.
+- `XposedEntry` uses process/package selection and one hook registration per classloader to avoid duplicate hook chains.
+- One classloader still has one effective hook package. Do not assume true simultaneous per-package identities inside a shared process.
+- App-side `XposedPrefs.isServiceConnected` proves only libxposed service binding; it does not prove any target app is scoped, hooked, or spoofed.
+- LSPosed logs are the authoritative target-process evidence for hook registration and spoof events.
+
+### Anti-Detection Stability
+
+- Keep safer anti-detection surfaces focused on stack traces, package visibility, and `/proc/self/maps`.
+- Keep global `Class.forName` and `ClassLoader.loadClass` hooks disabled by default.
+- Reintroduce global class lookup hiding only behind a per-app kill switch and fresh runtime validation.
+- Avoid static initializers in hookers that can throw during target startup.
+- Target app processes must not discover the custom diagnostics service through `ServiceManager`; diagnostics service access is best-effort and system-server/app-side only.
+
+### Runtime Validation
+
+Before claiming Xposed behavior works:
+- Run the relevant unit/static tests.
+- Build and install the module APK.
+- Ensure LSPosed scope includes `android`, `system`, and the selected target app.
+- Force-stop and relaunch the target app after scope/module/config changes.
+- Check LSPosed logs for `XposedEntry loaded`, hook registration, and spoof events.
+- Verify actual returned spoof values inside target apps when possible, not only app launch or service connection.
+- Re-test `com.mantle.verify` after hook safety changes, then validate at least two more target apps before stability claims.
+
 ## Anti-Detection State
 
 Current active safer surfaces:

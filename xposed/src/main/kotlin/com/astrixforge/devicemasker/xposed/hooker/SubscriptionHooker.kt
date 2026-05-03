@@ -19,7 +19,8 @@ import io.github.libxposed.api.XposedInterface
  * - SubscriptionInfo.getMnc() / getMncString() — Mobile Network Code
  * - SubscriptionInfo.getNumber() — phone number
  * - SubscriptionInfo.getSubscriberId() — IMSI (via SubscriptionInfo on newer APIs)
- * - SubscriptionManager.getActiveSubscriptionInfoList() — mutates each listed SubscriptionInfo
+ * - SubscriptionManager.getActiveSubscriptionInfoList() — preserves list shape; individual
+ *   SubscriptionInfo getters are spoofed when apps inspect each entry
  *
  * ## SIM count consistency
  * We do NOT hide SIM slots unless the device preset indicates a single-SIM device. Hiding slots

@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.xposed
 
 import android.util.Log
 import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.error.XposedFrameworkError
 import java.lang.reflect.Method
 
 /**
@@ -51,7 +52,14 @@ object DeoptimizeManager {
         target: Method,
         callers: List<Method> = emptyList(),
     ) {
-        val success = runCatching { xi.deoptimize(target) }.getOrElse { false }
+        val success =
+            try {
+                xi.deoptimize(target)
+            } catch (e: XposedFrameworkError) {
+                throw e
+            } catch (_: Throwable) {
+                false
+            }
         if (!success) {
             Log.w(
                 TAG,
@@ -60,10 +68,13 @@ object DeoptimizeManager {
             )
         }
         for (caller in callers) {
-            runCatching { xi.deoptimize(caller) }
-                .onFailure { t ->
-                    Log.w(TAG, "Failed to deoptimize caller ${caller.name}: ${t.message}")
-                }
+            try {
+                xi.deoptimize(caller)
+            } catch (e: XposedFrameworkError) {
+                throw e
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to deoptimize caller ${caller.name}: ${t.message}")
+            }
         }
     }
 
@@ -77,13 +88,16 @@ object DeoptimizeManager {
      */
     fun deoptimizeAll(xi: XposedInterface, methods: List<Method>) {
         for (method in methods) {
-            runCatching { xi.deoptimize(method) }
-                .onFailure { t ->
-                    Log.w(
-                        TAG,
-                        "Failed to deoptimize ${method.declaringClass.simpleName}.${method.name}: ${t.message}",
-                    )
-                }
+            try {
+                xi.deoptimize(method)
+            } catch (e: XposedFrameworkError) {
+                throw e
+            } catch (t: Throwable) {
+                Log.w(
+                    TAG,
+                    "Failed to deoptimize ${method.declaringClass.simpleName}.${method.name}: ${t.message}",
+                )
+            }
         }
     }
 }

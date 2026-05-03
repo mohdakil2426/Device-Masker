@@ -25,15 +25,15 @@ import timber.log.Timber
  *
  * Responsibilities:
  * 1. Load/save configuration from/to local JSON file (filesDir/config.json)
- * 2. Sync configuration to [ModulePreferences] via [ConfigSync] for live cross-process delivery
+ * 2. Sync configuration to RemotePreferences via [ConfigSync] for live cross-process delivery
  * 3. Provide [StateFlow] for UI reactivity
  * 4. CRUD operations for groups and app configs
  *
  * Config save path (post-migration):
- * - UI → ConfigManager → local file + ConfigSync → ModulePreferences (live to hooks)
+ * - UI → ConfigManager → local file + ConfigSync → RemotePreferences (live to hooks)
  *
- * No AIDL service calls: config delivery uses [XposedPrefs]/[ModulePreferences] exclusively. The
- * AIDL service ([ServiceClient]) is diagnostics-only (hook event counts + logs).
+ * No AIDL service calls: config delivery uses [XposedPrefs]/RemotePreferences exclusively. The AIDL
+ * service ([ServiceClient]) is diagnostics-only (hook event counts + logs).
  */
 object ConfigManager {
 
@@ -117,10 +117,10 @@ object ConfigManager {
      *
      * Write path (post-migration):
      * 1. Write JSON to local file (backup / UI reload)
-     * 2. Sync flattened per-app keys to [ModulePreferences] via [ConfigSync] → LSPosed delivers
-     *    these live to hooks via `getRemotePreferences()`
+     * 2. Sync flattened per-app keys to RemotePreferences via [ConfigSync] → LSPosed delivers these
+     *    live to hooks via `getRemotePreferences()`
      *
-     * No AIDL service write — config delivery is exclusively via [ModulePreferences].
+     * No AIDL service write — config delivery is exclusively via RemotePreferences.
      */
     private suspend fun saveConfigInternal(config: JsonConfig) {
         withContext(Dispatchers.IO) {
@@ -136,9 +136,9 @@ object ConfigManager {
                 }
                 Timber.tag(TAG).d("Config saved to local file")
 
-                // 2. Flatten per-app keys into ModulePreferences (live delivery to hooks)
+                // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
                 ConfigSync.syncFromConfig(appContext, config)
-                Timber.tag(TAG).d("Config synced to ModulePreferences")
+                Timber.tag(TAG).d("Config synced to RemotePreferences")
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Failed to save config")
             }

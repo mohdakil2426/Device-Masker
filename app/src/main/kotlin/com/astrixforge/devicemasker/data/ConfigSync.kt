@@ -1,7 +1,6 @@
 package com.astrixforge.devicemasker.data
 
 import android.content.Context
-import androidx.core.content.edit
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
@@ -66,12 +65,20 @@ object ConfigSync {
             prefs.getStringSet(SharedPrefsKeys.KEY_ENABLED_APPS, emptySet()) ?: emptySet()
         val snapshot = buildSnapshot(config, previousEnabledApps)
 
-        prefs.edit {
-            snapshot.removeKeys.forEach { remove(it) }
-            snapshot.booleans.forEach { (key, value) -> putBoolean(key, value) }
-            snapshot.strings.forEach { (key, value) -> putString(key, value) }
-            snapshot.stringSets.forEach { (key, value) -> putStringSet(key, value) }
-            snapshot.longs.forEach { (key, value) -> putLong(key, value) }
+        val committed =
+            prefs
+                .edit()
+                .apply {
+                    snapshot.removeKeys.forEach { remove(it) }
+                    snapshot.booleans.forEach { (key, value) -> putBoolean(key, value) }
+                    snapshot.strings.forEach { (key, value) -> putString(key, value) }
+                    snapshot.stringSets.forEach { (key, value) -> putStringSet(key, value) }
+                    snapshot.longs.forEach { (key, value) -> putLong(key, value) }
+                }
+                .commit()
+        if (!committed) {
+            Timber.tag(TAG).w("RemotePreferences commit failed during full sync")
+            return
         }
         Timber.tag(TAG).d("Config synced to RemotePreferences — live delivery active")
     }
@@ -96,27 +103,41 @@ object ConfigSync {
 
         val group = config.getGroupForApp(packageName)
         if (group == null) {
-            prefs.edit { putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false) }
+            prefs.edit().putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false).commit()
             Timber.tag(TAG).d("App $packageName removed from spoofing (no group)")
             return
         }
 
-        val appEnabled = config.isModuleEnabled && group.isEnabled
-        prefs.edit {
-            putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
+        val configApp = config.getAppConfig(packageName)
+        val appEnabled = config.isModuleEnabled && configApp?.isEnabled == true && group.isEnabled
+        val committed =
+            prefs
+                .edit()
+                .apply {
+                    putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
 
-            for (type in SpoofType.entries) {
-                val typeEnabled = appEnabled && group.isTypeEnabled(type)
-                val value = if (typeEnabled) group.getValue(type) else null
+                    for (type in SpoofType.entries) {
+                        val typeEnabled = appEnabled && group.isTypeEnabled(type)
+                        val value =
+                            if (typeEnabled) group.getValue(type)?.takeIf { it.isNotBlank() }
+                            else null
 
-                putBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), typeEnabled)
+                        putBoolean(
+                            SharedPrefsKeys.getSpoofEnabledKey(packageName, type),
+                            typeEnabled && value != null,
+                        )
 
-                if (value != null) {
-                    putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
-                } else {
-                    remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                        if (value != null) {
+                            putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
+                        } else {
+                            remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                        }
+                    }
                 }
-            }
+                .commit()
+        if (!committed) {
+            Timber.tag(TAG).w("RemotePreferences commit failed during syncApp for $packageName")
+            return
         }
         Timber.tag(TAG).d("App $packageName synced to RemotePreferences")
     }
@@ -134,13 +155,21 @@ object ConfigSync {
             return
         }
 
-        prefs.edit {
-            remove(SharedPrefsKeys.getAppEnabledKey(packageName))
+        val committed =
+            prefs
+                .edit()
+                .apply {
+                    remove(SharedPrefsKeys.getAppEnabledKey(packageName))
 
-            for (type in SpoofType.entries) {
-                remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
-                remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
-            }
+                    for (type in SpoofType.entries) {
+                        remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
+                        remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+                    }
+                }
+                .commit()
+        if (!committed) {
+            Timber.tag(TAG).w("RemotePreferences commit failed during clearApp for $packageName")
+            return
         }
         Timber.tag(TAG).d("App $packageName cleared from RemotePreferences")
     }

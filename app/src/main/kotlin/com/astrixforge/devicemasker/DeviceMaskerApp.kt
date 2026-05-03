@@ -15,8 +15,8 @@ import timber.log.Timber
  * migration). Initialises only what is needed at startup:
  * - **Timber**: debug logging (debug builds only)
  * - **ConfigManager**: local JSON configuration storage
- * - **XposedPrefs.init**: initialises libxposed [ModulePreferences] so `ModulePreferences.from()`
- *   is callable from [com.astrixforge.devicemasker.data.ConfigSync]
+ * - **XposedPrefs.init**: registers the libxposed service listener so RemotePreferences writes are
+ *   available to [com.astrixforge.devicemasker.data.ConfigSync]
  * - **ServiceClient**: AIDL client for the *diagnostics-only* service in `system_server`
  */
 class DeviceMaskerApp : Application() {
@@ -38,8 +38,7 @@ class DeviceMaskerApp : Application() {
         }
         Timber.d("Device Masker Application initialised")
 
-        // Register XposedService listener — enables getRemotePreferences() write path.
-        // Safe to call multiple times (no-op on reconnect).
+        // Register XposedService listener once — enables getRemotePreferences() write path.
         XposedPrefs.init()
         Timber.d("XposedPrefs (XposedService) listener registered")
 
@@ -73,7 +72,7 @@ class DeviceMaskerApp : Application() {
          * Diagnostics-only [ServiceClient].
          *
          * Post-migration the service only exposes hook event counts, log aggregation, and a
-         * health-check. Config delivery is via [XposedPrefs] / [ModulePreferences].
+         * health-check. Config delivery is via [XposedPrefs] / RemotePreferences.
          */
         val serviceClient: ServiceClient
             get() = getInstance()._serviceClient

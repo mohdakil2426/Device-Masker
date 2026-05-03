@@ -39,6 +39,7 @@ Target smoke:
 ## Recent Decisions To Preserve
 
 - Config delivery is RemotePreferences-first.
+- RemotePreferences config writes should use explicit `commit()` when the app needs to know sync succeeded.
 - AIDL is diagnostics-only.
 - LSPosed logs are authoritative for target-process hook proof.
 - `JsonConfig.appConfigs` is canonical.
@@ -50,6 +51,24 @@ Target smoke:
 - Target app processes do not look up custom diagnostics through `ServiceManager`.
 - Global class lookup anti-detection hooks are not registered by default.
 - WebView UA spoofing uses defensive string parsing and skips abstract methods.
+- libxposed `Chain.getArgs()` is immutable; hooks that change arguments must call `chain.proceed(Object[])`.
+- Hook registration fallback catches must rethrow `XposedFrameworkError` / `HookFailedError` before handling ordinary failures.
+- Locale/timezone spoofing should target default reads, not every constructed `Locale` or `TimeZone` instance.
+
+## 2026-05-03 libxposed Audit Remediation
+
+Applied fixes from `docs/reports/LIBXPOSED_CODE_AUDIT_2026-05-03.md`:
+- Fixed `WebViewHooker` UA setter interception to use copied args plus `chain.proceed(args)`.
+- Added explicit `XposedFrameworkError` rethrows in hook registration/deoptimization fallback paths.
+- Reworked `XposedEntry` package selection so secondary package callbacks can hook when the process base or loaded package is enabled, while still registering once per classloader.
+- Removed broad `TimeZone.getID()` and `Locale.toString()` hooks; kept default timezone/locale hooks.
+- Fixed `ConfigSync.syncApp()` to honor `AppConfig.isEnabled` and nonblank values.
+- Replaced async RemotePreferences `apply()` writes in config sync and direct XposedPrefs setters with explicit `commit()`.
+- Guarded `XposedPrefs.init()` so libxposed service listener registration is local-once.
+- Cleaned touched stale comments/keep rules from `ModulePreferences` / `ModulePreferencesProvider` to `RemotePreferences` / `XposedProvider`.
+- Added static/unit coverage for immutable chain args, framework-error rethrow presence, and quick app sync enablement.
+
+Target runtime smoke has not yet been rerun after these fixes.
 
 ## Latest Crash Lessons
 

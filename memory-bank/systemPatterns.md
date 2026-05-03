@@ -196,6 +196,31 @@ WebView UA spoofing is defensive:
 - Replace only recognizable Android model segments.
 - Pass through unknown formats.
 - Skip abstract `WebSettings` methods.
+- When changing `setUserAgentString(String)` arguments, copy `chain.args` and call
+  `chain.proceed(Object[])`; libxposed returns an immutable args list.
+
+## libxposed Error Handling Pattern
+
+- `HookFailedError` extends `XposedFrameworkError`, which extends `Error`.
+- Hook registration and deoptimization wrappers must rethrow `XposedFrameworkError` before any
+  generic `Throwable` catch.
+- Normal reflection/OEM API variation failures can still be logged and skipped so one missing method
+  does not block unrelated hooks.
+
+## Process Package Selection Pattern
+
+- `onModuleLoaded` captures the process name for later package selection.
+- `onPackageReady` considers the loaded package and process base package, then picks the first
+  package enabled in RemotePreferences.
+- Hooks still register once per classloader to avoid duplicated hook chains.
+- This improves secondary package handling but does not make one classloader support multiple
+  simultaneous per-package identities.
+
+## RemotePreferences Write Pattern
+
+- Config delivery remains RemotePreferences-first.
+- App-side config sync uses explicit `commit()` where sync success matters.
+- Async `apply()` should not be used for config writes that the UI or diagnostics report as synced.
 
 ## Build Pattern
 

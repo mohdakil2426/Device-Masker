@@ -1,7 +1,6 @@
 package com.astrixforge.devicemasker.data
 
 import android.content.SharedPreferences
-import androidx.core.content.edit
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 import io.github.libxposed.service.XposedService
@@ -42,6 +41,7 @@ object XposedPrefs {
     const val PREFS_GROUP = "device_masker_config"
 
     @Volatile private var xposedService: XposedService? = null
+    @Volatile private var initialized = false
     private val serviceBindCallbacks = CopyOnWriteArrayList<() -> Unit>()
     private val _isServiceConnected = MutableStateFlow(false)
     val isServiceConnected: StateFlow<Boolean> = _isServiceConnected.asStateFlow()
@@ -49,9 +49,15 @@ object XposedPrefs {
     /**
      * Registers the [XposedServiceHelper] listener.
      *
-     * Must be called once in `DeviceMaskerApp.onCreate()`. Safe to call multiple times.
+     * Must be called once in `DeviceMaskerApp.onCreate()`. Extra calls are ignored locally because
+     * libxposed service listener registration should happen only once.
      */
     fun init() {
+        if (initialized) return
+        synchronized(this) {
+            if (initialized) return
+            initialized = true
+        }
         XposedServiceHelper.registerListener(
             object : XposedServiceHelper.OnServiceListener {
                 override fun onServiceBind(service: XposedService) {
@@ -122,7 +128,7 @@ object XposedPrefs {
         getPrefs()?.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true) ?: true
 
     fun setModuleEnabled(enabled: Boolean) {
-        getPrefs()?.edit { putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, enabled) }
+        getPrefs()?.edit()?.putBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, enabled)?.commit()
     }
 
     /** Debug logging flag. Default: `false`. */
@@ -130,7 +136,7 @@ object XposedPrefs {
         getPrefs()?.getBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, false) ?: false
 
     fun setDebugEnabled(enabled: Boolean) {
-        getPrefs()?.edit { putBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, enabled) }
+        getPrefs()?.edit()?.putBoolean(SharedPrefsKeys.KEY_DEBUG_ENABLED, enabled)?.commit()
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -138,27 +144,27 @@ object XposedPrefs {
     // ═══════════════════════════════════════════════════════════
 
     fun setAppEnabled(packageName: String, enabled: Boolean) {
-        getPrefs()?.edit { putBoolean(getAppEnabledKey(packageName), enabled) }
+        getPrefs()?.edit()?.putBoolean(getAppEnabledKey(packageName), enabled)?.commit()
     }
 
     fun isAppEnabled(packageName: String): Boolean =
         getPrefs()?.getBoolean(getAppEnabledKey(packageName), false) ?: false
 
     fun setSpoofTypeEnabled(packageName: String, type: SpoofType, enabled: Boolean) {
-        getPrefs()?.edit { putBoolean(getSpoofEnabledKey(packageName, type), enabled) }
+        getPrefs()?.edit()?.putBoolean(getSpoofEnabledKey(packageName, type), enabled)?.commit()
     }
 
     fun isSpoofTypeEnabled(packageName: String, type: SpoofType): Boolean =
         getPrefs()?.getBoolean(getSpoofEnabledKey(packageName, type), false) ?: false
 
     fun setSpoofValue(packageName: String, type: SpoofType, value: String?) {
-        getPrefs()?.edit {
-            if (value != null) {
-                putString(getSpoofValueKey(packageName, type), value)
-            } else {
-                remove(getSpoofValueKey(packageName, type))
-            }
+        val editor = getPrefs()?.edit() ?: return
+        if (value != null) {
+            editor.putString(getSpoofValueKey(packageName, type), value)
+        } else {
+            editor.remove(getSpoofValueKey(packageName, type))
         }
+        editor.commit()
     }
 
     fun getSpoofValue(packageName: String, type: SpoofType): String? =

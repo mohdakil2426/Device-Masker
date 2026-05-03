@@ -7,11 +7,12 @@ import android.content.pm.ResolveInfo
 import com.astrixforge.devicemasker.xposed.DualLog
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.ExceptionMode
+import io.github.libxposed.api.error.XposedFrameworkError
 
 /**
  * Anti-Detection Hooker — hides Xposed/LSPosed presence from apps.
  *
- * ⚠️ CRITICAL: This hooker MUST be loaded FIRST in [XposedEntry.onPackageLoaded]. If it loads after
+ * ⚠️ CRITICAL: This hooker MUST be loaded FIRST in [XposedEntry.onPackageReady]. If it loads after
  * spoof hooks, there is a brief window where detection is possible.
  *
  * ## Detection vectors covered
@@ -121,6 +122,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Thread.getStackTrace() hook failed", t)
         }
@@ -139,6 +142,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Throwable.getStackTrace() hook failed", t)
         }
@@ -176,6 +181,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(method)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "ClassLoader.loadClass() hook failed", t)
         }
@@ -213,6 +220,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(method)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Class.forName() hook failed", t)
         }
@@ -243,6 +252,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "BufferedReader.readLine() hook failed", t)
         }
@@ -302,6 +313,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "getApplicationInfo hook failed", t)
         }
@@ -322,6 +335,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "getInstalledPackages hook failed", t)
         }
@@ -342,6 +357,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "getInstalledApplications hook failed", t)
         }
@@ -367,6 +384,8 @@ object AntiDetectHooker {
                     }
                     xi.deoptimize(m)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "queryIntentActivities hook failed", t)
         }

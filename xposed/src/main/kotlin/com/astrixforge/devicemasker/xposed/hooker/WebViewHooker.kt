@@ -64,8 +64,10 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
                     val model = preset?.model ?: return@intercept chain.proceed()
                     val ua = chain.args.firstOrNull() as? String ?: return@intercept chain.proceed()
                     if (ua.isNotEmpty() && !ua.contains(model)) {
-                        chain.args[0] = modifyUserAgent(ua, model)
+                        val args = chain.args.toTypedArray()
+                        args[0] = modifyUserAgent(ua, model)
                         reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                        return@intercept chain.proceed(args)
                     }
                     chain.proceed()
                 }

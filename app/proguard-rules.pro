@@ -23,7 +23,7 @@
 -keepattributes AnnotationDefault
 
 # =============================================================================
-# LIBXPOSED SERVICE — ModulePreferences / ContentProvider in :app process
+# LIBXPOSED SERVICE — RemotePreferences / ContentProvider in :app process
 # Used by XposedPrefs.init() and XposedPrefs.getPrefs() at runtime.
 # =============================================================================
 -keep class io.github.libxposed.service.** { *; }
@@ -31,8 +31,8 @@
 -keepclassmembers class io.github.libxposed.service.** { *; }
 -dontwarn io.github.libxposed.**
 
-# ModulePreferencesProvider is declared in AndroidManifest.xml
--keep class io.github.libxposed.service.ModulePreferencesProvider { *; }
+# XposedProvider is declared in AndroidManifest.xml
+-keep class io.github.libxposed.service.XposedProvider { *; }
 
 # =============================================================================
 # DEVICE MASKER — Application class (referenced in AndroidManifest)
@@ -42,18 +42,18 @@
 # =============================================================================
 # DEVICE MASKER — Service layer
 # ServiceClient communicates via AIDL to the diagnostics service in system_server.
-# ConfigManager (app-side) manages StateFlow config, handles JSON file + ModulePreferences sync.
+# ConfigManager (app-side) manages StateFlow config, handles JSON file + RemotePreferences sync.
 # =============================================================================
 -keep class com.astrixforge.devicemasker.service.ServiceClient { *; }
 -keep class com.astrixforge.devicemasker.service.ConfigManager { *; }
 
-# XposedPrefs wraps ModulePreferences write path; keep for ConfigSync calls
+# XposedPrefs wraps RemotePreferences write path; keep for ConfigSync calls
 -keep class com.astrixforge.devicemasker.data.XposedPrefs { *; }
 -keepclassmembers class com.astrixforge.devicemasker.data.XposedPrefs {
     public static *;
 }
 
-# ConfigSync flattens JsonConfig into per-app ModulePreferences keys
+# ConfigSync flattens JsonConfig into per-app RemotePreferences keys
 -keep class com.astrixforge.devicemasker.data.ConfigSync { *; }
 -keepclassmembers class com.astrixforge.devicemasker.data.ConfigSync {
     public static *;

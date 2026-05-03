@@ -78,6 +78,19 @@
 - Confirmed spoof events for multiple identifiers in LSPosed logs.
 - Confirmed previous target startup crash signatures were absent in the final smoke launch.
 
+### 2026-05-03 libxposed Audit Remediation
+
+- Wrote and updated `docs/reports/LIBXPOSED_CODE_AUDIT_2026-05-03.md`.
+- Fixed libxposed immutable chain args misuse in `WebViewHooker`.
+- Added `XposedFrameworkError` rethrow handling before generic hook registration/deoptimization fallbacks.
+- Improved `XposedEntry` process/package selection for secondary package callbacks while preserving one hook registration per classloader.
+- Narrowed locale/timezone hooks by removing broad `Locale.toString()` and `TimeZone.getID()` interception.
+- Fixed `ConfigSync.syncApp()` to honor canonical `AppConfig.isEnabled`.
+- Changed RemotePreferences writes in config sync/direct setters to synchronous `commit()` with warning logs on failure.
+- Guarded `XposedPrefs.init()` against duplicate libxposed listener registration.
+- Updated stale libxposed migration comments and app keep rule naming to `RemotePreferences` / `XposedProvider`.
+- Added regression tests for chain args mutation, Xposed framework-error handling presence, and quick sync app enablement.
+
 ## Verification Evidence
 
 Full gate:
@@ -87,6 +100,16 @@ Full gate:
 ```
 
 Result: `BUILD SUCCESSFUL`.
+
+Targeted post-audit remediation gate:
+
+```powershell
+.\gradlew.bat spotlessApply :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+Note: target LSPosed runtime smoke has not yet been rerun after the 2026-05-03 remediation.
 
 Target smoke evidence:
 - `TARGET_PID=6592` in the successful retry.
@@ -109,6 +132,7 @@ Before calling this stable:
 - Validate after LSPosed module disable/enable cycle.
 - Validate at least two additional target apps.
 - Confirm actual returned values inside target apps, not only spoof event logs.
+- Rerun `com.mantle.verify` target smoke after the 2026-05-03 libxposed audit fixes.
 - Confirm disabled/missing/malformed values pass through.
 - Confirm anti-detection behavior with current safer surfaces.
 - Add a safe-mode UI/config flag for risky hook groups.

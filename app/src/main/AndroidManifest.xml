@@ -72,7 +72,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- libxposed-service ModulePreferencesProvider — bridges RemotePreferences.
+        <!-- libxposed-service XposedProvider — bridges RemotePreferences.
              LSPosed queries this ContentProvider to read module preferences in hooked processes.
              Required when using io.github.libxposed:service and XposedInterface.getRemotePreferences(). -->
         <provider

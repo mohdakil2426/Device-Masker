@@ -3,12 +3,13 @@ package com.astrixforge.devicemasker.xposed.hooker
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.error.XposedFrameworkError
 
 /**
  * System Framework Hooker — Initializes the DeviceMaskerService (diagnostics AIDL) in
  * system_server.
  *
- * This hooker is called via [XposedEntry.onSystemServerLoaded] when LSPosed scope includes
+ * This hooker is called via [XposedEntry.onSystemServerStarting] when LSPosed scope includes
  * "android" (System Framework). It hooks into the system boot process to initialize the
  * diagnostics-only AIDL service before any app processes start.
  *
@@ -33,7 +34,7 @@ object SystemServiceHooker {
 
     /**
      * Registers hooks into the system boot sequence. Called from
-     * XposedEntry.onSystemServerLoaded().
+     * XposedEntry.onSystemServerStarting().
      *
      * @param cl The system_server ClassLoader
      * @param xi The XposedInterface hook engine
@@ -53,6 +54,8 @@ object SystemServiceHooker {
                         val result = chain.proceed()
                         try {
                             initializeServiceSafely("AMS.systemReady")
+                        } catch (e: XposedFrameworkError) {
+                            throw e
                         } catch (t: Throwable) {
                             DualLog.error(TAG, "AMS.systemReady() hook crashed", t)
                         }
@@ -64,6 +67,8 @@ object SystemServiceHooker {
                     )
                     xi.deoptimize(method)
                 }
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             // AMS hook unavailable — fall back to SystemServer.run() hook
             DualLog.warn(TAG, "AMS.systemReady() hook unavailable", t)
@@ -78,6 +83,8 @@ object SystemServiceHooker {
                 val result = chain.proceed()
                 try {
                     initializeServiceSafely("SystemServer.run")
+                } catch (e: XposedFrameworkError) {
+                    throw e
                 } catch (t: Throwable) {
                     DualLog.error(TAG, "SystemServer.run() hook crashed", t)
                 }
@@ -85,6 +92,8 @@ object SystemServiceHooker {
             }
             xi.deoptimize(runMethod)
             DualLog.info(TAG, "SystemServer.run() hook registered")
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "SystemServer.run() hook unavailable", t)
         }
@@ -134,6 +143,8 @@ object SystemServiceHooker {
                 } else {
                     DualLog.error(TAG, "Service created but isAlive=false")
                 }
+            } catch (e: XposedFrameworkError) {
+                throw e
             } catch (t: Throwable) {
                 // NOTE: Never rethrow — this is system_server context
                 DualLog.error(TAG, "Service init failed from $source: ${t.message}")

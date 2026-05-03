@@ -5,6 +5,7 @@ import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
 import com.astrixforge.devicemasker.xposed.XposedEntry
+import io.github.libxposed.api.error.XposedFrameworkError
 import java.lang.reflect.Method
 
 /**
@@ -66,6 +67,8 @@ abstract class BaseSpoofHooker(protected val tag: String) {
     protected fun safeHook(methodName: String, block: () -> Unit) {
         try {
             block()
+        } catch (e: XposedFrameworkError) {
+            throw e
         } catch (t: Throwable) {
             val message = "safeHook($methodName) failed: ${t.javaClass.simpleName}: ${t.message}"
             DualLog.warn(tag, message, t)

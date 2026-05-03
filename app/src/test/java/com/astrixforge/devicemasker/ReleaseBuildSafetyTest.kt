@@ -33,6 +33,40 @@ class ReleaseBuildSafetyTest {
     }
 
     @Test
+    fun `xposed hooks do not mutate immutable libxposed chain args`() {
+        val xposedSources =
+            projectFile("xposed/src/main/kotlin")
+                .walkTopDown()
+                .filter { it.isFile && it.extension == "kt" }
+                .joinToString("\n") { it.readText() }
+
+        assertTrue(
+            "libxposed Chain.getArgs() returns an immutable list; use chain.proceed(Object[]) to change arguments.",
+            !xposedSources.contains("chain.args["),
+        )
+    }
+
+    @Test
+    fun `hook registration catches rethrow xposed framework errors`() {
+        val guardedFiles =
+            listOf(
+                "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt",
+                "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt",
+                "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt",
+                "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemServiceHooker.kt",
+            )
+
+        guardedFiles.forEach { path ->
+            val text = projectFile(path).readText()
+            assertTrue(
+                "$path must rethrow XposedFrameworkError before generic Throwable fallback.",
+                text.contains("catch (e: XposedFrameworkError)") &&
+                    text.contains("catch (t: Throwable)"),
+            )
+        }
+    }
+
+    @Test
     fun `anti detect class lookup hooks are reentrant safe`() {
         val hookerFile =
             projectFile(
