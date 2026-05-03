@@ -23,7 +23,7 @@ hiddenapibypass = "6.1"
 
 # Data
 datastore = "1.2.0"
-serializationJson = "1.10.0"
+serializationJson = "1.11.0"
 coroutines = "1.10.2"
 
 # Utilities
