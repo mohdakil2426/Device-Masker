@@ -125,6 +125,7 @@ Result: `BUILD SUCCESSFUL`.
 Note: target LSPosed runtime smoke has not yet been rerun after the 2026-05-03 remediation.
 
 Target smoke evidence:
+
 - `TARGET_PID=6592` in the successful retry.
 - LSPosed log showed `All hooks registered for: com.mantle.verify`.
 - LSPosed spoof events included:
@@ -141,6 +142,7 @@ Target smoke evidence:
 ## Remaining Work
 
 Before calling this stable:
+
 - Validate after emulator/device reboot.
 - Validate after LSPosed module disable/enable cycle.
 - Validate at least two additional target apps.
@@ -155,6 +157,7 @@ Before calling this stable:
 - Smoke-test Basic, Full Debug, and Root Maximum bundle export on device.
 
 Engineering cleanup:
+
 - Clean AGP 10 deprecation warnings.
 - Replace deprecated Spotless `indentWithSpaces`.
 - Add more hook helper tests.
