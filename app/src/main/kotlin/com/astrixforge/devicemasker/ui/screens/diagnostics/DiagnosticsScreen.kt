@@ -113,7 +113,7 @@ fun DiagnosticsContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header with back button - refresh is now pull-to-refresh
-            item {
+            item(contentType = "header") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -142,23 +142,29 @@ fun DiagnosticsContent(
             }
 
             // Module Status Card
-            item(key = "module_status") { ModuleStatusCard(isXposedActive = isXposedActive) }
+            item(key = "module_status", contentType = "module_status") {
+                ModuleStatusCard(isXposedActive = isXposedActive)
+            }
 
             // Config Sync Info Card
-            item(key = "config_sync_info") { ConfigSyncInfoCard() }
+            item(key = "config_sync_info", contentType = "config_sync_info") {
+                ConfigSyncInfoCard()
+            }
 
-            item(key = "service_status") {
+            item(key = "service_status", contentType = "service_status") {
                 ServiceStatusCard(serviceStatus = serviceStatus, hookLogs = hookLogs)
             }
 
             // Anti-Detection Section
-            item(key = "anti_detection") { AntiDetectionSection(tests = antiDetectionResults) }
+            item(key = "anti_detection", contentType = "anti_detection") {
+                AntiDetectionSection(tests = antiDetectionResults)
+            }
 
             // Spoofing Results by Category
             SpoofCategory.entries.forEach { category ->
                 val categoryResults = diagnosticResults.filter { it.type.category == category }
                 if (categoryResults.isNotEmpty()) {
-                    item(key = "category_${category.name}") {
+                    item(key = "category_${category.name}", contentType = "category") {
                         CategoryDiagnosticSection(category = category, results = categoryResults)
                     }
                 }

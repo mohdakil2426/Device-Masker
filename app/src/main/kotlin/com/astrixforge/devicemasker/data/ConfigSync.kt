@@ -4,6 +4,8 @@ import android.content.Context
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
@@ -54,7 +56,10 @@ object ConfigSync {
      * @param config The [JsonConfig] to sync
      */
     fun syncFromConfig(@Suppress("UNUSED_PARAMETER") context: Context, config: JsonConfig) {
-        val prefs = XposedPrefs.getPrefs()
+        syncFromConfig(config, XposedPrefs.getPrefs())
+    }
+
+    internal fun syncFromConfig(config: JsonConfig, prefs: android.content.SharedPreferences?) {
         if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — config will sync on next activation")
             return
@@ -95,7 +100,26 @@ object ConfigSync {
         config: JsonConfig,
         packageName: String,
     ) {
-        val prefs = XposedPrefs.getPrefs()
+        syncApp(config, packageName, XposedPrefs.getPrefs())
+    }
+
+    suspend fun syncAppAsync(context: Context, config: JsonConfig, packageName: String) {
+        withContext(Dispatchers.IO) { syncApp(context, config, packageName) }
+    }
+
+    internal suspend fun syncAppAsync(
+        config: JsonConfig,
+        packageName: String,
+        prefs: android.content.SharedPreferences?,
+    ) {
+        withContext(Dispatchers.IO) { syncApp(config, packageName, prefs) }
+    }
+
+    internal fun syncApp(
+        config: JsonConfig,
+        packageName: String,
+        prefs: android.content.SharedPreferences?,
+    ) {
         if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — skipping syncApp for $packageName")
             return
@@ -149,7 +173,21 @@ object ConfigSync {
      * @param packageName The package to clear
      */
     fun clearApp(@Suppress("UNUSED_PARAMETER") context: Context, packageName: String) {
-        val prefs = XposedPrefs.getPrefs()
+        clearApp(packageName, XposedPrefs.getPrefs())
+    }
+
+    suspend fun clearAppAsync(context: Context, packageName: String) {
+        withContext(Dispatchers.IO) { clearApp(context, packageName) }
+    }
+
+    internal suspend fun clearAppAsync(
+        packageName: String,
+        prefs: android.content.SharedPreferences?,
+    ) {
+        withContext(Dispatchers.IO) { clearApp(packageName, prefs) }
+    }
+
+    internal fun clearApp(packageName: String, prefs: android.content.SharedPreferences?) {
         if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — skipping clearApp for $packageName")
             return

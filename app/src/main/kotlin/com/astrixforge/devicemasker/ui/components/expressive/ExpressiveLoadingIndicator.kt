@@ -11,7 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +31,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 /**
  * Material 3 Expressive Loading Indicator.
  *
- * Fallback to stable CircularProgressIndicator as LoadingIndicator is only available in alpha.
+ * Wraps the native Material 3 Expressive LoadingIndicator from material3 1.5.0-alpha18.
  *
  * Best for: 200ms - 5s wait times For longer waits: Use progress indicators with determinate
  * progress
@@ -45,12 +46,7 @@ fun ExpressiveLoadingIndicator(
     size: Dp = 48.dp,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
-    CircularProgressIndicator(
-        modifier = modifier.size(size),
-        color = color,
-        strokeWidth = size / 10,
-        trackColor = color.copy(alpha = 0.1f),
-    )
+    LoadingIndicator(modifier = modifier.size(size), color = color)
 }
 
 /**
@@ -125,7 +121,7 @@ fun AnimatedLoadingOverlay(
 }
 
 /**
- * Compact loading indicator for inline use. Uses CircularProgressIndicator for smaller spaces.
+ * Compact loading indicator for inline use.
  *
  * @param modifier Modifier for the indicator
  * @param size Size of the indicator (default 24dp)
@@ -136,14 +132,13 @@ fun AnimatedLoadingOverlay(
 fun CompactLoadingIndicator(
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
-    strokeWidth: Dp = 2.dp,
+    @Suppress("UNUSED_PARAMETER") strokeWidth: Dp = 2.dp,
     color: Color = MaterialTheme.colorScheme.primary,
 ) {
-    CircularProgressIndicator(
+    ContainedLoadingIndicator(
         modifier = modifier.size(size),
-        strokeWidth = strokeWidth,
-        color = color,
-        trackColor = color.copy(alpha = 0.2f),
+        indicatorColor = color,
+        containerColor = color.copy(alpha = 0.12f),
     )
 }
 

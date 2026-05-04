@@ -19,6 +19,8 @@ import com.astrixforge.devicemasker.common.models.LocationConfig
 import com.astrixforge.devicemasker.common.models.SIMConfig
 import com.astrixforge.devicemasker.common.util.secureRandom
 import com.astrixforge.devicemasker.service.ConfigManager
+import com.astrixforge.devicemasker.service.IConfigManager
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -27,18 +29,23 @@ import kotlinx.coroutines.flow.map
 /**
  * Main repository combining all spoof-related data operations.
  *
- * Multi-Module Architecture: This repository now wraps ConfigManager and provides the same API to
+ * Multi-Module Architecture: This repository now wraps configManager and provides the same API to
  * the UI while using JsonConfig as the backing store.
  *
  * @param context Application context (for legacy compatibility)
+ * @param configManager Config manager instance (default [configManager] for production)
+ * @param appScopeRepository App scope repository instance (default production impl)
  */
 // Suppress: suspend modifiers are kept for API consistency and future-proofing.
-// ConfigManager may become async in the future (database, network sync).
+// configManager may become async in the future (database, network sync).
 @Suppress("RedundantSuspendModifier")
-class SpoofRepository(private val context: Context) {
-
-    /** Repository for installed apps access. */
-    val appScopeRepository: AppScopeRepository = AppScopeRepository(context)
+class SpoofRepository
+@JvmOverloads
+constructor(
+    private val context: Context,
+    private val configManager: IConfigManager = ConfigManager,
+    override val appScopeRepository: IAppScopeRepository = AppScopeRepository(context),
+) : ISpoofRepository {
 
     // ═══════════════════════════════════════════════════════════
     // CORRELATION CACHING
@@ -50,26 +57,26 @@ class SpoofRepository(private val context: Context) {
      * These ensure that values in the same correlation group always use the same underlying group,
      * preventing detection from mismatches.
      */
-    private var cachedSIMConfig: SIMConfig? = null
-    private var cachedLocationConfig: LocationConfig? = null
-    private var cachedDeviceHardwareConfig: DeviceHardwareConfig? = null
+    private val cachedSIMConfig = AtomicReference<SIMConfig?>(null)
+    private val cachedLocationConfig = AtomicReference<LocationConfig?>(null)
+    private val cachedDeviceHardwareConfig = AtomicReference<DeviceHardwareConfig?>(null)
 
     // ═══════════════════════════════════════════════════════════
     // UI STATE FLOWS
     // ═══════════════════════════════════════════════════════════
 
     /** Flow of module enabled state. */
-    val moduleEnabled: Flow<Boolean> = ConfigManager.config.map { it.isModuleEnabled }
+    override val moduleEnabled: Flow<Boolean> = configManager.config.map { it.isModuleEnabled }
 
     /** Flow of all groups. */
-    val groups: Flow<List<SpoofGroup>> = ConfigManager.config.map { it.getAllGroups() }
+    override val groups: Flow<List<SpoofGroup>> = configManager.config.map { it.getAllGroups() }
 
     /** Flow of the active group (default group). */
-    val activeGroup: Flow<SpoofGroup?> = ConfigManager.config.map { it.getDefaultGroup() }
+    override val activeGroup: Flow<SpoofGroup?> = configManager.config.map { it.getDefaultGroup() }
 
     /** Flow of enabled app count. */
-    val enabledAppCount: Flow<Int> =
-        ConfigManager.config.map { config ->
+    override val enabledAppCount: Flow<Int> =
+        configManager.config.map { config ->
             config.appConfigs.values.count { appConfig ->
                 appConfig.isEnabled &&
                     config.getGroupForApp(appConfig.packageName)?.isEnabled == true
@@ -84,7 +91,7 @@ class SpoofRepository(private val context: Context) {
         val groupCount: Int,
     )
 
-    val dashboardState: Flow<DashboardState> =
+    override val dashboardState: Flow<DashboardState> =
         combine(moduleEnabled, activeGroup, enabledAppCount, groups) {
             enabled,
             group,
@@ -103,21 +110,21 @@ class SpoofRepository(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /** Enables or disables the module globally. */
-    suspend fun setModuleEnabled(enabled: Boolean) {
-        ConfigManager.setModuleEnabled(enabled)
+    override suspend fun setModuleEnabled(enabled: Boolean) {
+        configManager.setModuleEnabled(enabled)
     }
 
     /** Sets the active group by ID (makes it default). */
-    suspend fun setActiveGroup(groupId: String) {
-        val group = ConfigManager.getGroup(groupId) ?: return
+    override suspend fun setActiveGroup(groupId: String) {
+        val group = configManager.getGroup(groupId) ?: return
         // Set this group as default
         val updatedGroup = group.copy(isDefault = true)
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
 
         // Unset other groups as default
-        ConfigManager.getAllGroups().forEach { other ->
+        configManager.getAllGroups().forEach { other ->
             if (other.id != groupId && other.isDefault) {
-                ConfigManager.updateGroup(other.copy(isDefault = false))
+                configManager.updateGroup(other.copy(isDefault = false))
             }
         }
     }
@@ -132,7 +139,7 @@ class SpoofRepository(private val context: Context) {
      * Values in the same correlation group will use the same underlying profile to ensure
      * consistency (e.g., IMSI and ICCID both use same carrier).
      */
-    fun generateValue(type: SpoofType): String {
+    override fun generateValue(type: SpoofType): String {
         return when (type.correlationGroup) {
             CorrelationGroup.SIM_CARD -> generateSIMValue(type)
             CorrelationGroup.LOCATION -> generateLocationValue(type)
@@ -147,21 +154,21 @@ class SpoofRepository(private val context: Context) {
      */
     private fun generateSIMValue(type: SpoofType): String {
         // Generate SIM config if not cached
-        if (cachedSIMConfig == null) {
-            cachedSIMConfig = SIMGenerator.generate()
-        }
+        val simConfig =
+            cachedSIMConfig.updateAndGet { current -> current ?: SIMGenerator.generate() }
+                ?: error("SIM config generation failed")
 
         return when (type) {
-            SpoofType.IMSI -> cachedSIMConfig!!.imsi
-            SpoofType.ICCID -> cachedSIMConfig!!.iccid
-            SpoofType.CARRIER_NAME -> cachedSIMConfig!!.carrierName
-            SpoofType.CARRIER_MCC_MNC -> cachedSIMConfig!!.mccMnc
-            SpoofType.PHONE_NUMBER -> cachedSIMConfig!!.phoneNumber
+            SpoofType.IMSI -> simConfig.imsi
+            SpoofType.ICCID -> simConfig.iccid
+            SpoofType.CARRIER_NAME -> simConfig.carrierName
+            SpoofType.CARRIER_MCC_MNC -> simConfig.mccMnc
+            SpoofType.PHONE_NUMBER -> simConfig.phoneNumber
             // NEW: Additional SIM values for comprehensive spoofing
-            SpoofType.SIM_COUNTRY_ISO -> cachedSIMConfig!!.simCountryIso
-            SpoofType.NETWORK_COUNTRY_ISO -> cachedSIMConfig!!.networkCountryIso
-            SpoofType.SIM_OPERATOR_NAME -> cachedSIMConfig!!.simOperatorName
-            SpoofType.NETWORK_OPERATOR -> cachedSIMConfig!!.networkOperator
+            SpoofType.SIM_COUNTRY_ISO -> simConfig.simCountryIso
+            SpoofType.NETWORK_COUNTRY_ISO -> simConfig.networkCountryIso
+            SpoofType.SIM_OPERATOR_NAME -> simConfig.simOperatorName
+            SpoofType.NETWORK_OPERATOR -> simConfig.networkOperator
             else -> throw IllegalArgumentException("Not a SIM value: $type")
         }
     }
@@ -176,9 +183,9 @@ class SpoofRepository(private val context: Context) {
      * @param type The specific SIM type to regenerate
      * @return The new value, using the SAME carrier as currently cached
      */
-    fun regenerateSIMValueOnly(type: SpoofType): String {
+    override fun regenerateSIMValueOnly(type: SpoofType): String {
         // Get the current carrier from cache, or generate new config if no cache
-        val currentCarrier = cachedSIMConfig?.carrier ?: Carrier.nextSecureRandom()
+        val currentCarrier = cachedSIMConfig.get()?.carrier ?: Carrier.nextSecureRandom()
 
         // Generate ONLY the specific value using the SAME carrier
         return when (type) {
@@ -199,13 +206,13 @@ class SpoofRepository(private val context: Context) {
     /** Generates correlated location values. Timezone and locale are from the same country. */
     private fun generateLocationValue(type: SpoofType): String {
         // Generate location config if not cached
-        if (cachedLocationConfig == null) {
-            cachedLocationConfig = LocationConfig.generate()
-        }
+        val locationConfig =
+            cachedLocationConfig.updateAndGet { current -> current ?: LocationConfig.generate() }
+                ?: error("Location config generation failed")
 
         return when (type) {
-            SpoofType.TIMEZONE -> cachedLocationConfig!!.timezone
-            SpoofType.LOCALE -> cachedLocationConfig!!.locale
+            SpoofType.TIMEZONE -> locationConfig.timezone
+            SpoofType.LOCALE -> locationConfig.locale
             else -> throw IllegalArgumentException("Not a location value: $type")
         }
     }
@@ -217,14 +224,15 @@ class SpoofRepository(private val context: Context) {
      */
     private fun generateDeviceHardwareValue(type: SpoofType): String {
         // Generate device hardware config if not cached
-        if (cachedDeviceHardwareConfig == null) {
-            cachedDeviceHardwareConfig = DeviceHardwareGenerator.generate()
-        }
+        val hardwareConfig =
+            cachedDeviceHardwareConfig.updateAndGet { current ->
+                current ?: DeviceHardwareGenerator.generate()
+            } ?: error("Device hardware config generation failed")
 
         return when (type) {
-            SpoofType.IMEI -> cachedDeviceHardwareConfig!!.imei
-            SpoofType.SERIAL -> cachedDeviceHardwareConfig!!.serial
-            SpoofType.WIFI_MAC -> cachedDeviceHardwareConfig!!.wifiMAC
+            SpoofType.IMEI -> hardwareConfig.imei
+            SpoofType.SERIAL -> hardwareConfig.serial
+            SpoofType.WIFI_MAC -> hardwareConfig.wifiMAC
             else -> throw IllegalArgumentException("Not a device hardware value: $type")
         }
     }
@@ -261,21 +269,21 @@ class SpoofRepository(private val context: Context) {
     /**
      * Clears cached correlation profiles. Call this to force generation of new correlated values.
      */
-    fun resetCorrelations() {
-        cachedSIMConfig = null
-        cachedLocationConfig = null
-        cachedDeviceHardwareConfig = null
+    override fun resetCorrelations() {
+        cachedSIMConfig.set(null)
+        cachedLocationConfig.set(null)
+        cachedDeviceHardwareConfig.set(null)
     }
 
     /**
      * Resets a specific correlation group's cache. Call this before regenerating correlated values
      * to get fresh values.
      */
-    fun resetCorrelationGroup(group: CorrelationGroup) {
+    override fun resetCorrelationGroup(group: CorrelationGroup) {
         when (group) {
-            CorrelationGroup.SIM_CARD -> cachedSIMConfig = null
-            CorrelationGroup.LOCATION -> cachedLocationConfig = null
-            CorrelationGroup.DEVICE_HARDWARE -> cachedDeviceHardwareConfig = null
+            CorrelationGroup.SIM_CARD -> cachedSIMConfig.set(null)
+            CorrelationGroup.LOCATION -> cachedLocationConfig.set(null)
+            CorrelationGroup.DEVICE_HARDWARE -> cachedDeviceHardwareConfig.set(null)
             CorrelationGroup.NONE -> {
                 /* No cache for independent values */
             }
@@ -290,21 +298,21 @@ class SpoofRepository(private val context: Context) {
      *
      * @param groupId Group to update
      */
-    suspend fun regenerateLocationValues(groupId: String) {
-        val group = ConfigManager.getGroup(groupId) ?: return
+    override suspend fun regenerateLocationValues(groupId: String) {
+        val group = configManager.getGroup(groupId) ?: return
 
         // Reset cache to get fresh location config
-        cachedLocationConfig = null
+        cachedLocationConfig.set(null)
 
         // Generate new location config
         val locationConfig = LocationConfig.generate()
-        cachedLocationConfig = locationConfig
+        cachedLocationConfig.set(locationConfig)
 
         // Update both values from the SAME config
         var updatedGroup = group.withValue(SpoofType.TIMEZONE, locationConfig.timezone)
         updatedGroup = updatedGroup.withValue(SpoofType.LOCALE, locationConfig.locale)
 
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
     }
 
     /**
@@ -319,17 +327,17 @@ class SpoofRepository(private val context: Context) {
      * @param groupId Group to update
      * @param carrier The carrier to use for generation
      */
-    suspend fun updateGroupWithCarrier(groupId: String, carrier: Carrier) {
-        val group = ConfigManager.getGroup(groupId) ?: return
+    override suspend fun updateGroupWithCarrier(groupId: String, carrier: Carrier) {
+        val group = configManager.getGroup(groupId) ?: return
 
         // Generate SIM config from specific carrier
         val simConfig = SIMGenerator.generate(carrier)
-        cachedSIMConfig = simConfig
+        cachedSIMConfig.set(simConfig)
 
         // NEW: Also generate location matching carrier's country
         // This ensures timezone/locale/GPS match the SIM country
         val locationConfig = LocationConfig.generateForCarrier(carrier)
-        cachedLocationConfig = locationConfig
+        cachedLocationConfig.set(locationConfig)
 
         // Update all SIM-related values in the group
         var updatedGroup = group.copy(selectedCarrierMccMnc = carrier.mccMnc)
@@ -361,7 +369,7 @@ class SpoofRepository(private val context: Context) {
                 String.format(java.util.Locale.US, "%.6f", locationConfig.longitude),
             )
 
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
     }
 
     /**
@@ -375,28 +383,28 @@ class SpoofRepository(private val context: Context) {
      * @param groupId Group to update
      * @param presetId The device preset ID to use
      */
-    suspend fun updateGroupWithDeviceProfile(groupId: String, presetId: String) {
-        val group = ConfigManager.getGroup(groupId) ?: return
+    override suspend fun updateGroupWithDeviceProfile(groupId: String, presetId: String) {
+        val group = configManager.getGroup(groupId) ?: return
         val preset = DeviceProfilePreset.findById(presetId) ?: return
 
         // Generate hardware matching the device profile
         val hardwareConfig = DeviceHardwareGenerator.generate(preset)
-        cachedDeviceHardwareConfig = hardwareConfig
+        cachedDeviceHardwareConfig.set(hardwareConfig)
 
         var updatedGroup = group.withValue(SpoofType.DEVICE_PROFILE, presetId)
         updatedGroup = updatedGroup.withValue(SpoofType.IMEI, hardwareConfig.imei)
         updatedGroup = updatedGroup.withValue(SpoofType.SERIAL, hardwareConfig.serial)
         updatedGroup = updatedGroup.withValue(SpoofType.WIFI_MAC, hardwareConfig.wifiMAC)
 
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
     }
 
     /**
      * Regenerates all spoof values in a group while preserving internal consistency between related
      * identifiers.
      */
-    suspend fun regenerateAllValues(groupId: String) {
-        val group = ConfigManager.getGroup(groupId) ?: return
+    override suspend fun regenerateAllValues(groupId: String) {
+        val group = configManager.getGroup(groupId) ?: return
 
         val carrier = Carrier.nextSecureRandom()
         val simConfig = SIMGenerator.generate(carrier)
@@ -404,9 +412,9 @@ class SpoofRepository(private val context: Context) {
         val deviceProfile = DeviceProfilePreset.PRESETS.secureRandom()
         val hardwareConfig = DeviceHardwareGenerator.generate(deviceProfile)
 
-        cachedSIMConfig = simConfig
-        cachedLocationConfig = locationConfig
-        cachedDeviceHardwareConfig = hardwareConfig
+        cachedSIMConfig.set(simConfig)
+        cachedLocationConfig.set(locationConfig)
+        cachedDeviceHardwareConfig.set(hardwareConfig)
 
         var updatedGroup = group.copy(selectedCarrierMccMnc = carrier.mccMnc)
         updatedGroup = updatedGroup.withValue(SpoofType.IMSI, simConfig.imsi)
@@ -449,7 +457,7 @@ class SpoofRepository(private val context: Context) {
         updatedGroup =
             updatedGroup.withValue(SpoofType.MEDIA_DRM_ID, UUIDGenerator.generateMediaDrmId())
 
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
     }
 
     /** Generates realistic WiFi SSID names. Uses common router brands and patterns. */
@@ -515,15 +523,15 @@ class SpoofRepository(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /** Gets all groups as a Flow. */
-    fun getAllGroups(): Flow<List<SpoofGroup>> = groups
+    override fun getAllGroups(): Flow<List<SpoofGroup>> = groups
 
     /** Creates a new group with generated spoof values. */
-    suspend fun createGroup(name: String, description: String = "") {
+    override suspend fun createGroup(name: String, description: String) {
         // Check if this is the first group (to auto-set as default)
-        val isFirstGroup = ConfigManager.getAllGroups().isEmpty()
+        val isFirstGroup = configManager.getAllGroups().isEmpty()
 
         // Create the group with generated values
-        val newGroup = ConfigManager.createGroup(name)
+        val newGroup = configManager.createGroup(name)
 
         // Add description and initialize with generated values
         // If first group, also set as default
@@ -536,29 +544,29 @@ class SpoofRepository(private val context: Context) {
             val value = generateValue(type)
             updatedGroup = updatedGroup.withValue(type, value)
         }
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
     }
 
     /** Updates an existing group. */
-    suspend fun updateGroup(group: SpoofGroup) {
-        ConfigManager.updateGroup(group)
+    override suspend fun updateGroup(group: SpoofGroup) {
+        configManager.updateGroup(group)
     }
 
     /** Deletes a group by ID. */
-    suspend fun deleteGroup(groupId: String) {
-        ConfigManager.deleteGroup(groupId)
+    override suspend fun deleteGroup(groupId: String) {
+        configManager.deleteGroup(groupId)
     }
 
     /** Sets a group as the default. */
-    suspend fun setDefaultGroup(groupId: String) {
+    override suspend fun setDefaultGroup(groupId: String) {
         setActiveGroup(groupId)
     }
 
     /** Sets whether a group is enabled (master switch for all its apps). */
-    suspend fun setGroupEnabled(groupId: String, enabled: Boolean) {
-        val group = ConfigManager.getGroup(groupId) ?: return
+    override suspend fun setGroupEnabled(groupId: String, enabled: Boolean) {
+        val group = configManager.getGroup(groupId) ?: return
         val updatedGroup = group.withEnabled(enabled)
-        ConfigManager.updateGroup(updatedGroup)
+        configManager.updateGroup(updatedGroup)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -566,19 +574,19 @@ class SpoofRepository(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /** Adds an app to a group. */
-    suspend fun addAppToGroup(groupId: String, packageName: String) {
-        ConfigManager.assignAppToGroup(packageName, groupId)
+    override suspend fun addAppToGroup(groupId: String, packageName: String) {
+        configManager.assignAppToGroup(packageName, groupId)
     }
 
     /** Removes an app from a group. */
-    suspend fun removeAppFromGroup(groupId: String, packageName: String) {
-        val appConfig = ConfigManager.getAppConfig(packageName)
+    override suspend fun removeAppFromGroup(groupId: String, packageName: String) {
+        val appConfig = configManager.getAppConfig(packageName)
         val isAssignedByCanonicalConfig = appConfig?.groupId == groupId
         val isAssignedByLegacyGroup =
-            ConfigManager.getGroup(groupId)?.isAppAssigned(packageName) == true
+            configManager.getGroup(groupId)?.isAppAssigned(packageName) == true
 
         if (isAssignedByCanonicalConfig || isAssignedByLegacyGroup) {
-            ConfigManager.unassignApp(packageName)
+            configManager.unassignApp(packageName)
         }
     }
 
@@ -587,15 +595,15 @@ class SpoofRepository(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /** Exports all groups as JSON string. */
-    suspend fun exportGroups(): String {
-        return ConfigManager.config.first().toJsonString()
+    override suspend fun exportGroups(): String {
+        return configManager.config.first().toJsonString()
     }
 
     /** Imports groups from JSON string. Returns true on success. */
-    suspend fun importGroups(jsonString: String): Boolean {
+    override suspend fun importGroups(jsonString: String): Boolean {
         return try {
             val config = com.astrixforge.devicemasker.common.JsonConfig.parse(jsonString)
-            config.getAllGroups().forEach { group -> ConfigManager.updateGroup(group) }
+            config.getAllGroups().forEach { group -> configManager.updateGroup(group) }
             true
         } catch (e: Exception) {
             false

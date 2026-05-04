@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,7 +63,7 @@ fun SIMCardCategoryContent(
     onCopy: (String) -> Unit,
 ) {
     // State for country picker dialog
-    var showCountryPicker by remember { mutableStateOf(false) }
+    var showCountryPicker by rememberSaveable { mutableStateOf(false) }
 
     // Get current carrier from group
     val currentCarrierMccMnc = group?.selectedCarrierMccMnc

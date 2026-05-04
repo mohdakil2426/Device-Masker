@@ -14,6 +14,7 @@ kotlin {
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
             "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+            "-opt-in=androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi",
             "-Xwarning-level=DEPRECATION:disabled",
         )
     }
@@ -21,7 +22,7 @@ kotlin {
 
 android {
     namespace = "com.astrixforge.devicemasker"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.astrixforge.devicemasker"
@@ -68,6 +69,13 @@ android {
             if (releaseSigningConfig?.storeFile != null) {
                 signingConfig = releaseSigningConfig
             }
+        }
+        create("ciRelease") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            matchingFallbacks += listOf("release")
         }
     }
 
@@ -130,6 +138,11 @@ android {
     }
 }
 
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_compiler/reports")
+    metricsDestination = layout.buildDirectory.dir("compose_compiler/metrics")
+}
+
 dependencies {
     // ═══════════════════════════════════════════════════════════
     // HMA-OSS ARCHITECTURE MODULES
@@ -163,7 +176,10 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     // NAVIGATION
     // ═══════════════════════════════════════════════════════════
-    implementation(libs.navigation.compose)
+    implementation(libs.navigation3.runtime)
+    implementation(libs.navigation3.ui)
+    implementation(libs.lifecycle.viewmodel.navigation3)
+    implementation(libs.material3.adaptive.navigation3)
 
     // ═══════════════════════════════════════════════════════════
     // libxposed SERVICE — Write RemotePreferences from the UI
@@ -181,6 +197,7 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.collections.immutable)
 
     // ═══════════════════════════════════════════════════════════
     // COROUTINES
@@ -199,6 +216,9 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.compose.bom))

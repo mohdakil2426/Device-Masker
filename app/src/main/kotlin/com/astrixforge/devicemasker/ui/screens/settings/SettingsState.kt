@@ -1,8 +1,10 @@
 package com.astrixforge.devicemasker.ui.screens.settings
 
+import androidx.compose.runtime.Immutable
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
 
 /** UI state for the Settings screen. */
+@Immutable
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val amoledMode: Boolean = true,
@@ -26,6 +28,7 @@ enum class RedactionChoice {
 }
 
 /** Result of a log export operation. */
+@Immutable
 sealed class ExportResult {
     data class Success(val filePath: String, val lineCount: Int) : ExportResult()
 

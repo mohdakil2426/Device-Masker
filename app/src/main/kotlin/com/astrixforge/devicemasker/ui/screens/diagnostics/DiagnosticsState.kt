@@ -1,17 +1,21 @@
 package com.astrixforge.devicemasker.ui.screens.diagnostics
 
+import androidx.compose.runtime.Immutable
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.service.ServiceClient
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /** UI state for the Diagnostics screen. */
+@Immutable
 data class DiagnosticsState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isXposedActive: Boolean = false,
-    val diagnosticResults: List<DiagnosticResult> = emptyList(),
-    val antiDetectionResults: List<AntiDetectionTest> = emptyList(),
+    val diagnosticResults: ImmutableList<DiagnosticResult> = persistentListOf(),
+    val antiDetectionResults: ImmutableList<AntiDetectionTest> = persistentListOf(),
     val serviceStatus: ServiceStatus = ServiceStatus(),
-    val hookLogs: List<String> = emptyList(),
+    val hookLogs: ImmutableList<String> = persistentListOf(),
     val reproCaptureState: ReproCaptureState = ReproCaptureState.IDLE,
 )
 
@@ -24,6 +28,7 @@ enum class ReproCaptureState {
 }
 
 /** Status information about the AIDL service running in system_server. */
+@Immutable
 data class ServiceStatus(
     val connectionState: ServiceClient.ConnectionState = ServiceClient.ConnectionState.DISCONNECTED,
     val version: String? = null,
@@ -71,6 +76,7 @@ enum class HookEvidenceState {
 }
 
 /** Data class representing a diagnostic result. */
+@Immutable
 data class DiagnosticResult(
     val type: SpoofType,
     val realValue: String?,
@@ -94,4 +100,5 @@ enum class DiagnosticStatus {
 }
 
 /** Anti-detection test result. */
+@Immutable
 data class AntiDetectionTest(val nameRes: Int, val descriptionRes: Int, val isPassed: Boolean)

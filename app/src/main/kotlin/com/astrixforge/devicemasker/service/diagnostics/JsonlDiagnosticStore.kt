@@ -38,11 +38,13 @@ class JsonlDiagnosticStore(
         return true
     }
 
+    @Synchronized
     fun readEvents(): List<DiagnosticEvent> =
         eventFiles().flatMap { file ->
             file.readLines(Charsets.UTF_8).mapNotNull { line -> decodeLine(line).getOrNull() }
         }
 
+    @Synchronized
     fun stats(): StoreStats {
         val files = eventFiles()
         val corruptedLines =

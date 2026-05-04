@@ -19,6 +19,7 @@ val AmoledSurface = Color(0xFF0A0A0A)
 val AmoledSurfaceVariant = Color(0xFF1A1A1A)
 val AmoledSurfaceContainer = Color(0xFF121212)
 val AmoledSurfaceContainerHigh = Color(0xFF1E1E1E)
+val AmoledSurfaceContainerHighest = Color(0xFF2A2A2A)
 
 // ═══════════════════════════════════════════════════════════
 // Primary Colors (Teal/Cyan - Privacy Theme)
@@ -37,6 +38,8 @@ val SecondaryLight = Color(0xFF26A69A)
 val SecondaryDark = Color(0xFF64FFDA)
 val SecondaryContainer = Color(0xFF1D3D38)
 val SecondaryContainerLight = Color(0xFFB2DFDB)
+val OnSecondaryContainer = Color(0xFFCCFFFF)
+val OnSecondaryContainerLight = Color(0xFF00332C)
 
 // ═══════════════════════════════════════════════════════════
 // Tertiary Colors (Purple Accent)
@@ -45,6 +48,8 @@ val TertiaryLight = Color(0xFF7C4DFF)
 val TertiaryDark = Color(0xFFB388FF)
 val TertiaryContainer = Color(0xFF311B92)
 val TertiaryContainerLight = Color(0xFFEDE7F6)
+val OnTertiaryContainer = Color(0xFFEDE7F6)
+val OnTertiaryContainerLight = Color(0xFF21005D)
 
 // ═══════════════════════════════════════════════════════════
 // Status Colors
@@ -60,6 +65,8 @@ val ErrorLight = Color(0xFFBA1A1A)
 val ErrorDark = Color(0xFFFFB4AB)
 val ErrorContainer = Color(0xFF93000A)
 val ErrorContainerLight = Color(0xFFFFDAD6)
+val OnErrorContainer = Color(0xFFFFDAD6)
+val OnErrorContainerLight = Color(0xFF410002)
 
 // ═══════════════════════════════════════════════════════════
 // Neutral Colors
@@ -68,3 +75,10 @@ val OnSurfaceDark = Color(0xFFE3E3E3)
 val OnSurfaceVariantDark = Color(0xFFC0C0C0)
 val OutlineDark = Color(0xFF8E8E8E)
 val OutlineVariantDark = Color(0xFF444444)
+val DarkSurface = Color(0xFF121212)
+val DarkSurfaceVariant = Color(0xFF1E1E1E)
+val DarkSurfaceContainerLowest = Color(0xFF0E0E0E)
+val DarkSurfaceContainerLow = Color(0xFF161616)
+val DarkSurfaceContainer = Color(0xFF1A1A1A)
+val DarkSurfaceContainerHigh = Color(0xFF242424)
+val DarkSurfaceContainerHighest = Color(0xFF2E2E2E)

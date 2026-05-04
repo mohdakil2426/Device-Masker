@@ -149,7 +149,7 @@ private fun AppIcon(app: InstalledApp, modifier: Modifier = Modifier) {
     if (iconBitmap != null) {
         Image(
             bitmap = iconBitmap!!,
-            contentDescription = null,
+            contentDescription = app.label,
             modifier = modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
         )
     } else {
@@ -171,7 +171,7 @@ fun AppIconFallback(modifier: Modifier = Modifier) {
     ) {
         Icon(
             imageVector = Icons.Filled.Android,
-            contentDescription = null,
+            contentDescription = "App icon",
             tint = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.size(24.dp),
         )

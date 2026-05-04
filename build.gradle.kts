@@ -13,7 +13,7 @@ plugins {
 
 // Shared configuration for all modules
 ext {
-    set("compileSdk", 36)
+    set("compileSdk", 37)
     set("minSdk", 26)
     set("targetSdk", 36)
 }

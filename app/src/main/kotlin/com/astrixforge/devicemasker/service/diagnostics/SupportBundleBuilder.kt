@@ -63,7 +63,7 @@ class SupportBundleBuilder(
                     ?.filter { it.isFile }
                     ?.forEach { artifact ->
                         val relative = artifact.relativeTo(rootArtifactsDir).invariantSeparatorsPath
-                        zip.writeText("root/$relative", artifact.readText().redact(redactor))
+                        zip.writeRedactedFile("root/$relative", artifact, redactor)
                     }
             }
         }
@@ -73,6 +73,21 @@ class SupportBundleBuilder(
     private fun ZipOutputStream.writeText(path: String, content: String) {
         putNextEntry(ZipEntry(path))
         write(content.toByteArray(Charsets.UTF_8))
+        closeEntry()
+    }
+
+    private fun ZipOutputStream.writeRedactedFile(
+        path: String,
+        file: File,
+        redactor: DiagnosticRedactor,
+    ) {
+        putNextEntry(ZipEntry(path))
+        file.bufferedReader(Charsets.UTF_8).useLines { lines ->
+            lines.forEach { line ->
+                write(line.redact(redactor).toByteArray(Charsets.UTF_8))
+                write('\n'.code)
+            }
+        }
         closeEntry()
     }
 

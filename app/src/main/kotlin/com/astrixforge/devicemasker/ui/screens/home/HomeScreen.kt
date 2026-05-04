@@ -31,22 +31,23 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -57,10 +58,9 @@ import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.ui.components.IconCircle
 import com.astrixforge.devicemasker.ui.components.StatCard
-import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
@@ -139,70 +139,67 @@ fun HomeScreenContent(
     isLoading: Boolean = false,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier =
-                Modifier.fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .alpha(if (isLoading) 0f else 1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Status Card - Hero Section
-            StatusCard(
-                isXposedActive = isXposedActive,
-                isModuleEnabled = isModuleEnabled,
-                onModuleEnabledChange = onModuleEnabledChange,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Quick Stats Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+        if (isLoading) {
+            ExpressiveLoadingIndicator(modifier = Modifier.align(Alignment.Center))
+        } else {
+            Column(
+                modifier =
+                    Modifier.fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                StatCard(
-                    icon = Icons.Outlined.Apps,
-                    value = enabledAppsCount.toString(),
-                    label = stringResource(id = R.string.home_protected_apps_label),
-                    modifier = Modifier.weight(1f),
+                // Status Card - Hero Section
+                StatusCard(
+                    isXposedActive = isXposedActive,
+                    isModuleEnabled = isModuleEnabled,
+                    onModuleEnabledChange = onModuleEnabledChange,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                StatCard(
-                    icon = Icons.Outlined.Fingerprint,
-                    value = maskedIdentifiersCount.toString(),
-                    label = stringResource(id = R.string.home_masked_ids_label),
-                    modifier = Modifier.weight(1f),
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Quick Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    StatCard(
+                        icon = Icons.Outlined.Apps,
+                        value = enabledAppsCount.toString(),
+                        label = stringResource(id = R.string.home_protected_apps_label),
+                        modifier = Modifier.weight(1f),
+                    )
+                    StatCard(
+                        icon = Icons.Outlined.Fingerprint,
+                        value = maskedIdentifiersCount.toString(),
+                        label = stringResource(id = R.string.home_masked_ids_label),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Group Selector Card with Dropdown
+                GroupSelectorCard(
+                    groups = groups,
+                    selectedGroup = selectedGroup,
+                    onGroupSelected = onGroupSelected,
+                    onClick = onNavigateToSpoof,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Quick Actions
+                QuickActionsSection(
+                    onNavigateToSpoof = onNavigateToSpoof,
+                    onRegenerateAll = onRegenerateAll,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Group Selector Card with Dropdown
-            GroupSelectorCard(
-                groups = groups,
-                selectedGroup = selectedGroup,
-                onGroupSelected = onGroupSelected,
-                onClick = onNavigateToSpoof,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Quick Actions
-            QuickActionsSection(
-                onNavigateToSpoof = onNavigateToSpoof,
-                onRegenerateAll = onRegenerateAll,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        AnimatedLoadingOverlay(isLoading = isLoading) {
-            ExpressiveLoadingIndicatorWithLabel(
-                label = stringResource(R.string.home_loading_dashboard)
-            )
         }
     }
 }
@@ -241,7 +238,11 @@ private fun StatusCard(
         )
 
     Card(
-        modifier = modifier.scale(scale),
+        modifier =
+            modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         colors =
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = statusShape,
@@ -261,16 +262,22 @@ private fun StatusCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 // Shield Icon with Status
+                val statusIconShape = MaterialShapes.SoftBurst.toShape(startAngle = -90)
                 Box(
                     modifier =
                         Modifier.size(80.dp)
-                            .clip(CircleShape)
+                            .clip(statusIconShape)
                             .background(statusColor.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Shield,
-                        contentDescription = null,
+                        contentDescription =
+                            if (isXposedActive && isModuleEnabled) {
+                                stringResource(id = R.string.home_protection_active)
+                            } else {
+                                stringResource(id = R.string.home_protection_disabled)
+                            },
                         modifier = Modifier.size(48.dp),
                         tint = statusColor,
                     )
@@ -358,7 +365,7 @@ private fun GroupSelectorCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var dropdownExpanded by rememberSaveable { mutableStateOf(false) }
     val rotationAngle by
         animateFloatAsState(
             targetValue = if (dropdownExpanded) 180f else 0f,
@@ -383,7 +390,12 @@ private fun GroupSelectorCard(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconCircle(icon = Icons.Filled.Groups, size = 48.dp, iconSize = 24.dp)
+                IconCircle(
+                    icon = Icons.Filled.Groups,
+                    size = 48.dp,
+                    iconSize = 24.dp,
+                    contentDescription = stringResource(id = R.string.home_active_group_label),
+                )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

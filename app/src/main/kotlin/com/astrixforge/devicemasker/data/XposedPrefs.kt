@@ -40,11 +40,18 @@ object XposedPrefs {
      */
     const val PREFS_GROUP = "device_masker_config"
 
-    @Volatile private var xposedService: XposedService? = null
-    @Volatile private var initialized = false
+    @Volatile internal var xposedService: XposedService? = null
+    @Volatile internal var initialized = false
     private val serviceBindCallbacks = CopyOnWriteArrayList<() -> Unit>()
-    private val _isServiceConnected = MutableStateFlow(false)
+    internal val _isServiceConnected = MutableStateFlow(false)
     val isServiceConnected: StateFlow<Boolean> = _isServiceConnected.asStateFlow()
+
+    internal fun reset() {
+        xposedService = null
+        initialized = false
+        _isServiceConnected.value = false
+        serviceBindCallbacks.clear()
+    }
 
     /**
      * Registers the [XposedServiceHelper] listener.

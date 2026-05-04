@@ -5,12 +5,13 @@
 | Area | Current |
 | --- | --- |
 | Language | Kotlin 2.3.0 |
-| Android | compile SDK 36, target SDK 36, min SDK 26 |
+| Android | compile SDK 37, target SDK 36, min SDK 26 |
 | Build | Android Gradle Plugin 9.2.0 |
 | Java/Kotlin toolchain | JVM 17 for Android modules |
-| UI | Jetpack Compose BOM 2026.02.01 |
-| Material | Material 3 1.4.0 |
-| Navigation | Navigation Compose 2.9.7 |
+| UI | Jetpack Compose BOM 2026.04.01 |
+| Material | Material 3 1.5.0-alpha18 |
+| Navigation | Navigation 3 runtime/ui 1.1.1, lifecycle-viewmodel-navigation3 2.10.0 |
+| Adaptive navigation | material3-adaptive-navigation3 1.3.0-alpha10 |
 | Lifecycle | Lifecycle 2.10.0 |
 | Hooking | libxposed API 101.0.1 |
 | App-side Xposed service | libxposed service/interface 101.0.0 |
@@ -62,6 +63,9 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCaptureService.kt` | Foreground service for bounded root startup/boot capture |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/BootCaptureReceiver.kt` | Starts root capture after `BOOT_COMPLETED` when Android allows it |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config repository |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/NavDestination.kt` | Navigation 3 `NavKey` destination model |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerNavigationState.kt` | App-owned Navigation 3 top-level stacks and navigator |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerDeepLinks.kt` | Navigation 3 deep-link URI parsing and synthetic stack definitions |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |
 | `common/src/main/aidl/com/astrixforge/devicemasker/IDeviceMaskerService.aidl` | Diagnostics-only Binder contract |
@@ -71,6 +75,10 @@ Current expectations:
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/service/DeviceMaskerService.kt` | Best-effort diagnostics service |
+| `app/src/test/kotlin/com/astrixforge/devicemasker/MainDispatcherRule.kt` | Test coroutine dispatcher rule |
+| `app/src/test/kotlin/com/astrixforge/devicemasker/testing/*.kt` | Fake implementations for testing |
+| `app/src/test/kotlin/com/astrixforge/devicemasker/ui/screens/*/*ViewModelTest.kt` | ViewModel unit tests |
+| `docs/reports/IMPLEMENTATION_COMPLETION_SUMMARY_2026-05-04.md` | Plan completion summary |
 
 ## Build Commands
 
@@ -87,6 +95,14 @@ Targeted gates:
 .\gradlew.bat :app:testDebugUnitTest --no-daemon
 .\gradlew.bat :common:testDebugUnitTest --no-daemon
 .\gradlew.bat assembleDebug --no-daemon
+```
+
+Navigation 3 targeted gate:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat spotlessCheck :app:testDebugUnitTest lint assembleDebug --no-daemon
+adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/diagnostics" com.astrixforge.devicemasker
 ```
 
 Install debug APK:
@@ -132,5 +148,6 @@ Runtime validation needs:
 
 - AGP deprecated properties still warn during build.
 - Spotless `indentWithSpaces` is deprecated.
+- `material3-adaptive-navigation3` is on `1.3.0-alpha10`, which required moving the project to compile SDK 37.
 - Release shrinking is intentionally disabled until hook behavior is stable across target apps.
 - In-app diagnostics Binder can be unavailable under SELinux; LSPosed logs remain the practical runtime source.

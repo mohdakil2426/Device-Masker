@@ -306,13 +306,24 @@ adb logcat -d -t 1200
 - AGP and Spotless deprecation warnings remain cleanup work.
 - Actual returned spoof values need more target-side verification beyond spoof event logs.
 
-## Official Documentation
+## Official Libxposed Documentation (Never Skip THis)
+
+- All you know about lsposed/xposed api are outdated so alwasy fetch latest docs and libxposed skills to know correctly about libxposed api, services, helper, example.
+
+### Skills
+
+@.agents\skills\libxposed\SKILL.md
+
+### Github Repo
 
 - [libxposed API](https://github.com/libxposed/api)
-- [libxposed API reference](https://libxposed.github.io/api/)
 - [libxposed service](https://github.com/libxposed/service)
-- [libxposed service docs](https://libxposed.github.io/service/)
 - [libxposed example](https://github.com/libxposed/example)
+
+### Javadoc
+
+- [libxposed API javadoc](https://libxposed.github.io/api/)
+- [libxposed service javadoc](https://libxposed.github.io/service/)
 
 ## graphify
 

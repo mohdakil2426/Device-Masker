@@ -29,8 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -221,7 +221,10 @@ fun ExpressiveSwitch(
     Box(
         modifier =
             modifier
-                .scale(switchScale)
+                .graphicsLayer {
+                    scaleX = switchScale
+                    scaleY = switchScale
+                }
                 .size(width = SwitchDimensions.TrackWidth, height = SwitchDimensions.TrackHeight)
                 .clip(RoundedCornerShape(SwitchDimensions.TrackCornerRadius))
                 .background(trackColor)
@@ -252,7 +255,11 @@ fun ExpressiveSwitch(
                 Icon(
                     imageVector = if (checked) Icons.Filled.Check else Icons.Filled.Close,
                     contentDescription = null,
-                    modifier = Modifier.size(SwitchDimensions.IconSize).scale(iconScale),
+                    modifier =
+                        Modifier.size(SwitchDimensions.IconSize).graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
+                        },
                     tint = iconColor,
                 )
             }

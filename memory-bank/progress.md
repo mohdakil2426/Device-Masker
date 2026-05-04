@@ -5,20 +5,23 @@
 | Area | Status |
 | --- | --- |
 | Project phase | Development, first working base |
-| Build | Passing |
+| Build | Passing app-level Navigation 3 gate with deep-link coverage; previous full gate passed including `:app:assembleCiRelease` |
 | Unit tests | Passing |
 | Lint/format | Passing |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
 | Diagnostics | Structured JSONL app logs, best-effort AIDL diagnostics, support bundle export |
-| Target hook validation | Smoke-passed on `com.mantle.verify` |
+| Target hook validation | Current rebuilt APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence |
+| M3E UI | Core and advanced implementation verified: MaterialExpressiveTheme, MotionScheme.expressive, native LoadingIndicator, native ButtonGroup, SplitButtonLayout, FloatingActionButtonMenu, HorizontalFloatingToolbar, MaterialShapes hero, tokenized theme/motion/shape/typography |
+| Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks, M3E motion, adaptive list-detail metadata, and tested deep links |
 | Stable release readiness | Not ready; broader target validation required |
 
 ## What Works
 
 - Three-module Gradle structure: `:app`, `:common`, `:xposed`.
 - Compose app launches.
+- Full Gradle gate passes, including the `ciRelease` minified variant.
 - Local config persists to app `filesDir/config.json`.
 - App-side libxposed service binding exposes connection state.
 - Config sync writes flattened per-app RemotePreferences keys.
@@ -33,8 +36,24 @@
 - Root Maximum support bundles include root artifacts and command-result manifests when exported.
 - Root access is requested on first app startup, tracked centrally, and surfaced in Settings.
 - Boot/startup Root Maximum capture writes latest root artifacts before export.
+- The current debug APK installs and launches on `emulator-5554` through Mobile MCP and ADB.
+- App-owned root capture artifacts are visible through `adb shell run-as com.astrixforge.devicemasker ls files/logs/root-capture/latest`.
 - Diagnostics state distinguishes framework connection, optional diagnostics service availability, and service-backed hook evidence.
 - `com.mantle.verify` launched after latest remediation and emitted spoof events.
+- `flar2.devcheck` launched after latest remediation and emitted spoof events.
+- Diagnostics UI reports `Module Active`, anti-detection `4/4 tests passed`, real/spoofed Android ID, and real/spoofed Device Profile.
+- Basic support export through DocumentsUI works and saved `/sdcard/devicemasker_support_20260504_150228.zip`.
+- M3E core UI now uses `MaterialExpressiveTheme`, `MotionScheme.expressive()`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, 10-step shape tokens, asymmetric shape tokens, 15 emphasized typography styles, `LocalEmphasizedTypography`, and a `MaterialShapes.SoftBurst` Home hero moment.
+- M3E advanced UI placements now use `SplitButtonLayout` in Settings export actions, `FloatingActionButtonMenu` in Groups quick actions, and `HorizontalFloatingToolbar` in the group editor.
+- Static UI audit found no remaining `Modifier.scale()` usage under `ui/` and no hardcoded `Color(0x...)` under `ui/` outside `Color.kt`.
+- Mobile MCP smoke on `emulator-5554` verified Home, Configure action, Group Detail, category expansion, Apps tab, Groups, Settings, Settings export split buttons, Groups FAB menu, and Group Detail horizontal toolbar after the M3E changes.
+- Navigation 3 app navigation compiles and passes navigator unit tests. `NavController`, `NavHost`, Navigation Compose `composable`, and `toRoute()` have been removed from app runtime navigation. The selected top-level tab is saved with `rememberSaveable`, while each stack is saved with `rememberNavBackStack`.
+- Navigation 3 deep links support `devicemasker://open/home`, `/groups`, `/groups/{groupId}`, `/settings`, and `/diagnostics`. Group Detail and Diagnostics use synthetic stacks, and emulator smoke verified Group Detail and Diagnostics links.
+- Navigation 3 expanded-width/list-detail smoke passed in emulator landscape: Groups list and Group Detail rendered side by side.
+
+Latest verification caveat:
+- On 2026-05-04 later in the emulator session, module injection was active again. `com.mantle.verify` and `flar2.devcheck` both showed `XposedEntry`, target selection, `All hooks registered`, and spoof events in logcat.
+- Runtime gaps remain for disabled/missing/malformed pass-through, exact value-by-value assertions for all spoof types, real reboot boot-capture validation, and broader app-category validation.
 
 ## Completed Milestones
 
@@ -175,6 +194,19 @@ Startup capture runtime check:
 - Confirmed root capture files exist under `files/logs/root-capture/latest/`.
 - Could not fake `BOOT_COMPLETED` through adb because Android rejects shell-sent protected boot broadcasts with `SecurityException`; real reboot validation remains open.
 
+Navigation 3 gate:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat spotlessCheck :app:testDebugUnitTest lint assembleDebug --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck :app:testDebugUnitTest lint assembleDebug --no-daemon
+adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/groups/9733ad2b-1e87-4f92-b869-f549fc82b26e" com.astrixforge.devicemasker
+adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/diagnostics" com.astrixforge.devicemasker
+```
+
+Result: Gradle commands returned `BUILD SUCCESSFUL`. Mobile MCP verified Group Detail opened for the configured `Tesing` group, Diagnostics opened from the custom URI, Back from Diagnostics returned to Settings, and landscape list-detail rendered Groups plus Group Detail side by side.
+
 Target LSPosed runtime smoke has been rerun after the diagnostics/root audit fixes.
 
 Post diagnostics/root audit runtime smoke:
@@ -201,6 +233,103 @@ Target smoke evidence:
   - `MEDIA_DRM_ID`
   - `SIM_OPERATOR_NAME`
 
+### 2026-05-04 Master Implementation Plan Completion Status
+
+The master plan now has an updated verified checklist. Core safety/build/runtime, core M3E implementation, and advanced M3E placements are complete; formal stable-release validation remains open.
+
+**Phase 0 (Safety & Stability):**
+- ConfigManager: atomic CAS update with `MutableStateFlow.update`, Mutex for file writes, corrupted config backup preservation.
+- AppLogStore: async channel-based logging with injectable `CoroutineDispatcher`, `runBlocking { channel.send() }` for synchronous test behavior.
+- SpoofRepository: `AtomicReference` caches for SIM, location, device hardware configs.
+- AppScopeRepository: `AtomicBoolean` for cache validity.
+- RootShell: separate threads for stdout/stderr before `waitFor()`, suspend guard with `withContext(Dispatchers.IO)`.
+- RootLogCollector: strict target package regex validation `[a-zA-Z0-9._]+`, conditional grep pattern building.
+- LogManager: all file I/O wrapped in `withContext(Dispatchers.IO)`.
+- Manifest: `allowBackup=false`, `windowSoftInputMode="adjustResize"`.
+- SupportBundleBuilder: streaming ZIP instead of `readText()` OOM risk.
+- JsonlDiagnosticStore: `@Synchronized` on `readEvents()`.
+- ConfigSync: suspend IO variants `syncAppAsync()`/`clearAppAsync()`.
+
+**Phase 1 (Testing Infrastructure):**
+- `MainDispatcherRule` for coroutine testing.
+- 7 fake implementations for testability.
+- ViewModel tests for Home, Groups, GroupSpoofing, Settings, Diagnostics screens.
+- SettingsViewModel bug fix: `ioDispatcher` injection instead of hardcoded `Dispatchers.IO`.
+
+**Phase 2 (M3E Theme Foundation):**
+- All hardcoded colors extracted to named constants in `Color.kt`.
+- No hardcoded `Color(0x...)` remains under `ui/` outside `Color.kt`.
+- Complete surface container roles in `LightColorScheme`.
+- AMOLED scheme documented as intentional deviation.
+- Category colors derived from `MaterialTheme.colorScheme`.
+- Status colors mapped to semantic theme roles.
+- 10-step symmetric shape scale + asymmetric variants.
+- 15 emphasized typography styles + `LocalEmphasizedTypography` composition local.
+- API 34 contrast preference validation remains open.
+
+**Phase 3 (Architecture & State):**
+- `SavedStateHandle` injected in all 5 ViewModels.
+- All State classes marked `@Immutable` with `ImmutableList`.
+- Inline lambdas hoisted with `remember`.
+- `Flow.combine` in HomeViewModel for 6 flows.
+- Redundant suspend modifiers removed.
+- `importGroups()` returns `Result<Unit>` with typed errors.
+- Full-screen loading overlays replaced with inline indicators.
+- Bidirectional pager/tab sync fixed with `snapshotFlow` + `distinctUntilChanged`.
+- GroupSpoofingScreen navigates back on null group (deleted).
+- IME insets handled with `imePadding()` + `adjustResize`.
+- `contentDescription` added to critical icons.
+- `SimpleDateFormat` cached with `remember`.
+- Dialog visibility uses `rememberSaveable`.
+- Loading state uses `AnimatedVisibility` not `Modifier.alpha()`.
+- `contentType` added to LazyColumns.
+- SettingsScreen export mode synced with `LaunchedEffect`.
+
+**Phase 4 (Motion & Components):**
+- `MotionTokens` with Expressive/Standard × spatial/effects hierarchy.
+- `ElevationTokens` Level 0-5.
+- `MotionScheme.expressive()` adopted in `MaterialExpressiveTheme`.
+- ExpressiveIconButton default size ≥48dp, Compact uses `minimumInteractiveComponentSize()`.
+- ToggleButton accessibility semantics with `Role.Switch`.
+- All `scale()` modifiers replaced with `graphicsLayer`.
+- ExpressiveSwitch, ExpressiveCard, ExpressiveIconButton use fast spatial spring.
+- Reduced-motion manual animation-scale-off validation remains open.
+
+**Phase 5 (Dependency Upgrade):**
+- BOM upgraded to `2026.04.01`.
+- Material3 upgraded to `1.5.0-alpha18`.
+- `MaterialExpressiveTheme`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, `SplitButtonLayout`, `FloatingActionButtonMenu`, `HorizontalFloatingToolbar`, and `MaterialShapes.SoftBurst` adopted and compile.
+
+**Phase 6 (Navigation):**
+- Navigation 3 `NavKey` route types in `NavDestination`.
+- Navigation Compose 2.x runtime navigation removed.
+- `NavDisplay`, `entryProvider`, saveable-state entry decorator, and ViewModel-store entry decorator adopted.
+- `DeviceMaskerNavigationState` preserves Home, Groups, and Settings top-level stacks.
+- Selected top-level destination restoration has automated unit coverage.
+- `DeviceMaskerNavigator` centralizes screen navigation and back behavior.
+- M3E navigation motion and reduced-motion fallback are wired to `NavDisplay`.
+- Adaptive Navigation 3 list-detail metadata added for Groups -> Group Detail.
+- Deep links implemented with explicit parser, manifest `ACTION_VIEW` filter, `singleTop` `onNewIntent` handling, and synthetic stack replacement.
+- Navigator unit tests pass, including restored selected top-level state and deep-link parsing/stack replacement.
+
+**Phase 7 (Build Hardening):**
+- `ciRelease` build type with `isMinifyEnabled=true`.
+- Compose compiler metrics enabled.
+- Spotless ktfmt version in catalog.
+- Turbine + MockK test dependencies.
+- Redundant daemon property removed from `gradle.properties`.
+- IDE-specific build logic removed.
+
+**Phase 8 (Polish):**
+- @Preview added to SpoofTabContent and AppsTabContent.
+- Window size class adaptation with NavigationRail for medium/expanded screens.
+- Compact Mobile MCP smoke passed across Home, Configure, Group Detail, Apps tab, Groups, and Settings.
+- Advanced M3E component smoke passed for Settings export split buttons, Groups floating action button menu, and Group Detail horizontal toolbar.
+
+**Phase 9 (Validation):**
+- Full gate passes: `spotlessCheck`, all unit tests, `lint`, `test`, `assembleDebug`, `assembleRelease`, `:app:assembleCiRelease`.
+- `com.mantle.verify` and `flar2.devcheck` smoke runs passed with LSPosed hook registration and spoof-event evidence.
+
 ## Remaining Work
 
 Before calling this stable:
@@ -209,7 +338,6 @@ Before calling this stable:
 - Validate after LSPosed module disable/enable cycle.
 - Validate at least two additional target apps.
 - Confirm actual returned values inside target apps, not only spoof event logs.
-- Rerun `com.mantle.verify` target smoke after the 2026-05-03 libxposed audit fixes.
 - Confirm disabled/missing/malformed values pass through.
 - Confirm anti-detection behavior with current safer surfaces.
 - Add a safe-mode UI/config flag for risky hook groups.
@@ -218,6 +346,8 @@ Before calling this stable:
 - Export logs after target hook events and verify exported output is useful.
 - Smoke-test Basic, Full Debug, and Root Maximum bundle export on device.
 - Reboot emulator/device and verify `BootCaptureReceiver` creates a `boot` root capture.
+- Complete light/dark/AMOLED/dynamic-color visual matrix, large-font, high-contrast, and TalkBack/Accessibility Scanner audits.
+- Manually validate full Navigation 3 stack restoration after process death.
 
 Engineering cleanup:
 

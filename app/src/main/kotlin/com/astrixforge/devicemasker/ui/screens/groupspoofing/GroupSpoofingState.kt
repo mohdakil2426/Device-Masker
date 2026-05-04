@@ -1,13 +1,17 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing
 
+import androidx.compose.runtime.Immutable
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.data.models.InstalledApp
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /** UI state for the Group Spoofing screen. */
+@Immutable
 data class GroupSpoofingState(
     val isLoading: Boolean = true,
     val group: SpoofGroup? = null,
-    val groups: List<SpoofGroup> = emptyList(),
-    val installedApps: List<InstalledApp> = emptyList(),
+    val groups: ImmutableList<SpoofGroup> = persistentListOf(),
+    val installedApps: ImmutableList<InstalledApp> = persistentListOf(),
     val selectedTab: Int = 0,
 )

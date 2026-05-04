@@ -2,16 +2,15 @@ package com.astrixforge.devicemasker.ui.components.expressive
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,33 +43,34 @@ data class QuickAction(
 )
 
 /**
- * Material 3 Button Group for quick actions (Stable fallback).
- *
- * Uses Row with weighted buttons as ButtonGroup is only available in alpha.
+ * Material 3 Expressive ButtonGroup for quick actions.
  *
  * @param actions List of quick actions to display
  * @param modifier Modifier for the button group
  */
 @Composable
 fun QuickActionGroup(actions: List<QuickAction>, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    ButtonGroup(
+        overflowIndicator = { state -> ButtonGroupDefaults.OverflowIndicator(state) },
+        modifier = modifier.fillMaxWidth(),
+    ) {
         actions.forEach { action ->
-            FilledTonalButton(
+            clickableItem(
                 onClick = action.onClick,
+                label = action.label,
+                icon =
+                    action.icon?.let { icon ->
+                        {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                weight = 1f,
                 enabled = action.enabled,
-                modifier = Modifier.weight(1f),
-                contentPadding = ButtonDefaults.TextButtonContentPadding,
-            ) {
-                if (action.icon != null) {
-                    Icon(
-                        imageVector = action.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(text = action.label, style = MaterialTheme.typography.labelLarge)
-            }
+            )
         }
     }
 }
@@ -90,29 +90,18 @@ fun QuickActionRow(
     secondaryAction: QuickAction,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        FilledTonalButton(
-            onClick = primaryAction.onClick,
-            enabled = primaryAction.enabled,
-            modifier = Modifier.weight(1f),
-        ) {
-            if (primaryAction.icon != null) {
-                Icon(primaryAction.icon, null)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(primaryAction.label)
-        }
-
-        FilledTonalButton(
-            onClick = secondaryAction.onClick,
-            enabled = secondaryAction.enabled,
-            modifier = Modifier.weight(1f),
-        ) {
-            if (secondaryAction.icon != null) {
-                Icon(secondaryAction.icon, null)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(secondaryAction.label)
+    ButtonGroup(
+        overflowIndicator = { state -> ButtonGroupDefaults.OverflowIndicator(state) },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        listOf(primaryAction, secondaryAction).forEach { action ->
+            clickableItem(
+                onClick = action.onClick,
+                label = action.label,
+                icon = action.icon?.let { icon -> { Icon(icon, null) } },
+                weight = 1f,
+                enabled = action.enabled,
+            )
         }
     }
 }
@@ -132,7 +121,10 @@ fun SelectionButtonGroup(
     onSelectionChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    androidx.compose.foundation.layout.Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         options.forEachIndexed { index, option ->
             val isSelected = selectedIndex == index
             if (isSelected) {

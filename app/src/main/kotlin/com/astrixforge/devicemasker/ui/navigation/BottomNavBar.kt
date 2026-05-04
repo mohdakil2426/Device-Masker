@@ -13,7 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
@@ -25,14 +25,14 @@ import com.astrixforge.devicemasker.ui.theme.AppMotion
  * Uses Material 3 NavigationBar with animated icons and labels. Supports reduced-motion aware
  * transitions for smooth but accessible feedback.
  *
- * @param currentRoute Current active route string
+ * @param currentDestination Current active top-level destination
  * @param onNavigate Callback when user selects a route
  * @param modifier Optional modifier
  */
 @Composable
 fun BottomNavBar(
-    currentRoute: String,
-    onNavigate: (String) -> Unit,
+    currentDestination: NavDestination,
+    onNavigate: (NavDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavigationBar(
@@ -44,8 +44,8 @@ fun BottomNavBar(
         bottomNavItems.forEach { item ->
             BottomNavItem(
                 item = item,
-                isSelected = currentRoute == item.route,
-                onClick = { onNavigate(item.route) },
+                isSelected = currentDestination == item.destination,
+                onClick = { onNavigate(item.destination) },
             )
         }
     }
@@ -58,14 +58,22 @@ private fun RowScope.BottomNavItem(item: NavItem, isSelected: Boolean, onClick: 
         animateFloatAsState(
             targetValue = if (isSelected && !AppMotion.shouldReduceMotion()) 1.05f else 1f,
             animationSpec = AppMotion.spatial(AppMotion.Spatial.Standard, AppMotion.ReducedAlpha),
-            label = "iconScale_${item.route}",
+            label = "iconScale_${item.destination}",
         )
 
     NavigationBarItem(
         selected = isSelected,
         onClick = onClick,
         icon = {
-            AnimatedNavIcon(item = item, isSelected = isSelected, modifier = Modifier.scale(scale))
+            AnimatedNavIcon(
+                item = item,
+                isSelected = isSelected,
+                modifier =
+                    Modifier.graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
+            )
         },
         label = {
             Text(text = stringResource(item.labelRes), style = MaterialTheme.typography.labelMedium)
@@ -93,23 +101,23 @@ private fun AnimatedNavIcon(item: NavItem, isSelected: Boolean, modifier: Modifi
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
             animationSpec = AppMotion.Effect.Color,
-            label = "iconColor_${item.route}",
+            label = "iconColor_${item.destination}",
         )
 
     Icon(
         imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-        contentDescription = stringResource(navContentDescriptionRes(item.route, isSelected)),
+        contentDescription = stringResource(navContentDescriptionRes(item.destination, isSelected)),
         modifier = modifier.size(24.dp),
         tint = iconColor,
     )
 }
 
-private fun navContentDescriptionRes(route: String, isSelected: Boolean): Int =
-    when (route) {
-        NavRoutes.HOME -> {
+private fun navContentDescriptionRes(destination: NavDestination, isSelected: Boolean): Int =
+    when (destination) {
+        NavDestination.Home -> {
             if (isSelected) R.string.bottom_nav_home else R.string.bottom_nav_open_home
         }
-        NavRoutes.GROUPS -> {
+        NavDestination.Groups -> {
             if (isSelected) R.string.bottom_nav_groups else R.string.bottom_nav_open_groups
         }
         else -> {

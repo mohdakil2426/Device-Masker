@@ -1,10 +1,11 @@
 package com.astrixforge.devicemasker.ui.screens.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.data.XposedPrefs
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,19 +18,24 @@ import kotlinx.coroutines.launch
  * Manages the UI state by collecting from repository flows and provides action methods for UI
  * events.
  *
- * @param repository The SpoofRepository for data access
+ * @param repository The [ISpoofRepository] for data access
+ * @param isXposedActiveFlow Flow that emits Xposed service connection state
  */
-class HomeViewModel(private val repository: SpoofRepository) : ViewModel() {
+class HomeViewModel(
+    private val repository: ISpoofRepository,
+    private val isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
         // Set initial Xposed status
-        _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
+        _state.update { it.copy(isXposedActive = isXposedActiveFlow.value) }
 
         viewModelScope.launch {
-            XposedPrefs.isServiceConnected.collect { connected ->
+            isXposedActiveFlow.collect { connected ->
                 _state.update { it.copy(isXposedActive = connected) }
             }
         }
@@ -45,7 +51,7 @@ class HomeViewModel(private val repository: SpoofRepository) : ViewModel() {
                     val selectedGroup = defaultGroup ?: groups.firstOrNull()
 
                     currentState.copy(
-                        groups = groups,
+                        groups = groups.toImmutableList(),
                         selectedGroup = selectedGroup,
                         maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
                         enabledAppsCount =

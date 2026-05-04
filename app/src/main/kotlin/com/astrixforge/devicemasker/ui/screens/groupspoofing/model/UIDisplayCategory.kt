@@ -6,6 +6,8 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.astrixforge.devicemasker.R
@@ -28,7 +30,6 @@ enum class UIDisplayCategory(
     val titleRes: Int,
     val descriptionRes: Int,
     val icon: ImageVector,
-    val color: Color,
     val types: List<SpoofType>,
     val isCorrelated: Boolean, // If true, values sync together
 ) {
@@ -36,7 +37,6 @@ enum class UIDisplayCategory(
         titleRes = R.string.category_sim_card,
         descriptionRes = R.string.category_sim_card_desc,
         icon = Icons.Outlined.SimCard,
-        color = Color(0xFF00BCD4), // Cyan
         types =
             listOf(
                 SpoofType.PHONE_NUMBER, // Combined with Carrier Name
@@ -55,7 +55,6 @@ enum class UIDisplayCategory(
         titleRes = R.string.category_device_hardware,
         descriptionRes = R.string.category_device_hardware_desc,
         icon = Icons.Outlined.DevicesOther,
-        color = Color(0xFF9C27B0), // Purple
         types = listOf(SpoofType.DEVICE_PROFILE, SpoofType.IMEI, SpoofType.SERIAL),
         isCorrelated =
             false, // Custom handling: Device Profile controls all, IMEI/Serial independent
@@ -64,7 +63,6 @@ enum class UIDisplayCategory(
         titleRes = R.string.category_network,
         descriptionRes = R.string.category_network_desc,
         icon = Icons.Outlined.Wifi,
-        color = Color(0xFF4CAF50), // Green
         types =
             listOf(
                 SpoofType.WIFI_MAC,
@@ -78,7 +76,6 @@ enum class UIDisplayCategory(
         titleRes = R.string.category_advertising,
         descriptionRes = R.string.category_advertising_desc,
         icon = Icons.Outlined.TrackChanges,
-        color = Color(0xFFFF9800), // Orange
         types =
             listOf(
                 SpoofType.ANDROID_ID,
@@ -92,7 +89,6 @@ enum class UIDisplayCategory(
         titleRes = R.string.category_location,
         descriptionRes = R.string.category_location_desc,
         icon = Icons.Outlined.LocationOn,
-        color = Color(0xFFE91E63), // Pink
         types =
             listOf(
                 // Order: Timezone first (controls locale), then Lat/Long (independent GPS)
@@ -104,3 +100,13 @@ enum class UIDisplayCategory(
         isCorrelated = false, // Custom handling: Timezone+Locale sync, Lat/Long independent
     ),
 }
+
+@Composable
+fun UIDisplayCategory.themeColor(): Color =
+    when (this) {
+        UIDisplayCategory.SIM_CARD -> MaterialTheme.colorScheme.primary
+        UIDisplayCategory.DEVICE_HARDWARE -> MaterialTheme.colorScheme.tertiary
+        UIDisplayCategory.NETWORK -> MaterialTheme.colorScheme.secondary
+        UIDisplayCategory.ADVERTISING -> MaterialTheme.colorScheme.error
+        UIDisplayCategory.LOCATION -> MaterialTheme.colorScheme.primaryContainer
+    }

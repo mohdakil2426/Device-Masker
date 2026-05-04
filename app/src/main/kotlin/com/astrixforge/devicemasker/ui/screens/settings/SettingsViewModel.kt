@@ -3,13 +3,16 @@ package com.astrixforge.devicemasker.ui.screens.settings
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.astrixforge.devicemasker.data.SettingsDataStore
+import com.astrixforge.devicemasker.data.ISettingsDataStore
+import com.astrixforge.devicemasker.service.ILogManager
 import com.astrixforge.devicemasker.service.LogExportResult
 import com.astrixforge.devicemasker.service.LogManager
 import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,12 +27,29 @@ import kotlinx.coroutines.withContext
  * Manages theme settings and log export functionality.
  *
  * @param application Application for context access
- * @param settingsStore The SettingsDataStore for persistence
+ * @param settingsStore The [ISettingsDataStore] for persistence
+ * @param logManager The [ILogManager] for log operations
+ * @param ioDispatcher Dispatcher for IO operations (overridable in tests)
  */
-class SettingsViewModel(application: Application, private val settingsStore: SettingsDataStore) :
-    AndroidViewModel(application) {
+class SettingsViewModel(
+    application: Application,
+    private val settingsStore: ISettingsDataStore,
+    private val logManager: ILogManager = LogManager,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : AndroidViewModel(application) {
 
-    private val _state = MutableStateFlow(SettingsState())
+    private val _state =
+        MutableStateFlow(
+            SettingsState(
+                exportMode =
+                    BundleExportMode.entries.getOrElse(
+                        savedStateHandle[KEY_EXPORT_MODE] ?: BundleExportMode.BASIC.ordinal
+                    ) {
+                        BundleExportMode.BASIC
+                    }
+            )
+        )
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     init {
@@ -66,6 +86,7 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
     }
 
     fun setExportMode(mode: BundleExportMode) {
+        savedStateHandle[KEY_EXPORT_MODE] = mode.ordinal
         _state.update { it.copy(exportMode = mode) }
     }
 
@@ -79,8 +100,9 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result =
-                withContext(Dispatchers.IO) {
-                    LogManager.exportLogsToUri(getApplication(), uri, mode.toSupportMode())
+                withContext(ioDispatcher) {
+                    logManager
+                        .exportLogsToUri(getApplication(), uri, mode.toSupportMode())
                         .toExportResult()
                 }
 
@@ -100,8 +122,8 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result =
-                withContext(Dispatchers.IO) {
-                    LogManager.createShareableLogFile(getApplication(), mode.toSupportMode())
+                withContext(ioDispatcher) {
+                    logManager.createShareableLogFile(getApplication(), mode.toSupportMode())
                 }
 
             _state.update { it.copy(isExportingLogs = false) }
@@ -118,7 +140,7 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
     }
 
     /** Generate filename for Export Logs file picker */
-    fun generateLogFileName(): String = LogManager.generateLogFileName()
+    fun generateLogFileName(): String = logManager.generateLogFileName()
 
     private fun BundleExportMode.toSupportMode(): SupportBundleMode =
         when (this) {
@@ -132,5 +154,9 @@ class SettingsViewModel(application: Application, private val settingsStore: Set
             is LogExportResult.Success -> ExportResult.Success(filePath, lineCount)
             is LogExportResult.Error -> ExportResult.Error(message)
         }
+    }
+
+    private companion object {
+        const val KEY_EXPORT_MODE = "exportMode"
     }
 }

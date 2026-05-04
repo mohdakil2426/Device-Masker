@@ -2,12 +2,14 @@ package com.astrixforge.devicemasker.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
@@ -29,19 +31,19 @@ private val AmoledDarkColorScheme =
         secondary = SecondaryDark,
         onSecondary = Color.Black,
         secondaryContainer = SecondaryContainer,
-        onSecondaryContainer = Color(0xFFCCFFFF),
+        onSecondaryContainer = OnSecondaryContainer,
 
         // Tertiary
         tertiary = TertiaryDark,
         onTertiary = Color.Black,
         tertiaryContainer = TertiaryContainer,
-        onTertiaryContainer = Color(0xFFEDE7F6),
+        onTertiaryContainer = OnTertiaryContainer,
 
         // Error
         error = ErrorDark,
         onError = Color.Black,
         errorContainer = ErrorContainer,
-        onErrorContainer = Color(0xFFFFDAD6),
+        onErrorContainer = OnErrorContainer,
 
         // Background & Surface (AMOLED Black)
         background = AmoledBlack,
@@ -54,15 +56,15 @@ private val AmoledDarkColorScheme =
         // Surface containers
         surfaceContainer = AmoledSurfaceContainer,
         surfaceContainerHigh = AmoledSurfaceContainerHigh,
-        surfaceContainerHighest = Color(0xFF2A2A2A),
+        surfaceContainerHighest = AmoledSurfaceContainerHighest,
         surfaceContainerLow = AmoledSurface,
         surfaceContainerLowest = AmoledBlack,
 
         // Other
         outline = OutlineDark,
         outlineVariant = OutlineVariantDark,
-        inverseSurface = Color(0xFFE3E3E3),
-        inverseOnSurface = Color(0xFF1A1A1A),
+        inverseSurface = OnSurfaceDark,
+        inverseOnSurface = AmoledSurfaceVariant,
         inversePrimary = PrimaryLight,
         scrim = Color.Black,
     )
@@ -80,19 +82,19 @@ private val LightColorScheme =
         secondary = SecondaryLight,
         onSecondary = Color.White,
         secondaryContainer = SecondaryContainerLight,
-        onSecondaryContainer = Color(0xFF00332C),
+        onSecondaryContainer = OnSecondaryContainerLight,
 
         // Tertiary
         tertiary = TertiaryLight,
         onTertiary = Color.White,
         tertiaryContainer = TertiaryContainerLight,
-        onTertiaryContainer = Color(0xFF21005D),
+        onTertiaryContainer = OnTertiaryContainerLight,
 
         // Error
         error = ErrorLight,
         onError = Color.White,
         errorContainer = ErrorContainerLight,
-        onErrorContainer = Color(0xFF410002),
+        onErrorContainer = OnErrorContainerLight,
     )
 
 /**
@@ -185,35 +187,35 @@ private fun DeviceMaskerThemeInternal(
                         secondary = SecondaryDark,
                         onSecondary = Color.Black,
                         secondaryContainer = SecondaryContainer,
-                        onSecondaryContainer = Color(0xFFCCFFFF),
+                        onSecondaryContainer = OnSecondaryContainer,
                         // Tertiary
                         tertiary = TertiaryDark,
                         onTertiary = Color.Black,
                         tertiaryContainer = TertiaryContainer,
-                        onTertiaryContainer = Color(0xFFEDE7F6),
+                        onTertiaryContainer = OnTertiaryContainer,
                         // Error
                         error = ErrorDark,
                         onError = Color.Black,
                         errorContainer = ErrorContainer,
-                        onErrorContainer = Color(0xFFFFDAD6),
+                        onErrorContainer = OnErrorContainer,
                         // Background & Surface (dark gray, not pure black)
-                        background = Color(0xFF121212),
-                        onBackground = Color(0xFFE3E3E3),
-                        surface = Color(0xFF121212),
-                        onSurface = Color(0xFFE3E3E3),
-                        surfaceVariant = Color(0xFF1E1E1E),
-                        onSurfaceVariant = Color(0xFFC0C0C0),
+                        background = DarkSurface,
+                        onBackground = OnSurfaceDark,
+                        surface = DarkSurface,
+                        onSurface = OnSurfaceDark,
+                        surfaceVariant = DarkSurfaceVariant,
+                        onSurfaceVariant = OnSurfaceVariantDark,
                         // Surface containers
-                        surfaceContainer = Color(0xFF1A1A1A),
-                        surfaceContainerHigh = Color(0xFF242424),
-                        surfaceContainerHighest = Color(0xFF2E2E2E),
-                        surfaceContainerLow = Color(0xFF161616),
-                        surfaceContainerLowest = Color(0xFF0E0E0E),
+                        surfaceContainer = DarkSurfaceContainer,
+                        surfaceContainerHigh = DarkSurfaceContainerHigh,
+                        surfaceContainerHighest = DarkSurfaceContainerHighest,
+                        surfaceContainerLow = DarkSurfaceContainerLow,
+                        surfaceContainerLowest = DarkSurfaceContainerLowest,
                         // Other
                         outline = OutlineDark,
                         outlineVariant = OutlineVariantDark,
-                        inverseSurface = Color(0xFFE3E3E3),
-                        inverseOnSurface = Color(0xFF1A1A1A),
+                        inverseSurface = OnSurfaceDark,
+                        inverseOnSurface = DarkSurfaceContainer,
                         inversePrimary = PrimaryLight,
                         scrim = Color.Black,
                     )
@@ -224,10 +226,16 @@ private fun DeviceMaskerThemeInternal(
             else -> LightColorScheme
         }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalMotionPolicy provides rememberMotionPolicy(),
+        LocalEmphasizedTypography provides AppEmphasizedTypography,
+    ) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            motionScheme = MotionScheme.expressive(),
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

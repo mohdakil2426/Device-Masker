@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.FileDownload
@@ -24,7 +25,9 @@ import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +36,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -164,6 +168,7 @@ fun GroupsScreen(
             }
         }
 
+    val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US) }
     Box(modifier = modifier.fillMaxSize()) {
         GroupsScreenContent(
             groups = state.groups,
@@ -175,7 +180,7 @@ fun GroupsScreen(
             onSetDefault = { group -> viewModel.setDefaultGroup(group.id) },
             onEnableChange = { group, enabled -> viewModel.setGroupEnabled(group.id, enabled) },
             onExport = {
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                val timestamp = timestampFormatter.format(Date())
                 exportLauncher.launch("devicemasker_groups_$timestamp.json")
             },
             onImport = { importLauncher.launch("application/json") },
@@ -231,6 +236,7 @@ fun GroupsScreen(
 }
 
 /** Stateless content for GroupsScreen. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GroupsScreenContent(
     groups: List<SpoofGroup>,
@@ -247,7 +253,7 @@ fun GroupsScreenContent(
 ) {
     // Track scroll position for FAB animation
     val listState = rememberLazyListState()
-    val expandedFab by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
+    var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = {}) {
@@ -343,16 +349,59 @@ fun GroupsScreenContent(
             }
         }
 
-        // Scroll-aware FAB - collapses on scroll, expands when at top
-        ExtendedFloatingActionButton(
-            onClick = onCreateGroup,
-            expanded = expandedFab,
-            icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
-            text = { Text(stringResource(id = R.string.group_new)) },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+        FloatingActionButtonMenu(
+            expanded = fabMenuExpanded,
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-        )
+            button = {
+                ToggleFloatingActionButton(
+                    checked = fabMenuExpanded,
+                    onCheckedChange = { fabMenuExpanded = it },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val icon =
+                        if (checkedProgress > 0.5f) {
+                            Icons.Default.Close
+                        } else {
+                            Icons.Default.Add
+                        }
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = stringResource(id = R.string.group_new),
+                        modifier =
+                            with(ToggleFloatingActionButtonDefaults) {
+                                Modifier.animateIcon({ checkedProgress })
+                            },
+                    )
+                }
+            },
+        ) {
+            FloatingActionButtonMenuItem(
+                onClick = {
+                    fabMenuExpanded = false
+                    onCreateGroup()
+                },
+                text = { Text(stringResource(id = R.string.group_new)) },
+                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
+            )
+            FloatingActionButtonMenuItem(
+                onClick = {
+                    fabMenuExpanded = false
+                    onImport()
+                },
+                text = { Text(stringResource(id = R.string.group_import_groups)) },
+                icon = {
+                    Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = null)
+                },
+            )
+            FloatingActionButtonMenuItem(
+                onClick = {
+                    fabMenuExpanded = false
+                    onExport()
+                },
+                text = { Text(stringResource(id = R.string.group_export_groups)) },
+                icon = { Icon(imageVector = Icons.Outlined.FileUpload, contentDescription = null) },
+            )
+        }
     }
 }
 

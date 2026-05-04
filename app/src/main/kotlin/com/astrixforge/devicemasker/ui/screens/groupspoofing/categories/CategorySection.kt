@@ -42,6 +42,7 @@ import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCorn
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.CorrelatedSpoofItem
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.IndependentSpoofItem
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.model.UIDisplayCategory
+import com.astrixforge.devicemasker.ui.screens.groupspoofing.model.themeColor
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 
 /** Category section for group spoof values - organized by correlation groups. */
@@ -60,6 +61,7 @@ fun CategorySection(
     onCopy: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val categoryColor = category.themeColor()
     val rotationAngle by
         animateFloatAsState(
             targetValue = if (isExpanded) 0f else 180f,
@@ -97,8 +99,8 @@ fun CategorySection(
                 ) {
                     IconCircle(
                         icon = category.icon,
-                        containerColor = category.color.copy(alpha = 0.15f),
-                        iconColor = category.color,
+                        containerColor = categoryColor.copy(alpha = 0.15f),
+                        iconColor = categoryColor,
                         iconSize = 22.dp,
                     )
                     Text(
@@ -152,7 +154,7 @@ fun CategorySection(
                                     icon = Icons.Filled.Refresh,
                                     contentDescription =
                                         stringResource(id = R.string.action_regenerate_all),
-                                    tint = category.color,
+                                    tint = categoryColor,
                                 )
                             }
                         }

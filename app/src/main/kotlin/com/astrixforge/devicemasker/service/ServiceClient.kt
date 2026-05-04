@@ -29,7 +29,7 @@ import timber.log.Timber
  *
  * @param context Application context retained for lifecycle parity with the rest of the app
  */
-class ServiceClient(private val context: Context) {
+class ServiceClient(private val context: Context) : IServiceClient {
 
     companion object {
         private const val TAG = "ServiceClient"
@@ -47,9 +47,9 @@ class ServiceClient(private val context: Context) {
     @Volatile private var service: IDeviceMaskerService? = null
 
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
-    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+    override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    val isConnected: Boolean
+    override val isConnected: Boolean
         get() = _connectionState.value == ConnectionState.CONNECTED && service != null
 
     // ═══════════════════════════════════════════════════════════
@@ -64,7 +64,7 @@ class ServiceClient(private val context: Context) {
      *
      * @return `true` if connection succeeded, `false` otherwise
      */
-    suspend fun connect(): Boolean =
+    override suspend fun connect(): Boolean =
         withContext(Dispatchers.IO) {
             if (isConnected) return@withContext true
 
@@ -138,7 +138,7 @@ class ServiceClient(private val context: Context) {
      *
      * @return List of package names, or empty if not connected
      */
-    suspend fun getHookedPackages(): List<String> =
+    override suspend fun getHookedPackages(): List<String> =
         withContext(Dispatchers.IO) {
             ensureConnected { service?.getHookedPackages() ?: emptyList() } ?: emptyList()
         }
@@ -149,7 +149,7 @@ class ServiceClient(private val context: Context) {
      * @param maxCount Maximum number of entries to return
      * @return List of formatted log entries
      */
-    suspend fun getLogs(maxCount: Int = 100): List<String> =
+    override suspend fun getLogs(maxCount: Int): List<String> =
         withContext(Dispatchers.IO) {
             ensureConnected { service?.getLogs(maxCount) ?: emptyList() } ?: emptyList()
         }

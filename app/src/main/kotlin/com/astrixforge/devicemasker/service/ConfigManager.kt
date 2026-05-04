@@ -10,13 +10,19 @@ import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.ConfigSync
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -35,7 +41,7 @@ import timber.log.Timber
  * No AIDL service calls: config delivery uses [XposedPrefs]/RemotePreferences exclusively. The AIDL
  * service ([ServiceClient]) is diagnostics-only (hook event counts + logs).
  */
-object ConfigManager {
+object ConfigManager : IConfigManager {
 
     private const val TAG = "ConfigManager"
     private const val CONFIG_FILE_NAME = "config.json"
@@ -46,18 +52,21 @@ object ConfigManager {
 
     // In-memory configuration
     private val _config = MutableStateFlow(JsonConfig.createDefault())
-    val config: StateFlow<JsonConfig> = _config.asStateFlow()
+    override val config: StateFlow<JsonConfig> = _config.asStateFlow()
 
     // Initialization state
     private val _isInitialized = MutableStateFlow(false)
-    val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
+    override val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
+    private val initStarted = AtomicBoolean(false)
+    private val initGeneration = AtomicInteger(0)
+    private val saveMutex = Mutex()
 
     /**
      * Initializes the ConfigManager with application context. Must be called in
      * Application.onCreate() or MainActivity.
      */
-    fun init(context: Context) {
-        if (_isInitialized.value) {
+    override fun init(context: Context) {
+        if (!initStarted.compareAndSet(false, true)) {
             Timber.tag(TAG).d("Already initialized")
             return
         }
@@ -66,9 +75,12 @@ object ConfigManager {
         configFile = AtomicFile(File(context.filesDir, CONFIG_FILE_NAME))
         Timber.tag(TAG).d("Config file: ${configFile.baseFile.absolutePath}")
 
+        val generation = initGeneration.incrementAndGet()
         scope.launch {
-            loadConfig()
-            _isInitialized.value = true
+            loadConfig(generation)
+            if (initGeneration.get() == generation) {
+                _isInitialized.value = true
+            }
         }
     }
 
@@ -76,7 +88,7 @@ object ConfigManager {
      * Loads configuration from local file. Falls back to service config if local doesn't exist and
      * service is connected.
      */
-    private suspend fun loadConfig() {
+    private suspend fun loadConfig(generation: Int) {
         withContext(Dispatchers.IO) {
             try {
                 // Try loading from local file first
@@ -93,21 +105,46 @@ object ConfigManager {
                 // Use default config
                 val defaultConfig = JsonConfig.createDefault()
                 _config.value = defaultConfig
-                saveConfigInternal(defaultConfig)
+                saveConfigInternal(defaultConfig, generation)
                 Timber.tag(TAG).i("Created default config")
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Failed to load config")
-                _config.value = JsonConfig.createDefault()
+                val defaultConfig = JsonConfig.createDefault()
+                preserveCorruptedConfig()
+                _config.value = defaultConfig
+                saveConfigInternal(defaultConfig, generation)
             }
         }
     }
 
-    /** Saves the current configuration to local file and syncs to service. */
-    fun saveConfig() {
-        scope.launch { saveConfigInternal(_config.value) }
+    private fun preserveCorruptedConfig() {
+        if (!configFile.baseFile.exists()) return
+        val backup =
+            File(
+                configFile.baseFile.parentFile,
+                "$CONFIG_FILE_NAME.corrupted.${System.currentTimeMillis()}",
+            )
+        val preserved =
+            runCatching {
+                    configFile.baseFile.copyTo(backup, overwrite = true)
+                    configFile.baseFile.delete()
+                }
+                .isSuccess
+        if (preserved) {
+            Timber.tag(TAG).w("Corrupted config backed up to ${backup.name}")
+        } else {
+            Timber.tag(TAG).w("Failed to preserve corrupted config before recovery")
+        }
     }
 
-    fun syncCurrentConfig() {
+    /** Saves the current configuration to local file and syncs to service. */
+    override fun saveConfig() {
+        val generation = initGeneration.get()
+        val snapshot = _config.value
+        scope.launch { saveConfigInternal(snapshot, generation) }
+    }
+
+    override fun syncCurrentConfig() {
         if (!::appContext.isInitialized) return
         scope.launch { ConfigSync.syncFromConfig(appContext, _config.value) }
     }
@@ -122,33 +159,35 @@ object ConfigManager {
      *
      * No AIDL service write — config delivery is exclusively via RemotePreferences.
      */
-    private suspend fun saveConfigInternal(config: JsonConfig) {
+    private suspend fun saveConfigInternal(config: JsonConfig, generation: Int) {
         withContext(Dispatchers.IO) {
-            try {
-                // 1. Persist raw JSON locally as a backup and for UI reload on next launch
-                val stream = configFile.startWrite()
+            saveMutex.withLock {
+                if (initGeneration.get() != generation) return@withLock
                 try {
-                    stream.write(config.toJsonString().toByteArray())
-                    configFile.finishWrite(stream)
-                } catch (writeError: Exception) {
-                    configFile.failWrite(stream)
-                    throw writeError
-                }
-                Timber.tag(TAG).d("Config saved to local file")
+                    // 1. Persist raw JSON locally as a backup and for UI reload on next launch
+                    val stream = configFile.startWrite()
+                    try {
+                        stream.write(config.toJsonString().toByteArray())
+                        configFile.finishWrite(stream)
+                    } catch (writeError: Exception) {
+                        configFile.failWrite(stream)
+                        throw writeError
+                    }
+                    Timber.tag(TAG).d("Config saved to local file")
 
-                // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
-                ConfigSync.syncFromConfig(appContext, config)
-                Timber.tag(TAG).d("Config synced to RemotePreferences")
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to save config")
+                    // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
+                    ConfigSync.syncFromConfig(appContext, config)
+                    Timber.tag(TAG).d("Config synced to RemotePreferences")
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Failed to save config")
+                }
             }
         }
     }
 
     /** Updates the configuration and saves. */
     private fun updateConfig(transform: (JsonConfig) -> JsonConfig) {
-        val newConfig = transform(_config.value)
-        _config.value = newConfig
+        _config.update(transform)
         saveConfig()
     }
 
@@ -157,10 +196,10 @@ object ConfigManager {
     // ═══════════════════════════════════════════════════════════
 
     /** Gets whether the module is enabled. */
-    fun isModuleEnabled(): Boolean = _config.value.isModuleEnabled
+    override fun isModuleEnabled(): Boolean = _config.value.isModuleEnabled
 
     /** Sets whether the module is enabled. */
-    fun setModuleEnabled(enabled: Boolean) {
+    override fun setModuleEnabled(enabled: Boolean) {
         updateConfig { it.copy(isModuleEnabled = enabled) }
     }
 
@@ -169,13 +208,13 @@ object ConfigManager {
     // ═══════════════════════════════════════════════════════════
 
     /** Gets all groups. */
-    fun getAllGroups(): List<SpoofGroup> = _config.value.groups.values.toList()
+    override fun getAllGroups(): List<SpoofGroup> = _config.value.groups.values.toList()
 
     /** Gets a group by ID. */
-    fun getGroup(groupId: String): SpoofGroup? = _config.value.getGroup(groupId)
+    override fun getGroup(groupId: String): SpoofGroup? = _config.value.getGroup(groupId)
 
     /** Creates a new group. */
-    fun createGroup(name: String, copyFromGroupId: String? = null): SpoofGroup {
+    override fun createGroup(name: String, copyFromGroupId: String?): SpoofGroup {
         val baseGroup = copyFromGroupId?.let { getGroup(it) }
         val newGroup =
             baseGroup?.copy(
@@ -191,18 +230,18 @@ object ConfigManager {
     }
 
     /** Updates an existing group. */
-    fun updateGroup(group: SpoofGroup) {
+    override fun updateGroup(group: SpoofGroup) {
         val updatedGroup = group.copy(updatedAt = System.currentTimeMillis())
         updateConfig { it.addOrUpdateGroup(updatedGroup) }
     }
 
     /** Deletes a group. */
-    fun deleteGroup(groupId: String) {
+    override fun deleteGroup(groupId: String) {
         updateConfig { it.removeGroup(groupId) }
     }
 
     /** Gets the group for a specific app. */
-    fun getGroupForApp(packageName: String): SpoofGroup? {
+    override fun getGroupForApp(packageName: String): SpoofGroup? {
         return _config.value.getGroupForApp(packageName)
     }
 
@@ -211,7 +250,7 @@ object ConfigManager {
     // ═══════════════════════════════════════════════════════════
 
     /** Sets an identifier value in a group. */
-    fun setIdentifierValue(groupId: String, type: SpoofType, value: String?) {
+    override fun setIdentifierValue(groupId: String, type: SpoofType, value: String?) {
         val group = getGroup(groupId) ?: return
         val identifier =
             group.getIdentifier(type)?.copy(value = value)
@@ -221,7 +260,7 @@ object ConfigManager {
     }
 
     /** Sets whether a spoof type is enabled in a group. */
-    fun setTypeEnabled(groupId: String, type: SpoofType, enabled: Boolean) {
+    override fun setTypeEnabled(groupId: String, type: SpoofType, enabled: Boolean) {
         val group = getGroup(groupId) ?: return
         val identifier =
             group.getIdentifier(type)?.copy(isEnabled = enabled)
@@ -231,20 +270,20 @@ object ConfigManager {
     }
 
     /** Regenerates all values in a group. */
-    fun regenerateAllValues(groupId: String) {
+    override fun regenerateAllValues(groupId: String) {
         val group = getGroup(groupId) ?: return
         val regenerated = group.regenerateAll()
         updateGroup(regenerated)
     }
 
     /** Returns the resolved persona seed for a group. */
-    fun getPersonaSeed(group: SpoofGroup): String = group.resolvedPersonaSeed()
+    override fun getPersonaSeed(group: SpoofGroup): String = group.resolvedPersonaSeed()
 
     /** Returns the version used to identify the current generated persona state. */
-    fun getPersonaVersion(group: SpoofGroup): Long = group.updatedAt
+    override fun getPersonaVersion(group: SpoofGroup): Long = group.updatedAt
 
     /** Rotates persona metadata while preserving group identity and assignments. */
-    fun refreshPersonaLifecycle(group: SpoofGroup): SpoofGroup {
+    override fun refreshPersonaLifecycle(group: SpoofGroup): SpoofGroup {
         return group.withPersona(
             seed = UUID.randomUUID().toString(),
             generatedAt = System.currentTimeMillis(),
@@ -256,10 +295,11 @@ object ConfigManager {
     // ═══════════════════════════════════════════════════════════
 
     /** Gets app config for a package. */
-    fun getAppConfig(packageName: String): AppConfig? = _config.value.getAppConfig(packageName)
+    override fun getAppConfig(packageName: String): AppConfig? =
+        _config.value.getAppConfig(packageName)
 
     /** Assigns an app to a group. */
-    fun assignAppToGroup(packageName: String, groupId: String) {
+    override fun assignAppToGroup(packageName: String, groupId: String) {
         updateConfig { config ->
             if (config.getGroup(groupId) == null) return@updateConfig config
 
@@ -281,7 +321,7 @@ object ConfigManager {
     }
 
     /** Unassigns an app from its group. */
-    fun unassignApp(packageName: String) {
+    override fun unassignApp(packageName: String) {
         updateConfig { config ->
             val groups =
                 config.groups.mapValues { (_, group) ->
@@ -296,10 +336,19 @@ object ConfigManager {
     }
 
     /** Sets whether spoofing is enabled for an app. */
-    fun setAppEnabled(packageName: String, enabled: Boolean) {
+    override fun setAppEnabled(packageName: String, enabled: Boolean) {
         val appConfig =
             getAppConfig(packageName)?.copy(isEnabled = enabled)
                 ?: AppConfig(packageName = packageName, isEnabled = enabled)
         updateConfig { it.setAppConfig(appConfig) }
+    }
+
+    /** Resets initialization state for tests. */
+    internal fun resetForTests() {
+        initStarted.set(false)
+        initGeneration.incrementAndGet()
+        runBlocking { saveMutex.withLock {} }
+        _isInitialized.value = false
+        _config.value = JsonConfig.createDefault()
     }
 }

@@ -1,9 +1,11 @@
 package com.astrixforge.devicemasker.ui.screens.groups
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.models.SpoofGroup
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,9 +17,12 @@ import kotlinx.coroutines.launch
  *
  * Manages group list state and CRUD operations.
  *
- * @param repository The SpoofRepository for data access
+ * @param repository The [ISpoofRepository] for data access
  */
-class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
+class GroupsViewModel(
+    private val repository: ISpoofRepository,
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupsState())
     val state: StateFlow<GroupsState> = _state.asStateFlow()
@@ -26,7 +31,7 @@ class GroupsViewModel(private val repository: SpoofRepository) : ViewModel() {
         // Collect groups
         viewModelScope.launch {
             repository.getAllGroups().collect { groups ->
-                _state.update { it.copy(groups = groups, isLoading = false) }
+                _state.update { it.copy(groups = groups.toImmutableList(), isLoading = false) }
             }
         }
     }

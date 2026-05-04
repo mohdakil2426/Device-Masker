@@ -232,6 +232,39 @@ WebView UA spoofing is defensive:
 ## Build Pattern
 
 - Release minification and resource shrinking stay disabled during hook validation.
+- `ciRelease` build type validates ProGuard rules without affecting debug builds.
 - Lint is fail-fast.
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.
+- Compose compiler metrics enabled for recomposition diagnostics.
 - Memory Bank must be updated after architecture or runtime behavior changes.
+
+## Testing Pattern
+
+- `MainDispatcherRule` swaps `Dispatchers.Main` for a `TestDispatcher` in ViewModel tests.
+- Hand-written fakes preferred over mocking libraries per module rules.
+- Turbine used for Flow emission testing.
+- MockK permitted only for Navigation 3 framework types.
+- Fake repositories carry real state and test hooks.
+- `advanceUntilIdle()` required after async operations in `runTest`.
+
+## ViewModel State Pattern
+
+- `SavedStateHandle` injected for process-death survival of critical UI state.
+- State classes annotated `@Immutable` with `kotlinx.collections.immutable.ImmutableList`.
+- `Flow.combine` used to merge multiple repository flows into single UI state.
+- Redundant `suspend` modifiers removed from non-suspending methods.
+
+## Navigation Pattern
+
+- Navigation uses Navigation 3, not Navigation Compose 2.x.
+- `NavDestination` is the typed `NavKey` sealed interface for Home, Groups, GroupSpoofing, Settings, and Diagnostics.
+- `DeviceMaskerNavigationState` owns separate top-level Home, Groups, and Settings back stacks.
+- The selected top-level destination is saved with `rememberSaveable`; individual stacks are saved with `rememberNavBackStack`.
+- `DeviceMaskerNavigator` is the narrow imperative API screens use for navigation intents.
+- `NavDisplay` renders the active stack through typed `entryProvider` entries.
+- `rememberSaveableStateHolderNavEntryDecorator` and `rememberViewModelStoreNavEntryDecorator` preserve entry state and ViewModel stores.
+- Navigation motion is configured through `NavDisplay` transition specs and uses M3E motion tokens with reduced-motion fallback.
+- Window size class adaptation: `NavigationRail` for medium/expanded, bottom navigation for compact, both hidden on focus/detail screens.
+- Groups and GroupSpoofing use adaptive Navigation 3 list-detail scene metadata.
+- Compact width intentionally uses Navigation 3's default single-pane scene; the Material list-detail scene strategy is only passed on medium/expanded widths after compact runtime validation showed excessive scene startup cost.
+- Deep links use explicit `devicemasker://open/...` URI parsing and synthetic stacks. `groups/{groupId}` opens Groups -> GroupSpoofing, and `diagnostics` opens Settings -> Diagnostics so Back returns to the parent top-level destination.

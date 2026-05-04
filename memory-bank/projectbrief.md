@@ -35,21 +35,35 @@ Device Masker does not attempt:
 
 ## Current Verified State
 
-Latest full gate:
+Latest full gate (post-Master Implementation Plan 2026-05-04 M3E follow-up):
 
 ```powershell
-.\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
+.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --no-daemon
 ```
 
 Result: `BUILD SUCCESSFUL`.
 
+Master Implementation Plan status on 2026-05-04:
+- Phase 0: Safety & Stability core fixes complete.
+- Phase 1: Testing Infrastructure complete for current unit-test scope.
+- Phase 2: M3E Theme Foundation core tokens complete.
+- Phase 3: Architecture & State (SavedStateHandle, @Immutable, UX fixes)
+- Phase 4: Motion & Components core tokens complete.
+- Phase 5: Dependency Upgrade complete for material3 `1.5.0-alpha18`; native `LoadingIndicator`, native `ButtonGroup`, `SplitButtonLayout`, `FloatingActionButtonMenu`, `HorizontalFloatingToolbar`, and `MaterialShapes` are adopted.
+- Phase 6: Navigation Modernization complete for type-safe routes.
+- Phase 7: Build Hardening complete for current gates and `ciRelease`.
+- Phase 8: Polish partially complete: previews, window size class adaptation, and compact Mobile MCP smoke done.
+- Phase 9: Final Validation partially complete: Gradle full gate and two target-app LSPosed smoke tests pass.
+
+Still open before stable release: full visual/accessibility matrix, reduced-motion manual validation, 10-minute ANR/jank test, reboot boot-capture validation, disabled/missing/malformed pass-through checks, exact spoof value assertions, and broader target-app validation.
+
 Runtime smoke check:
 - Device/emulator: `emulator-5554`.
 - Installed rebuilt debug APK.
-- Scoped target: `com.mantle.verify`.
+- Scoped targets: `com.mantle.verify` and `flar2.devcheck`.
 - LSPosed loaded `com.astrixforge.devicemasker.xposed.XposedEntry`.
 - Hooks registered successfully.
-- Spoof events appeared for Android ID, carrier MCC/MNC, network operator, IMEI, Wi-Fi MAC, Wi-Fi SSID, Advertising ID, Media DRM ID, and SIM operator name.
+- Spoof events appeared for Android ID, carrier MCC/MNC, network operator, IMEI, Wi-Fi MAC, Wi-Fi SSID, Advertising ID, timezone, locale, and device profile paths across the two smoke targets.
 - Previous crash signatures did not appear in the final launch log window:
   - `androidx.work.WorkManagerInitializer`
   - WebView regex `PatternSyntaxException`

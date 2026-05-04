@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
@@ -39,6 +40,7 @@ import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
+import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 
@@ -155,5 +157,55 @@ fun AppsTabContent(
                 }
             }
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Previews
+// ═══════════════════════════════════════════════════════════
+
+@Preview(showBackground = true, backgroundColor = 0xFF121212)
+@Composable
+private fun AppsTabContentLoadingPreview() {
+    DeviceMaskerTheme {
+        AppsTabContent(
+            group = null,
+            allGroups = emptyList(),
+            installedApps = emptyList(),
+            onAppToggle = { _, _ -> },
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF121212)
+@Composable
+private fun AppsTabContentPopulatedPreview() {
+    DeviceMaskerTheme {
+        AppsTabContent(
+            group = SpoofGroup.createNew("Preview Group"),
+            allGroups = emptyList(),
+            installedApps =
+                listOf(
+                    InstalledApp(
+                        "com.example.app1",
+                        "Example App",
+                        isSystemApp = false,
+                        versionName = "1.0",
+                    ),
+                    InstalledApp(
+                        "com.example.app2",
+                        "Another App",
+                        isSystemApp = false,
+                        versionName = "2.0",
+                    ),
+                    InstalledApp(
+                        "com.example.system",
+                        "System App",
+                        isSystemApp = true,
+                        versionName = "1.0",
+                    ),
+                ),
+            onAppToggle = { _, _ -> },
+        )
     }
 }

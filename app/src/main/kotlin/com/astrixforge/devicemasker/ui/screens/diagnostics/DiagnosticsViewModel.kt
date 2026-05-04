@@ -3,13 +3,17 @@ package com.astrixforge.devicemasker.ui.screens.diagnostics
 import android.app.Application
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.XposedPrefs
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import com.astrixforge.devicemasker.service.IServiceClient
 import com.astrixforge.devicemasker.service.ServiceClient
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,20 +34,22 @@ import kotlinx.coroutines.launch
  * Config-related service methods (writeConfig, readConfig, etc.) have been removed. Config delivery
  * is exclusively via RemotePreferences (libxposed API 101).
  */
-class DiagnosticsViewModel(application: Application, private val repository: SpoofRepository) :
-    AndroidViewModel(application) {
+class DiagnosticsViewModel(
+    application: Application,
+    private val repository: ISpoofRepository,
+    private val serviceClient: IServiceClient = DeviceMaskerApp.serviceClient,
+    isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(DiagnosticsState())
     val state: StateFlow<DiagnosticsState> = _state.asStateFlow()
 
-    /** Diagnostics-only AIDL service client. */
-    private val serviceClient: ServiceClient = DeviceMaskerApp.serviceClient
-
     init {
-        _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
+        _state.update { it.copy(isXposedActive = isXposedActiveFlow.value) }
 
         viewModelScope.launch {
-            XposedPrefs.isServiceConnected.collect { connected ->
+            isXposedActiveFlow.collect { connected ->
                 _state.update { it.copy(isXposedActive = connected) }
             }
         }
@@ -80,8 +86,8 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
 
             _state.update {
                 it.copy(
-                    diagnosticResults = diagnosticResults,
-                    antiDetectionResults = antiDetectionResults,
+                    diagnosticResults = diagnosticResults.toImmutableList(),
+                    antiDetectionResults = antiDetectionResults.toImmutableList(),
                     isLoading = false,
                 )
             }
@@ -114,7 +120,7 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
                             connectionState = ServiceClient.ConnectionState.CONNECTED,
                             hookedAppCount = hookedPackages.size,
                         ),
-                    hookLogs = recentLogs,
+                    hookLogs = recentLogs.toImmutableList(),
                 )
             }
         } else {
@@ -125,7 +131,7 @@ class DiagnosticsViewModel(application: Application, private val repository: Spo
                             connectionState = serviceClient.connectionState.value,
                             hookedAppCount = null,
                         ),
-                    hookLogs = emptyList(),
+                    hookLogs = persistentListOf(),
                 )
             }
         }

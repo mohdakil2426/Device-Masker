@@ -19,6 +19,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Log manager for rootless structured export.
@@ -26,58 +28,72 @@ import java.util.Locale
  * The app cannot read global logcat without privileged access. Exports combine app-owned persistent
  * logs with the current diagnostics service buffer when that service is reachable.
  */
-object LogManager {
+object LogManager : ILogManager {
 
     private const val LOG_FILE_PREFIX = "devicemasker_support_"
     private const val LOG_FILE_EXTENSION = ".zip"
 
-    suspend fun exportLogsToUri(
+    override suspend fun exportLogsToUri(
         context: Context,
         uri: Uri,
-        mode: SupportBundleMode = SupportBundleMode.BASIC,
-    ): LogExportResult {
-        return try {
-            val bundle = buildSupportBundle(context, mode)
+        mode: SupportBundleMode,
+    ): LogExportResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val bundle = buildSupportBundle(context, mode)
 
-            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                bundle.inputStream().use { input -> input.copyTo(outputStream) }
-            } ?: return LogExportResult.Error("Failed to open file for writing")
+                val outputStream = context.contentResolver.openOutputStream(uri)
+                if (outputStream == null) {
+                    LogExportResult.Error("Failed to open file for writing")
+                } else {
+                    outputStream.use { output ->
+                        bundle.inputStream().use { input -> input.copyTo(output) }
+                    }
 
-            LogExportResult.Success(uri.lastPathSegment ?: bundle.name, bundle.length().toInt())
-        } catch (e: Exception) {
-            LogExportResult.Error("Export failed: ${e.message}")
+                    LogExportResult.Success(
+                        uri.lastPathSegment ?: bundle.name,
+                        bundle.length().toInt(),
+                    )
+                }
+            } catch (e: Exception) {
+                LogExportResult.Error("Export failed: ${e.message}")
+            }
         }
-    }
 
-    suspend fun createShareableLogFile(
+    override suspend fun createShareableLogFile(
         context: Context,
-        mode: SupportBundleMode = SupportBundleMode.BASIC,
-    ): ShareableLogResult {
-        return try {
-            if (mode != SupportBundleMode.ROOT_MAXIMUM && !hasAnyLogs(context)) {
-                return ShareableLogResult.NoLogs
+        mode: SupportBundleMode,
+    ): ShareableLogResult =
+        withContext(Dispatchers.IO) {
+            try {
+                if (mode != SupportBundleMode.ROOT_MAXIMUM && !hasAnyLogs(context)) {
+                    return@withContext ShareableLogResult.NoLogs
+                }
+
+                val logsDir = File(context.cacheDir, "logs")
+                if (!logsDir.exists()) {
+                    logsDir.mkdirs()
+                }
+
+                val fileName = generateLogFileName()
+                val bundle = buildSupportBundle(context, mode, logsDir)
+                val logFile = File(logsDir, fileName)
+                if (bundle.name != logFile.name) {
+                    bundle.copyTo(logFile, overwrite = true)
+                }
+
+                val uri =
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        logFile,
+                    )
+
+                ShareableLogResult.Success(uri, fileName, logFile.length().toInt())
+            } catch (e: Exception) {
+                ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
             }
-
-            val logsDir = File(context.cacheDir, "logs")
-            if (!logsDir.exists()) {
-                logsDir.mkdirs()
-            }
-
-            val fileName = generateLogFileName()
-            val bundle = buildSupportBundle(context, mode, logsDir)
-            val logFile = File(logsDir, fileName)
-            if (bundle.name != logFile.name) {
-                bundle.copyTo(logFile, overwrite = true)
-            }
-
-            val uri =
-                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", logFile)
-
-            ShareableLogResult.Success(uri, fileName, logFile.length().toInt())
-        } catch (e: Exception) {
-            ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
         }
-    }
 
     private suspend fun buildSupportBundle(
         context: Context,
@@ -156,27 +172,30 @@ object LogManager {
     }
 
     suspend fun getLogCount(): Int =
-        try {
+        withContext(Dispatchers.IO) {
+            try {
+                val serviceClient = DeviceMaskerApp.serviceClient
+                if (!serviceClient.isConnected) {
+                    serviceClient.connect()
+                }
+                AppLogStore.from(DeviceMaskerApp.getInstance()).readEntries().size +
+                    if (serviceClient.isConnected) serviceClient.getLogs(500).size else 0
+            } catch (_: Exception) {
+                0
+            }
+        }
+
+    private suspend fun hasAnyLogs(context: Context): Boolean =
+        withContext(Dispatchers.IO) {
             val serviceClient = DeviceMaskerApp.serviceClient
             if (!serviceClient.isConnected) {
                 serviceClient.connect()
             }
-            AppLogStore.from(DeviceMaskerApp.getInstance()).readEntries().size +
-                if (serviceClient.isConnected) serviceClient.getLogs(500).size else 0
-        } catch (_: Exception) {
-            0
+            AppLogStore.from(context).readEntries().isNotEmpty() ||
+                (serviceClient.isConnected && serviceClient.getLogs(1).isNotEmpty())
         }
 
-    private suspend fun hasAnyLogs(context: Context): Boolean {
-        val serviceClient = DeviceMaskerApp.serviceClient
-        if (!serviceClient.isConnected) {
-            serviceClient.connect()
-        }
-        return AppLogStore.from(context).readEntries().isNotEmpty() ||
-            (serviceClient.isConnected && serviceClient.getLogs(1).isNotEmpty())
-    }
-
-    fun generateLogFileName(): String {
+    override fun generateLogFileName(): String {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         return "$LOG_FILE_PREFIX$timestamp$LOG_FILE_EXTENSION"
     }

@@ -4,6 +4,78 @@
 
 The latest successful runtime smoke test launched `com.mantle.verify` under LSPosed on `emulator-5554`. `XposedEntry` loaded, hooks registered, and LSPosed logs showed spoof events for Android ID, carrier, IMEI, Wi-Fi, Advertising ID, Media DRM, and SIM operator paths. The previous crash signatures were absent from the final launch window.
 
+## 2026-05-04 Navigation 3 Implementation
+
+Implemented the Navigation 3 migration requested after the M3E implementation work:
+- Removed Navigation Compose 2.x runtime navigation from the app.
+- Added Navigation 3 runtime/ui `1.1.1` and lifecycle ViewModel Navigation 3 `2.10.0`.
+- Added adaptive Navigation 3 `1.3.0-alpha10` and moved the project to compile SDK 37 to satisfy the official artifact requirements.
+- Migrated `NavDestination` to Navigation 3 `NavKey`.
+- Replaced `NavHost`/`NavController`/`composable`/`toRoute` usage in `MainActivity` with `NavDisplay`, `entryProvider`, entry decorators, and typed destination entries.
+- Added `DeviceMaskerNavigationState` and `DeviceMaskerNavigator` for explicit top-level Home/Groups/Settings stacks, Group Detail routing, Diagnostics routing, and back behavior.
+- Added M3E navigation transitions and reduced-motion fallback to `NavDisplay`.
+- Added adaptive list-detail scene metadata for Groups -> Group Detail. Compact width uses Navigation 3's default single-pane scene, while medium/expanded widths use the Material list-detail strategy.
+- Added saveable selected top-level destination state; individual top-level stacks are saved through `rememberNavBackStack`.
+- Added `devicemasker://open/...` deep links for Home, Groups, Group Detail, Settings, and Diagnostics. Group Detail and Diagnostics use Navigation 3 synthetic stacks so Back returns to Groups and Settings respectively.
+- Added `DeviceMaskerNavigatorTest` covering initial state, stack preservation, restored selected top-level state, child pop, top-level back to Home, app-exit request from Home root, deep-link parsing, and deep-link stack replacement.
+
+Verification:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat spotlessCheck :app:testDebugUnitTest lint assembleDebug --no-daemon
+```
+
+All commands returned `BUILD SUCCESSFUL`.
+
+Post-audit Navigation 3 fix:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+Deep-link completion verification:
+
+```powershell
+.\gradlew.bat spotlessApply spotlessCheck :app:testDebugUnitTest lint assembleDebug --no-daemon
+adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/groups/9733ad2b-1e87-4f92-b869-f549fc82b26e" com.astrixforge.devicemasker
+adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/diagnostics" com.astrixforge.devicemasker
+```
+
+Result: Gradle gate returned `BUILD SUCCESSFUL`. Mobile MCP verified the group deep link opened the `Tesing` group detail screen, the diagnostics deep link opened Diagnostics, and Back from Diagnostics returned to Settings.
+Mobile MCP landscape validation also showed the Groups list and `Tesing` group detail rendered side by side, validating the available expanded-width/list-detail behavior on the current emulator.
+
+Open validation from this navigation migration:
+- Manual process-death restoration validation for the full UI flow. Automated coverage now verifies restored selected top-level state.
+
+## 2026-05-04 Implementation Verification Follow-up
+
+Manual verification found that the previous implementation summary overstated current-runtime completion. The app-side implementation gaps have now been completed and verified by the full Gradle gate, including `:app:assembleCiRelease`. Device Masker installs and launches on `emulator-5554` through Mobile MCP and ADB, and app-owned root-capture artifacts are present.
+
+Current runtime caveat: after installing the rebuilt APK, the app shows `Module Not Injected`. A fresh `com.mantle.verify` launch keeps the target process alive, but current logcat does not show `XposedEntry`, `All hooks registered`, or `Spoof event` entries. Do not claim current-build target-process hook success until LSPosed module injection is restored and logs confirm hook registration/spoof events again.
+
+Superseding runtime validation later on 2026-05-04 restored module injection on `emulator-5554`:
+- Device Masker UI showed `Protection Active` and `Module Enabled`.
+- Group `test` showed `5 apps • 2 assigned`.
+- Settings showed `Root Access: Granted`.
+- Diagnostics showed `Module Active`, anti-detection `4/4 tests passed`, real/spoofed Android ID, and real/spoofed Device Profile.
+- `com.mantle.verify` launched through Mobile MCP, stayed alive, displayed spoofed timezone/device profile values, and logcat showed `XposedEntry`, target selection, `All hooks registered`, and spoof events for multiple identifiers.
+- `flar2.devcheck` launched through Mobile MCP, stayed alive, displayed spoofed device/network values, and logcat showed `XposedEntry`, target selection, `All hooks registered`, and spoof events.
+- Basic support export completed through Android DocumentsUI as `/sdcard/devicemasker_support_20260504_150228.zip`.
+- Final crash-signature scan found no `FATAL EXCEPTION`, `PatternSyntaxException`, `Cannot hook abstract`, `AbstractMethodError`, `WorkManagerInitializer`, Mantle ANR, or DevCheck ANR matches.
+
+Fresh verification completed:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --no-daemon
+```
+
+Both commands returned `BUILD SUCCESSFUL`.
+
 ## Current Verified State
 
 Full gate:
@@ -66,7 +138,7 @@ Applied fixes from `docs/reports/LIBXPOSED_CODE_AUDIT_2026-05-03.md`:
 - Cleaned touched stale comments/keep rules from `ModulePreferences` / `ModulePreferencesProvider` to `RemotePreferences` / `XposedProvider`.
 - Added static/unit coverage for immutable chain args, framework-error rethrow presence, and quick app sync enablement.
 
-Target runtime smoke has not yet been rerun after these fixes.
+Target runtime smoke was rerun later on 2026-05-04; see the runtime-smoke evidence below for `com.mantle.verify` and `flar2.devcheck`.
 
 ## 2026-05-03 Maximum Diagnostics Logging
 
@@ -144,6 +216,32 @@ The working base came from fixing these failure modes:
 - Android regex rejected variable-length lookbehind in `WebViewHooker` static initialization.
 - Abstract `android.webkit.WebSettings` methods cannot be hooked.
 
+## 2026-05-04 Master Implementation Plan Completion
+
+Current status of `docs/reports/MASTER_IMPLEMENTATION_PLAN_2026-05-04.md`:
+
+**Phase 0 (Safety):** ConfigManager atomic CAS + Mutex, AppLogStore async channel logging with injectable dispatcher, SpoofRepository AtomicReference caches, AppScopeRepository AtomicBoolean cache, RootShell deadlock fix + suspend guard, RootLogCollector shell escaping + regex fix, LogManager IO dispatcher, manifest `allowBackup=false`, SupportBundleBuilder streaming ZIP, JsonlDiagnosticStore synchronized reads, ConfigSync suspend variants.
+
+**Phase 1 (Testing):** Created `MainDispatcherRule`, 7 fake implementations (`FakeSpoofRepository`, `FakeSettingsDataStore`, `FakeLogManager`, `FakeConfigManager`, `FakeAppScopeRepository`, `FakeServiceClient`, `FakeSharedPreferences`), ViewModel tests for all 5 screens. Found and fixed production bug: `SettingsViewModel` was using hardcoded `Dispatchers.IO` instead of injected `ioDispatcher`.
+
+**Phase 2 (M3E Theme):** Extracted named colors to `Color.kt`, removed hardcoded `Color(0x...)` outside `Color.kt` under `ui/`, added surface container roles to `LightColorScheme`, AMOLED KDoc, 10-step shape scale + asymmetric variants, 15 emphasized typography styles + `LocalEmphasizedTypography`, and `UIDisplayCategory.themeColor()` mapping. API 34 contrast preference still needs final verification.
+
+**Phase 3 (Architecture):** SavedStateHandle injected into all 5 ViewModels, `@Immutable` + `ImmutableList` on all State classes, `Flow.combine` in HomeViewModel, redundant suspend modifiers removed, `importGroups` returns `Result<Unit>`, loading overlays replaced, pager/tab sync fixed, contentDescription added, SimpleDateFormat cached, rememberSaveable for dialogs, AnimatedVisibility for loading.
+
+**Phase 4 (Motion):** `MotionTokens` Expressive/Standard hierarchy, `ElevationTokens`, `MotionScheme.expressive()`, springs updated in components, touch targets ≥48dp in touched components, `graphicsLayer` instead of `scale()`, and ToggleButton accessibility semantics. Reduced-motion manual validation with animation scale disabled remains open.
+
+**Phase 5 (Dependencies/M3E components):** Upgraded BOM to `2026.04.01` and material3 to `1.5.0-alpha18`. Adopted `MaterialExpressiveTheme`, `MotionScheme.expressive()`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, `SplitButtonLayout` for export actions, `FloatingActionButtonMenu` for group quick actions, `HorizontalFloatingToolbar` for group editing, and `MaterialShapes.SoftBurst` in the Home hero.
+
+**Phase 6 (Navigation):** Navigation 3 `NavKey` `NavDestination`, `NavDisplay` + `entryProvider`, explicit top-level stacks in `DeviceMaskerNavigationState`, M3E transition specs, adaptive Groups -> Group Detail list-detail metadata, and navigator unit tests.
+
+**Phase 7 (Build):** `ciRelease` build type with minification, Compose compiler metrics, Spotless ktfmt in version catalog, turbine/mockk test deps, `windowSoftInputMode="adjustResize"`, redundant daemon property removed.
+
+**Phase 8 (Polish):** @Preview added to touched tab/components, window size class adaptation with NavigationRail for medium/expanded screens, compact Mobile MCP smoke across Home/Configure/Group Detail/Apps/Groups/Settings, and advanced M3E smoke for Settings export split buttons, Groups FAB menu, and Group Detail horizontal toolbar.
+
+**Phase 9 (Validation):** Full gate passes — `spotlessCheck`, all unit tests (`:common`, `:app`, `:xposed`), `lint`, `test`, `assembleDebug`, `assembleRelease`, and `:app:assembleCiRelease`. ADB smoke on 2026-05-04 showed `com.mantle.verify` and `flar2.devcheck` alive with `XposedEntry`, `All hooks registered`, and spoof events; no matching fatal crash signatures appeared in the tested log windows.
+
+Not complete: full light/dark/AMOLED/dynamic-color visual matrix, Accessibility Scanner/TalkBack audit, 10-minute ANR/jank run, reboot boot-capture validation, disabled/missing/malformed pass-through checks, and exact value-by-value spoof assertions.
+
 ## Open Validation Items
 
 High priority:
@@ -154,6 +252,7 @@ High priority:
 - Verify LSPosed log export after target hook events.
 - Verify PackageManager hiding on API 33+ flag object overloads.
 - Verify anti-detection behavior with class lookup hooks still disabled.
+- Revisit M3E component migration when material3 1.5.0 reaches stable.
 
 Medium priority:
 - Add per-app safe-mode controls for risky hook groups.

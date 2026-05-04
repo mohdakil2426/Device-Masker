@@ -8,42 +8,29 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation3.runtime.NavKey
 import com.astrixforge.devicemasker.R
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-/**
- * Navigation routes as constants. Using simple string routes to avoid sealed class initialization
- * issues on Android 16.
- *
- * Group-centric workflow (3-tab layout):
- * - HOME: Dashboard with module status, group selection, and quick actions
- * - GROUPS: List of spoof groups (click to open GroupSpoofing)
- * - SETTINGS: App settings and diagnostics
- */
-object NavRoutes {
-    const val HOME = "home"
-    const val GROUPS = "groups"
-    const val SETTINGS = "settings"
-    const val DIAGNOSTICS = "diagnostics"
+@Serializable
+sealed interface NavDestination : NavKey {
+    @Serializable @SerialName("home") data object Home : NavDestination
 
-    // Detail screens (not in bottom nav)
-    const val GROUP_SPOOFING = "group_spoofing"
+    @Serializable @SerialName("groups") data object Groups : NavDestination
 
-    /**
-     * Creates the route for GroupSpoofingScreen with a group ID parameter. Usage:
-     * navController.navigate(NavRoutes.groupSpoofingRoute(groupId))
-     */
-    fun groupSpoofingRoute(groupId: String): String = "$GROUP_SPOOFING/$groupId"
+    @Serializable @SerialName("settings") data object Settings : NavDestination
 
-    /**
-     * Route pattern for GroupSpoofingScreen (use in NavHost composable). Usage:
-     * composable("${NavRoutes.GROUP_SPOOFING}/{groupId}") { ... }
-     */
-    const val GROUP_SPOOFING_PATTERN = "$GROUP_SPOOFING/{groupId}"
+    @Serializable @SerialName("diagnostics") data object Diagnostics : NavDestination
+
+    @Serializable
+    @SerialName("group_spoofing")
+    data class GroupSpoofing(val groupId: String) : NavDestination
 }
 
 /** Navigation item data class for bottom navigation. */
 data class NavItem(
-    val route: String,
+    val destination: NavDestination,
     val labelRes: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
@@ -58,19 +45,19 @@ data class NavItem(
 val bottomNavItems: List<NavItem> =
     listOf(
         NavItem(
-            route = NavRoutes.HOME,
+            destination = NavDestination.Home,
             labelRes = R.string.bottom_nav_home,
             selectedIcon = Icons.Filled.Home,
             unselectedIcon = Icons.Outlined.Home,
         ),
         NavItem(
-            route = NavRoutes.GROUPS,
+            destination = NavDestination.Groups,
             labelRes = R.string.bottom_nav_groups,
             selectedIcon = Icons.Filled.Groups,
             unselectedIcon = Icons.Outlined.Groups,
         ),
         NavItem(
-            route = NavRoutes.SETTINGS,
+            destination = NavDestination.Settings,
             labelRes = R.string.bottom_nav_settings,
             selectedIcon = Icons.Filled.Settings,
             unselectedIcon = Icons.Outlined.Settings,

@@ -14,6 +14,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 data class AppLogEntry(
@@ -24,20 +32,38 @@ data class AppLogEntry(
     val message: String,
 )
 
-class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_MAX_ENTRIES) {
+class AppLogStore(
+    private val file: File,
+    private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
     private val sessionId = "app-log"
     private val bootId = "unknown"
     private val redactor = DiagnosticRedactor(RedactionMode.REDACTED)
     private val eventStore = JsonlDiagnosticStore(sessionDir = file.toSessionDir())
+    private val eventChannel = Channel<DiagnosticEvent>(Channel.BUFFERED)
+    private val writerScope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val pendingEvents = AtomicInteger(0)
 
-    @Synchronized
+    init {
+        writerScope.launch {
+            for (event in eventChannel) {
+                try {
+                    eventStore.append(redactor.redactEvent(event))
+                } finally {
+                    pendingEvents.decrementAndGet()
+                }
+            }
+        }
+    }
+
     fun append(entry: AppLogEntry) {
         appendEvent(entry.toDiagnosticEvent())
     }
 
-    @Synchronized
     fun appendEvent(event: DiagnosticEvent) {
-        eventStore.append(redactor.redactEvent(event))
+        pendingEvents.incrementAndGet()
+        runBlocking { eventChannel.send(event) }
     }
 
     @Synchronized
@@ -52,7 +78,11 @@ class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_
             )
         }
 
-    @Synchronized fun readDiagnosticEvents(): List<DiagnosticEvent> = eventStore.readEvents()
+    @Synchronized
+    fun readDiagnosticEvents(): List<DiagnosticEvent> {
+        flushPendingWrites()
+        return eventStore.readEvents()
+    }
 
     @Synchronized
     fun clear() {
@@ -136,6 +166,12 @@ class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_
         } else {
             this
         }
+
+    private fun flushPendingWrites() {
+        while (pendingEvents.get() > 0) {
+            Thread.sleep(5)
+        }
+    }
 
     companion object {
         private const val DEFAULT_MAX_ENTRIES = 500

@@ -34,12 +34,17 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,8 +64,6 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
-import com.astrixforge.devicemasker.ui.components.ActionBottomSheet
-import com.astrixforge.devicemasker.ui.components.ActionItem
 import com.astrixforge.devicemasker.ui.components.ScreenHeader
 import com.astrixforge.devicemasker.ui.components.SettingsClickableItem
 import com.astrixforge.devicemasker.ui.components.SettingsClickableItemWithValue
@@ -78,7 +81,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
  * - Debug options (log export with save/share options)
  * - About information
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -134,6 +137,7 @@ fun SettingsScreen(
 
     // File picker launcher - opens native folder picker
     var pendingExportMode by remember { mutableStateOf(exportMode) }
+    LaunchedEffect(exportMode) { pendingExportMode = exportMode }
     val exportLogsLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/zip")
@@ -207,33 +211,42 @@ fun SettingsScreen(
 
     // Export Options Bottom Sheet
     if (showExportSheet) {
-        ActionBottomSheet(
+        ExportActionsBottomSheet(
             title = exportSheetTitle,
-            actions =
+            saveLabel = saveTitle,
+            shareLabel = shareTitle,
+            modes =
                 listOf(
-                    ActionItem(
-                        icon = Icons.Outlined.Save,
-                        title = "$saveTitle - $basicExportTitle",
+                    ExportModeAction(
+                        title = basicExportTitle,
                         description = redactedDefault,
-                        onClick = {
+                        enabled = true,
+                        onSave = {
                             pendingExportMode = BundleExportMode.BASIC
                             onExportModeChange(BundleExportMode.BASIC)
                             exportLogsLauncher.launch(generateLogFileName())
                         },
+                        onShare = {
+                            onExportModeChange(BundleExportMode.BASIC)
+                            onShareLogs(BundleExportMode.BASIC)
+                        },
                     ),
-                    ActionItem(
-                        icon = Icons.Outlined.Save,
-                        title = "$saveTitle - $fullExportTitle",
+                    ExportModeAction(
+                        title = fullExportTitle,
                         description = saveDesc,
-                        onClick = {
+                        enabled = true,
+                        onSave = {
                             pendingExportMode = BundleExportMode.FULL_DEBUG
                             onExportModeChange(BundleExportMode.FULL_DEBUG)
                             exportLogsLauncher.launch(generateLogFileName())
                         },
+                        onShare = {
+                            onExportModeChange(BundleExportMode.FULL_DEBUG)
+                            onShareLogs(BundleExportMode.FULL_DEBUG)
+                        },
                     ),
-                    ActionItem(
-                        icon = Icons.Outlined.Save,
-                        title = "$saveTitle - $rootExportTitle",
+                    ExportModeAction(
+                        title = rootExportTitle,
                         description =
                             if (rootMaximumAvailable) {
                                 stringResource(R.string.settings_export_unredacted_warning)
@@ -241,20 +254,120 @@ fun SettingsScreen(
                                 stringResource(R.string.root_access_required_for_root_export)
                             },
                         enabled = rootMaximumAvailable,
-                        onClick = {
+                        onSave = {
                             pendingExportMode = BundleExportMode.ROOT_MAXIMUM
                             onExportModeChange(BundleExportMode.ROOT_MAXIMUM)
                             exportLogsLauncher.launch(generateLogFileName())
                         },
-                    ),
-                    ActionItem(
-                        icon = Icons.Outlined.Share,
-                        title = shareTitle,
-                        description = shareDesc,
-                        onClick = { onShareLogs(exportMode) },
+                        onShare = {
+                            onExportModeChange(BundleExportMode.ROOT_MAXIMUM)
+                            onShareLogs(BundleExportMode.ROOT_MAXIMUM)
+                        },
                     ),
                 ),
             onDismiss = { showExportSheet = false },
+        )
+    }
+}
+
+private data class ExportModeAction(
+    val title: String,
+    val description: String,
+    val enabled: Boolean,
+    val onSave: () -> Unit,
+    val onShare: () -> Unit,
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ExportActionsBottomSheet(
+    title: String,
+    saveLabel: String,
+    shareLabel: String,
+    modes: List<ExportModeAction>,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp),
+            )
+
+            modes.forEach { mode ->
+                ExportModeSplitButton(
+                    mode = mode,
+                    saveLabel = saveLabel,
+                    shareLabel = shareLabel,
+                    onDismiss = onDismiss,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ExportModeSplitButton(
+    mode: ExportModeAction,
+    saveLabel: String,
+    shareLabel: String,
+    onDismiss: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = mode.title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color =
+                if (mode.enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+        )
+        Text(
+            text = mode.description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+        )
+
+        SplitButtonLayout(
+            leadingButton = {
+                SplitButtonDefaults.TonalLeadingButton(
+                    enabled = mode.enabled,
+                    onClick = {
+                        mode.onSave()
+                        onDismiss()
+                    },
+                ) {
+                    Icon(imageVector = Icons.Outlined.Save, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(saveLabel)
+                }
+            },
+            trailingButton = {
+                SplitButtonDefaults.TonalTrailingButton(
+                    checked = false,
+                    enabled = mode.enabled,
+                    onCheckedChange = {
+                        mode.onShare()
+                        onDismiss()
+                    },
+                ) {
+                    Icon(imageVector = Icons.Outlined.Share, contentDescription = shareLabel)
+                }
+            },
         )
     }
 }
@@ -415,10 +528,7 @@ private fun RootAccessState.labelRes(): Int =
 
 @Composable
 private fun LoadingIndicator() {
-    CircularProgressIndicator(
-        modifier = Modifier.padding(end = 8.dp).width(24.dp).height(24.dp),
-        strokeWidth = 2.dp,
-    )
+    ContainedLoadingIndicator(modifier = Modifier.padding(end = 8.dp).width(24.dp).height(24.dp))
 }
 
 @Composable

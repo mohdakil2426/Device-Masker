@@ -17,8 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -77,7 +77,13 @@ fun StatusIndicator(
 
     Box(
         modifier =
-            modifier.size(size).scale(scale).background(color = animatedColor, shape = CircleShape),
+            modifier
+                .size(size)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(color = animatedColor, shape = CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) {
