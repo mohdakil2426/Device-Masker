@@ -1,0 +1,513 @@
+# Graph Report - devicemasker  (2026-05-04)
+
+## Corpus Check
+- 192 files · ~129,961 words
+- Verdict: corpus is large enough that graph structure adds value.
+
+## Summary
+- 2467 nodes · 3029 edges · 179 communities detected
+- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 345 edges (avg confidence: 0.81)
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `a778f833`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
+
+## Community Hubs (Navigation)
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 61|Community 61]]
+- [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
+- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
+- [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 113|Community 113]]
+- [[_COMMUNITY_Community 114|Community 114]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
+- [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 169|Community 169]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 171|Community 171]]
+- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 173|Community 173]]
+- [[_COMMUNITY_Community 174|Community 174]]
+- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 176|Community 176]]
+- [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
+
+## God Nodes (most connected - your core abstractions)
+1. `FakeSpoofRepository` - 34 edges
+2. `SpoofRepository` - 31 edges
+3. `DeviceMaskerTheme()` - 30 edges
+4. `SpoofRepository` - 29 edges
+5. `ConfigManager` - 27 edges
+6. `ConfigManager` - 27 edges
+7. `FakeConfigManager` - 24 edges
+8. `SpoofGroup` - 23 edges
+9. `FakeConfigManager` - 23 edges
+10. `IConfigManager` - 22 edges
+
+## Surprising Connections (you probably didn't know these)
+- `DeviceMaskerMainApp()` --calls--> `BottomNavBar()`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/BottomNavBar.kt
+- `DeviceMaskerMainApp()` --calls--> `HomeViewModel`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/home/HomeViewModel.kt
+- `DeviceMaskerMainApp()` --calls--> `HomeScreen()`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/home/HomeScreen.kt
+- `DeviceMaskerMainApp()` --calls--> `SettingsViewModel`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/settings/SettingsViewModel.kt
+- `DeviceMaskerMainApp()` --calls--> `SettingsScreen()`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/settings/SettingsScreen.kt
+
+## Hyperedges (group relationships)
+- **Device Masker Config Delivery Flow** — architecture_app_module, config_jsonconfig_appconfigs_canonical, config_sharedprefskeys_source_of_truth, config_remote_preferences_delivery, architecture_xposed_module [EXTRACTED 1.00]
+- **Diagnostics Evidence Export Stack** — diagnostics_lsposed_logs_authoritative, diagnostics_support_bundle_modes, diagnostics_redaction_default [EXTRACTED 1.00]
+- **hyperedge:android_launcher_branding_set** — image:app/src/main/res/mipmap-hdpi/ic_launcher.webp, image:app/src/main/res/mipmap-hdpi/ic_launcher_round.webp, image:app/src/main/res/mipmap-mdpi/ic_launcher.webp, asset_purpose:android_launcher_icon, visual:green_grid_background, visual:white_android_robot_head, branding:android_app_branding, format:webp_launcher_asset [INFERRED 0.91]
+- **hyperedge:chunk03_launcher_branding_composition** — image:app/src/main/res/mipmap-mdpi/ic_launcher_round.webp, image:app/src/main/res/mipmap-xhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp, asset:android_launcher_icon, asset:android_round_launcher_icon, visual:green_grid_background, visual:white_android_robot_head, concept:android_app_branding [INFERRED 0.91]
+- **hyperedge:xxhdpi_launcher_branding_composition** — image:app/src/main/res/mipmap-xxhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp, asset:xxhdpi_launcher_icon, asset:xxhdpi_round_launcher_icon, visual:white_android_robot_head, visual:green_grid_background, concept:android_platform_identity, concept:android_launcher_branding [INFERRED 0.92]
+- **XXXHDPI Launcher Branding** — image:app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp, visual:green_grid_background, visual:android_robot_head, concept:android_platform_branding [INFERRED 0.90]
+
+## Communities (191 total, 114 thin omitted)
+
+### Community 1 - "Community 1"
+Cohesion: 0.05
+Nodes (33): BrowserPersona, DevicePersona, formatCoordinate(), HardwarePersona, LocationPersona, NetworkEnvironmentPersona, parse(), parseOrNull() (+25 more)
+
+### Community 2 - "Community 2"
+Cohesion: 0.06
+Nodes (8): DiagnosticSessionManager, JsonlDiagnosticStore, StoreStats, JsonlDiagnosticStoreTest, DiagnosticSessionManager, JsonlDiagnosticStore, StoreStats, JsonlDiagnosticStoreTest
+
+### Community 3 - "Community 3"
+Cohesion: 0.06
+Nodes (21): AntiDetectionSection(), AntiDetectionTestItem(), CategoryDiagnosticSection(), ConfigSyncInfoCard(), DiagnosticResultItem(), DiagnosticsContent(), DiagnosticsScreen(), hookEvidenceLabel() (+13 more)
+
+### Community 4 - "Community 4"
+Cohesion: 0.05
+Nodes (14): AppScopeRepository, AppScopeRepositoryTest, AppIcon(), AppIconFallback(), AppListItem(), AppListItemLockedPreview(), EmptyState(), EmptyStateNoSubtitlePreview() (+6 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.05
+Nodes (6): FakeLogManager, SettingsViewModel, SettingsViewModelTest, SettingsViewModel, SettingsViewModelTest, FakeLogManager
+
+### Community 7 - "Community 7"
+Cohesion: 0.06
+Nodes (4): createDefaultGroup(), createNew(), SpoofGroup, SpoofGroup
+
+### Community 10 - "Community 10"
+Cohesion: 0.07
+Nodes (12): HookHealthRegistry, HookHealthSnapshot, HookMethodHealth, MutableMethodHealth, SpoofEventRecord, HookHealthRegistryTest, HookHealthRegistry, HookHealthSnapshot (+4 more)
+
+### Community 11 - "Community 11"
+Cohesion: 0.1
+Nodes (4): DashboardState, getInstance(), SpoofRepository, DashboardState
+
+### Community 12 - "Community 12"
+Cohesion: 0.07
+Nodes (4): MapSharedPreferences, PrefsHelperTest, MapSharedPreferences, PrefsHelperTest
+
+### Community 13 - "Community 13"
+Cohesion: 0.08
+Nodes (6): DeviceMaskerApp, DeviceMaskerApp, ConnectionState, ServiceClient, ConnectionState, ServiceClient
+
+### Community 14 - "Community 14"
+Cohesion: 0.12
+Nodes (5): ConfigSync, Snapshot, ConfigSync, Snapshot, Editor
+
+### Community 15 - "Community 15"
+Cohesion: 0.09
+Nodes (11): CategorySection(), DeviceHardwareCategoryContent(), LocationCategoryContent(), SIMCardCategoryContent(), CountryPickerDialog(), ExpressiveCard(), ExpressiveCardSelectedPreview(), ExpressiveOutlinedCard() (+3 more)
+
+### Community 17 - "Community 17"
+Cohesion: 0.09
+Nodes (4): DualLog, HookMetrics, DualLog, HookMetrics
+
+### Community 18 - "Community 18"
+Cohesion: 0.09
+Nodes (3): DeviceMaskerService, DeviceMaskerService, getInstance()
+
+### Community 19 - "Community 19"
+Cohesion: 0.08
+Nodes (4): FakePackageManager, HookSafetyTest, FakePackageManager, HookSafetyTest
+
+### Community 21 - "Community 21"
+Cohesion: 0.15
+Nodes (14): Android launcher icon, Android round launcher icon, XXHDPI launcher icon, XXHDPI round launcher icon, Android launcher icon, Android app branding, Android app branding, Android launcher branding (+6 more)
+
+### Community 26 - "Community 26"
+Cohesion: 0.13
+Nodes (12): IconCircle(), IconCircleLargePreview(), SettingsClickableItem(), SettingsClickableItemWithValue(), SettingsInfoItem(), SettingsInfoItemPreview(), SettingsSection(), SettingsSwitchItem() (+4 more)
+
+### Community 32 - "Community 32"
+Cohesion: 0.14
+Nodes (6): DeviceConfig, FingerprintGenerator, DeviceConfig, FingerprintGenerator, nextInt(), secureRandom()
+
+### Community 33 - "Community 33"
+Cohesion: 0.13
+Nodes (4): RootAccessManager, RootAccessState, RootAccessManager, RootAccessState
+
+### Community 34 - "Community 34"
+Cohesion: 0.11
+Nodes (16): Diagnostics, Groups, GroupSpoofing, Home, NavDestination, NavItem, NavRoutes, Settings (+8 more)
+
+### Community 35 - "Community 35"
+Cohesion: 0.14
+Nodes (8): ActionItem, ActionBottomSheet(), ActionBottomSheetPreview(), ActionItem, ActionItemRow(), SettingsScreen(), SettingsScreenPreview(), ThemeModeDialog()
+
+### Community 37 - "Community 37"
+Cohesion: 0.12
+Nodes (3): GroupsViewModel, GroupsViewModelTest, GroupsViewModelTest
+
+### Community 39 - "Community 39"
+Cohesion: 0.15
+Nodes (8): ScreenHeader(), ScreenHeaderWithActionsPreview(), CreateGroupDialog(), CreateGroupDialogPreview(), DeleteGroupDialog(), EditGroupDialog(), GroupsScreen(), GroupsScreenContent()
+
+### Community 40 - "Community 40"
+Cohesion: 0.13
+Nodes (4): DiagnosticsLogBuffer, DiagnosticsLogBufferTest, DiagnosticsLogBuffer, DiagnosticsLogBufferTest
+
+### Community 41 - "Community 41"
+Cohesion: 0.15
+Nodes (6): StatCard(), StatCardIdentifiersPreview(), HomeScreen(), HomeScreenContent(), HomeScreenContentPreview(), HomeScreenInactivePreview()
+
+### Community 42 - "Community 42"
+Cohesion: 0.12
+Nodes (4): LogLevel, Utils, LogLevel, Utils
+
+### Community 43 - "Community 43"
+Cohesion: 0.13
+Nodes (6): DeviceHardwareConfig, DeviceHardwareConfigTest, DeviceHardwareGenerator, DeviceHardwareGenerator, DeviceHardwareConfig, DeviceHardwareConfigTest
+
+### Community 44 - "Community 44"
+Cohesion: 0.14
+Nodes (6): Carrier, Carrier, getByCountry(), indiaCarriers(), nextSecureRandomFromCountry(), nextSecureRandomIndia()
+
+### Community 45 - "Community 45"
+Cohesion: 0.13
+Nodes (9): jsonEscape(), RootCommandExecutor, RootCommandStatus, toManifestJson(), LibsuCommandExecutor, RootCommand, RootCommandResult, RootCommandStatus (+1 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.17
+Nodes (7): CompactSpoofValueCard(), CompactSpoofValueCardPreview(), maskValueString(), SpoofValueCard(), CompactExpressiveIconButton(), CompactExpressiveIconButtonPreview(), ExpressiveIconButton()
+
+### Community 47 - "Community 47"
+Cohesion: 0.17
+Nodes (6): CompactGroupCard(), CompactGroupCardPreview(), DefaultBadge(), GroupCard(), animatedRoundedCornerShape(), StatusCard()
+
+### Community 48 - "Community 48"
+Cohesion: 0.16
+Nodes (6): SectionHeader(), SectionHeaderNoExpandPreview(), SpoofTabContent(), SpoofTabContentPopulatedPreview(), DeviceMaskerTheme(), DeviceMaskerThemeInternal()
+
+### Community 49 - "Community 49"
+Cohesion: 0.13
+Nodes (14): BundleExportMode, Error, ExportResult, NoLogs, RedactionChoice, SettingsState, Success, BundleExportMode (+6 more)
+
+### Community 54 - "Community 54"
+Cohesion: 0.16
+Nodes (6): DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest, DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest
+
+### Community 55 - "Community 55"
+Cohesion: 0.18
+Nodes (3): HomeViewModel, HomeViewModelTest, HomeViewModel
+
+### Community 56 - "Community 56"
+Cohesion: 0.18
+Nodes (4): createDefault(), DeviceIdentifier, ConfigSyncSnapshotTest, DeviceIdentifier
+
+### Community 69 - "Community 69"
+Cohesion: 0.21
+Nodes (6): MainActivity, DeviceMaskerMainApp(), MainActivity, NavRail(), RootAccessWarningDialog(), toTopLevelDestination()
+
+### Community 72 - "Community 72"
+Cohesion: 0.26
+Nodes (5): DiagnosticsContentPreview(), AntiDetectionTest, DiagnosticResult, DiagnosticsViewModel, DefaultDiagnosticsProvider
+
+### Community 73 - "Community 73"
+Cohesion: 0.17
+Nodes (11): DiagnosticsState, DiagnosticStatus, HookEvidenceState, ReproCaptureState, AntiDetectionTest, DiagnosticResult, DiagnosticsState, DiagnosticStatus (+3 more)
+
+### Community 74 - "Community 74"
+Cohesion: 0.2
+Nodes (4): RecordingExecutor, RootLogCollectorTest, RecordingExecutor, RootLogCollectorTest
+
+### Community 75 - "Community 75"
+Cohesion: 0.2
+Nodes (6): QuickAction, QuickActionGroup(), SelectionButtonGroup(), SelectionButtonGroupPreview(), QuickActionsSection(), QuickAction
+
+### Community 76 - "Community 76"
+Cohesion: 0.18
+Nodes (3): DiagnosticEventTest, DiagnosticEvent, DiagnosticEventTest
+
+### Community 77 - "Community 77"
+Cohesion: 0.17
+Nodes (3): LocationSnapshot, LocationHooker, LocationSnapshot
+
+### Community 81 - "Community 81"
+Cohesion: 0.27
+Nodes (4): RootCommand, FakeExecutor, RootShellTest, FakeExecutor
+
+### Community 88 - "Community 88"
+Cohesion: 0.18
+Nodes (5): AppLogEntry, LogFileFormatter, PersistentAppLogTree, from(), LogFileFormatter
+
+### Community 90 - "Community 90"
+Cohesion: 0.18
+Nodes (4): Keys, SettingsDataStore, Keys, SettingsDataStore
+
+### Community 93 - "Community 93"
+Cohesion: 0.2
+Nodes (7): DiagnosticEvent, DiagnosticEventType, DiagnosticSeverity, DiagnosticSource, DiagnosticEventType, DiagnosticSeverity, DiagnosticSource
+
+### Community 94 - "Community 94"
+Cohesion: 0.22
+Nodes (10): :app Configuration Module, :common Shared Contracts, Three Module Architecture, :xposed Hook Module, JsonConfig.appConfigs Canonical Assignment, RemotePreferences Config Delivery, SharedPrefsKeys Source Of Truth, Hook Safety Pass Through (+2 more)
+
+### Community 95 - "Community 95"
+Cohesion: 0.31
+Nodes (4): HeroStatusIndicator(), HeroStatusIndicatorPreview(), StatusIndicator(), StatusIndicatorWithIcon()
+
+### Community 96 - "Community 96"
+Cohesion: 0.28
+Nodes (5): ExpressiveSwitch(), ExpressiveSwitchLightPreview(), ExpressiveSwitchWithLabel(), SwitchDimensions, SwitchDimensions
+
+### Community 97 - "Community 97"
+Cohesion: 0.22
+Nodes (3): SupportBundleMode, SupportBundleBuilder, SupportBundleMode
+
+### Community 98 - "Community 98"
+Cohesion: 0.22
+Nodes (8): Error, LogExportResult, NoLogs, ShareableLogResult, Success, LogExportResult, NoLogs, ShareableLogResult
+
+### Community 99 - "Community 99"
+Cohesion: 0.36
+Nodes (3): Error, LogManager, Success
+
+### Community 100 - "Community 100"
+Cohesion: 0.22
+Nodes (3): DiagnosticRedactor, RedactionMode, RedactionMode
+
+### Community 102 - "Community 102"
+Cohesion: 0.31
+Nodes (4): createDefault(), parse(), parseCatching(), parseOrDefault()
+
+### Community 110 - "Community 110"
+Cohesion: 0.25
+Nodes (7): Effect, MotionPolicy, Spatial, Effect, MotionPolicy, rememberMotionPolicy(), Spatial
+
+### Community 111 - "Community 111"
+Cohesion: 0.31
+Nodes (4): AnimatedNavIcon(), BottomNavBar(), BottomNavItem(), navContentDescriptionRes()
+
+### Community 118 - "Community 118"
+Cohesion: 0.29
+Nodes (3): ServiceStatus, DiagnosticsStateTest, DiagnosticsStateTest
+
+### Community 122 - "Community 122"
+Cohesion: 0.38
+Nodes (3): LibsuCommandExecutor, RootCommandResult, RootShell
+
+### Community 126 - "Community 126"
+Cohesion: 0.33
+Nodes (4): search(), TimezoneEntry, TimezonePickerDialog(), TimezoneEntry
+
+### Community 127 - "Community 127"
+Cohesion: 0.38
+Nodes (3): ConfirmationDialog(), DeleteConfirmationDialog(), DeleteDialogPreview()
+
+### Community 132 - "Community 132"
+Cohesion: 0.29
+Nodes (6): CorrelationGroup, SpoofCategory, SpoofType, CorrelationGroup, SpoofCategory, SpoofType
+
+### Community 154 - "Community 154"
+Cohesion: 0.5
+Nodes (3): create(), SIMConfig, SIMConfig
+
+### Community 161 - "Community 161"
+Cohesion: 0.4
+Nodes (5): libxposed Audit Remediation, Xposed Spoofing And Logging Audit, LSPosed Logs Authoritative Evidence, com.mantle.verify Working Base, Defensive WebView Hooking
+
+### Community 176 - "Community 176"
+Cohesion: 0.67
+Nodes (3): Master Implementation Plan Completion, Material 3 Expressive Implementation, Quality Gate Pipeline
+
+## Knowledge Gaps
+- **150 isolated node(s):** `Keys`, `DashboardState`, `LogExportResult`, `ShareableLogResult`, `NoLogs` (+145 more)
+  These have ≤1 connection - possible missing edges or undocumented components.
+- **114 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+
+## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
+
+- **Why does `DeviceMaskerMainApp()` connect `Community 69` to `Community 35`, `Community 3`, `Community 37`, `Community 6`, `Community 39`, `Community 72`, `Community 41`, `Community 111`, `Community 175`, `Community 51`, `Community 55`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Why does `DeviceMaskerTheme()` connect `Community 48` to `Community 96`, `Community 35`, `Community 4`, `Community 69`, `Community 3`, `Community 39`, `Community 72`, `Community 41`, `Community 75`, `Community 46`, `Community 47`, `Community 15`, `Community 26`, `Community 124`, `Community 125`, `Community 95`, `Community 127`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `AppConfig` connect `Community 87` to `Community 0`, `Community 56`, `Community 164`, `Community 20`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
+- **Are the 12 inferred relationships involving `FakeSpoofRepository` (e.g. with `.`create group adds to list`()` and `.`delete group removes from list`()`) actually correct?**
+  _`FakeSpoofRepository` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 28 inferred relationships involving `DeviceMaskerTheme()` (e.g. with `.onCreate()` and `ActionBottomSheetPreview()`) actually correct?**
+  _`DeviceMaskerTheme()` has 28 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `Keys`, `DashboardState`, `LogExportResult` to the rest of the system?**
+  _150 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._

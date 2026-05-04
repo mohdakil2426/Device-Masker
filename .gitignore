@@ -108,7 +108,7 @@ Thumbs.db
 *.prof
 
 # ═══════════════════════════════════════════════════════════
-# MEMORY BANK & OPENSPEC (Project-specific)
+# Ai Agents Specifics
 # ═══════════════════════════════════════════════════════════
 # Keep memory-bank/ and openspec/ - these are safe
 # Keep .agent/ - workflow definitions
@@ -118,6 +118,14 @@ Thumbs.db
 .worktrees/
 scripts/logs/*.txt
 docs/references/
+.opencode/
+
+# graphify local/generated files
+/graphify-scope/
+/graphify-out/cache/
+/graphify-out/.graphify_*
+/graphify-out/manifest.json
+/graphify-out/cost.json
 
 # ═══════════════════════════════════════════════════════════
 # VERSION CONTROL
