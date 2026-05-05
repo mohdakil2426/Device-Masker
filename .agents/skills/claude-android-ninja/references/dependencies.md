@@ -36,13 +36,23 @@ Use `androidx.paging:paging-testing` on test source sets only (`testImplementati
 
 **Production apps:**
 - Use **stable** versions only (e.g., `1.0.0`) for libraries that offer a stable channel
-- Exception: AndroidX alpha/beta when required for critical features (e.g. Navigation3 during its preview cycle)
 - Avoid alpha/beta/RC for **Hilt** and **Coroutines** in production
 - **Room 3:** Ship **stable** `androidx.room3` builds from [Room 3 releases](https://developer.android.com/jetpack/androidx/releases/room3). Preview builds require pinning the exact version from that page and scheduling the upgrade to stable.
 
 **Experimental projects:**
 - Can use alpha/beta for evaluation
 - Document experimental versions clearly
+
+### Pinned alpha required for feature parity
+
+These catalog entries stay on alpha until a feature-equivalent stable release ships. Replace each pin with the stable release as soon as one exists.
+
+- `room3` - no stable Room 3 release yet; track [Room 3 releases](https://developer.android.com/jetpack/androidx/releases/room3) and bump on every alpha tick.
+- `materialAdaptive` - 1.2.0 stable does not ship `material3-adaptive-navigation3`; the bridge artifact only exists on the 1.3 alpha line.
+- `androidxBiometric` - 1.1.0 stable lacks `BiometricPrompt` content view, logo, and `registerForAuthenticationResult()`; the alpha line is the only source for those APIs.
+- `tracing` - `tracing-wire-android` (Perfetto in-process tracing) is 2.x-only; the 1.3 stable line cannot be substituted.
+- `detekt` - 2.x is a new artifact group (`dev.detekt`); 1.23.x lives at `io.gitlab.arturbosch.detekt` and would require swapping coordinates.
+- `screenshot` - the Compose Preview screenshot test tooling has not shipped a stable release.
 
 ### Version update cadence
 
@@ -91,8 +101,8 @@ configurations.all {
 **Critical**: Kotlin and Compose compiler versions must be compatible. Mismatches cause compile errors.
 
 Current template versions:
-- Kotlin: `2.2.21`
-- Compose BOM: `2025.10.01`
+- Kotlin: `2.3.21`
+- Compose BOM: `2026.04.01`
 - Compose Compiler: Managed by `kotlin-compose` plugin
 
 The `kotlin-compose` plugin (formerly `compose-compiler`) is now part of Kotlin and automatically matches the Kotlin version.
@@ -100,7 +110,8 @@ The `kotlin-compose` plugin (formerly `compose-compiler`) is now part of Kotlin 
 **When updating Kotlin:**
 1. Check Compose compatibility: https://developer.android.com/jetpack/androidx/releases/compose-kotlin
 2. Update both `kotlin` and `compose-bom` versions together
-3. Test compilation before committing
+3. Pick the matching KSP line on Maven Central or [KSP releases](https://github.com/google/ksp/releases); catalog `ksp` may use a `kotlinVersion-kspToolVersion` string or a standalone KSP release (patch digits need not match Kotlin)
+4. Run `./gradlew help` before committing
 
 ## Platform Dependencies (BOMs)
 
@@ -169,6 +180,7 @@ dependencies {
 - 2x faster than kapt
 - **Room 3 is KSP-only** (no kapt/Java annotation processing for Room)
 - Hilt supports KSP
+- Catalog `kotlin` and `ksp` are a **tested pair**, not identical patch strings. KSP ships on its own schedule; choose the highest KSP release that supports the catalog Kotlin version, then verify `./gradlew help`.
 
 **Migrate from kapt to KSP:**
 
@@ -189,7 +201,7 @@ dependencies {
 
 // New
 plugins {
-    id("com.google.devtools.ksp") version "2.2.21-2.0.5"
+    id("com.google.devtools.ksp") version "2.3.7"
 }
 
 dependencies {

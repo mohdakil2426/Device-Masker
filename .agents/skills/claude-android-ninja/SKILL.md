@@ -1,6 +1,7 @@
 ---
 name: claude-android-ninja
-description: Build Android apps with Kotlin, Jetpack Compose, MVVM, Hilt, Room 3 (KSP, SQLiteDriver, Flow/suspend DAOs), and multi-module architecture. Triggers on requests to create Android projects, modules, screens, ViewModels, or repositories.
+description: Build Android apps with Kotlin, Jetpack Compose, MVVM, Hilt, Room 3 (KSP, SQLiteDriver, Flow/suspend DAOs), and multi-module architecture. Triggers on requests to create Android projects, modules, screens, ViewModels, repositories, or Android architecture questions. Not for iOS, Flutter, React Native, KMP-only shared code without an Android app module, or backend-only APIs with no Android client.
+compatibility: JDK 17+. Android Studio with Android SDK installed. Network access for Gradle dependency downloads. Version pins in assets/templates follow the repo catalog; align AGP/Kotlin/KSP with the user project before applying upgrades.
 license: Apache-2.0
 metadata:
   author: DrJacky
@@ -10,9 +11,7 @@ metadata:
 ---
 # Android Kotlin Compose Development
 
-Use when building Android apps with Kotlin, Jetpack Compose, MVVM, Hilt, Room 3, DataStore, Paging 3, or multi-module projects.
-Triggers on requests to create Android projects, screens, ViewModels, repositories, feature modules, or asks about Android architecture patterns.
-
+Route tasks through the Quick Reference table and Workflow Decision Tree; open linked `references/` files only for the active task.
 
 ## Quick Reference
 
@@ -23,7 +22,8 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 | Compose patterns, Material motion, animation, modifiers, stability                                                                                                    | [compose-patterns.md](references/compose-patterns.md)                                         |
 | Paging 3 + Room + network (`RemoteMediator`, remote keys, `initialize`)                                                                                               | [compose-patterns.md](references/compose-patterns.md#offline-first-paging-and-remotemediator) |
 | Accessibility, TalkBack, label copy, live regions, Espresso a11y checks                                                                                               | [android-accessibility.md](references/android-accessibility.md)                               |
-| Notifications, foreground services, media/audio, PiP, sharesheet                                                                                                      | [android-notifications.md](references/android-notifications.md)                               |
+| Notifications, foreground services, media-style notifications, PiP, sharesheet                                                                                        | [android-notifications.md](references/android-notifications.md)                               |
+| Background media playback (audio/video) at API 37, `MediaSessionService`, FGS type, audio focus                                                                       | [android-media.md](references/android-media.md)                                               |
 | Data sync & offline-first patterns                                                                                                                                    | [android-data-sync.md](references/android-data-sync.md)                                       |
 | Material 3 theming, spacing tokens, category fit, dynamic colors                                                                                                      | [android-theming.md](references/android-theming.md)                                           |
 | Navigation3, adaptive navigation, large-screen quality tiers                                                                                                          | [android-navigation.md](references/android-navigation.md)                                     |
@@ -42,9 +42,53 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 | Code coverage (JaCoCo)                                                                                                                                                | [android-code-coverage.md](references/android-code-coverage.md)                               |
 | Security, Play Integrity (Standard/Classic), server decode, `requestHash`/`nonce`, tiered policy, remediation; Credential Manager; local root checks as supplementary | [android-security.md](references/android-security.md)                                         |
 | Design patterns                                                                                                                                                       | [design-patterns.md](references/design-patterns.md)                                           |
-| Performance, Play Vitals, Play Developer Reporting API (CI vitals), startup, recomposition, jank, battery                                                             | [android-performance.md](references/android-performance.md)                                   |
+| Performance, Play Vitals, Play Developer Reporting API (CI vitals), startup, recomposition, jank, battery, Perfetto / system traces                                   | [android-performance.md](references/android-performance.md)                                   |
 | Debugging, Logcat levels, ANR, Gradle error patterns, R8, memory leaks                                                                                                | [android-debugging.md](references/android-debugging.md)                                       |
-| Migration guides (XML, RxJava, Navigation, Compose, Room 2→3)                                                                                                         | [migration.md](references/migration.md)                                                       |
+| Migration guides (XML, RxJava, Navigation, Compose, Room 2→3, Android 17 / API 37)                                                                                    | [migration.md](references/migration.md)                                                       |
+
+## Examples
+
+**Greenfield Android app with convention plugins**
+
+User goal: new repo matching the skill stack.
+
+Actions: copy `assets/settings.gradle.kts.template`, `assets/libs.versions.toml.template`, `assets/convention/` into `build-logic/` per `assets/convention/QUICK_REFERENCE.md`; wire `includeBuild("build-logic")`; read [modularization.md](references/modularization.md) and [gradle-setup.md](references/gradle-setup.md).
+
+Result: root + `app` + core modules with version catalog and convention plugins applied.
+
+**New feature screen (Compose + ViewModel)**
+
+User goal: one new flow in a feature module.
+
+Actions: [modularization.md](references/modularization.md) for module naming and dependency direction; [compose-patterns.md](references/compose-patterns.md) for Screen, state, effects; [kotlin-patterns.md](references/kotlin-patterns.md) + [coroutines-patterns.md](references/coroutines-patterns.md) for `StateFlow` / events; [architecture.md](references/architecture.md) for domain vs data boundaries.
+
+Result: feature module with Screen composable, ViewModel, `UiState`, and DI aligned to existing graphs.
+
+**Offline-first list with Room 3 and remote API**
+
+User goal: cached list + network refresh.
+
+Actions: [compose-patterns.md](references/compose-patterns.md#offline-first-paging-and-remotemediator) for Paging 3 + `RemoteMediator`; [architecture.md](references/architecture.md) for repository placement; Room 3 + `SQLiteDriver` per Workflow Decision Tree database bullets and [migration.md](references/migration.md#room-2x-to-room-3) if upgrading.
+
+Result: single source of truth in Room, UI driven by `PagingData` or equivalent pattern from the guide.
+
+**Target SDK / compile SDK bump (e.g. API 37)**
+
+User goal: migrate toolchain and platform requirements.
+
+Actions: walk [migration.md](references/migration.md#android-17-api-37-migration); pin AGP/Kotlin/KSP using [gradle-setup.md](references/gradle-setup.md) and [dependencies.md](references/dependencies.md); cross-check edge-to-edge, media, security sections linked from the Workflow Decision Tree for API 37.
+
+Result: `compileSdk` / `targetSdk` raised with manifest, Gradle, and feature code adjusted per the migration doc.
+
+## Troubleshooting
+
+| Symptom                                                              | Likely cause                                                                             | Fix                                                                                                                                                                                                                                   |
+|----------------------------------------------------------------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Gradle sync fails, plugin not found, or version catalog errors       | Missing `google()` / `mavenCentral()`, wrong plugin id, or catalog alias drift           | [gradle-setup.md](references/gradle-setup.md) for repositories, plugins, and catalog wiring; align with `assets/libs.versions.toml.template` when bootstrapping                                                                       |
+| KSP errors on Room, or Room 3 builder rejects missing driver         | Room 3 expects `setDriver(BundledSQLiteDriver())` (or project equivalent) per convention | [migration.md](references/migration.md#room-2x-to-room-3); module layout in [modularization.md](references/modularization.md); DAO patterns in [architecture.md](references/architecture.md)                                          |
+| Compose runtime warnings about unstable / skippable recompositions   | Unstable parameter types or state held incorrectly                                       | [compose-patterns.md](references/compose-patterns.md) stability sections; [android-performance.md](references/android-performance.md) Compose recomposition; [kotlin-patterns.md](references/kotlin-patterns.md) for immutable models |
+| Release build crashes, `ClassNotFoundException`, or missing R8 rules | Shrinking removed reflective or JNI entry points                                         | [gradle-setup.md](references/gradle-setup.md) R8 keep-rules audit; [android-debugging.md](references/android-debugging.md) for stack traces and mapping files                                                                         |
+| ANR or jank claims without evidence                                  | Main-thread or measurement assumptions                                                   | [android-performance.md](references/android-performance.md#perfetto-system-traces) before changing architecture; [android-debugging.md](references/android-debugging.md) for ANR traces                                               |
 
 ## Workflow Decision Tree
 
@@ -128,6 +172,11 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 → If the user asks for **automated Play Console vitals** (CI/Slack, no Play Console UI), use [android-performance.md](references/android-performance.md) → **Optional: Play Vitals observability (Play Developer Reporting API)**
 → Use `BasicTextField2` for high-frequency text input
 
+**Auditing battery drain or stuck wake locks?**
+→ Use [android-performance.md](references/android-performance.md) → "Excessive partial wake locks (Play Vitals core metric)" for the threshold (>2 hr cumulative non-exempt per session, >5% of sessions over 28 days, enforced March 2026), the use-case-to-substitute matrix, sensor batching, and stuck-worker diagnosis
+→ Required: UIDT API for user-initiated transfers; WorkManager + `WorkInfo.stopReason` for syncs; manual wake lock acquired only **after** packet arrival on sockets
+→ Forbidden: a manual wake lock alongside `FusedLocationProviderClient` callbacks, `MediaSessionService` audio, or any system API that already wakes the CPU
+
 **Testing?**
 → Read [testing.md](references/testing.md) for testing philosophy and patterns
 → Use Turbine for testing Flow emissions (see [testing.md](references/testing.md) -> "Testing Flow Emissions with Turbine")
@@ -167,6 +216,11 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 → Check POST_NOTIFICATIONS permission on API 33+ before showing notifications  
 → Create notification channels at app startup (required for API 26+)  
 
+**Playing audio or video in the background (target SDK 37)?**
+→ Use [android-media.md](references/android-media.md) → "Background media playback hardening (API 37)" for `MediaSessionService`, `mediaPlayback` foreground service type, and `MediaSession` lifecycle  
+→ Required: declare `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and `android:foregroundServiceType="mediaPlayback"`; build a `MediaSession` around a Media3 `Player`; release session and player in `onDestroy()`; stop the service on `Player.STATE_ENDED`  
+→ Forbidden: standalone `MediaPlayer` / `AudioTrack` / raw `ExoPlayer` background playback without a `MediaSession`; `requestAudioFocus()` from a service with no session; manual wake locks alongside `MediaSessionService`  
+
 **Sharing logic across ViewModels or avoiding base classes?**
 → Use delegation via interfaces as described in [kotlin-delegation.md](references/kotlin-delegation.md)  
 → Prefer small, injected delegates for validation, analytics, or feature flags  
@@ -186,7 +240,8 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 **Measuring performance regressions or startup/jank?**
 → Use [android-performance.md](references/android-performance.md) for Macrobenchmark, Baseline Profiles, and ProfileInstaller setup  
 → Keep benchmark module aligned with `benchmark` build type in [gradle-setup.md](references/gradle-setup.md)  
-→ If the user explicitly requests to investigate jank or add custom trace points, use [android-performance.md](references/android-performance.md) for System Tracing (`androidx.tracing`) setup
+→ If the user explicitly requests to investigate jank or add custom trace points, use [android-performance.md](references/android-performance.md) for System Tracing (`androidx.tracing`) setup  
+→ For trace-backed debugging rules (what to require from the user, what not to infer without artifacts), use [android-performance.md](references/android-performance.md#perfetto-system-traces)
 
 **Setting up app initialization or splash screen?**
 → Follow [android-performance.md](references/android-performance.md) → "App Startup & Initialization" for App Startup library, lazy init, and splash screen  
@@ -244,11 +299,13 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 
 **Going edge-to-edge / fixing IME, insets, or system-bar bugs?**
 → Use [compose-patterns.md](references/compose-patterns.md) → "Edge-to-Edge (Mandatory on API 36)" for IME insets (`fitInside(WindowInsetsRulers.Ime.current)` vs `imePadding()` ordering and double-padding pitfalls), system-bar appearance/contrast (`isAppearanceLight*Bars`, `isNavigationBarContrastEnforced`), `NavigationSuiteScaffold` / pane-scaffold inset handling, full-screen `Dialog` `decorFitsSystemWindows`, `StatusBarProtection` scrim, and the per-Activity edge-to-edge checklist  
+→ At target SDK 37, add IME visibility-after-rotation handling in the same guide's `#### IME (soft keyboard) insets` block  
 → Manifest must set `android:windowSoftInputMode="adjustResize"` for any Activity hosting text input
 
 **Debugging performance issues or memory leaks?**
 → Enable [android-strictmode.md](references/android-strictmode.md) for development builds  
 → Use [android-performance.md](references/android-performance.md) for profiling and benchmarking  
+→ For ANR, jank, or main-thread claims without measurements, follow [android-performance.md](references/android-performance.md#perfetto-system-traces) before concluding cause  
 → Use [android-debugging.md](references/android-debugging.md) for LeakCanary and heap dump analysis  
 → Check [coroutines-patterns.md](references/coroutines-patterns.md) for coroutine cancellation patterns  
 
@@ -265,6 +322,13 @@ Triggers on requests to create Android projects, screens, ViewModels, repositori
 **Migrating legacy code (LiveData, Fragments, Accompanist, RxJava, Room 2.x)?**
 → Use [migration.md](references/migration.md) for all migration paths (including [Room 2.x → Room 3](references/migration.md#room-2x-to-room-3))  
 → Follow [architecture.md](references/architecture.md) for MVVM patterns  
+
+**Migrating to target SDK 37 (Android 17)?**
+→ Walk [migration.md → Android 17 (API 37) Migration](references/migration.md#android-17-api-37-migration) top to bottom, then open each cross-link inside that section for full rules  
+→ Required: catalog `compileSdk` / `targetSdk` 37; pin `agp`, Gradle wrapper, `kotlin`, and `ksp` only after `./gradlew help` succeeds per [gradle-setup.md](references/gradle-setup.md) and [dependencies.md](references/dependencies.md); cleartext, loopback, CT, and explicit URI grants per [android-security.md](references/android-security.md); adaptive large-screen layouts, `adjustResize` on the launcher Activity, and IME-after-rotation per [compose-patterns.md](references/compose-patterns.md); background audio/video via [android-media.md](references/android-media.md); Robolectric rules per [testing.md → Robolectric and SDK 37 (Android 17)](references/testing.md#robolectric-and-sdk-37-android-17) **only** when JVM tests use `RobolectricTestRunner`  
+→ Forbidden: production-wide cleartext without domain-scoped Network Security Config; cross-process loopback without the API 37 permission where the platform requires it; background `MediaPlayer` / `AudioTrack` / raw `ExoPlayer` without Media3 `MediaSessionService` + `mediaPlayback` FGS + `MediaSession`; Robolectric releases older than 4.13 on current JDKs; `ACTION_SEND` (and similar) intents that attach `content` URIs without explicit `FLAG_GRANT_READ_URI_PERMISSION` or `FLAG_GRANT_WRITE_URI_PERMISSION`  
+→ `com.android.tools.build:gradle` HTTP 404: catalog `agp` is not published on `google()` yet; pick a published AGP that supports `compileSdk` 37 per [gradle-setup.md → AGP version pin](references/gradle-setup.md#agp-version-pin-resolve-before-merge)  
+→ `MissingValueException` / unresolved providers on `compile*JavaWithJavac`: isolate JaCoCo Tier 2 (`ScopedArtifacts` combined report) per [android-code-coverage.md](references/android-code-coverage.md) before chasing Kotlin or KSP bumps  
 
 **Adding Compose animations?**
 → Use [compose-patterns.md](references/compose-patterns.md) → "Animation" for `AnimatedVisibility`, `AnimatedContent`, `animate*AsState`, `Animatable`, shared elements  

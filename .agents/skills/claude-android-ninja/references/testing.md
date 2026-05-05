@@ -9,17 +9,18 @@ Required: hand-written fakes (no mocking libraries) in feature/core modules; Goo
 4. [Repository Tests](#repository-tests)
 5. [Coroutine Testing](#coroutine-testing)
 6. [Hilt Testing](#hilt-testing)
-7. [Room Database Testing](#room-database-testing)
-8. [SavedStateHandle Testing](#savedstatehandle-testing)
-9. [Navigation Tests](#navigation-tests)
-10. [Compose Stability Testing](#testing-compose-stability-annotations)
-11. [UI Tests](#ui-tests)
-12. [Screenshot Testing](#screenshot-testing)
-13. [Performance Benchmarks](#performance-benchmarks)
-14. [Test Utilities](#test-utilities)
-15. [Rules](#rules)
-16. [Paging 3 Testing](#paging-3-testing)
-17. [Localization Testing](#localization-testing)
+7. [Robolectric and SDK 37 (Android 17)](#robolectric-and-sdk-37-android-17)
+8. [Room Database Testing](#room-database-testing)
+9. [SavedStateHandle Testing](#savedstatehandle-testing)
+10. [Navigation Tests](#navigation-tests)
+11. [Compose Stability Testing](#testing-compose-stability-annotations)
+12. [UI Tests](#ui-tests)
+13. [Screenshot Testing](#screenshot-testing)
+14. [Performance Benchmarks](#performance-benchmarks)
+15. [Test Utilities](#test-utilities)
+16. [Rules](#rules)
+17. [Paging 3 Testing](#paging-3-testing)
+18. [Localization Testing](#localization-testing)
 
 ## Testing Philosophy
 
@@ -1002,6 +1003,27 @@ fun `ViewModel without Hilt injection`() = runTest {
 }
 ```
 
+## Robolectric and SDK 37 (Android 17)
+
+Use when: the module contains `@RunWith(RobolectricTestRunner::class)` tests.
+
+Skip entirely when: tests are plain JVM unit tests (ViewModels, coroutines, fakes) with no Robolectric runner.
+
+The catalog pins Robolectric `4.16.1`, which targets SDK 35 and SDK 36 (Baklava). No Robolectric release that targets SDK 37 has shipped yet.
+
+Required:
+- Compile against `compileSdk = 37` (catalog default) but annotate Robolectric tests with `@Config(sdk = [Build.VERSION_CODES.BAKLAVA])` until a Robolectric release that supports SDK 37 ships. Track [Robolectric releases](https://github.com/robolectric/robolectric/releases) and bump the catalog `robolectric` pin the moment one announces SDK 37 support.
+- Run JVM unit tests on JDK 21 when `sdk = 36` is in effect. Robolectric 4.16+ refuses to run on JDK 17 at SDK 36.
+- Stay on Robolectric `4.13` or newer regardless of the `@Config` SDK. Earlier releases predate the Android 17 `MessageQueue` rewrite and crash on launch when the platform's queue runs.
+
+```kotlin
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+class FooTest { /* ... */ }
+```
+
+Espresso `3.7.0` (catalog-pinned) is the latest stable AndroidX Test release; instrumented tests at target SDK 37 require no Espresso-side changes.
+
 ## Room Database Testing
 
 Room 3 requires a [`SQLiteDriver`](https://developer.android.com/kotlin/multiplatform/sqlite#sqlite-driver) on the database builder (the `app.android.room` convention adds `sqlite-bundled`). Use [`BundledSQLiteDriver`](https://developer.android.com/reference/kotlin/androidx/sqlite/driver/bundled/BundledSQLiteDriver) in tests the same way as in production code.
@@ -1868,6 +1890,32 @@ class AuthScreenTest {
 }
 
 ```
+
+### Compose tests v2 (Compose 1.11+)
+
+Required: write Compose UI tests against the v2 APIs. v1 APIs are deprecated.
+
+Behavior changes from v1:
+
+- Default Compose-internal dispatcher shifted from `UnconfinedTestDispatcher` to `StandardTestDispatcher`.
+- Coroutines launched inside a composable queue until the virtual clock advances; eager execution no longer happens by default.
+
+Migration: tests that relied on eager execution may need `composeTestRule.mainClock.advanceTimeBy(...)` or `composeTestRule.waitForIdle()` to flush queued work before assertions. Follow the [Compose test v2 migration guide](https://developer.android.com/develop/ui/compose/testing/migrate-v2) for the full API mapping.
+
+Forbidden: opting back into the v1 dispatcher to hide a race condition. Fix the test or the production code.
+
+The general-coroutine guidance in [Coroutine Testing](#coroutine-testing) (which still defaults to `UnconfinedTestDispatcher` in `runTest` blocks for ViewModel and repository tests) is unchanged - the v2 default applies inside the Compose test framework itself.
+
+### Trackpad input tests (Compose 1.11+)
+
+Use [`performTrackpadInput`](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/SemanticsNodeInteraction#\(androidx.compose.ui.test.SemanticsNodeInteraction\).performTrackpadInput\(kotlin.Function1\)) to drive trackpad pointer events in instrumentation tests. Pair with `performTouchInput`, `performMouseInput`, and `performKeyInput` so each gesture detector is covered across every pointer type the screen can receive.
+
+Required when a screen exposes:
+
+- `Modifier.scrollable` or `Modifier.transformable` reachable on tablet, foldable, Chromebook, or desktop form factors.
+- Custom `pointerInput` gesture detectors that branch on drag, pinch, or two-finger swipe.
+
+Cross-reference: trackpad behavior change in [compose-patterns.md → Trackpad and mouse input](/references/compose-patterns.md#trackpad-and-mouse-input-compose-111).
 
 ## Screenshot Testing
 

@@ -15,6 +15,7 @@ pattern and its modern replacement.
 8. [Edge-to-Edge](#edge-to-edge)
 9. [Legacy splash to Splash Screen API](#legacy-splash-to-splash-screen-api)
 10. [Room 2.x to Room 3](#room-2x-to-room-3)
+11. [Android 17 (API 37) Migration](#android-17-api-37-migration)
 
 ## XML to Compose
 
@@ -487,6 +488,24 @@ fun Modifier.myModifier(value: Int) = composed {
 // See references/compose-patterns.md → Modifiers → Custom Modifiers with Modifier.Node
 ```
 
+### Modifier.onFirstVisible -> Modifier.onVisibilityChanged
+
+Deprecated in Compose 1.11 (April '26). Migrate to [`Modifier.onVisibilityChanged`](https://developer.android.com/reference/kotlin/androidx/compose/ui/layout/package-summary#\(androidx.compose.ui.Modifier\).onVisibilityChanged\(kotlin.Long,kotlin.Float,androidx.compose.ui.layout.LayoutBoundsHolder,kotlin.Function1\)) and track first-visible state manually when needed - `onFirstVisible` re-fires on every scroll pass through a lazy layout.
+
+```kotlin
+// Old (deprecated)
+Modifier.onFirstVisible { logImpression(item.id) }
+
+// New
+var alreadyLogged by remember(item.id) { mutableStateOf(false) }
+Modifier.onVisibilityChanged { event ->
+    if (!alreadyLogged && event.visibleFraction > 0f) {
+        logImpression(item.id)
+        alreadyLogged = true
+    }
+}
+```
+
 ### String Routes -> Type-Safe Routes -> Navigation3
 
 ```kotlin
@@ -672,3 +691,55 @@ Step-by-step **SupportSQLite → driver** guidance: [Migrate from SupportSQLite]
 ### Room 2.x lifecycle (context only)
 
 Room 2.x remains in **maintenance** (bugfixes / dependency updates) while Room 3 is the active line ([blog](https://android-developers.googleblog.com/2026/03/room-30-modernizing-room.html)). Plan upgrades on a branch; align **Kotlin**, **KSP**, and **sqlite** versions with [Room 3 releases](https://developer.android.com/jetpack/androidx/releases/room3).
+
+## Android 17 (API 37) Migration
+
+Install **Android SDK Platform 37** in the SDK Manager (distinct from platform-tools). `compileSdk = 37` without that platform package fails sync.
+
+Set `compileSdk` / `targetSdk` to 37 in the version catalog. Pin `agp`, Gradle wrapper, `kotlin`, and `ksp` as **independently verified** pairs per [gradle-setup.md](gradle-setup.md#agp-version-pin-resolve-before-merge), [gradle-setup.md → Example tested stack](gradle-setup.md#example-tested-stack-re-verify-after-every-bump), and [dependencies.md](dependencies.md#kotlin--compose-compiler-compatibility). Gradle wrapper 9.5.x does **not** imply AGP 9.5.x; HTTP 404 on `com.android.tools.build:gradle:<version>` means that AGP coordinate is not published yet on `google()` - pick a lower published AGP that still supports API 37. Catalog `kotlin` and `ksp` need a supported combination; KSP patch numbers may differ from Kotlin patch numbers - resolve from Maven Central / KSP release notes, then run `./gradlew help`. Leave AGP built-in Kotlin enabled; do not flip `android.builtInKotlin=false` mid-migration without a full plugin plan ([gradle-setup.md → Built-in Kotlin (AGP 9)](gradle-setup.md#built-in-kotlin-agp-9)). If `compile*JavaWithJavac` fails with `MissingValueException`, isolate JaCoCo combined coverage wiring before bumping Kotlin ([android-code-coverage.md](android-code-coverage.md)). Align the Compose BOM per [dependencies.md](dependencies.md).
+
+Apply each topic below in order; authoritative rules live in the linked references.
+
+### Launcher `Activity` soft input (IME baseline)
+
+Set `android:windowSoftInputMode="adjustResize"` on the launcher `Activity` that hosts Compose even when no `TextField` exists yet; first text input on target SDK 37 otherwise hits IME inset footguns. Full rules: [compose-patterns.md → IME (soft keyboard) insets](compose-patterns.md#ime-soft-keyboard-insets).
+
+### Cleartext traffic
+
+At target SDK 37, cleartext defaults off unless a Network Security Config or manifest flag overrides it. Replace blanket `usesCleartextTraffic="true"` with domain-scoped NSC entries for dev and staging hosts. Full directives: [android-security.md → Network Security Configuration](android-security.md#network-security-configuration).
+
+### Loopback (127.0.0.1)
+
+Cross-process loopback sockets require the API 37 permission and pairing rules in [android-security.md → Loopback access (API 37)](android-security.md#loopback-access-api-37).
+
+### Certificate Transparency
+
+Default CT enforcement and per-domain opt-out live in [android-security.md → Certificate Transparency (API 37)](android-security.md#certificate-transparency-api-37).
+
+### Background media playback
+
+Route background audio and video through Media3 `MediaSessionService`, `mediaPlayback` foreground service type, and a `MediaSession` around a `Player`. Standalone `MediaPlayer`, `AudioTrack`, or raw `ExoPlayer` without a session breaks at target 37. Manifest and service skeleton: [android-media.md → Background media playback hardening (API 37)](android-media.md#background-media-playback-hardening-api-37).
+
+### Large-screen orientation and resizability
+
+`screenOrientation`, `resizableActivity="false"`, and aspect-ratio caps are ignored on `sw600dp+` displays at API 36+; API 37 keeps that rule and expects the app window to fill the display on those devices. Build `WindowSizeClass`-driven UIs instead of manifest locks. Games (`android:appCategory="game"`) follow platform carve-outs; confirm eligibility in [Android 17 migration](https://developer.android.com/about/versions/17/migration). In-repo layout rules: [compose-patterns.md → Adaptive Layouts (Mandatory on API 36+ for Large Screens)](compose-patterns.md#adaptive-layouts-mandatory-on-api-36-for-large-screens).
+
+### IME after rotation
+
+Target SDK 37 does not restore IME visibility across configuration changes by default. Wire `android:windowSoftInputMode` and runtime `WindowInsetsControllerCompat` per [compose-patterns.md → IME (soft keyboard) insets](compose-patterns.md#ime-soft-keyboard-insets).
+
+### JVM unit tests without Robolectric
+
+Pure ViewModel, coroutine, and JVM tests under `src/test/` that do not use `@RunWith(RobolectricTestRunner::class)` skip Robolectric pinning entirely.
+
+### Robolectric JVM tests
+
+Robolectric 4.16.x shadows top out at SDK 36 until a newer release adds SDK 37; pin `@Config(sdk = [Build.VERSION_CODES.BAKLAVA])` and run JVM tests on JDK 21 when using that shadow. Full checklist: [testing.md → Robolectric and SDK 37 (Android 17)](testing.md#robolectric-and-sdk-37-android-17).
+
+### Espresso instrumented tests
+
+Keep **androidx.test.espresso:espresso-core** on the catalog version (`3.7.0`); sync Gradle after the catalog bump. No separate Espresso migration path for API 37.
+
+### Explicit URI grants on shares
+
+Attach `FLAG_GRANT_READ_URI_PERMISSION` or `FLAG_GRANT_WRITE_URI_PERMISSION` explicitly when putting `content` URIs on `ACTION_SEND` (and similar) intents. Rules: [android-security.md → Forward-compatible URI grants (Android 18 prep)](android-security.md#forward-compatible-uri-grants-android-18-prep).
