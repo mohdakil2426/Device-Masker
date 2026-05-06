@@ -73,7 +73,7 @@ devicemasker/
 | Type | Correct Location | Wrong |
 | --- | --- | --- |
 | User-facing docs | `docs/public/` | `docs/internal/` |
-| Agent investigation reports/audits | `docs/internal/reports/` | project root |
+| write reports/audits file | `docs/internal/reports/` | project root |
 | Implementation plans | `docs/superpowers/plans/` | `docs/reports/` or project root |
 | Build logs and command output | `logs/build/` | project root, docs, module dirs |
 | Device testing logs, logcat, screenshots, captures, exported evidence | `logs/device/` | project root or docs |
