@@ -5,7 +5,7 @@ import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.testing.FakeLogManager
 import com.astrixforge.devicemasker.testing.FakeSettingsDataStore
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
+import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest

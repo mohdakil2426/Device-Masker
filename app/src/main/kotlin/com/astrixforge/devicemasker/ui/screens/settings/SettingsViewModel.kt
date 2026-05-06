@@ -11,7 +11,7 @@ import com.astrixforge.devicemasker.service.LogExportResult
 import com.astrixforge.devicemasker.service.LogManager
 import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
+import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

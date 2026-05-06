@@ -11,7 +11,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Contrast
@@ -33,20 +30,17 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,7 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -70,8 +63,9 @@ import com.astrixforge.devicemasker.ui.components.SettingsClickableItemWithValue
 import com.astrixforge.devicemasker.ui.components.SettingsInfoItem
 import com.astrixforge.devicemasker.ui.components.SettingsSection
 import com.astrixforge.devicemasker.ui.components.SettingsSwitchItem
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
+import com.astrixforge.devicemasker.ui.components.dialog.ThemeModeDialog
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
+import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
 /**
  * Settings screen for app preferences.
@@ -201,7 +195,7 @@ fun SettingsScreen(
     if (showThemeModeDialog) {
         ThemeModeDialog(
             currentMode = themeMode,
-            onModeSelected = { mode ->
+            onModeSelect = { mode ->
                 onThemeModeChange(mode)
                 showThemeModeDialog = false
             },
@@ -529,62 +523,6 @@ private fun RootAccessState.labelRes(): Int =
 @Composable
 private fun LoadingIndicator() {
     ContainedLoadingIndicator(modifier = Modifier.padding(end = 8.dp).width(24.dp).height(24.dp))
-}
-
-@Composable
-private fun ThemeModeDialog(
-    currentMode: ThemeMode,
-    onModeSelected: (ThemeMode) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(id = R.string.settings_theme_mode),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-        },
-        text = {
-            Column(modifier = Modifier.selectableGroup()) {
-                ThemeMode.entries.forEach { mode ->
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .selectable(
-                                    selected = mode == currentMode,
-                                    onClick = { onModeSelected(mode) },
-                                    role = Role.RadioButton,
-                                )
-                                .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = mode == currentMode, onClick = null)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(id = mode.displayNameRes),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            if (mode == ThemeMode.SYSTEM) {
-                                Text(
-                                    text =
-                                        stringResource(id = R.string.settings_theme_follow_system),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.action_cancel)) }
-        },
-    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)

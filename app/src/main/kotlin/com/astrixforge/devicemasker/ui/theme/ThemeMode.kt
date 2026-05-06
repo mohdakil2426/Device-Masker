@@ -1,4 +1,4 @@
-package com.astrixforge.devicemasker.ui.screens
+package com.astrixforge.devicemasker.ui.theme
 
 import com.astrixforge.devicemasker.R
 

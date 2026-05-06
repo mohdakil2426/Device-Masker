@@ -241,7 +241,8 @@ WebView UA spoofing is defensive:
 - `ciRelease` build type validates ProGuard rules without affecting debug builds.
 - Lint is fail-fast.
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.
-- Compose compiler metrics enabled for recomposition diagnostics.
+- Detekt runs for `:app`, `:common`, and `:xposed` using `config/detekt.yml`, module overrides, and per-module baselines.
+- Compose compiler reports/metrics are opt-in through `enableComposeCompilerReports` and `enableComposeCompilerMetrics`.
 - Memory Bank must be updated after architecture or runtime behavior changes.
 
 ## Testing Pattern

@@ -46,6 +46,9 @@ jobs:
       - name: Spotless check
         run: ./gradlew spotlessCheck --build-cache --stacktrace
 
+      - name: Detekt
+        run: ./gradlew detekt --build-cache --stacktrace
+
       - name: Compile debug Kotlin
         run: ./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin --build-cache --stacktrace
 

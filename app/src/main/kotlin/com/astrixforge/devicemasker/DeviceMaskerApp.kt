@@ -7,6 +7,7 @@ import com.astrixforge.devicemasker.service.ConfigManager
 import com.astrixforge.devicemasker.service.PersistentAppLogTree
 import com.astrixforge.devicemasker.service.ServiceClient
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
+import com.astrixforge.devicemasker.service.diagnostics.StrictModeGuard
 import timber.log.Timber
 
 /**
@@ -29,6 +30,7 @@ class DeviceMaskerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        StrictModeGuard.install()
 
         _appLogStore = AppLogStore.from(this)
         Timber.plant(PersistentAppLogTree(_appLogStore))

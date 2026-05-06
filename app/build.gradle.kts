@@ -136,8 +136,15 @@ android {
 }
 
 composeCompiler {
-    reportsDestination = layout.buildDirectory.dir("compose_compiler/reports")
-    metricsDestination = layout.buildDirectory.dir("compose_compiler/metrics")
+    val enableReports = providers.gradleProperty("enableComposeCompilerReports").orNull.toBoolean()
+    val enableMetrics = providers.gradleProperty("enableComposeCompilerMetrics").orNull.toBoolean()
+
+    if (enableReports) {
+        reportsDestination = layout.buildDirectory.dir("compose_compiler/reports")
+    }
+    if (enableMetrics) {
+        metricsDestination = layout.buildDirectory.dir("compose_compiler/metrics")
+    }
 }
 
 dependencies {

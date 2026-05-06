@@ -25,6 +25,7 @@ xposed/src/main/
 - **No reading app-private JSON** from target processes
 - **No hardcoded key strings** — use `PrefsKeys` (delegates to `SharedPrefsKeys` in `:common`)
 - **No Compose imports** — pure Kotlin + Android framework only
+- **No StrictMode installation** in target app or system_server hook paths. StrictMode is app-process debug tooling only.
 - **No direct Kotlin SAM `.intercept { ... }` callbacks** — use `stableHooker { ... }` or explicit named `XposedInterface.Hooker`
 - `libxposed:api` is `compileOnly` — LSPosed provides runtime
 - Rethrow `XposedFrameworkError` before generic `Throwable` in all catch blocks

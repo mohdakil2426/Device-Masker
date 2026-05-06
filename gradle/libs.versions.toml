@@ -32,6 +32,8 @@ immutableCollections = "0.4.0"
 # Utilities
 timber = "5.0.1"
 coilCompose = "3.4.0"
+detekt = "2.0.0-alpha.3"
+composeRules = "0.5.8"
 
 # Testing
 junit = "4.13.2"
@@ -95,6 +97,7 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 # Utilities
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coilCompose" }
+detekt-compose-rules = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "composeRules" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -112,6 +115,7 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 spotless = { id = "com.diffplug.spotless", version = "8.3.0" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
 
 [bundles]
 compose = [

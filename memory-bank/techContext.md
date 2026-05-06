@@ -23,6 +23,7 @@
 | Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
 | Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and Root Maximum support bundles |
 | Image loading | Coil Compose 3.4.0 |
+| Static analysis | Detekt 2.0.0-alpha.3 with Compose rules 0.5.8 |
 
 ## Modules
 
@@ -86,7 +87,7 @@ Current expectations:
 Primary gate:
 
 ```powershell
-.\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
 ```
 
 Targeted gates:
@@ -96,6 +97,7 @@ Targeted gates:
 .\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest --no-daemon
 .\gradlew.bat :app:testDebugUnitTest --no-daemon
 .\gradlew.bat :common:testDebugUnitTest --no-daemon
+.\gradlew.bat detekt --no-daemon
 .\gradlew.bat assembleDebug --no-daemon
 ```
 

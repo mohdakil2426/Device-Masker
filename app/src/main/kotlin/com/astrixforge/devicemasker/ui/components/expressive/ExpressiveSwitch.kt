@@ -398,7 +398,7 @@ private fun ExpressiveSwitchWithLabelPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF, name = "Light Theme")
 @Composable
 private fun ExpressiveSwitchLightPreview() {
-    DeviceMaskerTheme(themeMode = com.astrixforge.devicemasker.ui.screens.ThemeMode.LIGHT) {
+    DeviceMaskerTheme(themeMode = com.astrixforge.devicemasker.ui.theme.ThemeMode.LIGHT) {
         Row(modifier = Modifier.padding(16.dp)) {
             ExpressiveSwitch(checked = false, onCheckedChange = {})
             Spacer(modifier = Modifier.width(24.dp))

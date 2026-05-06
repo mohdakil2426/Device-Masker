@@ -7,7 +7,7 @@
 | Project phase | Development, R8 enabled in release |
 | Build | Focused R8 release gate passing: `spotlessApply spotlessCheck :xposed:testDebugUnitTest :app:assembleRelease` |
 | Unit tests | Passing |
-| Lint/format | Passing |
+| Lint/format/static analysis | Passing with Spotless, lint, and Detekt baselines |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
@@ -23,6 +23,7 @@
 - Three-module Gradle structure: `:app`, `:common`, `:xposed`.
 - Compose app launches.
 - Full Gradle gate passes, including the `ciRelease` minified variant.
+- Detekt runs across `:app`, `:common`, and `:xposed` with central config, Xposed-safe overrides, and initial per-module baselines.
 - Local config persists to app `filesDir/config.json`.
 - App-side libxposed service binding exposes connection state.
 - Config sync writes flattened per-app RemotePreferences keys.
@@ -365,6 +366,17 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - Signed and installed the full R8 release APK. Size stayed in the target range: `app-release-unsigned.apk` 4,007,831 bytes and `app-release-debugkey-signed.apk` 4,069,566 bytes.
 - Runtime smoke passed on `emulator-5554`: `com.mantle.verify` PID `7437`, `flar2.devcheck` PID `7955`; both showed `XposedEntry loaded`, target selection, `All hooks registered`, spoof events, and no `AbstractMethodError`/`FATAL EXCEPTION` in the checked log windows.
 - User confirmed the R8 build also works on a real Android 16 device.
+
+### 2026-05-06 StrictMode And Detekt Guardrails
+
+- Added debug-only `StrictModeGuard` in `:app`; it installs thread and VM StrictMode policies with `penaltyLog()` only.
+- Installed StrictMode from `DeviceMaskerApp` only. `:xposed` production sources remain StrictMode-free and are covered by `StrictModeIsolationTest`.
+- Added Detekt 2.0.0-alpha.3 plus Compose Detekt rules 0.5.8 to the version catalog.
+- Configured Detekt centrally for Android modules with reports enabled and module baselines.
+- Created `config/detekt.yml` from Detekt 2.0.0-alpha.3 generated schema, preserving the Android Ninja template's policy intent where compatible.
+- Added `xposed/detekt.yml` overrides for defensive hook patterns.
+- Gated Compose compiler reports and metrics behind Gradle properties.
+- Added Detekt to CI after Spotless.
 
 ## User-Owned External Validation
 

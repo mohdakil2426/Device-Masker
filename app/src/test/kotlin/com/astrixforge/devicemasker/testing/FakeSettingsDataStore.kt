@@ -1,7 +1,7 @@
 package com.astrixforge.devicemasker.testing
 
 import com.astrixforge.devicemasker.data.ISettingsDataStore
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
+import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

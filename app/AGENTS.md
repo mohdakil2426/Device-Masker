@@ -85,6 +85,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 
 - `AppLogStore`: JSONL events in `filesDir/logs/sessions/`
 - `LogManager`: ZIP export with Basic / Full Debug / Root Maximum modes
+- `StrictModeGuard`: debug-only app-process StrictMode policy. Never install StrictMode from `:xposed`.
 - `RootAccessManager`: libsu root grant state, startup request
 - `RootLogCaptureService`: foreground service for bounded root capture
 - `BootCaptureReceiver`: `BOOT_COMPLETED` → starts root capture
@@ -104,7 +105,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 - Release minification/resource shrinking is enabled. Runtime hook callbacks must stay R8-safe through the `:xposed` StableHooker/named `XposedInterface.Hooker` pattern.
 - `aidl = true`, `buildConfig = true`, `compose = true`
 - `useLegacyPackaging = true` for primary dex Xposed class loading
-- Compose compiler metrics in `build/compose_compiler/`
+- Compose compiler reports/metrics are opt-in with `enableComposeCompilerReports` and `enableComposeCompilerMetrics`
 - Signing from env vars: `KEYSTORE_PATH`, `KEYSTORE_PASS`, `KEY_ALIAS`, `KEY_PASS`
 
 ## Manifest

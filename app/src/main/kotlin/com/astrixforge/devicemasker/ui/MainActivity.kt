@@ -72,7 +72,6 @@ import com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigator
 import com.astrixforge.devicemasker.ui.navigation.NavDestination
 import com.astrixforge.devicemasker.ui.navigation.bottomNavItems
 import com.astrixforge.devicemasker.ui.navigation.rememberDeviceMaskerNavigationState
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
 import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsScreen
 import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModel
 import com.astrixforge.devicemasker.ui.screens.groups.GroupsScreen
@@ -86,6 +85,7 @@ import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.LocalMotionPolicy
+import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import com.astrixforge.devicemasker.ui.theme.rememberMotionPolicy
 import kotlinx.coroutines.launch
 import timber.log.Timber

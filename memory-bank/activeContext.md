@@ -4,6 +4,16 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-06 StrictMode And Detekt Guardrails
+
+- Added app-process-only `StrictModeGuard` for debug builds. It is installed from `DeviceMaskerApp` after the application singleton is assigned and uses `penaltyLog()` only.
+- `:xposed` runtime code does not install StrictMode. `StrictModeIsolationTest` guards this boundary by scanning production Xposed Kotlin sources.
+- Detekt is configured across `:app`, `:common`, and `:xposed` from root Gradle configuration with `config/detekt.yml`, module overrides, SARIF/HTML/checkstyle reports, and per-module baselines.
+- The Android Ninja Detekt template used older Detekt rule property names. The live implementation uses a Detekt 2.0.0-alpha.3 generated config as the schema base, then reapplies the template's intended Android/Compose policy choices with validation enabled.
+- `xposed/detekt.yml` relaxes generic exception, complexity, return-count, and magic-number rules for defensive hook code without changing hook runtime behavior.
+- Compose compiler reports/metrics are no longer always emitted. They are gated behind `enableComposeCompilerReports` and `enableComposeCompilerMetrics`.
+- CI quality now runs `detekt` after Spotless and uploads the existing module report directories.
+
 ## 2026-05-06 Build Audit, R8 Enablement, and Docs Reorganization
 
 ### R8 Enabled in Release

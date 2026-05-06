@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
 
 /**
  * AMOLED Dark Color Scheme.

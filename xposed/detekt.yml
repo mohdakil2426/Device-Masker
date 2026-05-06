@@ -1,0 +1,17 @@
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  TooGenericExceptionThrown:
+    active: false
+
+complexity:
+  LongMethod:
+    allowedLines: 140
+  CyclomaticComplexMethod:
+    allowedComplexity: 25
+
+style:
+  ReturnCount:
+    max: 6
+  MagicNumber:
+    active: false
