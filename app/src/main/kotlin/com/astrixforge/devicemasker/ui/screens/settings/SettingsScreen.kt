@@ -11,6 +11,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,13 +34,12 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SplitButtonDefaults
-import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,15 +83,13 @@ fun SettingsScreen(
     amoledDarkMode: Boolean = true,
     dynamicColors: Boolean = true,
     isExportingLogs: Boolean = false,
-    exportMode: BundleExportMode = BundleExportMode.BASIC,
     rootAccessState: RootAccessState = RootAccessState.UNKNOWN,
     exportResult: ExportResult? = null,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAmoledDarkModeChange: (Boolean) -> Unit = {},
     onDynamicColorChange: (Boolean) -> Unit = {},
-    onExportModeChange: (BundleExportMode) -> Unit = {},
-    onExportLogsToUri: (Uri, BundleExportMode) -> Unit = { _, _ -> },
-    onShareLogs: (BundleExportMode) -> Unit = {},
+    onExportLogsToUri: (Uri) -> Unit = {},
+    onShareLogs: () -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
@@ -100,17 +98,11 @@ fun SettingsScreen(
     var showExportSheet by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val exportNoLogsMessage = stringResource(R.string.settings_export_logs_no_logs)
     val exportSheetTitle = stringResource(R.string.settings_export_sheet_title)
     val saveTitle = stringResource(R.string.settings_export_save)
     val saveDesc = stringResource(R.string.settings_export_save_desc)
     val shareTitle = stringResource(R.string.settings_export_share)
     val shareDesc = stringResource(R.string.settings_export_share_desc)
-    val basicExportTitle = stringResource(R.string.settings_export_basic)
-    val fullExportTitle = stringResource(R.string.settings_export_full_debug)
-    val rootExportTitle = stringResource(R.string.settings_export_root_maximum)
-    val redactedDefault = stringResource(R.string.settings_export_redacted_default)
-    val rootMaximumAvailable = rootAccessState == RootAccessState.GRANTED
     val buildTypeValue =
         stringResource(
             if (BuildConfig.DEBUG) {
@@ -129,14 +121,11 @@ fun SettingsScreen(
             ThemeMode.LIGHT -> false
         }
 
-    // File picker launcher - opens native folder picker
-    var pendingExportMode by remember { mutableStateOf(exportMode) }
-    LaunchedEffect(exportMode) { pendingExportMode = exportMode }
     val exportLogsLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/zip")
         ) { uri ->
-            uri?.let { onExportLogsToUri(it, pendingExportMode) }
+            uri?.let { onExportLogsToUri(it) }
         }
 
     val exportMessage =
@@ -147,7 +136,6 @@ fun SettingsScreen(
                     exportResult.lineCount,
                     exportResult.filePath,
                 )
-            is ExportResult.NoLogs -> exportNoLogsMessage
             is ExportResult.Error ->
                 stringResource(R.string.settings_export_logs_error, exportResult.message)
             null -> null
@@ -168,7 +156,6 @@ fun SettingsScreen(
             amoledDarkMode = amoledDarkMode,
             dynamicColors = dynamicColors,
             isExportingLogs = isExportingLogs,
-            exportMode = exportMode,
             rootAccessState = rootAccessState,
             isDarkModeActive = isDarkModeActive,
             buildTypeValue = buildTypeValue,
@@ -203,82 +190,30 @@ fun SettingsScreen(
         )
     }
 
-    // Export Options Bottom Sheet
     if (showExportSheet) {
         ExportActionsBottomSheet(
             title = exportSheetTitle,
             saveLabel = saveTitle,
+            saveDescription = saveDesc,
             shareLabel = shareTitle,
-            modes =
-                listOf(
-                    ExportModeAction(
-                        title = basicExportTitle,
-                        description = redactedDefault,
-                        enabled = true,
-                        onSave = {
-                            pendingExportMode = BundleExportMode.BASIC
-                            onExportModeChange(BundleExportMode.BASIC)
-                            exportLogsLauncher.launch(generateLogFileName())
-                        },
-                        onShare = {
-                            onExportModeChange(BundleExportMode.BASIC)
-                            onShareLogs(BundleExportMode.BASIC)
-                        },
-                    ),
-                    ExportModeAction(
-                        title = fullExportTitle,
-                        description = saveDesc,
-                        enabled = true,
-                        onSave = {
-                            pendingExportMode = BundleExportMode.FULL_DEBUG
-                            onExportModeChange(BundleExportMode.FULL_DEBUG)
-                            exportLogsLauncher.launch(generateLogFileName())
-                        },
-                        onShare = {
-                            onExportModeChange(BundleExportMode.FULL_DEBUG)
-                            onShareLogs(BundleExportMode.FULL_DEBUG)
-                        },
-                    ),
-                    ExportModeAction(
-                        title = rootExportTitle,
-                        description =
-                            if (rootMaximumAvailable) {
-                                stringResource(R.string.settings_export_unredacted_warning)
-                            } else {
-                                stringResource(R.string.root_access_required_for_root_export)
-                            },
-                        enabled = rootMaximumAvailable,
-                        onSave = {
-                            pendingExportMode = BundleExportMode.ROOT_MAXIMUM
-                            onExportModeChange(BundleExportMode.ROOT_MAXIMUM)
-                            exportLogsLauncher.launch(generateLogFileName())
-                        },
-                        onShare = {
-                            onExportModeChange(BundleExportMode.ROOT_MAXIMUM)
-                            onShareLogs(BundleExportMode.ROOT_MAXIMUM)
-                        },
-                    ),
-                ),
+            shareDescription = shareDesc,
+            onSave = { exportLogsLauncher.launch(generateLogFileName()) },
+            onShare = onShareLogs,
             onDismiss = { showExportSheet = false },
         )
     }
 }
 
-private data class ExportModeAction(
-    val title: String,
-    val description: String,
-    val enabled: Boolean,
-    val onSave: () -> Unit,
-    val onShare: () -> Unit,
-)
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExportActionsBottomSheet(
     title: String,
     saveLabel: String,
+    saveDescription: String,
     shareLabel: String,
-    modes: List<ExportModeAction>,
+    shareDescription: String,
+    onSave: () -> Unit,
+    onShare: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -296,73 +231,35 @@ private fun ExportActionsBottomSheet(
                 modifier = Modifier.padding(bottom = 16.dp),
             )
 
-            modes.forEach { mode ->
-                ExportModeSplitButton(
-                    mode = mode,
-                    saveLabel = saveLabel,
-                    shareLabel = shareLabel,
-                    onDismiss = onDismiss,
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ExportModeSplitButton(
-    mode: ExportModeAction,
-    saveLabel: String,
-    shareLabel: String,
-    onDismiss: () -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = mode.title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color =
-                if (mode.enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-        )
-        Text(
-            text = mode.description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
-        )
-
-        SplitButtonLayout(
-            leadingButton = {
-                SplitButtonDefaults.TonalLeadingButton(
-                    enabled = mode.enabled,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                FilledTonalButton(
                     onClick = {
-                        mode.onSave()
+                        onSave()
                         onDismiss()
                     },
+                    modifier = Modifier.weight(1f),
                 ) {
-                    Icon(imageVector = Icons.Outlined.Save, contentDescription = null)
+                    Icon(imageVector = Icons.Outlined.Save, contentDescription = saveDescription)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(saveLabel)
                 }
-            },
-            trailingButton = {
-                SplitButtonDefaults.TonalTrailingButton(
-                    checked = false,
-                    enabled = mode.enabled,
-                    onCheckedChange = {
-                        mode.onShare()
+
+                FilledTonalButton(
+                    onClick = {
+                        onShare()
                         onDismiss()
                     },
+                    modifier = Modifier.weight(1f),
                 ) {
-                    Icon(imageVector = Icons.Outlined.Share, contentDescription = shareLabel)
+                    Icon(imageVector = Icons.Outlined.Share, contentDescription = shareDescription)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(shareLabel)
                 }
-            },
-        )
+            }
+        }
     }
 }
 
@@ -373,7 +270,6 @@ private fun SettingsScreenContent(
     amoledDarkMode: Boolean,
     dynamicColors: Boolean,
     isExportingLogs: Boolean,
-    exportMode: BundleExportMode,
     rootAccessState: RootAccessState,
     isDarkModeActive: Boolean,
     buildTypeValue: String,
@@ -456,7 +352,7 @@ private fun SettingsScreenContent(
                         if (isExportingLogs) {
                             stringResource(id = R.string.settings_exporting)
                         } else {
-                            "${stringResource(id = R.string.settings_export_logs_description)} • ${exportMode.name}"
+                            stringResource(id = R.string.settings_export_logs_description)
                         },
                     onClick = { if (!isExportingLogs) onExportLogsClick() },
                     trailingContent =

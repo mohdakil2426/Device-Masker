@@ -62,7 +62,6 @@ import com.astrixforge.devicemasker.ui.components.StatCard
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
@@ -98,15 +97,14 @@ fun HomeScreen(
     onNavigateToGroup: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val navigateToSpoofWhenResumed =
-        dropUnlessResumed {
-            val selectedGroup = state.selectedGroup
-            if (onNavigateToGroup != null && selectedGroup != null) {
-                onNavigateToGroup(selectedGroup.id)
-            } else {
-                onNavigateToSpoof()
-            }
+    val navigateToSpoofWhenResumed = dropUnlessResumed {
+        val selectedGroup = state.selectedGroup
+        if (onNavigateToGroup != null && selectedGroup != null) {
+            onNavigateToGroup(selectedGroup.id)
+        } else {
+            onNavigateToSpoof()
         }
+    }
 
     HomeScreenContent(
         isXposedActive = state.isXposedActive,
@@ -116,7 +114,6 @@ fun HomeScreen(
         onGroupSelected = { group -> viewModel.selectGroup(group.id) },
         enabledAppsCount = state.enabledAppsCount,
         maskedIdentifiersCount = state.maskedIdentifiersCount,
-        onModuleEnabledChange = { enabled -> viewModel.setModuleEnabled(enabled) },
         onNavigateToSpoof = navigateToSpoofWhenResumed,
         onRegenerateAll = { viewModel.regenerateAll { onRegenerateAll() } },
         isLoading = state.isLoading,
@@ -134,7 +131,6 @@ fun HomeScreenContent(
     onGroupSelected: (SpoofGroup) -> Unit,
     enabledAppsCount: Int,
     maskedIdentifiersCount: Int,
-    onModuleEnabledChange: (Boolean) -> Unit,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -155,7 +151,6 @@ fun HomeScreenContent(
                 StatusCard(
                     isXposedActive = isXposedActive,
                     isModuleEnabled = isModuleEnabled,
-                    onModuleEnabledChange = onModuleEnabledChange,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -211,7 +206,6 @@ fun HomeScreenContent(
 private fun StatusCard(
     isXposedActive: Boolean,
     isModuleEnabled: Boolean,
-    onModuleEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val statusColor by
@@ -333,23 +327,6 @@ private fun StatusCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
-                    }
-                }
-
-                // Enable/Disable Toggle
-                if (isXposedActive) {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(id = R.string.home_module_enabled_label),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        ExpressiveSwitch(
-                            checked = isModuleEnabled,
-                            onCheckedChange = onModuleEnabledChange,
                         )
                     }
                 }
@@ -567,7 +544,6 @@ fun HomeScreenContentPreview() {
             onGroupSelected = {},
             enabledAppsCount = 12,
             maskedIdentifiersCount = 24,
-            onModuleEnabledChange = {},
             onNavigateToSpoof = {},
             onRegenerateAll = {},
         )
@@ -586,7 +562,6 @@ fun HomeScreenInactivePreview() {
             onGroupSelected = {},
             enabledAppsCount = 0,
             maskedIdentifiersCount = 0,
-            onModuleEnabledChange = {},
             onNavigateToSpoof = {},
             onRegenerateAll = {},
         )

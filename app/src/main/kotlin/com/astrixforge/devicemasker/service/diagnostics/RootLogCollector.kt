@@ -6,7 +6,20 @@ class RootLogCollector(private val rootShell: RootShell = RootShell()) {
     fun collect(outputDir: File, targetPackage: String?): List<RootCommandResult> {
         outputDir.mkdirs()
         val target = targetPackage?.takeIf(::isValidPackageName)
-        val targetPattern = target?.let { "|$it" }.orEmpty()
+        val evidencePattern =
+            buildList {
+                    add("DeviceMasker")
+                    add("LSPosed")
+                    add("lspd")
+                    add("XposedEntry")
+                    add("All hooks registered")
+                    add("Spoof event")
+                    add("AndroidRuntime")
+                    add("FATAL EXCEPTION")
+                    add("ANR")
+                    target?.let(::add)
+                }
+                .joinToString("|")
         val results = buildList {
             add(
                 collectFile(
@@ -19,7 +32,7 @@ class RootLogCollector(private val rootShell: RootShell = RootShell()) {
                 collectFile(
                     outputDir,
                     "logcat_filtered_devicemasker_lsposed.txt",
-                    "logcat -d -v threadtime | grep -i -E 'DeviceMasker|LSPosed|lspd|AndroidRuntime|FATAL EXCEPTION|ANR|com.mantle.verify$targetPattern'",
+                    "logcat -d -v threadtime | grep -i -E '$evidencePattern'",
                 )
             )
             add(collectFile(outputDir, "anr/list.txt", "ls /data/anr"))

@@ -14,7 +14,6 @@ import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import com.astrixforge.devicemasker.service.diagnostics.RootCaptureStore
 import com.astrixforge.devicemasker.service.diagnostics.RootLogCollector
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilder
-import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,14 +32,10 @@ object LogManager : ILogManager {
     private const val LOG_FILE_PREFIX = "devicemasker_support_"
     private const val LOG_FILE_EXTENSION = ".zip"
 
-    override suspend fun exportLogsToUri(
-        context: Context,
-        uri: Uri,
-        mode: SupportBundleMode,
-    ): LogExportResult =
+    override suspend fun exportLogsToUri(context: Context, uri: Uri): LogExportResult =
         withContext(Dispatchers.IO) {
             try {
-                val bundle = buildSupportBundle(context, mode)
+                val bundle = buildSupportBundle(context)
 
                 val outputStream = context.contentResolver.openOutputStream(uri)
                 if (outputStream == null) {
@@ -60,23 +55,16 @@ object LogManager : ILogManager {
             }
         }
 
-    override suspend fun createShareableLogFile(
-        context: Context,
-        mode: SupportBundleMode,
-    ): ShareableLogResult =
+    override suspend fun createShareableLogFile(context: Context): ShareableLogResult =
         withContext(Dispatchers.IO) {
             try {
-                if (mode != SupportBundleMode.ROOT_MAXIMUM && !hasAnyLogs(context)) {
-                    return@withContext ShareableLogResult.NoLogs
-                }
-
                 val logsDir = File(context.cacheDir, "logs")
                 if (!logsDir.exists()) {
                     logsDir.mkdirs()
                 }
 
                 val fileName = generateLogFileName()
-                val bundle = buildSupportBundle(context, mode, logsDir)
+                val bundle = buildSupportBundle(context, logsDir)
                 val logFile = File(logsDir, fileName)
                 if (bundle.name != logFile.name) {
                     bundle.copyTo(logFile, overwrite = true)
@@ -97,27 +85,22 @@ object LogManager : ILogManager {
 
     private suspend fun buildSupportBundle(
         context: Context,
-        mode: SupportBundleMode,
         outputDir: File = File(context.cacheDir, "logs"),
     ): File {
         val appEvents = AppLogStore.from(context).readDiagnosticEvents()
         val rootArtifactsDir =
-            if (mode == SupportBundleMode.ROOT_MAXIMUM) {
-                RootCaptureStore.prepareExportArtifacts(context, outputDir).also { rootDir ->
-                    if (RootAccessManager.hasGrantedRoot()) {
-                        RootLogCollector().collect(File(rootDir, "export_snapshot"), null)
-                    } else {
-                        RootCaptureStore.writeManifest(
-                            dir = rootDir,
-                            trigger = "export",
-                            status = "ROOT_UNAVAILABLE",
-                            message =
-                                "Root access is not currently granted; export used captured root artifacts only.",
-                        )
-                    }
+            RootCaptureStore.prepareExportArtifacts(context, outputDir).also { rootDir ->
+                if (RootAccessManager.hasGrantedRoot()) {
+                    RootLogCollector().collect(File(rootDir, "export_snapshot"), null)
+                } else {
+                    RootCaptureStore.writeManifest(
+                        dir = rootDir,
+                        trigger = "export",
+                        status = "ROOT_UNAVAILABLE",
+                        message =
+                            "Root access is not currently granted; export used captured root artifacts only.",
+                    )
                 }
-            } else {
-                null
             }
         val rootAvailable = RootAccessManager.hasGrantedRoot()
         val snapshots =
@@ -154,7 +137,7 @@ object LogManager : ILogManager {
                 snapshots = snapshots,
                 rootArtifactsDir = rootArtifactsDir,
             )
-            .build(outputDir, mode, RedactionMode.REDACTED)
+            .build(outputDir, RedactionMode.REDACTED)
     }
 
     suspend fun getLogCount(): Int =
@@ -164,11 +147,6 @@ object LogManager : ILogManager {
             } catch (_: Exception) {
                 0
             }
-        }
-
-    private suspend fun hasAnyLogs(context: Context): Boolean =
-        withContext(Dispatchers.IO) {
-            AppLogStore.from(context).readEntries().isNotEmpty()
         }
 
     override fun generateLogFileName(): String {
@@ -188,6 +166,4 @@ sealed class ShareableLogResult {
         ShareableLogResult()
 
     data class Error(val message: String) : ShareableLogResult()
-
-    data object NoLogs : ShareableLogResult()
 }

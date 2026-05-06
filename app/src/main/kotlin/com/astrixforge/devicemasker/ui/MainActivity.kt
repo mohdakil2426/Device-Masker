@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.ui
 
 import android.app.Activity
+import android.content.ClipData
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -350,7 +351,6 @@ fun DeviceMaskerMainApp(
                                 amoledDarkMode = amoledMode,
                                 dynamicColors = dynamicColors,
                                 isExportingLogs = settingsState.isExportingLogs,
-                                exportMode = settingsState.exportMode,
                                 rootAccessState = rootAccessState,
                                 exportResult = settingsState.exportResult,
                                 onThemeModeChange = { mode ->
@@ -365,14 +365,13 @@ fun DeviceMaskerMainApp(
                                     Timber.d("Dynamic colors changed: $enabled")
                                     settingsViewModel.setDynamicColors(enabled)
                                 },
-                                onExportModeChange = settingsViewModel::setExportMode,
-                                onExportLogsToUri = { uri, mode ->
+                                onExportLogsToUri = { uri ->
                                     Timber.d("Exporting logs to: $uri")
-                                    settingsViewModel.exportLogsToUri(uri, mode)
+                                    settingsViewModel.exportLogsToUri(uri)
                                 },
-                                onShareLogs = { mode ->
+                                onShareLogs = {
                                     Timber.d("Sharing logs...")
-                                    settingsViewModel.createShareableLogs(mode) { result ->
+                                    settingsViewModel.createShareableLogs { result ->
                                         when (result) {
                                             is ShareableLogResult.Success -> {
                                                 val shareIntent =
@@ -383,6 +382,12 @@ fun DeviceMaskerMainApp(
                                                             Intent.EXTRA_SUBJECT,
                                                             shareLogsChooserTitle,
                                                         )
+                                                        clipData =
+                                                            ClipData.newUri(
+                                                                context.contentResolver,
+                                                                result.fileName,
+                                                                result.uri,
+                                                            )
                                                         addFlags(
                                                             Intent.FLAG_GRANT_READ_URI_PERMISSION
                                                         )
@@ -393,9 +398,6 @@ fun DeviceMaskerMainApp(
                                                         shareLogsChooserTitle,
                                                     )
                                                 )
-                                            }
-                                            is ShareableLogResult.NoLogs -> {
-                                                Timber.d("No logs to share")
                                             }
                                             is ShareableLogResult.Error -> {
                                                 Timber.e("Failed to share logs: ${result.message}")

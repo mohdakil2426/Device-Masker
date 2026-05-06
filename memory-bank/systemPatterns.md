@@ -163,9 +163,9 @@ sequenceDiagram
 
 Diagnostics facts:
 - App logs are rootless structured `DiagnosticEvent` JSONL stored in app sandbox.
-- Support bundles are ZIP files with Basic, Full Debug, and Root Maximum modes.
+- Support export has one user-facing `Export Logs` path backed by the maximum root/logcat bundle.
 - Exports are redacted by default; raw identifiers must not be logged by default.
-- Root Maximum collection is opt-in and uses bounded fixed command templates.
+- Root/logcat collection uses bounded fixed command templates during boot/startup capture and export-time fresh snapshot.
 - LSPosed logs are the authoritative source for target-process hook events.
 - There is no custom Device Masker Binder service in system_server.
 - Diagnostics UI does not read custom service status; target hook proof comes from LSPosed/logcat.

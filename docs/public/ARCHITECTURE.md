@@ -161,7 +161,7 @@ flowchart TD
     Hook["Target hookers"]
     LS["LSPosed logs"]
     UI["Diagnostics UI"]
-    Root["Root Maximum logcat artifacts"]
+    Root["Root/logcat support artifacts"]
 
     AppTimber --> AppStore --> Export
     Hook --> LS
@@ -172,7 +172,10 @@ flowchart TD
 Important facts:
 - App logs are stored without root in app-owned storage.
 - LSPosed logs are the authoritative hook-side runtime evidence.
-- Root Maximum exports can include opt-in root/logcat artifacts when root is available.
+- Support export has one user-facing path: Export Logs.
+- Export Logs builds the maximum local support bundle.
+- The bundle includes app JSONL events, redacted diagnostic snapshots, latest boot/startup root capture, and a fresh export-time root/logcat snapshot when root is granted.
+- If root is unavailable, export still creates a ZIP with app logs, snapshots, and a root-unavailable manifest.
 - There is no custom Device Masker Binder service in system_server.
 - App export should stay minimal and structured.
 

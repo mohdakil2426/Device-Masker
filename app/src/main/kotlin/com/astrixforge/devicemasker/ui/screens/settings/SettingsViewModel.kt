@@ -3,14 +3,12 @@ package com.astrixforge.devicemasker.ui.screens.settings
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.ISettingsDataStore
 import com.astrixforge.devicemasker.service.ILogManager
 import com.astrixforge.devicemasker.service.LogExportResult
 import com.astrixforge.devicemasker.service.LogManager
 import com.astrixforge.devicemasker.service.ShareableLogResult
-import com.astrixforge.devicemasker.service.diagnostics.SupportBundleMode
 import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -36,20 +34,9 @@ class SettingsViewModel(
     private val settingsStore: ISettingsDataStore,
     private val logManager: ILogManager = LogManager,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : AndroidViewModel(application) {
 
-    private val _state =
-        MutableStateFlow(
-            SettingsState(
-                exportMode =
-                    BundleExportMode.entries.getOrElse(
-                        savedStateHandle[KEY_EXPORT_MODE] ?: BundleExportMode.BASIC.ordinal
-                    ) {
-                        BundleExportMode.BASIC
-                    }
-            )
-        )
+    private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     init {
@@ -85,25 +72,18 @@ class SettingsViewModel(
         viewModelScope.launch { settingsStore.setDynamicColors(enabled) }
     }
 
-    fun setExportMode(mode: BundleExportMode) {
-        savedStateHandle[KEY_EXPORT_MODE] = mode.ordinal
-        _state.update { it.copy(exportMode = mode) }
-    }
-
     // ═══════════════════════════════════════════════════════════
     // EXPORT LOGS
     // ═══════════════════════════════════════════════════════════
 
     /** Exports app-owned structured logs and available diagnostics logs to a custom URI. */
-    fun exportLogsToUri(uri: Uri, mode: BundleExportMode = state.value.exportMode) {
+    fun exportLogsToUri(uri: Uri) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result =
                 withContext(ioDispatcher) {
-                    logManager
-                        .exportLogsToUri(getApplication(), uri, mode.toSupportMode())
-                        .toExportResult()
+                    logManager.exportLogsToUri(getApplication(), uri).toExportResult()
                 }
 
             _state.update { it.copy(isExportingLogs = false, exportResult = result) }
@@ -114,17 +94,12 @@ class SettingsViewModel(
      * Creates a shareable log file and returns the result. The caller should use the URI to launch
      * a share intent.
      */
-    fun createShareableLogs(
-        mode: BundleExportMode = state.value.exportMode,
-        onResult: (ShareableLogResult) -> Unit,
-    ) {
+    fun createShareableLogs(onResult: (ShareableLogResult) -> Unit) {
         viewModelScope.launch {
             _state.update { it.copy(isExportingLogs = true, exportResult = null) }
 
             val result =
-                withContext(ioDispatcher) {
-                    logManager.createShareableLogFile(getApplication(), mode.toSupportMode())
-                }
+                withContext(ioDispatcher) { logManager.createShareableLogFile(getApplication()) }
 
             _state.update { it.copy(isExportingLogs = false) }
             onResult(result)
@@ -142,21 +117,10 @@ class SettingsViewModel(
     /** Generate filename for Export Logs file picker */
     fun generateLogFileName(): String = logManager.generateLogFileName()
 
-    private fun BundleExportMode.toSupportMode(): SupportBundleMode =
-        when (this) {
-            BundleExportMode.BASIC -> SupportBundleMode.BASIC
-            BundleExportMode.FULL_DEBUG -> SupportBundleMode.FULL
-            BundleExportMode.ROOT_MAXIMUM -> SupportBundleMode.ROOT_MAXIMUM
-        }
-
     private fun LogExportResult.toExportResult(): ExportResult {
         return when (this) {
             is LogExportResult.Success -> ExportResult.Success(filePath, lineCount)
             is LogExportResult.Error -> ExportResult.Error(message)
         }
-    }
-
-    private companion object {
-        const val KEY_EXPORT_MODE = "exportMode"
     }
 }

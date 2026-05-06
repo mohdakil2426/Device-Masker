@@ -21,7 +21,7 @@
 | Serialization | kotlinx.serialization JSON 1.10.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
 | Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
-| Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and Root Maximum support bundles |
+| Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and single root/logcat support export |
 | Image loading | Coil Compose 3.4.0 |
 | Static analysis | Detekt 2.0.0-alpha.3 with Compose rules 0.5.8 |
 

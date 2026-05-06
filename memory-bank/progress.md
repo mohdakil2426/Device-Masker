@@ -49,11 +49,12 @@
 - Class lookup anti-detection remains disabled by default and only registers when both per-app opt-ins are enabled.
 - Hook-side registration and spoof events are mirrored to LSPosed logs.
 - Rootless app log export works from app-owned storage.
-- Redacted support bundle export works for Basic, Full Debug, and Root Maximum modes at the unit level.
-- Root Maximum collector builds bounded root artifact files behind opt-in libsu root execution.
-- Root Maximum support bundles include root artifacts and command-result manifests when exported.
+- Single support export works through `Export Logs` and builds the maximum root/logcat bundle.
+- Root/logcat collector builds bounded root artifact files behind opt-in libsu root execution.
+- Support bundles include root artifacts and command-result manifests when exported.
 - Root access is requested on first app startup, tracked centrally, and surfaced in Settings.
-- Boot/startup Root Maximum capture writes latest root artifacts before export.
+- Boot/startup capture writes latest root artifacts before export.
+- Export-time snapshot captures fresh LSPosed/logcat evidence when root is granted.
 - The current debug APK installs and launches on `emulator-5554` through Mobile MCP and ADB.
 - App-owned root capture artifacts are visible through `adb shell run-as com.astrixforge.devicemasker ls files/logs/root-capture/latest`.
 - Diagnostics state distinguishes framework connection and local diagnostic checks.
@@ -144,17 +145,17 @@ Latest verification caveat:
 - Replaced app TSV log persistence with structured JSONL diagnostic events.
 - Added Xposed structured event sink, hook health registry, and spoof aggregation.
 - Added diagnostics service log buffer cap and dropped-count tracking.
-- Added root command runner and Root Maximum log collector.
+- Added root command runner and root/logcat collector.
 - Added redacted snapshots and ZIP support bundle builder.
-- Added Settings export modes for Basic, Full Debug, and Root Maximum bundles.
+- Added Settings support export. Current production UI now exposes a single `Export Logs` path.
 - Documented architecture in `docs/reports/MAXIMUM_DIAGNOSTICS_LOGGING_ARCHITECTURE_2026-05-03.md`.
 
 ### 2026-05-03 Diagnostics, Root Logging, And Spoofing Audit Fixes
 
 - Added libsu core 6.0.0 for production root command execution.
 - Kept `RootCommandExecutor` injectable for unit tests.
-- Wired `RootLogCollector` into Root Maximum support bundle creation.
-- Ensured Root Maximum share export can build a bundle even when app/service logs are empty.
+- Wired `RootLogCollector` into support bundle creation.
+- Ensured share export can build a bundle even when app/service logs are empty.
 - Added root command manifests with status, exit code, timeout, root availability, and stderr summary.
 - Added target package validation before shell command construction and skipped target-specific commands for invalid package names.
 - Reworked Diagnostics service state so absent service evidence is unavailable/unknown instead of hooked app count `0`.
@@ -168,11 +169,11 @@ Latest verification caveat:
 - Requested root during app startup instead of during export.
 - Added warning dialog when root is denied or unavailable.
 - Added Settings root access status.
-- Disabled Root Maximum export UI when root is not granted.
+- Root access status is shown separately from export actions.
 - Added `RootLogCaptureService` foreground service for bounded root capture.
 - Added `BootCaptureReceiver` for `BOOT_COMPLETED` root capture.
 - Added latest root capture artifact storage under app files.
-- Changed Root Maximum export to package captured artifacts and avoid surprise root prompts after folder selection.
+- Changed export to package captured artifacts and avoid surprise root prompts after folder selection.
 
 ## Verification Evidence
 
@@ -402,8 +403,8 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
   service state.
 - Removed the app service client interfaces, common AIDL contract, Xposed system-server service,
   diagnostics ring buffer, system-service hooker, tests/fakes, and stale R8 keep rules.
-- Support bundles now use app JSONL events, redacted snapshots, and optional Root Maximum
-  root/logcat artifacts. Hook evidence remains LSPosed/logcat-owned.
+- Support bundles now use app JSONL events, redacted snapshots, and optional root/logcat artifacts.
+  Hook evidence remains LSPosed/logcat-owned.
 
 ### 2026-05-07 Navigation 3 Audit Cleanup
 
@@ -428,7 +429,7 @@ Accepted as user-owned completion for master-plan closure:
 - Validate per-app risky-hook and class lookup hiding opt-ins in LSPosed target processes.
 - Test package visibility hiding with API 33+ flag object overloads.
 - Export logs after target hook events and verify exported output is useful.
-- Smoke-test Basic, Full Debug, and Root Maximum bundle export on device.
+- Smoke-test single `Export Logs` bundle export on device.
 - Reboot emulator/device and verify `BootCaptureReceiver` creates a `boot` root capture.
 - Complete light/dark/AMOLED/dynamic-color visual matrix, large-font, high-contrast, and TalkBack/Accessibility Scanner audits.
 - Manually validate full Navigation 3 stack restoration after process death.

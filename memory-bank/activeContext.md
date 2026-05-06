@@ -4,6 +4,15 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-07 Single Root-Backed Export Implementation
+
+- Settings export is now a single `Export Logs` sheet with Save and Share actions.
+- Basic/Full/Root-mode selection was removed from production state and service APIs.
+- Export always builds the maximum support bundle internally: app JSONL events, diagnostic snapshots, latest boot/startup root capture, and a fresh export-time root/logcat snapshot when root is granted.
+- If root is unavailable, export still creates a ZIP and writes a root-unavailable manifest instead of disabling export.
+- `RootLogCollector` no longer hardcodes `com.mantle.verify`; filtered logcat uses generic DeviceMasker/LSPosed/hook evidence terms plus an optional validated target package.
+- Shared log URI grants now include `ClipData` with `FLAG_GRANT_READ_URI_PERMISSION`.
+
 ## 2026-05-07 Navigation 3 Audit Cleanup
 
 - Hardened Navigation 3 click navigation by adding `dropUnlessResumed` to bottom navigation,
@@ -28,7 +37,7 @@ Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed 
 - `DiagnosticsViewModel` no longer injects or reads service state; diagnostics now show module
   connection, config-sync guidance, anti-detection checks, and local real/spoofed comparisons.
 - Hook-side evidence now stays in LSPosed/logcat plus hook-health metrics. Support bundles contain
-  app JSONL events, redacted snapshots, and optional Root Maximum root/logcat artifacts.
+  app JSONL events, redacted snapshots, and optional root/logcat artifacts.
 - AIDL build features are disabled in `:app`, `:common`, and `:xposed`. R8 keep rules for the deleted
   Binder types were removed.
 - Root cause confirmed again: target-process hook events are authoritative in LSPosed/logcat. The
@@ -240,17 +249,17 @@ Implemented local-first structured diagnostics:
 - Rotating app JSONL diagnostic store and app Timber migration.
 - Structured Xposed diagnostic sink and hook health registry with spoof event aggregation.
 - Diagnostics service ring buffer with dropped-log tracking.
-- Root shell and Root Maximum collector for bounded logcat, ANR, tombstone, dumpsys, and getprop artifacts.
-- Redacted snapshots and support bundle ZIP export modes: Basic, Full Debug, Root Maximum.
+- Root shell and root/logcat collector for bounded logcat, ANR, tombstone, dumpsys, and getprop artifacts.
+- Redacted snapshots and single support bundle ZIP export path.
 
-Root Maximum still needs rooted-device smoke validation. Target LSPosed smoke has not been rerun after this diagnostics work.
+Root/logcat export still needs rooted-device smoke validation. Target LSPosed smoke has not been rerun after this diagnostics work.
 
 ## 2026-05-03 Diagnostics And Root Export Audit Fixes
 
 Implemented the follow-up audit fixes for diagnostics and root evidence:
 - Diagnostics UI state now distinguishes app-side framework connection from optional diagnostics service availability and hook evidence. Unavailable service-backed hook evidence is represented as unavailable/unknown instead of `0`.
-- Root Maximum share/export no longer short-circuits as `NoLogs` before root collection.
-- Root Maximum support bundles now invoke `RootLogCollector`, include `root/` artifacts, and snapshot actual root/service availability.
+- Support share/export no longer short-circuits as `NoLogs` before root collection.
+- Support bundles now invoke `RootLogCollector`, include `root/` artifacts, and snapshot actual root/service availability.
 - Production root command execution uses libsu core 6.0.0; the `RootCommandExecutor` interface remains for unit tests.
 - Root command output now includes per-command manifests and a collector `command_manifest.jsonl` with status, exit code, timeout, root availability, and stderr summary.
 - Target package names are validated before inclusion in root shell commands; invalid or blank target packages skip target-specific commands.
@@ -265,7 +274,7 @@ Verification:
 
 Result: `BUILD SUCCESSFUL`. Gradle emitted a transient Kotlin daemon session warning and compiled with fallback, but the command exited successfully.
 
-Rooted-device Root Maximum export and target LSPosed runtime smoke still need to be rerun.
+Rooted-device export and target LSPosed runtime smoke still need to be rerun.
 
 Runtime smoke rerun after these fixes:
 - Installed `app/build/outputs/apk/debug/app-debug.apk` on `emulator-5554`.
@@ -276,19 +285,19 @@ Runtime smoke rerun after these fixes:
 - Logcat showed spoof events for LOCALE, ANDROID_ID, CARRIER_MCC_MNC, NETWORK_OPERATOR, IMEI, BLUETOOTH_MAC, WIFI_MAC, WIFI_SSID, PHONE_NUMBER, ADVERTISING_ID, MEDIA_DRM_ID, SIM_OPERATOR_NAME, and TIMEZONE.
 - No matching final-window fatal signatures were found for `FATAL EXCEPTION`, `PatternSyntaxException`, `Cannot hook abstract`, `AbstractMethodError`, or `WorkManagerInitializer`.
 
-Root Maximum in-app export still needs manual/UI validation on the rooted device.
+Root/logcat in-app export still needs manual/UI validation on the rooted device.
 
 ## 2026-05-04 Startup Root And Boot Capture
 
 Implemented root-first diagnostics flow:
 - `RootAccessManager` now owns root state: unknown, requesting, granted, denied, unavailable.
-- First app launch/startup requests root from `MainActivity`; denial/unavailable shows a warning dialog explaining that Root Maximum logging, boot capture, and privileged diagnostics will not work.
-- Settings shows root access status and disables Root Maximum export when root is not granted.
+- First app launch/startup requests root from `MainActivity`; denial/unavailable shows a warning dialog explaining that root logging, boot capture, and privileged diagnostics will not work.
+- Settings shows root access status while keeping the single export action available when root is not granted.
 - `RootShell` no longer probes with `Shell.getShell()` during export. Export uses root only when `Shell.isAppGrantedRoot()` already reports granted, avoiding the late root prompt after folder selection.
 - Added `RootLogCaptureService` as a `specialUse` foreground service for bounded root capture.
 - Added `BootCaptureReceiver` for `BOOT_COMPLETED`; it starts the foreground root capture service after device boot.
 - Startup root grant starts the same capture service immediately with trigger `startup`.
-- Root Maximum export packages the latest captured root artifacts and can add an export snapshot only if root is already granted.
+- Export packages the latest captured root artifacts and can add an export snapshot only if root is already granted.
 
 Validation:
 - `.\gradlew.bat :app:testDebugUnitTest --no-daemon` passed.

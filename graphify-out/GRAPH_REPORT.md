@@ -1,16 +1,16 @@
 # Graph Report - devicemasker  (2026-05-07)
 
 ## Corpus Check
-- 189 files · ~154,962 words
+- 216 files · ~160,349 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3378 nodes · 4636 edges · 275 communities (117 shown, 158 thin omitted)
-- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 658 edges (avg confidence: 0.81)
+- 3253 nodes · 3499 edges · 341 communities (203 shown, 138 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 240 edges (avg confidence: 0.82)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9bc12364`
+- Built from commit: `fc95e5f0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -107,7 +107,6 @@
 - [[_COMMUNITY_Diagnostic Event|Diagnostic Event]]
 - [[_COMMUNITY_IMEIGenerator|IMEIGenerator]]
 - [[_COMMUNITY_MACGenerator|MACGenerator]]
-- [[_COMMUNITY_Phone Number Generator|Phone Number Generator]]
 - [[_COMMUNITY_SIMGenerator|SIMGenerator]]
 - [[_COMMUNITY_Diagnostic Event Test|Diagnostic Event Test]]
 - [[_COMMUNITY_Diagnostic Redactor Test|Diagnostic Redactor Test]]
@@ -148,6 +147,7 @@
 - [[_COMMUNITY_Standard Dialogs|Standard Dialogs]]
 - [[_COMMUNITY_Timezone Picker Dialog|Timezone Picker Dialog]]
 - [[_COMMUNITY_Animated Section|Animated Section]]
+- [[_COMMUNITY_Expressive Card|Expressive Card]]
 - [[_COMMUNITY_Expressive Icon Button|Expressive Icon Button]]
 - [[_COMMUNITY_Diagnostics State Test|Diagnostics State Test]]
 - [[_COMMUNITY_Dispatcher Rule|Dispatcher Rule]]
@@ -176,7 +176,6 @@
 - [[_COMMUNITY_Config Manager Persona Test|Config Manager Persona Test]]
 - [[_COMMUNITY_Diagnostic Snapshot Builder Test|Diagnostic Snapshot Builder Test]]
 - [[_COMMUNITY_Support Bundle Builder Test|Support Bundle Builder Test]]
-- [[_COMMUNITY_SIMConfig|SIMConfig]]
 - [[_COMMUNITY_Secure Random Utils|Secure Random Utils]]
 - [[_COMMUNITY_Master Implementation Plan Completion|Master Implementation Plan Completion]]
 - [[_COMMUNITY_Installed App|Installed App]]
@@ -237,10 +236,7 @@
 - [[_COMMUNITY_Community 220|Community 220]]
 - [[_COMMUNITY_Community 221|Community 221]]
 - [[_COMMUNITY_Community 222|Community 222]]
-- [[_COMMUNITY_Community 223|Community 223]]
-- [[_COMMUNITY_Community 224|Community 224]]
 - [[_COMMUNITY_Community 225|Community 225]]
-- [[_COMMUNITY_Community 226|Community 226]]
 - [[_COMMUNITY_Community 227|Community 227]]
 - [[_COMMUNITY_Community 228|Community 228]]
 - [[_COMMUNITY_Community 229|Community 229]]
@@ -261,32 +257,107 @@
 - [[_COMMUNITY_Community 244|Community 244]]
 - [[_COMMUNITY_Community 245|Community 245]]
 - [[_COMMUNITY_Community 246|Community 246]]
+- [[_COMMUNITY_Community 247|Community 247]]
+- [[_COMMUNITY_Community 248|Community 248]]
 - [[_COMMUNITY_Community 249|Community 249]]
 - [[_COMMUNITY_Community 250|Community 250]]
+- [[_COMMUNITY_Community 251|Community 251]]
+- [[_COMMUNITY_Community 252|Community 252]]
+- [[_COMMUNITY_Community 253|Community 253]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
+- [[_COMMUNITY_Community 256|Community 256]]
+- [[_COMMUNITY_Community 257|Community 257]]
+- [[_COMMUNITY_Community 260|Community 260]]
+- [[_COMMUNITY_Community 261|Community 261]]
+- [[_COMMUNITY_Community 262|Community 262]]
+- [[_COMMUNITY_Community 263|Community 263]]
+- [[_COMMUNITY_Community 264|Community 264]]
+- [[_COMMUNITY_Community 265|Community 265]]
+- [[_COMMUNITY_Community 266|Community 266]]
+- [[_COMMUNITY_Community 267|Community 267]]
+- [[_COMMUNITY_Community 268|Community 268]]
+- [[_COMMUNITY_Community 269|Community 269]]
+- [[_COMMUNITY_Community 270|Community 270]]
+- [[_COMMUNITY_Community 271|Community 271]]
+- [[_COMMUNITY_Community 272|Community 272]]
+- [[_COMMUNITY_Community 273|Community 273]]
+- [[_COMMUNITY_Community 274|Community 274]]
+- [[_COMMUNITY_Community 275|Community 275]]
+- [[_COMMUNITY_Community 276|Community 276]]
+- [[_COMMUNITY_Community 277|Community 277]]
+- [[_COMMUNITY_Community 278|Community 278]]
+- [[_COMMUNITY_Community 279|Community 279]]
+- [[_COMMUNITY_Community 280|Community 280]]
+- [[_COMMUNITY_Community 281|Community 281]]
+- [[_COMMUNITY_Community 282|Community 282]]
+- [[_COMMUNITY_Community 283|Community 283]]
+- [[_COMMUNITY_Community 284|Community 284]]
+- [[_COMMUNITY_Community 285|Community 285]]
+- [[_COMMUNITY_Community 286|Community 286]]
+- [[_COMMUNITY_Community 287|Community 287]]
+- [[_COMMUNITY_Community 288|Community 288]]
+- [[_COMMUNITY_Community 289|Community 289]]
+- [[_COMMUNITY_Community 290|Community 290]]
+- [[_COMMUNITY_Community 292|Community 292]]
+- [[_COMMUNITY_Community 293|Community 293]]
+- [[_COMMUNITY_Community 294|Community 294]]
+- [[_COMMUNITY_Community 295|Community 295]]
+- [[_COMMUNITY_Community 296|Community 296]]
+- [[_COMMUNITY_Community 297|Community 297]]
+- [[_COMMUNITY_Community 299|Community 299]]
+- [[_COMMUNITY_Community 300|Community 300]]
+- [[_COMMUNITY_Community 301|Community 301]]
+- [[_COMMUNITY_Community 302|Community 302]]
+- [[_COMMUNITY_Community 303|Community 303]]
+- [[_COMMUNITY_Community 305|Community 305]]
+- [[_COMMUNITY_Community 306|Community 306]]
+- [[_COMMUNITY_Community 307|Community 307]]
+- [[_COMMUNITY_Community 308|Community 308]]
+- [[_COMMUNITY_Community 309|Community 309]]
+- [[_COMMUNITY_Community 310|Community 310]]
+- [[_COMMUNITY_Community 311|Community 311]]
+- [[_COMMUNITY_Community 312|Community 312]]
+- [[_COMMUNITY_Community 313|Community 313]]
+- [[_COMMUNITY_Community 314|Community 314]]
+- [[_COMMUNITY_Community 315|Community 315]]
+- [[_COMMUNITY_Community 317|Community 317]]
+- [[_COMMUNITY_Community 319|Community 319]]
+- [[_COMMUNITY_Community 320|Community 320]]
+- [[_COMMUNITY_Community 322|Community 322]]
+- [[_COMMUNITY_Community 323|Community 323]]
+- [[_COMMUNITY_Community 324|Community 324]]
+- [[_COMMUNITY_Community 325|Community 325]]
+- [[_COMMUNITY_Community 326|Community 326]]
+- [[_COMMUNITY_Community 327|Community 327]]
+- [[_COMMUNITY_Community 328|Community 328]]
+- [[_COMMUNITY_Community 329|Community 329]]
+- [[_COMMUNITY_Community 330|Community 330]]
+- [[_COMMUNITY_Community 331|Community 331]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `FakeSpoofRepository` - 36 edges
-2. `SpoofRepository` - 33 edges
-3. `DeviceMaskerTheme()` - 32 edges
-4. `StableHooker` - 31 edges
-5. `HookBuilderImpl` - 31 edges
-6. `TreeSetView` - 31 edges
-7. `ConfigManager` - 29 edges
-8. `SpoofRepository` - 29 edges
-9. `ConfigManager` - 27 edges
-10. `FakeConfigManager` - 26 edges
+1. `SpoofRepository` - 32 edges
+2. `StableHooker` - 30 edges
+3. `ConfigManager` - 29 edges
+4. `SpoofRepository` - 29 edges
+5. `ConfigManager` - 27 edges
+6. `FakeConfigManager` - 25 edges
+7. `IConfigManager` - 24 edges
+8. `FakeSpoofRepository` - 24 edges
+9. `app/ Android Ninja Audit` - 24 edges
+10. `ISpoofRepository` - 23 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `DeviceMaskerMainApp()` --calls--> `DiagnosticsScreen()`  [INFERRED]
-  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/diagnostics/DiagnosticsScreen.kt
-- `SIMCardCategoryContent()` --calls--> `CountryPickerDialog()`  [INFERRED]
-  app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/groupspoofing/categories/SIMCardContent.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/components/dialog/CountryPickerDialog.kt
-- `AppsTabContentPopulatedPreview()` --calls--> `InstalledApp`  [INFERRED]
-  app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/groupspoofing/tabs/AppsTabContent.kt → app/src/main/kotlin/com/astrixforge/devicemasker/data/models/InstalledApp.kt
+- `HomeScreenContent()` --calls--> `StatCard()`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/home/HomeScreen.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/components/StatCard.kt
 - `DeviceMaskerMainApp()` --calls--> `rememberDeviceMaskerNavigationState()`  [INFERRED]
   app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerNavigationState.kt
 - `DeviceMaskerMainApp()` --calls--> `DeviceMaskerNavigator`  [INFERRED]
   app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerNavigationState.kt
+- `DeviceMaskerMainApp()` --calls--> `BottomNavBar()`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/BottomNavBar.kt
+- `DeviceMaskerMainApp()` --calls--> `HomeViewModel`  [INFERRED]
+  app/src/main/kotlin/com/astrixforge/devicemasker/ui/MainActivity.kt → app/src/main/kotlin/com/astrixforge/devicemasker/ui/screens/home/HomeViewModel.kt
 
 ## Hyperedges (group relationships)
 - **Device Masker Config Delivery Flow** — architecture_app_module, config_jsonconfig_appconfigs_canonical, config_sharedprefskeys_source_of_truth, config_remote_preferences_delivery, architecture_xposed_module [EXTRACTED 1.00]
@@ -296,387 +367,751 @@
 - **hyperedge:xxhdpi_launcher_branding_composition** — image:app/src/main/res/mipmap-xxhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp, asset:xxhdpi_launcher_icon, asset:xxhdpi_round_launcher_icon, visual:white_android_robot_head, visual:green_grid_background, concept:android_platform_identity, concept:android_launcher_branding [INFERRED 0.92]
 - **XXXHDPI Launcher Branding** — image:app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp, visual:green_grid_background, visual:android_robot_head, concept:android_platform_branding [INFERRED 0.90]
 
-## Communities (275 total, 158 thin omitted)
+## Communities (341 total, 138 thin omitted)
 
 ### Community 1 - "Config Manager"
 Cohesion: 0.05
-Nodes (33): BrowserPersona, DevicePersona, formatCoordinate(), HardwarePersona, LocationPersona, NetworkEnvironmentPersona, parse(), parseOrNull() (+25 more)
+Nodes (15): AppLogEntry, AppLogStore, LogFileFormatter, PersistentAppLogTree, DeviceMaskerApp, DeviceMaskerApp, DiagnosticEvent, DiagnosticEventType (+7 more)
 
 ### Community 2 - "Fake Shared Preferences"
-Cohesion: 0.05
-Nodes (11): PersistentAppLogTree, ContentProvider, DeviceMaskerApp, DeviceMaskerApp, ConnectionState, ServiceClient, XposedProvider, OnServiceListener (+3 more)
-
-### Community 3 - "Fake Config Manager"
-Cohesion: 0.08
-Nodes (5): ClassLazySequence, ClassLazySequenceImpl, HookBuilderImpl, MemberLazySequenceImpl, HookBuilder
+Cohesion: 0.04
+Nodes (48): 1. Current Folder Structure Analysis, 2. UI Components Audit, 3. State Management Analysis, 4. Navigation Architecture Analysis, 5. Duplicate Code Patterns, 6. Recommendations & Action Items, 7. Proposed Target Structure, Appendix: Reference Documentation (+40 more)
 
 ### Community 4 - "Green grid background"
-Cohesion: 0.06
-Nodes (8): DiagnosticSessionManager, JsonlDiagnosticStore, StoreStats, JsonlDiagnosticStoreTest, DiagnosticSessionManager, JsonlDiagnosticStore, StoreStats, JsonlDiagnosticStoreTest
+Cohesion: 0.04
+Nodes (45): 1. M3E Availability Summary (1.5.0-alpha18), 2. Theme Compliance Audit (Score: 38/100), 3.1 `ExpressiveLoadingIndicator` → `LoadingIndicator`, 3.2 `QuickActionGroup` → `ButtonGroup`, 3.3 `ExpressiveSwitch`, 3.4 `ToggleButton`, 3.5 `ExpressiveIconButton`, 3.6 `ExpressiveCard` (+37 more)
 
-### Community 7 - "ISpoof Repository"
+### Community 5 - "IConfig Manager"
+Cohesion: 0.06
+Nodes (6): ConfigSync, Snapshot, ConfigSync, Snapshot, Editor, FakeSharedPreferences
+
+### Community 6 - "Fake Spoof Repository"
 Cohesion: 0.06
 Nodes (6): FakeLogManager, SettingsViewModel, SettingsViewModelTest, SettingsViewModel, SettingsViewModelTest, FakeLogManager
 
 ### Community 8 - "App Log Store"
 Cohesion: 0.06
-Nodes (4): createDefaultGroup(), createNew(), SpoofGroup, SpoofGroup
+Nodes (13): RootLogCollector, RecordingExecutor, RootLogCollectorTest, RootLogCollector, RecordingExecutor, RootLogCollectorTest, LibsuCommandExecutor, RootCommand (+5 more)
+
+### Community 9 - "Spoof Group"
+Cohesion: 0.06
+Nodes (6): createDefault(), JsonConfig, parse(), parseCatching(), parseOrDefault(), JsonConfig
 
 ### Community 10 - "Xposed Prefs"
-Cohesion: 0.05
-Nodes (17): ConstructorMatcher, BaseMatcherImpl, BaseMatchImpl, BinaryOperands, ConstructorMatcherImpl, ExecutableMatchImpl, MemberMatchImpl, MethodMatchImpl (+9 more)
+Cohesion: 0.06
+Nodes (33): code:powershell (rg -n '@XposedHooker|@BeforeInvocation|@AfterInvocation|Afte), code:powershell (.\gradlew.bat :app:testDebugUnitTest :xposed:testDebugUnitTe), code:text (BUILD SUCCESSFUL in 27s), code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (adb shell su -c id), Confirmed Good Areas, Executive Summary, Final Assessment (+25 more)
 
 ### Community 11 - "Json Config"
-Cohesion: 0.07
-Nodes (12): HookHealthRegistry, HookHealthSnapshot, HookMethodHealth, MutableMethodHealth, SpoofEventRecord, HookHealthRegistryTest, HookHealthRegistry, HookHealthSnapshot (+4 more)
+Cohesion: 0.06
+Nodes (33): 2026-05-03 Diagnostics And Root Export Audit Fixes, 2026-05-03 libxposed Audit Remediation, 2026-05-03 Maximum Diagnostics Logging, 2026-05-04 Implementation Verification Follow-up, 2026-05-04 Master Implementation Plan Completion, 2026-05-04 Navigation 3 Implementation, 2026-05-04 Startup Root And Boot Capture, 2026-05-06 Build Audit, R8 Enablement, and Docs Reorganization (+25 more)
 
 ### Community 12 - "Map Shared Preferences"
-Cohesion: 0.14
-Nodes (3): ClassMatch, ClassMatchImpl, ExecutableLazySequenceImpl
-
-### Community 13 - "Root Shell"
 Cohesion: 0.12
 Nodes (7): DeviceMaskerDeepLink, DeviceMaskerDeepLinks, asDestinationStack(), DeviceMaskerNavigationState, DeviceMaskerNavigator, rememberDeviceMaskerNavigationState(), DeviceMaskerNavigatorTest
 
 ### Community 14 - "Hook Health Registry"
-Cohesion: 0.07
-Nodes (4): MapSharedPreferences, PrefsHelperTest, MapSharedPreferences, PrefsHelperTest
-
-### Community 15 - "Diagnostics Screen"
-Cohesion: 0.09
-Nodes (15): AnimatedSection(), AntiDetectionSection(), AntiDetectionTestItem(), CategoryDiagnosticSection(), DiagnosticResultItem(), DiagnosticsContent(), DiagnosticsScreen(), hookEvidenceLabel() (+7 more)
-
-### Community 17 - "Hook Metrics"
-Cohesion: 0.1
-Nodes (7): ConstructorMatch, FieldMatch, ConstructorMatchImpl, FieldMatchImpl, ParameterMatchImpl, ParameterMatch, Editor
-
-### Community 18 - "Log Manager"
-Cohesion: 0.11
-Nodes (18): CategorySection(), DeviceHardwareCategoryContent(), LocationCategoryContent(), SIMCardCategoryContent(), CorrelatedSpoofItem(), DeviceHardwareCategoryContent(), ConfigSyncInfoCard(), ModuleStatusCard() (+10 more)
-
-### Community 19 - "Service Client"
-Cohesion: 0.07
-Nodes (15): ConstructorLazySequence, ConstructorMatch, ConstructorMatcher, Consumer, FieldLazySequence, FieldMatch, LazyBind, MemberLazySequence (+7 more)
-
-### Community 21 - "Hook Safety Test"
 Cohesion: 0.09
 Nodes (4): DualLog, HookMetrics, DualLog, HookMetrics
 
-### Community 24 - "Shared Prefs Keys"
-Cohesion: 0.09
-Nodes (3): DeviceMaskerService, DeviceMaskerService, getInstance()
+### Community 15 - "Diagnostics Screen"
+Cohesion: 0.07
+Nodes (26): 2026-05-02 Architecture Remediation, 2026-05-02 Logging Remediation, 2026-05-02 Target Crash Remediation, 2026-05-03 Diagnostics, Root Logging, And Spoofing Audit Fixes, 2026-05-03 libxposed Audit Remediation, 2026-05-03 Maximum Diagnostics Logging, 2026-05-04 Master Implementation Plan Completion Status, 2026-05-04 Startup Root And Boot Capture (+18 more)
 
-### Community 25 - "Anti Detect Hooker"
+### Community 17 - "Hook Metrics"
 Cohesion: 0.08
-Nodes (4): FakePackageManager, HookSafetyTest, FakePackageManager, HookSafetyTest
+Nodes (23): Bottom Line, code:powershell (.\gradlew.bat test --no-daemon), code:kotlin (val original = chain.proceed()), code:kotlin (inline fun <T> spoofAfterOriginal(chain, block: (original: A), Device Masker Architecture Audit, Executive Summary, P0: Disabled Or Missing Spoof Types Still Return Fake Values, P0: Home Activation Status Is Guaranteed To Be Wrong (+15 more)
 
-### Community 27 - "IMEIGenerator Test"
-Cohesion: 0.12
-Nodes (14): AppListItem(), AppIcon(), AppIconFallback(), AppListItem(), AppListItemLockedPreview(), EmptyState(), EmptyStateNoSubtitlePreview(), EmptyState() (+6 more)
+### Community 18 - "Log Manager"
+Cohesion: 0.08
+Nodes (23): Anti-Detection Pattern, Architecture, Build Pattern, code:text (:app), code:mermaid (flowchart TD), code:mermaid (sequenceDiagram), code:mermaid (sequenceDiagram), Configuration Flow (+15 more)
 
-### Community 28 - "MACGenerator Test"
-Cohesion: 0.09
-Nodes (14): AppMotion, Effect, MotionPolicy, Spatial, AppMotion, Effect, Effects, ElevationTokens (+6 more)
-
-### Community 29 - "Serial Generator Test"
+### Community 19 - "Service Client"
 Cohesion: 0.15
 Nodes (14): Android launcher icon, Android round launcher icon, XXHDPI launcher icon, XXHDPI round launcher icon, Android launcher icon, Android app branding, Android app branding, Android launcher branding (+6 more)
 
-### Community 32 - "Config Sync"
+### Community 21 - "Hook Safety Test"
+Cohesion: 0.25
+Nodes (4): StableHooker, AdvertisingHooker, DeviceHooker, NetworkHooker
+
+### Community 27 - "IMEIGenerator Test"
 Cohesion: 0.1
-Nodes (11): jsonEscape(), RootCommandExecutor, RootCommandStatus, toManifestJson(), LibsuCommandExecutor, RootCommand, RootCommandExecutor, RootCommandResult (+3 more)
+Nodes (18): 2.2 Implementation Strengths, ✅ Adaptive Layout (MainActivity.kt:269-274), ✅ Animated Bottom Nav (BottomNavBar.kt:55-91), code:kotlin (val showNavRail = windowSizeClass.widthSizeClass != WindowWi), code:kotlin (@Serializable), code:kotlin (fun goBack(): Boolean {), code:kotlin ("groups" -> groupsDeepLink(segments)), code:kotlin (entry<NavDestination.GroupSpoofing>(...) { destination ->) (+10 more)
 
-### Community 37 - "Package Manager Hooker"
-Cohesion: 0.29
-Nodes (3): AdvertisingHooker, DeviceHooker, NetworkHooker
+### Community 29 - "Serial Generator Test"
+Cohesion: 0.1
+Nodes (19): Anti-Detection, Architecture, Build from Source, code:block1 (:app          Compose UI, ViewModels, config persistence, Re), code:block2 (UI → SpoofRepository → ConfigManager (config.json)), code:bash (# Clone), Commands, Configuration (+11 more)
 
-### Community 42 - "Carrier"
-Cohesion: 0.15
-Nodes (12): CreateGroupDialog(), CreateGroupDialogPreview(), DeleteGroupDialog(), EditGroupDialog(), GroupCard(), CreateGroupDialog(), CreateGroupDialogPreview(), DeleteGroupDialog() (+4 more)
-
-### Community 43 - "Base Spoof Hooker"
-Cohesion: 0.14
-Nodes (6): DeviceConfig, FingerprintGenerator, DeviceConfig, FingerprintGenerator, nextInt(), secureRandom()
-
-### Community 44 - "Support Bundle Builder"
+### Community 31 - "Location Hooker"
 Cohesion: 0.13
-Nodes (4): RootAccessManager, RootAccessState, RootAccessManager, RootAccessState
+Nodes (8): SettingsDataStore, MainActivity, DeviceMaskerMainApp(), MainActivity, navBackTransform(), navForwardTransform(), NavRail(), RootAccessWarningDialog()
 
-### Community 45 - "Diagnostics State"
-Cohesion: 0.19
-Nodes (15): IconCircle(), IconCircleLargePreview(), SettingsClickableItem(), SettingsClickableItemWithValue(), SettingsInfoItem(), SettingsInfoItemPreview(), SettingsSection(), SettingsSwitchItem() (+7 more)
-
-### Community 47 - "Settings State"
-Cohesion: 0.12
-Nodes (3): GroupsViewModel, GroupsViewModelTest, GroupsViewModelTest
-
-### Community 48 - "Release Build Safety Test"
+### Community 32 - "Config Sync"
 Cohesion: 0.11
-Nodes (16): Diagnostics, Groups, GroupSpoofing, Home, NavDestination, NavItem, NavRoutes, Settings (+8 more)
+Nodes (15): code:kotlin (@Immutable), code:kotlin (val onThemeChange = remember { { mode: ThemeMode -> settings), code:kotlin (if (isLoading) {), code:kotlin (LaunchedEffect(pagerState) {), code:kotlin (LaunchedEffect(group) {), code:kotlin (val dateFormatter = remember { SimpleDateFormat("MMM dd, yyy), code:kotlin (LazyColumn {), code:kotlin (var pendingExportMode by remember { mutableStateOf(exportMod) (+7 more)
 
-### Community 50 - "Diagnostic Redactor"
-Cohesion: 0.16
-Nodes (11): Error, LogExportResult, NoLogs, ShareableLogResult, Success, Error, LogExportResult, LogManager (+3 more)
-
-### Community 51 - "Fingerprint Generator"
+### Community 33 - "Root Access Manager"
 Cohesion: 0.11
 Nodes (4): PersonaGeneratorTest, Country, Country, PersonaGeneratorTest
 
-### Community 52 - "Json Config Test"
-Cohesion: 0.12
-Nodes (3): ConstructorLazySequence, ConstructorLazySequenceImpl, LazySequenceImpl
+### Community 34 - "Root Log Capture Service"
+Cohesion: 0.11
+Nodes (17): Accessibility, app/ Android Ninja Audit, Architecture And Boundaries, Bottom Line, Compose UI, Config Persistence And Sync, Detailed Area Analysis, Executive Summary (+9 more)
 
-### Community 54 - "Root Capture Store"
+### Community 35 - "Nav Destination"
+Cohesion: 0.11
+Nodes (17): 10. Stale Files Removed, 11. Settings.gradle.kts, 1. R8 Enabled in Release Build, 2. ProGuard Rules — libxposed Lambda Protection, 3. ProGuard Rules — Common Module Over-Keeping Fixed, 4. ProGuard Rules — Xposed Module Cleanup, 5. Dependencies Verified, 6. CI Pipeline Optimization (+9 more)
+
+### Community 36 - "Motion"
+Cohesion: 0.11
+Nodes (18): 3. MEDIUM Findings, code:kotlin (fun readEntries(): List<AppLogEntry> =), code:kotlin (suspend fun importGroups(jsonString: String): Boolean {), MED-001: Hardcoded Category Colors Outside Theme, MED-002: Hardcoded Status Colors Used Directly in Composables, MED-003: `scale()` Modifier Used Instead of `graphicsLayer`, MED-004: No Contrast Preference Support (API 34+), MED-005: Inline Lambdas in Screen Content Cause Unstable Recompositions (+10 more)
+
+### Community 37 - "Package Manager Hooker"
+Cohesion: 0.11
+Nodes (17): code:text (Export Logs), code:text (Startup / Boot), Current Service Flow, Current ZIP Contents, Export Options Single Root-Backed Analysis, Files Read, Final Capture Design, Final UX Shape (+9 more)
+
+### Community 38 - "Three Module Architecture"
+Cohesion: 0.11
+Nodes (17): Architecture Goals, code:mermaid (flowchart TD), code:mermaid (flowchart LR), code:mermaid (sequenceDiagram), code:mermaid (sequenceDiagram), code:mermaid (flowchart TD), code:mermaid (flowchart TD), Config Flow (+9 more)
+
+### Community 39 - "Groups View Model"
+Cohesion: 0.11
+Nodes (18): code:kotlin (// BEFORE), code:kotlin (private val initLock = Any()), code:kotlin (try {), code:kotlin (private val cachedSIMConfig = AtomicReference<SIMConfig?>(nu), code:kotlin (val stdoutBuffer = StringBuilder()), code:kotlin (val pattern = buildString {), code:kotlin (zip.putNextEntry(ZipEntry(artifact.name))), code:kotlin (suspend fun syncAppAsync(packageName: String, config: AppCon) (+10 more)
+
+### Community 40 - "Jsonl Diagnostic Store Test"
 Cohesion: 0.13
-Nodes (4): DiagnosticsLogBuffer, DiagnosticsLogBufferTest, DiagnosticsLogBuffer, DiagnosticsLogBufferTest
+Nodes (3): DiagnosticResultItem(), StatusBadge(), ValueColumn()
 
-### Community 55 - "Root Log Collector"
-Cohesion: 0.14
-Nodes (7): CompactLoadingIndicator(), CompactLoadingIndicatorPreview(), ExpressiveLoadingIndicator(), ExpressiveLoadingIndicatorWithLabel(), ExpressivePullToRefresh(), ExpressiveRefreshIndicator(), LoadingIndicator()
-
-### Community 56 - "Activity"
-Cohesion: 0.15
-Nodes (7): StatCard(), StatCardIdentifiersPreview(), HomeScreen(), HomeScreenContent(), HomeScreenContentPreview(), HomeScreenInactivePreview(), StatCard()
-
-### Community 57 - "Settings Item"
-Cohesion: 0.16
-Nodes (9): CompactSpoofValueCard(), CompactSpoofValueCardPreview(), maskValueString(), SpoofValueCard(), CompactExpressiveIconButton(), CompactExpressiveIconButtonPreview(), ExpressiveIconButton(), CompactExpressiveIconButton() (+1 more)
-
-### Community 58 - "Diagnostics View Model"
+### Community 41 - "Utils"
 Cohesion: 0.12
 Nodes (4): LogLevel, Utils, LogLevel, Utils
 
-### Community 59 - "Groups Screen"
+### Community 43 - "Base Spoof Hooker"
+Cohesion: 0.12
+Nodes (17): 2. HIGH Findings, code:kotlin ("logcat -d -v threadtime | grep -i -E '...|$target'"), HIGH-001: Full-Screen Loading Overlays Replace Content, HIGH-002: Touch Targets Below 48dp Minimum, HIGH-003: Compose State Classes Not Marked Immutable, HIGH-004: String-Based Navigation Without Type Safety, HIGH-005: No IME Inset Handling With Edge-to-Edge, HIGH-006: Race Condition in Bidirectional Pager/Tab Sync (+9 more)
+
+### Community 44 - "Support Bundle Builder"
+Cohesion: 0.12
+Nodes (16): code:xml (<string name="settings_export_basic">Basic Export</string>), code:xml (<string name="settings_export_sheet_title">Export Logs</stri), code:xml (<string name="root_access_denied_message">Root access was no), code:kotlin (exportMode: BundleExportMode = BundleExportMode.BASIC,), code:kotlin (onExportLogsToUri: (Uri) -> Unit = {},), code:kotlin (var pendingExportMode by remember { mutableStateOf(exportMod), code:kotlin () { uri ->), code:kotlin (@OptIn(ExperimentalMaterial3Api::class)) (+8 more)
+
+### Community 45 - "Diagnostics State"
+Cohesion: 0.12
+Nodes (16): 14. File Modification Index, 15. Dependency Upgrade Matrix, 16. Risk Assessment, 17. Success Criteria, 18. Appendices, Appendix A: Reference Files, Appendix B: M3E Token Quick Reference, Appendix C: Implementation Order Rationale (+8 more)
+
+### Community 46 - "Home Screen"
+Cohesion: 0.12
+Nodes (16): Build Commands, code:powershell (.\gradlew.bat spotlessApply spotlessCheck detekt :common:tes), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --no-daemon), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:powershell (powershell -ExecutionPolicy Bypass -File scripts\verify-16kb), code:powershell (adb install -r app\build\outputs\apk\debug\app-debug.apk), code:powershell (adb shell am force-stop com.mantle.verify), code:powershell (Get-ChildItem -Path xposed/src -Recurse -Filter '*.kt' | Sel) (+8 more)
+
+### Community 47 - "Settings State"
+Cohesion: 0.12
+Nodes (15): Diagnostics, Groups, GroupSpoofing, Home, NavDestination, NavItem, NavRoutes, Settings (+7 more)
+
+### Community 48 - "Release Build Safety Test"
+Cohesion: 0.12
+Nodes (16): 1. CRITICAL Findings, code:kotlin (private fun updateConfig(transform: (JsonConfig) -> JsonConf), code:kotlin (release {), code:xml (<provider), code:kotlin (private var cachedSIMConfig: SIMConfig? = null), code:kotlin (val process = ProcessBuilder("su", "-c", command).redirectEr), CRIT-001: ConfigManager Lost-Update Race on `_config.value`, CRIT-002: PersistentAppLogTree Performs Synchronized File I/O on Every Log Call (+8 more)
+
+### Community 49 - "Root Shell Test"
+Cohesion: 0.17
+Nodes (6): HomeScreen(), HomeScreenContent(), HomeScreenContentPreview(), HomeScreenInactivePreview(), StatusCard(), animatedRoundedCornerShape()
+
+### Community 50 - "Diagnostic Redactor"
 Cohesion: 0.13
-Nodes (6): DeviceHardwareConfig, DeviceHardwareConfigTest, DeviceHardwareGenerator, DeviceHardwareGenerator, DeviceHardwareConfig, DeviceHardwareConfigTest
+Nodes (5): HookHealthRegistry, HookHealthSnapshot, HookMethodHealth, MutableMethodHealth, SpoofEventRecord
+
+### Community 52 - "Json Config Test"
+Cohesion: 0.13
+Nodes (15): 1. Executive Summary, Bottom Line, Current Completion Checklist, Implementation Philosophy, Phase 0: Safety & Stability, Phase 1: Testing Infrastructure, Phase 2: M3E Theme Foundation, Phase 3: Architecture & State Management (+7 more)
+
+### Community 54 - "Root Capture Store"
+Cohesion: 0.15
+Nodes (12): Effect, MotionPolicy, Spatial, Effect, Effects, ElevationTokens, Expressive, MotionPolicy (+4 more)
+
+### Community 55 - "Root Log Collector"
+Cohesion: 0.14
+Nodes (8): BrowserPersona, DevicePersona, HardwarePersona, LocationPersona, NetworkEnvironmentPersona, PersonaValidationResult, SubscriptionPersona, TrackingPersona
+
+### Community 56 - "Activity"
+Cohesion: 0.14
+Nodes (13): 3.1 Verified Matches, 3.2 Enhancement Notes, 5.1 For Skill Documentation, 5.2 For Project Implementation, Appendix: File Reference Table, Conclusion, Documentation Quality, Executive Summary (+5 more)
+
+### Community 57 - "Settings Item"
+Cohesion: 0.14
+Nodes (12): code:proguard (-keep class com.astrixforge.devicemasker.xposed.hooker.**$$E), code:kotlin (xi.hook(method)), code:proguard (-keep,includedescriptorclasses class com.astrixforge.devicem), code:kotlin (release {), code:proguard (-dontoptimize), Option 1 - Disable R8 for `release`, Option 2 - Keep R8, Disable Optimization Only, Option 3 - Keep R8, Add Broader Synthetic Lambda Keep Rules (+4 more)
+
+### Community 58 - "Diagnostics View Model"
+Cohesion: 0.18
+Nodes (5): ThemeModeDialog(), ExportActionsBottomSheet(), labelRes(), SettingsScreen(), SettingsScreenPreview()
+
+### Community 59 - "Groups Screen"
+Cohesion: 0.17
+Nodes (4): EmptyState(), GroupCard(), GroupsScreenContent(), GroupsScreenEmptyPreview()
 
 ### Community 60 - "Settings Screen"
-Cohesion: 0.14
-Nodes (3): BaseSyntaxImpl, ReflectSyntaxImpl, StringSyntaxImpl
+Cohesion: 0.15
+Nodes (6): CategorySection(), CorrelatedSpoofItem(), DeviceHardwareCategoryContent(), IndependentSpoofItem(), LocationCategoryContent(), SIMCardCategoryContent()
 
-### Community 62 - "App Scope Repository Test"
-Cohesion: 0.12
-Nodes (8): AtomicHelper, BaseObserver, FieldAndMethodVisitor, ItemObserver, ListObserver, MatchCache, Transformer, TypeOnlyParameter
+### Community 61 - "Recording Executor"
+Cohesion: 0.15
+Nodes (12): Error, ExportResult, RedactionChoice, SettingsState, Success, BundleExportMode, Error, ExportResult (+4 more)
 
-### Community 67 - "Diagnostics View Model Test"
-Cohesion: 0.14
-Nodes (6): Carrier, Carrier, getByCountry(), indiaCarriers(), nextSecureRandomFromCountry(), nextSecureRandomIndia()
+### Community 65 - "Config Sync Test"
+Cohesion: 0.15
+Nodes (13): code:kotlin (safeHook("TimeZone.getID()") {), code:kotlin (safeHook("Locale.toString()") {), code:kotlin (/**), code:kotlin (private val initialized = AtomicBoolean(false)), code:kotlin (* - SubscriptionManager.getActiveSubscriptionInfoList() — mu), code:kotlin (xi.hook(m).intercept { chain -> chain.proceed() }), code:kotlin (if (!param.isFirstPackage) {), Findings By Severity (+5 more)
 
-### Community 69 - "Persona Generator"
-Cohesion: 0.17
-Nodes (8): ThemeModeDialog(), ExportActionsBottomSheet(), ExportModeAction, ExportModeSplitButton(), labelRes(), SettingsScreen(), SettingsScreenPreview(), ThemeModeDialog()
+### Community 66 - "Implementation Plan Hardening Test"
+Cohesion: 0.15
+Nodes (10): code:kotlin (import com.astrixforge.devicemasker.service.diagnostics.Supp), code:kotlin (override suspend fun createShareableLogFile(context: Context), code:kotlin (withContext(Dispatchers.IO) {), code:kotlin (data object NoLogs : ShareableLogResult()), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ser), code:kotlin (package com.astrixforge.devicemasker.service), code:kotlin (package com.astrixforge.devicemasker.service.diagnostics) (+2 more)
 
 ### Community 71 - "UUIDGenerator"
-Cohesion: 0.17
-Nodes (3): Chain, HookBuilder, Invoker
+Cohesion: 0.2
+Nodes (5): CompactLoadingIndicator(), CompactLoadingIndicatorPreview(), ExpressiveLoadingIndicator(), ExpressiveLoadingIndicatorWithLabel(), LoadingIndicator()
 
 ### Community 72 - "Location Config"
-Cohesion: 0.14
-Nodes (4): PackageLoadedParam, PackageReadyParam, SystemServerStartingParam, XposedModuleInterface
-
-### Community 73 - "Android Generator Test"
-Cohesion: 0.13
-Nodes (14): DiagnosticsContentPreview(), AntiDetectionTest, DiagnosticResult, DiagnosticsState, DiagnosticStatus, HookEvidenceState, ReproCaptureState, AntiDetectionTest (+6 more)
-
-### Community 74 - "Advertising Hooker"
-Cohesion: 0.17
-Nodes (8): MainActivity, DeviceMaskerMainApp(), MainActivity, navBackTransform(), navForwardTransform(), NavRail(), RootAccessWarningDialog(), toTopLevelDestination()
-
-### Community 75 - "Device Hooker"
-Cohesion: 0.13
-Nodes (14): BundleExportMode, Error, ExportResult, NoLogs, RedactionChoice, SettingsState, Success, BundleExportMode (+6 more)
-
-### Community 79 - "Group Card"
-Cohesion: 0.18
-Nodes (5): RootCommand, FakeExecutor, RootShellTest, FakeExecutor, RootShellTest
-
-### Community 80 - "Expressive Loading Indicator"
-Cohesion: 0.16
-Nodes (3): HomeViewModel, HomeViewModelTest, HomeViewModelTest
-
-### Community 83 - "App Log Store Test"
-Cohesion: 0.2
-Nodes (7): CompactGroupCard(), CompactGroupCardPreview(), DefaultBadge(), GroupCard(), animatedRoundedCornerShape(), StatusCard(), animatedRoundedCornerShape()
-
-### Community 84 - "Fake App Scope Repository"
-Cohesion: 0.18
-Nodes (4): createDefault(), DeviceIdentifier, ConfigSyncSnapshotTest, DeviceIdentifier
-
-### Community 85 - "Fake Service Client"
-Cohesion: 0.16
-Nodes (6): DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest, DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest
-
-### Community 87 - "Group Spoofing View Model Test"
-Cohesion: 0.16
-Nodes (4): FieldLazySequence, FieldLazySequenceImpl, ParameterLazySequenceImpl, ParameterLazySequence
-
-### Community 88 - "Home View Model Test"
-Cohesion: 0.22
-Nodes (4): Constructor, Field, MemberKey, Method
-
-### Community 89 - "Diagnostic Event"
-Cohesion: 0.21
-Nodes (3): AppScopeRepository, AppScopeRepositoryTest, RuntimeException
-
-### Community 101 - "IService Client"
-Cohesion: 0.18
-Nodes (3): DiagnosticEventTest, DiagnosticEvent, DiagnosticEventTest
-
-### Community 102 - "Diagnostic Session Manager"
-Cohesion: 0.23
-Nodes (6): SectionHeader(), SectionHeaderNoExpandPreview(), DeviceMaskerTheme(), DeviceMaskerThemeInternal(), rememberSystemContrast(), withContrastPreference()
-
-### Community 103 - "Diagnostic Snapshot Builder"
 Cohesion: 0.2
 Nodes (6): QuickAction, QuickActionGroup(), SelectionButtonGroup(), SelectionButtonGroupPreview(), QuickActionsSection(), QuickAction
 
-### Community 105 - "App List Item"
+### Community 73 - "Android Generator Test"
 Cohesion: 0.17
-Nodes (6): DummyHooker, Hooker, Matcher, ParameterKt, ReflectMatcherKt, SyntaxKt
+Nodes (12): M10. Log Store Uses Whole-File Rewrites, M11. Release Shrink Is Disabled, M1. Architecture Uses Manual Singletons Instead Of Dependency Injection, M2. Navigation Diverges From Android Ninja Guidance, M3. UI State Classes Are Not Marked Stable Or Immutable, M4. Hardcoded Dispatchers Reduce Test Control, M5. Broad Exception Handling Can Hide Cancellation And State Bugs, M6. Theming Has Good Foundations But Hardcoded Accent Colors Are Spread Across Domain Categories (+4 more)
 
-### Community 106 - "Spoof Value Card"
+### Community 74 - "Advertising Hooker"
+Cohesion: 0.17
+Nodes (9): code:kotlin (import com.astrixforge.devicemasker.xposed.hooker.callback.S), code:kotlin (xi.hook(m).intercept { chain ->), code:kotlin (xi.hook(m).intercept(AdvertisingIdHooker(prefs, pkg))), code:kotlin (xi.hook(m).intercept(GservicesStringHooker(prefs, pkg))), code:kotlin (xi.hook(m).intercept(GservicesLongHooker(prefs, pkg))), code:kotlin (xi.hook(m).intercept(MediaDrmDeviceUniqueIdHooker(prefs, pkg), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/) (+1 more)
+
+### Community 75 - "Device Hooker"
+Cohesion: 0.17
+Nodes (11): code:kotlin (background = Color(0xFFFDFDFD),           // ~tone 98), code:kotlin (/**), code:kotlin (val statusColor = when (status) {), code:kotlin (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN), code:kotlin (// Emphasized variants — higher weight for primary actions, ), code:kotlin (val LocalEmphasizedTypography = staticCompositionLocalOf { A), Phase 2 Checklist, Phase 2: M3E Theme Foundation (No Dependency Change) (+3 more)
+
+### Community 77 - "Web View Hooker"
 Cohesion: 0.17
 Nodes (3): LocationSnapshot, LocationHooker, LocationSnapshot
 
-### Community 107 - "Expressive Switch"
-Cohesion: 0.22
-Nodes (3): AppLogStoreTest, AppLogEntry, AppLogStoreTest
+### Community 79 - "Group Card"
+Cohesion: 0.25
+Nodes (7): ScreenHeader(), SettingsScreenContent(), SettingsClickableItem(), SettingsClickableItemWithValue(), SettingsInfoItem(), SettingsSection(), SettingsSwitchItem()
 
-### Community 114 - "IMSIGenerator"
-Cohesion: 0.27
-Nodes (4): addServiceStateListener(), App, dispatchServiceState(), ServiceStateListener
-
-### Community 117 - "Xposed Diagnostic Event Sink"
-Cohesion: 0.27
-Nodes (3): RootLogCollector, RecordingExecutor, RootLogCollectorTest
-
-### Community 119 - "System Hooker"
+### Community 80 - "Expressive Loading Indicator"
 Cohesion: 0.18
-Nodes (3): ConfigSync, Snapshot, Snapshot
+Nodes (10): DiagnosticsState, DiagnosticStatus, ReproCaptureState, AntiDetectionTest, DiagnosticResult, DiagnosticsState, DiagnosticStatus, HookEvidenceState (+2 more)
 
-### Community 121 - "Diagnostics Log Buffer"
+### Community 86 - "Groups View Model Test"
 Cohesion: 0.18
-Nodes (4): Keys, SettingsDataStore, Keys, SettingsDataStore
+Nodes (11): 4. LOW / INFO Findings, LOW-001: Missing Previews for Tab Content and Item Components, LOW-002: `remember` Used for State That Should Survive Config Change, LOW-003: `Modifier.alpha()` on Entire Column for Loading State, LOW-004: `NavController` Passed as Default Parameter in Composable, LOW-005: SettingsScreen Pending Export Mode May Drift From Prop, LOW-006: Missing `contentType` in Some LazyColumns, LOW-007: Redundant Daemon Property (+3 more)
 
-### Community 127 - "IDiagnostics Provider"
+### Community 87 - "Group Spoofing View Model Test"
+Cohesion: 0.18
+Nodes (11): Anti-Detection Safety Direction, App-Side Xposed Service Listener, code:text (java_init.list:), code:xml (<provider), Confirmed Good Areas, Gradle Dependency Wiring, Legacy API Scan, Module Entrypoint (+3 more)
+
+### Community 88 - "Home View Model Test"
+Cohesion: 0.18
+Nodes (11): 1.3 Issues Found in Skill Documentation, code:kotlin (@Serializable), code:kotlin (@Serializable), code:markdown (### Unsupported features), code:kotlin (entries = navigationState.toEntries(entryProvider)), code:kotlin (entries = navigationState.toDecoratedEntries(entryProvider)), CRITICAL: Corrupted Files - Fixed Locally, HIGH: Deep Links Contradiction - Fixed Locally (+3 more)
+
+### Community 89 - "Diagnostic Event"
+Cohesion: 0.18
+Nodes (11): 1. Class Lookup Hiding Enabled, 2. Protective Mode Does Not Save All Failures, 3. Static Initializer Poisoning, 4. Mapping Retrace Can Mislead, 5. API Stub Packaging, 6. App UI R8 Issues Are Separate, 7. Reinstall/Signature/Scope Effects, 8. Resource Shrinking Is Not The Hook Crash (+3 more)
+
+### Community 90 - "IMEIGenerator"
+Cohesion: 0.18
+Nodes (11): code:powershell (rg -n "\.intercept\s*\{|intercept\s*\{" xposed/src/main/kotl), code:kotlin (package com.astrixforge.devicemasker.xposed.hooker), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/src/test/kotlin/com/astrixforge/devicemasker/), code:powershell (adb shell am force-stop com.mantle.verify), code:powershell (adb shell am force-stop com.mantle.verify), code:powershell (adb shell am force-stop com.mantle.verify), Current Callback Inventory (+3 more)
+
+### Community 91 - "MACGenerator"
+Cohesion: 0.18
+Nodes (11): code:kotlin (import com.astrixforge.devicemasker.xposed.hooker.callback.S), code:kotlin (xi.hook(m).intercept(StackTraceHooker())), code:kotlin (private class StackTraceHooker : StableHooker() {), code:kotlin (xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).), code:kotlin (private class ClassLookupHooker : StableHooker() {), code:kotlin (xi.hook(m).intercept(ProcMapsReadLineHooker())), code:kotlin (private class ProcMapsReadLineHooker : StableHooker() {), code:kotlin (private class HiddenPackageInfoHooker : StableHooker() {) (+3 more)
+
+### Community 97 - "Subscription Hooker"
 Cohesion: 0.2
-Nodes (4): CtorInvoker, Hooker, HookHandle, Type
+Nodes (9): code:powershell (.\gradlew.bat :xposed:testDebugUnitTest :app:testDebugUnitTe), code:text (BUILD SUCCESSFUL), Current Risk Assessment, Device Masker libxposed Code Audit, Executive Summary, Final Assessment, libxposed References Read, Project Context (+1 more)
 
-### Community 134 - "Expressive Icon Button"
+### Community 98 - "ISettings Data Store"
+Cohesion: 0.2
+Nodes (10): 1. Static Field Leak (CRITICAL) - CONFIRMED, 2. runBlocking Causes ANR (CRITICAL) - CONFIRMED, 3. ConcurrentModificationException (CRITICAL) - CONFIRMED, 4. Reflection in Hook Performance (CRITICAL) - CONFIRMED, 5. remember vs rememberSaveable (HIGH) - CONFIRMED, 6. Regex Compilation in Hot Path (HIGH) - CONFIRMED, 7. useLegacyPackaging (MEDIUM) - CONFIRMED, 8. String Duplication (HIGH) - BEST PRACTICE (+2 more)
+
+### Community 99 - "IApp Scope Repository"
+Cohesion: 0.2
+Nodes (9): code:text (java.lang.AbstractMethodError:), code:kotlin (xi.hook(method).intercept { chain ->), code:proguard (-keep interface io.github.libxposed.api.XposedInterface$Hook), Executive Summary, Final Recommendation, R8 + libxposed Runtime Crash Analysis - 2026-05-06, Root Cause, Sources (+1 more)
+
+### Community 100 - "ILog Manager"
+Cohesion: 0.2
+Nodes (10): code:proguard (-keep,includedescriptorclasses class com.astrixforge.devicem), code:proguard (-keepclassmembers class com.astrixforge.devicemasker.xposed.), code:proguard (-dontoptimize), code:powershell (.\gradlew.bat assembleRelease --no-daemon), Phase 1 - Prove The R8 Failure Boundary, Phase 2 - Add A Bytecode/Mapping Gate, Phase 3 - Refactor libxposed-Facing Lambdas, Phase 4 - Keep R8 Enabled With Narrow Rules (+2 more)
+
+### Community 101 - "IService Client"
+Cohesion: 0.2
+Nodes (10): code:markdown (- Support export has one user-facing path: Export Logs.), code:markdown (- Support bundles are ZIP files with Basic, Full Debug, and ), code:markdown (- Support export has one user-facing `Export Logs` path back), code:markdown (- Root Maximum collection is opt-in and uses bounded fixed c), code:markdown (- Root/logcat collection uses bounded fixed command template), code:markdown (## 2026-05-07 Single Root-Backed Export Plan), code:markdown (- Single support export works through `Export Logs` and buil), code:powershell (rg "Basic, Full Debug|Basic Export|Full Debug Export|Root Ma) (+2 more)
+
+### Community 102 - "Diagnostic Session Manager"
+Cohesion: 0.2
+Nodes (9): code:kotlin (package com.astrixforge.devicemasker.ui.screens.settings), code:kotlin (import androidx.lifecycle.SavedStateHandle), code:kotlin (private val _state = MutableStateFlow(SettingsState())), code:kotlin (/** Exports app-owned structured logs and available diagnost), code:kotlin (private companion object {), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:powershell (rg "BundleExportMode|setExportMode|KEY_EXPORT_MODE|exportMod), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ui/) (+1 more)
+
+### Community 103 - "Diagnostic Snapshot Builder"
+Cohesion: 0.2
+Nodes (10): code:kotlin (@Test), code:kotlin (assertFalse(executor.commands.any { it.contains("com.mantle.), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:kotlin (val targetPattern = target?.let { "|$it" }.orEmpty()), code:kotlin (val evidencePattern =), code:kotlin ("logcat -d -v threadtime | grep -i -E 'DeviceMasker|LSPosed|), code:kotlin ("logcat -d -v threadtime | grep -i -E '$evidencePattern'",), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge) (+2 more)
+
+### Community 104 - "Action Bottom Sheet"
+Cohesion: 0.2
+Nodes (10): code:kotlin (testImplementation(libs.turbine)), code:kotlin (@ExperimentalCoroutinesApi), code:toml (turbine = "1.2.0"), Phase 1 Checklist, Phase 1: Testing Infrastructure, Task 1.1: Add Testing Dependencies, Task 1.2: Fix Existing Tests, Task 1.3: ViewModel Tests (+2 more)
+
+### Community 105 - "App List Item"
+Cohesion: 0.2
+Nodes (9): code:powershell (.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:t), Core Goal, Current Verified State, Development Status, Non-Goals, Overview, Project Brief: Device Masker, Quality Bar (+1 more)
+
+### Community 106 - "Spoof Value Card"
 Cohesion: 0.24
-Nodes (4): LibsuCommandExecutor, RootCommandResult, RootExecutionResult, RootShell
+Nodes (4): DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata
 
-### Community 137 - "App Config"
+### Community 107 - "Expressive Switch"
 Cohesion: 0.22
 Nodes (10): :app Configuration Module, :common Shared Contracts, Three Module Architecture, :xposed Hook Module, JsonConfig.appConfigs Canonical Assignment, RemotePreferences Config Delivery, SharedPrefsKeys Source Of Truth, Hook Safety Pass Through (+2 more)
 
-### Community 140 - "Spoof Type"
-Cohesion: 0.22
-Nodes (6): DiagnosticEventType, DiagnosticSeverity, DiagnosticSource, DiagnosticEventType, DiagnosticSeverity, DiagnosticSource
-
-### Community 141 - "Device Hardware Generator"
-Cohesion: 0.31
-Nodes (5): ActionItem, ActionBottomSheet(), ActionBottomSheetPreview(), ActionItem, ActionItemRow()
-
-### Community 142 - "ICCIDGenerator"
-Cohesion: 0.31
-Nodes (4): HeroStatusIndicator(), HeroStatusIndicatorPreview(), StatusIndicator(), StatusIndicatorWithIcon()
-
-### Community 143 - "Country"
-Cohesion: 0.28
-Nodes (5): ExpressiveSwitch(), ExpressiveSwitchLightPreview(), ExpressiveSwitchWithLabel(), SwitchDimensions, SwitchDimensions
-
-### Community 144 - "Device Hardware Config Test"
-Cohesion: 0.31
-Nodes (4): createDefault(), parse(), parseCatching(), parseOrDefault()
-
-### Community 145 - "Deoptimize Manager"
-Cohesion: 0.22
-Nodes (3): SupportBundleMode, SupportBundleBuilder, SupportBundleMode
-
-### Community 146 - "Example Instrumented Test"
-Cohesion: 0.22
-Nodes (3): DiagnosticRedactor, RedactionMode, RedactionMode
-
-### Community 153 - "Section Header"
-Cohesion: 0.28
-Nodes (3): ModuleLoadedParam, ModuleMain, XposedModule
-
-### Community 158 - "Example Unit Test"
+### Community 112 - "Fake Settings Data Store"
 Cohesion: 0.31
 Nodes (4): AnimatedNavIcon(), BottomNavBar(), BottomNavItem(), navContentDescriptionRes()
 
-### Community 160 - "Diagnostic Snapshot Builder Test"
+### Community 113 - "Device Identifier"
+Cohesion: 0.22
+Nodes (3): AppsTabContent(), GroupSpoofingScreen(), SpoofTabContent()
+
+### Community 114 - "IMSIGenerator"
+Cohesion: 0.28
+Nodes (5): ExpressiveSwitch(), ExpressiveSwitchLightPreview(), ExpressiveSwitchWithLabel(), SwitchDimensions, SwitchDimensions
+
+### Community 115 - "Persona Generator Test"
+Cohesion: 0.31
+Nodes (4): HeroStatusIndicator(), HeroStatusIndicatorPreview(), StatusIndicator(), StatusIndicatorWithIcon()
+
+### Community 123 - "Diagnostics Log Buffer Test"
+Cohesion: 0.22
+Nodes (8): 10. AGENTS.md Compliance, 1. Executive Summary, ✅ All Permanent Rules Followed, Device Masker - Comprehensive Project Audit Report, Documentation Verification Appendix, Summary, Table of Contents, Verified with Official Sources
+
+### Community 124 - "LSPosed Logs Authoritative Evidence"
+Cohesion: 0.22
+Nodes (8): code:mermaid (flowchart TD), Known Limitations, Maximum Diagnostics Logging Architecture - 2026-05-03, Pipeline, Privacy And Redaction, Root Collection Model, Runtime Validation, Support Bundle Contents
+
+### Community 125 - "Device Masker App"
+Cohesion: 0.22
+Nodes (9): code:powershell (adb shell am force-stop com.mantle.verify), code:text (XposedEntry loaded for process: com.mantle.verify), code:text (com.astrixforge.devicemasker.xposed.hooker.AntiDetectHooker ), code:text (AdvertisingHooker$$ExternalSyntheticLambda0 -> g3), Environment, Important Mapping Observation, Local Evidence, Reproduction Command (+1 more)
+
+### Community 126 - "Default Diagnostics Provider"
+Cohesion: 0.22
+Nodes (9): code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ser), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --no-daemon), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), code:powershell (git add AGENTS.md memory-bank docs/reports/MAXIMUM_DIAGNOSTI), File Structure, Task 11: Hooker Event Coverage Pass, Task 12: Documentation And AGENTS Update (+1 more)
+
+### Community 127 - "IDiagnostics Provider"
+Cohesion: 0.22
+Nodes (6): code:kotlin (import com.astrixforge.devicemasker.xposed.hooker.callback.S), code:kotlin (xi.hook(m).intercept(WifiMacAddressHooker(prefs, pkg))), code:kotlin (private class InstalledPackagesHooker : StableHooker() {), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), Task 6: Convert Remaining Spoof Hookers
+
+### Community 128 - "Toggle Button"
+Cohesion: 0.22
+Nodes (8): code:kotlin (import com.astrixforge.devicemasker.xposed.hooker.callback.S), code:kotlin (val result = chain.proceed()), code:kotlin (xi.hook(m).intercept(StoredValueHooker(prefs, pkg, SpoofType), code:kotlin (xi.hook(m).intercept(SettingsSecureAndroidIdHooker(prefs, pk), code:kotlin (xi.hook(m).intercept(SystemPropertySerialHooker(prefs, pkg, ), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), Task 5: Convert DeviceHooker with Shared Value Callback Classes
+
+### Community 129 - "Value Row"
+Cohesion: 0.22
+Nodes (9): code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:powershell (.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest), code:powershell (rg "BundleExportMode|SupportBundleMode|setExportMode|KEY_EXP), code:powershell (rg "com\\.mantle\\.verify" app/src/main/kotlin/com/astrixfor), code:powershell (.\gradlew.bat assembleDebug --no-daemon), code:powershell (adb shell run-as com.astrixforge.devicemasker ls files/logs/), code:powershell (graphify update .), code:powershell (git add app/src docs/public memory-bank graphify-out) (+1 more)
+
+### Community 130 - "Standard Dialogs"
+Cohesion: 0.22
+Nodes (8): code:powershell (rg -n "RECEIVE_BOOT_COMPLETED|FOREGROUND_SERVICE_SPECIAL_USE), code:powershell (rg -n "START_NOT_STICKY|stopForeground|stopSelf|RootLogColle), Current Findings, File Structure, Google Developer Docs Checked, Self-Review, Single Root-Backed Log Export Implementation Plan, Task 7: Keep Boot/Startup Capture Bounded And Document Platform Constraints
+
+### Community 131 - "Timezone Picker Dialog"
+Cohesion: 0.22
+Nodes (9): code:kotlin (exportMode = settingsState.exportMode,), code:kotlin (onExportLogsToUri = { uri, mode ->), code:kotlin (onExportLogsToUri = { uri ->), code:kotlin (is ShareableLogResult.NoLogs -> {), code:kotlin (import android.content.ClipData), code:kotlin (val shareIntent =), code:powershell (.\gradlew.bat :app:compileDebugKotlin --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ui/) (+1 more)
+
+### Community 132 - "Animated Section"
+Cohesion: 0.22
+Nodes (9): code:kotlin (object MotionTokens {), code:kotlin (object ElevationTokens {), code:kotlin (Modifier.graphicsLayer {), code:kotlin (MaterialTheme.colorScheme.surfaceColorAtElevation(ElevationT), Phase 4 Checklist, Phase 4: Motion & Component Token Alignment, Task 4.1: Motion Token Refactor, Task 4.2: Component Accessibility & Performance (+1 more)
+
+### Community 133 - "Expressive Card"
+Cohesion: 0.22
+Nodes (9): 16 KB Page-Size Support Note, code:kotlin (buildTypes {), code:xml (<activity), code:kotlin (composeCompiler {), Phase 7: Build Hardening & Optimization, Phase 7 Checklist, Task 7.1: ProGuard CI Validation, Task 7.2: Manifest Security (+1 more)
+
+### Community 134 - "Expressive Icon Button"
+Cohesion: 0.22
+Nodes (8): Correct Hook Behavior, Expected User Flow, Primary Product Risk, Problem, Product Context: Device Masker, Product Shape, UX Principles, Working Base
+
+### Community 135 - "Diagnostics State Test"
 Cohesion: 0.25
-Nodes (4): AppLogEntry, LogFileFormatter, from(), LogFileFormatter
+Nodes (3): CompactExpressiveIconButton(), GroupSelectorCard(), IconCircle()
 
-### Community 161 - "Support Bundle Builder Test"
-Cohesion: 0.32
-Nodes (4): GroupSpoofingScreen(), SpoofTabContent(), SpoofTabContent(), SpoofTabContentPopulatedPreview()
-
-### Community 168 - "Theme Mode"
+### Community 136 - "Dispatcher Rule"
 Cohesion: 0.29
-Nodes (3): ServiceStatus, DiagnosticsStateTest, DiagnosticsStateTest
+Nodes (5): ConfigSyncInfoCard(), DiagnosticsContent(), DiagnosticsScreen(), ModuleStatusCard(), ExpressiveCard()
+
+### Community 137 - "App Config"
+Cohesion: 0.39
+Nodes (4): DiagnosticsContentPreview(), AntiDetectionTest, DiagnosticResult, DiagnosticsViewModel
+
+### Community 141 - "Device Hardware Generator"
+Cohesion: 0.25
+Nodes (8): 2.1 `:app` Module - Coroutines Usage Analysis, 2.2 `:common` Module, 2.3 `:xposed` Module, 2. Coroutines Audit, ✅ Excellent: collectAsStateWithLifecycle Usage, ✅ Good: Custom Scopes With SupervisorJob, ✅ Good: StateFlow Usage Pattern, ✅ Good: ViewModel Scope Usage
+
+### Community 142 - "ICCIDGenerator"
+Cohesion: 0.25
+Nodes (8): code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --no-daemon), code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), Phase 1: Correct libxposed API Contract Violations, Phase 2: Fix Config Correctness And Sync Semantics, Phase 3: Make Live Update Semantics Honest, Phase 4: Reduce Broad Instance Hook Behavior, Phase 5: Documentation And Cleanup, Recommended Remediation Order
+
+### Community 143 - "Country"
+Cohesion: 0.25
+Nodes (7): 4.1 ViewModel Creation Pattern, 4.2 Entry Decorator Configuration, 4.3 Navigation Arguments, 4.4 State Preservation, code:kotlin (entry<NavDestination.GroupSpoofing>(...) { destination ->), code:kotlin (entry<NavDestination.GroupSpoofing>(...) { destination ->), Part 4: ViewModel Integration Audit
+
+### Community 144 - "Device Hardware Config Test"
+Cohesion: 0.25
+Nodes (8): Additional References, Android API Levels, Build & Optimization, Compose, Coroutines, Memory & Performance, Official Documentation References, Thread Safety
+
+### Community 145 - "Deoptimize Manager"
+Cohesion: 0.25
+Nodes (7): Assumptions, File Structure, Implementation Notes, R8 Libxposed Explicit Hookers Implementation Plan, Rollback Plan, Self-Review, Success Criteria
+
+### Community 147 - "Boot Capture Receiver"
+Cohesion: 0.43
+Nodes (3): Error, LogManager, Success
+
+### Community 149 - "Icon Circle"
+Cohesion: 0.25
+Nodes (7): Error, LogExportResult, NoLogs, ShareableLogResult, Success, LogExportResult, ShareableLogResult
+
+### Community 152 - "Expressive Pull Refresh"
+Cohesion: 0.29
+Nodes (3): Keys, Keys, SettingsDataStore
+
+### Community 153 - "Section Header"
+Cohesion: 0.43
+Nodes (4): DeviceMaskerTheme(), DeviceMaskerThemeInternal(), rememberSystemContrast(), withContrastPreference()
+
+### Community 156 - "Theme"
+Cohesion: 0.29
+Nodes (4): AnimatedSection(), AntiDetectionSection(), AntiDetectionTestItem(), CategoryDiagnosticSection()
+
+### Community 170 - "Group Spoofing Screen"
+Cohesion: 0.29
+Nodes (7): L1. Example Tests Remain, L2. Tests Use JUnit Assertions Instead Of Truth, L3. No Turbine Tests For Flow State, L4. Legacy Date APIs Appear In Boundary Code, L5. Legacy External Storage Permission May Be Unneeded, L6. Deprecation Warnings Are Suppressed, Low Findings
+
+### Community 171 - "Group Spoofing State"
+Cohesion: 0.29
+Nodes (7): App Module Inventory, Build And Manifest, Persistence And Config Delivery, Repositories, Startup And App Wiring, Tests, UI
 
 ### Community 172 - "Category Section"
-Cohesion: 0.38
-Nodes (3): ConfirmationDialog(), DeleteConfirmationDialog(), DeleteDialogPreview()
+Cohesion: 0.29
+Nodes (6): 6. Dependency Upgrade Recommendations, 7. Build Optimization Recommendations, 9. Appendix: Positive Patterns, DeviceMasker Comprehensive Audit Report, Executive Summary, Table of Contents
 
 ### Community 173 - "Device Hardware Content"
-Cohesion: 0.33
-Nodes (4): search(), TimezoneEntry, TimezonePickerDialog(), TimezoneEntry
+Cohesion: 0.29
+Nodes (7): 8. Testing Roadmap, Priority 1: Coroutine and Flow Infrastructure, Priority 2: ViewModel Tests (All 5 ViewModels), Priority 3: Repository Tests, Priority 4: Config and Sync Tests, Priority 5: Service and Diagnostics Tests, Priority 6: UI Instrumented Tests
+
+### Community 174 - "Location Content"
+Cohesion: 0.29
+Nodes (7): code:powershell (.\gradlew.bat spotlessApply :app:testDebugUnitTest :xposed:t), code:powershell (.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:t), Files Changed By Remediation, Fix Implementation Summary, Fixed Issues, Residual Risk, Verification After Remediation
+
+### Community 175 - "SIMCard Content"
+Cohesion: 0.29
+Nodes (6): code:bash (# Startup benchmark), Device Masker - Android Performance Audit Report, Executive Summary, Positive Patterns Found, Summary of Verified Findings, Testing Commands
 
 ### Community 176 - "Correlated Spoof Item"
 Cohesion: 0.29
-Nodes (6): CorrelationGroup, SpoofCategory, SpoofType, CorrelationGroup, SpoofCategory, SpoofType
+Nodes (6): Maximum Diagnostics Logging Implementation Plan, Risks, Rollout Strategy, Scope And Non-Goals, Self-Review, Success Criteria
+
+### Community 177 - "Independent Spoof Item"
+Cohesion: 0.29
+Nodes (7): code:powershell ($apk = "app\build\outputs\apk\release\app-release-unsigned.a), code:powershell (adb install -r app\build\outputs\apk\release\app-release-deb), code:powershell (adb shell su -c "tar -czf /sdcard/devicemasker_appdata_backu), code:powershell (adb shell am force-stop com.mantle.verify), code:powershell (adb shell am force-stop flar2.devcheck), code:powershell ($thirdTarget =), Task 12: Signed Release Runtime Smoke on Emulator
+
+### Community 178 - "Read Only Value Row"
+Cohesion: 0.29
+Nodes (7): code:kotlin (import com.astrixforge.devicemasker.xposed.hooker.callback.S), code:kotlin (xi.hook(method).intercept(AddServiceHooker())), code:kotlin (xi.hook(runMethod).intercept(RunnableHooker())), code:kotlin (private class RunnableHooker : StableHooker() {), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), Task 8: Convert SystemServiceHooker
+
+### Community 179 - "UIDisplay Category"
+Cohesion: 0.29
+Nodes (6): code:powershell (.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest), Final Verification Command Set, Research Summary, Self-Review, StrictMode And Detekt Guardrails Implementation Plan, Xposed/Libxposed Safety Rules For This Plan
+
+### Community 180 - "Home State"
+Cohesion: 0.29
+Nodes (7): code:kotlin (package com.astrixforge.devicemasker.testing), code:kotlin (@Test), code:kotlin (@Test), code:kotlin (import com.astrixforge.devicemasker.service.ShareableLogResu), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:powershell (git add app/src/test/kotlin/com/astrixforge/devicemasker/tes), Task 1: Lock ViewModel Export Behavior With Tests
+
+### Community 181 - "Constants"
+Cohesion: 0.29
+Nodes (6): code:toml (composeBom = "2026.04.01"), Phase 5 Checklist, Phase 5: Dependency Upgrade & M3E Component Migration, Task 5.1: Dependency Upgrade, Task 5.2: Component Migration, Task 5.3: Theme Integration
+
+### Community 183 - "Diagnostics Redaction Default"
+Cohesion: 0.53
+Nodes (5): CreateGroupDialog(), CreateGroupDialogPreview(), DeleteGroupDialog(), EditGroupDialog(), GroupsScreen()
+
+### Community 197 - "Community 197"
+Cohesion: 0.33
+Nodes (6): H1. Config Persistence Is Fire-And-Forget And Can Produce Out-Of-Order State, H2. Import Semantics Appear To Drop Canonical App Assignment State, H3. Runtime Status Can Overclaim Hook Success, H4. `QUERY_ALL_PACKAGES` Is Product-Relevant But High Risk, H5. Diagnostics Contain Aspirational Or Indirect Checks, High Findings
+
+### Community 198 - "Community 198"
+Cohesion: 0.33
+Nodes (6): 3.1 Module Structure, 3.2 Dependency Direction - ✅ CORRECT, 3.3 Architecture Patterns, 3. Architecture Audit, code:block1 (devicemasker/), code:block2 (:app          (Application - user-facing))
 
 ### Community 199 - "Community 199"
-Cohesion: 0.48
-Nodes (6): Read-UInt16LE(), Read-UInt32LE(), Read-UInt64LE(), Resolve-AndroidSdk(), Resolve-Zipalign(), Test-ElfLoadAlignment()
+Cohesion: 0.33
+Nodes (6): 4.1 CRITICAL Issues, 4.2 HIGH Issues, 4.3 MEDIUM Issues, 4.4 LOW Issues, 4.5 Performance OK, Module 4: Build Configuration Deep Audit
+
+### Community 200 - "Community 200"
+Cohesion: 0.33
+Nodes (6): :app Module (18+ files), Appendix: Files Read by Agents, Build Files (all), :common Module (all files), Resources (all), :xposed Module (23 files)
+
+### Community 201 - "Community 201"
+Cohesion: 0.33
+Nodes (6): code:powershell (rg -n "isMinifyEnabled|isShrinkResources" app/build.gradle.k), code:powershell (.\gradlew.bat clean :app:assembleRelease --no-daemon), code:powershell (Select-String -Path app\build\outputs\mapping\release\mappin), code:powershell (Get-Item app\build\outputs\apk\release\app-release-unsigned.), code:powershell (git add app/build.gradle.kts xposed/consumer-rules.pro app/p), Task 10: Release R8 Build and Bytecode Inspection
+
+### Community 202 - "Community 202"
+Cohesion: 0.33
+Nodes (6): code:proguard (# LIBXPOSED API — Hook interface hierarchy and named callbac), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/consumer-rules.pro app/proguard-rules.pro), code:proguard (# Hooker callback ABI — libxposed calls XposedInterface.Hook), code:proguard (-keep class com.astrixforge.devicemasker.xposed.hooker.** { ), Task 3: Update R8 Keep Rules for Explicit Callback Classes
+
+### Community 203 - "Community 203"
+Cohesion: 0.33
+Nodes (6): code:kotlin (composeCompiler {), code:kotlin (composeCompiler {), code:powershell (.\gradlew.bat :app:compileDebugKotlin --no-daemon), code:powershell (.\gradlew.bat :app:compileDebugKotlin -PenableComposeCompile), code:powershell (git add app\build.gradle.kts), Task 5: Gate Compose Compiler Metrics Behind Properties
+
+### Community 204 - "Community 204"
+Cohesion: 0.33
+Nodes (6): code:powershell (Copy-Item .agents\skills\claude-android-ninja\assets\detekt.), code:yaml (exceptions:), code:powershell (Compare-Object (Get-Content .agents\skills\claude-android-ni), code:powershell (.\gradlew.bat :app:detekt --no-daemon), code:powershell (git add config\detekt.yml xposed\detekt.yml), Task 3: Add Template-Based Detekt Rules And Xposed Overrides
+
+### Community 205 - "Community 205"
+Cohesion: 0.33
+Nodes (6): code:md (- `StrictModeGuard`: debug-only app-process StrictMode polic), code:md (- **No StrictMode installation** in target app or system_ser), code:md (- Debug builds install app-process StrictMode through `Stric), code:powershell (Select-String -Path app\AGENTS.md,xposed\AGENTS.md,memory-ba), code:powershell (git add app\AGENTS.md xposed\AGENTS.md memory-bank\activeCon), Task 10: Documentation Updates
+
+### Community 206 - "Community 206"
+Cohesion: 0.33
+Nodes (6): code:yaml (- name: Detekt), code:yaml (path: |), code:powershell (.\gradlew.bat spotlessCheck detekt :app:compileDebugKotlin :), code:powershell (git add .github\workflows\ci.yml), File Structure, Task 8: Add Detekt To CI
+
+### Community 207 - "Community 207"
+Cohesion: 0.33
+Nodes (6): code:kotlin (package com.astrixforge.devicemasker.service.diagnostics), code:kotlin (import com.astrixforge.devicemasker.service.diagnostics.Stri), code:kotlin (StrictModeGuard.install()), code:powershell (Get-ChildItem -Path xposed\src\main\kotlin -Recurse -Filter ), code:powershell (git add app\src\main\kotlin\com\astrixforge\devicemasker\ser), Task 6: Add Debug-Only StrictMode Guard
+
+### Community 208 - "Community 208"
+Cohesion: 0.33
+Nodes (6): code:powershell (git add build.gradle.kts), code:kotlin (import dev.detekt.gradle.Detekt), code:kotlin (alias(libs.plugins.detekt) apply false), code:kotlin (fun Project.configureDeviceMaskerDetekt() {), code:powershell (.\gradlew.bat tasks --all --no-daemon), Task 2: Configure Detekt Centrally Without Build Logic
+
+### Community 209 - "Community 209"
+Cohesion: 0.33
+Nodes (6): code:kotlin (package com.astrixforge.devicemasker.service.diagnostics), code:kotlin (package com.astrixforge.devicemasker.xposed), code:powershell (.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add app\src\test\kotlin\com\astrixforge\devicemasker\ser), Task 7: Add StrictMode And Xposed Safety Tests
+
+### Community 210 - "Community 210"
+Cohesion: 0.33
+Nodes (6): code:toml (detekt = "2.0.0-alpha.3"), code:toml (detekt-compose-rules = { group = "io.nlopez.compose.rules", ), code:toml (detekt = { id = "dev.detekt", version.ref = "detekt" }), code:powershell (.\gradlew.bat help --no-daemon), code:powershell (git add gradle\libs.versions.toml), Task 1: Add Detekt Versions To The Catalog
+
+### Community 211 - "Community 211"
+Cohesion: 0.33
+Nodes (6): code:powershell (.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (Get-ChildItem -Path xposed\src\main\kotlin -Recurse -Filter ), code:powershell (adb install -r app\build\outputs\apk\debug\app-debug.apk), code:powershell (git add memory-bank\activeContext.md memory-bank\techContext), Task 9: Full Safety Verification
 
 ### Community 212 - "Community 212"
-Cohesion: 0.5
-Nodes (3): ScreenHeader(), ScreenHeaderWithActionsPreview(), ScreenHeader()
+Cohesion: 0.33
+Nodes (5): code:kotlin (sealed interface NavDestination : NavKey {), Phase 6 Checklist, Phase 6: Navigation Modernization, Task 6.1: Navigation 3 Route Definitions, Task 6.2: Navigation 3 Adaptive UI
+
+### Community 213 - "Community 213"
+Cohesion: 0.33
+Nodes (6): code:kotlin (val windowSizeClass = calculateWindowSizeClass(activity = th), Phase 8 Checklist, Phase 8: Polish & Advanced M3E Features, Task 8.1: Evaluate Advanced M3E Components, Task 8.2: Developer Experience, Task 8.3: Window Size Class Adaptation
 
 ### Community 214 - "Community 214"
+Cohesion: 0.33
+Nodes (6): 2. Findings Master Index, CRITICAL Findings (Must Fix in Phase 0), HIGH Findings, LOW Findings, M3E Theme Compliance Findings, MEDIUM Findings
+
+### Community 218 - "Community 218"
 Cohesion: 0.4
 Nodes (3): DashboardState, getInstance(), DashboardState
 
-### Community 219 - "Community 219"
-Cohesion: 0.5
-Nodes (3): create(), SIMConfig, SIMConfig
+### Community 232 - "Community 232"
+Cohesion: 0.4
+Nodes (5): 5.1 Current State, 5.2 Target State (Navigation3), 5.3 Migration Steps, 5.4 Risk Mitigation, 5. Navigation3 Migration Plan
 
-### Community 221 - "Community 221"
+### Community 233 - "Community 233"
+Cohesion: 0.4
+Nodes (5): 8.1 Screen Architecture - ✅ EXCELLENT, 8.2 Navigation - ✅ Navigation 3, 8.3 Theme - ✅ Material 3 Expressive, 8.4 No Anti-Patterns Found, 8. Compose & UI Audit
+
+### Community 234 - "Community 234"
+Cohesion: 0.4
+Nodes (5): 6.1 libxposed API 101 Compliance - ✅ PASS, 6.2 Hook Safety Patterns - ✅ PASS, 6.3 Anti-Detection Patterns, 6.4 Thread Safety, 6. Xposed Module Audit
+
+### Community 235 - "Community 235"
+Cohesion: 0.4
+Nodes (5): 11. Critical Issues, High Priority, Medium Priority, Must Fix Immediately, NOTE: Corrected Finding
+
+### Community 236 - "Community 236"
+Cohesion: 0.4
+Nodes (5): 4.1 Version Catalog (`gradle/libs.versions.toml`), 4.2 Build Types, 4.3 SDK Versions, 4.4 Module Metadata (Xposed), 4. Build Configuration Audit
+
+### Community 237 - "Community 237"
+Cohesion: 0.4
+Nodes (5): Additional Technical Observations, code:kotlin (val f: Field = buildClass.getDeclaredField(fieldName)), Diagnostics Service Uses System Service Registration, But Target Processes No Longer Discover It, Direct `Build` Field Mutation Is A Stability And Coherence Tradeoff, `getSpoofValue(...)` Compatibility Wrapper Is Still Used In Callbacks
+
+### Community 238 - "Community 238"
+Cohesion: 0.4
+Nodes (5): 3.1 CRITICAL Issues (Hook Performance), 3.2 HIGH Issues, 3.3 MEDIUM Issues, 3.4 Performance OK, Module 3: :xposed Module Deep Audit
+
+### Community 239 - "Community 239"
+Cohesion: 0.4
+Nodes (5): 1.1 CRITICAL Issues (Runtime Crash/ANR), 1.2 HIGH Issues (Memory/Performance), 1.3 MEDIUM Issues, 1.4 LOW / Code Smell, Module 1: :app Module Deep Audit
+
+### Community 240 - "Community 240"
+Cohesion: 0.4
+Nodes (5): 5.1 CRITICAL Issues, 5.2 HIGH Issues (String Duplication), 5.3 MEDIUM Issues, 5.4 LOW Issues, Module 5: Resources & Manifest Deep Audit
+
+### Community 241 - "Community 241"
+Cohesion: 0.4
+Nodes (5): code:kotlin (assertEquals("[REDACTED_IMEI]", redactor.redactValue("490154), code:powershell (.\gradlew.bat :common:testDebugUnitTest --no-daemon), code:powershell (.\gradlew.bat :common:testDebugUnitTest --no-daemon), code:powershell (git add common/src/main/kotlin/com/astrixforge/devicemasker/), Task 2: Redaction Engine
+
+### Community 242 - "Community 242"
+Cohesion: 0.4
+Nodes (5): code:powershell (.\gradlew.bat spotlessApply spotlessCheck :common:testDebugU), code:powershell (adb install -r app\build\outputs\apk\debug\app-debug.apk), code:powershell (adb shell am force-stop com.mantle.verify), code:powershell (git add <fixed-files>), Task 13: Full Verification
+
+### Community 243 - "Community 243"
+Cohesion: 0.4
+Nodes (5): code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --no-daemon), code:kotlin (DualLog.debug(tag, message)), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --no-daemon), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), Task 5: Xposed Structured Event Sink And Hook Health
+
+### Community 244 - "Community 244"
+Cohesion: 0.4
+Nodes (5): code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ser), code:text (files/logs/sessions/session_<sessionId>/), Task 3: Rotating JSONL Store And Session Manager
+
+### Community 245 - "Community 245"
+Cohesion: 0.4
+Nodes (5): code:kotlin (@Test), code:powershell (.\gradlew.bat :common:testDebugUnitTest --no-daemon), code:powershell (.\gradlew.bat :common:testDebugUnitTest --no-daemon), code:powershell (git add common/src/main/kotlin/com/astrixforge/devicemasker/), Task 1: Shared Diagnostic Event Contract
+
+### Community 246 - "Community 246"
+Cohesion: 0.4
+Nodes (5): code:markdown (## Implementation Result: Explicit Named Hookers), code:markdown (### 2026-05-06 R8/libxposed Callback ABI Hardening), code:powershell (graphify update .), code:powershell (git add docs/internal/reports/R8_LIBXPOSED_RUNTIME_CRASH_ANA), Task 14: Documentation and Memory Bank Update
+
+### Community 247 - "Community 247"
+Cohesion: 0.4
+Nodes (5): code:kotlin (* 3. Inside each [safeHook] block: resolve the [Method], cal), code:kotlin (* ```kotlin), code:powershell (.\gradlew.bat spotlessApply :xposed:testDebugUnitTest --no-d), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), Task 9: Update BaseSpoofHooker Documentation
+
+### Community 248 - "Community 248"
+Cohesion: 0.4
+Nodes (5): code:powershell (.\gradlew.bat :app:detektBaseline :common:detektBaseline :xp), code:powershell (.\gradlew.bat detekt --no-daemon), code:powershell (git diff -- xposed\src\main\kotlin), code:powershell (git add app\detekt-baseline.xml common\detekt-baseline.xml x), Task 4: Generate Initial Detekt Baselines
+
+### Community 249 - "Community 249"
+Cohesion: 0.4
+Nodes (5): code:powershell (.\gradlew.bat spotlessApply spotlessCheck :common:testDebugU), code:powershell (adb install -r app\build\outputs\apk\debug\app-debug.apk), Phase 9 Checklist, Phase 9: Final Validation & Testing, Task 9.1: Comprehensive Testing
+
+### Community 255 - "Community 255"
 Cohesion: 0.4
 Nodes (5): libxposed Audit Remediation, Xposed Spoofing And Logging Audit, LSPosed Logs Authoritative Evidence, com.mantle.verify Working Base, Defensive WebView Hooking
 
-### Community 225 - "Community 225"
+### Community 266 - "Community 266"
 Cohesion: 0.5
-Nodes (3): XposedModule, XposedInterfaceWrapper, XposedModuleInterface
+Nodes (3): CorrelationGroup, SpoofCategory, SpoofType
 
-### Community 243 - "Community 243"
+### Community 273 - "Community 273"
+Cohesion: 0.5
+Nodes (4): Immediate, Later, Next, Recommended Action Plan
+
+### Community 274 - "Community 274"
+Cohesion: 0.5
+Nodes (4): 12. Recommendations, Immediate Actions, Long-term, Short-term
+
+### Community 275 - "Community 275"
+Cohesion: 0.5
+Nodes (4): 9.1 Test Structure, 9.2 Test Utilities, 9.3 Testing Patterns, 9. Testing Audit
+
+### Community 276 - "Community 276"
+Cohesion: 0.5
+Nodes (4): 7.1 Serialization (@Serializable), 7.2 Thread Safety Issues in Generators, 7.3 Inconsistent Luhn Implementations, 7. Common Module Audit
+
+### Community 277 - "Community 277"
+Cohesion: 0.5
+Nodes (4): Runtime Tests, Static Safety Tests, Suggested New Tests, Unit Tests
+
+### Community 278 - "Community 278"
+Cohesion: 0.5
+Nodes (4): code:kotlin (val group = config.getGroupForApp(packageName)), code:kotlin (val appEnabled =), code:kotlin (val appConfig = config.getAppConfig(packageName)), Medium 6: `ConfigSync.syncApp()` Ignores `AppConfig.isEnabled`
+
+### Community 279 - "Community 279"
+Cohesion: 0.5
+Nodes (4): 2.1 Files Audited, 2.3 Minor Differences from Documentation, 2.4 No Critical Implementation Issues Found, Part 2: DeviceMasker Implementation Audit
+
+### Community 280 - "Community 280"
+Cohesion: 0.5
+Nodes (4): 1.1 Documentation Files Reviewed, 1.2 Verified Correct Items, 1.4 Documentation File Status, Part 1: Navigation 3 Skill Documentation Audit
+
+### Community 281 - "Community 281"
+Cohesion: 0.5
+Nodes (4): 2.1 HIGH Issues (Regex Compilation), 2.2 MEDIUM Issues, 2.3 LOW Issues, Module 2: :common Module Deep Audit
+
+### Community 282 - "Community 282"
+Cohesion: 0.5
+Nodes (4): Immediate (This Week), Long-term (Quarter), Recommendations Summary, Short-term (Next Sprint)
+
+### Community 283 - "Community 283"
+Cohesion: 0.5
+Nodes (4): Complete Issue Matrix, Priority 1: CRITICAL (Fix This Week), Priority 2: HIGH (Fix This Sprint), Priority 3: MEDIUM (Next Sprint)
+
+### Community 284 - "Community 284"
+Cohesion: 0.5
+Nodes (4): Android R8 Keep Rule Guidance, libxposed Hook ABI, LSPosed / libxposed Project State, Official Documentation Findings
+
+### Community 285 - "Community 285"
+Cohesion: 0.5
+Nodes (4): code:text (logcat -d -v threadtime -b main,system,crash,events), code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ser), Task 7: Root Shell And Maximum Log Collector
+
+### Community 286 - "Community 286"
+Cohesion: 0.5
+Nodes (4): code:text (manifest.json), code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ser), Task 9: Support Bundle Builder
+
+### Community 287 - "Community 287"
+Cohesion: 0.5
+Nodes (4): code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (.\gradlew.bat :app:testDebugUnitTest --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/Dev), Task 4: App Logging Migration
+
+### Community 288 - "Community 288"
+Cohesion: 0.5
+Nodes (4): code:powershell (.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:t), code:powershell (rg -n "\.intercept\s*\{|intercept\s*\{" xposed/src/main/kotl), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), Task 11: Full Static and Unit Gate
+
+### Community 289 - "Community 289"
+Cohesion: 0.5
+Nodes (4): code:kotlin (package com.astrixforge.devicemasker.xposed.hooker.callback), code:powershell (.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixfo), code:powershell (git add xposed/src/main/kotlin/com/astrixforge/devicemasker/), Task 2: Add Stable Named Hooker Base
+
+### Community 290 - "Community 290"
+Cohesion: 0.5
+Nodes (4): 13. Testing Roadmap, Additional Integration Tests (Phase 9), Already Covered in Phase 1, UI Instrumented Tests (Future)
+
+### Community 306 - "Community 306"
+Cohesion: 0.67
+Nodes (3): Build And Release Readiness, code:powershell (.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:t), code:powershell (adb install -r app\build\outputs\apk\debug\app-debug.apk)
+
+### Community 307 - "Community 307"
+Cohesion: 0.67
+Nodes (3): 5.1 Critical Issues Found, 5.2 Good Patterns, 5. Data & Service Layer Audit
+
+### Community 308 - "Community 308"
+Cohesion: 0.67
+Nodes (3): code:kotlin (val presetId = getSpoofValue(prefs, pkg, SpoofType.DEVICE_PR), code:kotlin (val presetId = getConfiguredSpoofValue(prefs, pkg, SpoofType), Medium 4: Some Hookers Read RemotePreferences Only At Registration, So They Are Not Fully Live
+
+### Community 309 - "Community 309"
+Cohesion: 0.67
+Nodes (3): code:kotlin (try {), code:kotlin (import io.github.libxposed.api.error.XposedFrameworkError), High 2: `HookFailedError` / `XposedFrameworkError` Are Swallowed By `Throwable` Catches
+
+### Community 310 - "Community 310"
+Cohesion: 0.67
+Nodes (3): code:kotlin (val ua = chain.args.firstOrNull() as? String ?: return@inter), code:kotlin (xi.hook(m).intercept { chain ->), High 1: `WebViewHooker` Mutates Immutable `chain.args`
+
+### Community 311 - "Community 311"
+Cohesion: 0.67
+Nodes (3): code:kotlin (prefs.edit {), code:kotlin (val ok = prefs.edit(commit = true) {), Medium 7: RemotePreferences Writes Use Async `apply()` And Do Not Surface Commit Failure
+
+### Community 312 - "Community 312"
+Cohesion: 0.67
+Nodes (3): code:powershell (.\gradlew.bat :app:testDebugUnitTest lint --no-daemon), code:powershell (git add app/src/main/kotlin/com/astrixforge/devicemasker/ui/), Task 10: UI Repro Capture And Export Modes
+
+### Community 313 - "Community 313"
+Cohesion: 0.67
+Nodes (3): code:powershell (.\gradlew.bat :app:testDebugUnitTest :xposed:testDebugUnitTe), code:powershell (git add common/src/main/aidl/com/astrixforge/devicemasker/ID), Task 6: Diagnostics Service Structured Events
+
+### Community 315 - "Community 315"
 Cohesion: 0.67
 Nodes (3): Master Implementation Plan Completion, Material 3 Expressive Implementation, Quality Gate Pipeline
 
 ## Knowledge Gaps
-- **168 isolated node(s):** `Keys`, `DashboardState`, `LogExportResult`, `ShareableLogResult`, `NoLogs` (+163 more)
+- **1060 isolated node(s):** `Keys`, `InstalledApp`, `DashboardState`, `LogExportResult`, `ShareableLogResult` (+1055 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **158 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **138 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DeviceMaskerMainApp()` connect `Advertising Hooker` to `Support Bundle Builder Test`, `Implementation Plan Hardening Test`, `package info`, `Persona Generator`, `ISpoof Repository`, `Carrier`, `Root Shell`, `Community 206`, `Diagnostics Screen`, `Expressive Loading Indicator`, `Settings State`, `Activity`, `Community 218`, `Example Unit Test`, `Config Manager Persona Test`?**
-  _High betweenness centrality (0.265) - this node is a cross-community bridge._
-- **Why does `FakeSpoofRepository` connect `Groups View Model` to `Implementation Plan Hardening Test`, `Settings State`, `Expressive Loading Indicator`, `Root Shell Test`, `Location Hooker`?**
-  _High betweenness centrality (0.122) - this node is a cross-community bridge._
-- **Why does `AppConfig` connect `Root Shell Test` to `Spoof Repository`, `Root Access Manager`, `Fake App Scope Repository`?**
-  _High betweenness centrality (0.113) - this node is a cross-community bridge._
-- **Are the 12 inferred relationships involving `FakeSpoofRepository` (e.g. with `.`create group adds to list`()` and `.`delete group removes from list`()`) actually correct?**
-  _`FakeSpoofRepository` has 12 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 30 inferred relationships involving `DeviceMaskerTheme()` (e.g. with `.onCreate()` and `CreateGroupDialogPreview()`) actually correct?**
-  _`DeviceMaskerTheme()` has 30 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 29 inferred relationships involving `StableHooker` (e.g. with `.hookAdvertisingIdClient()` and `.hookGservices()`) actually correct?**
-  _`StableHooker` has 29 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Keys`, `DashboardState`, `LogExportResult` to the rest of the system?**
-  _168 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `DeviceMaskerMainApp()` connect `Location Hooker` to `Fake Spoof Repository`, `Dispatcher Rule`, `App Config`, `Map Shared Preferences`, `Home View Model`, `Fake Log Manager`, `Fake Settings Data Store`, `Root Shell Test`, `Device Identifier`, `Diagnostics Redaction Default`, `Diagnostics View Model`, `Diagnostic Redactor Test`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `DeviceMaskerTheme()` connect `Section Header` to `UUIDGenerator`, `Location Config`, `App Config`, `Root Shell Test`, `IMSIGenerator`, `Persona Generator Test`, `Diagnostics Redaction Default`, `Diagnostics View Model`, `Groups Screen`, `Location Hooker`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `AppConfig` connect `App Scope Repository Test` to `Spoof Repository`, `Spoof Group`, `Community 263`?**
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Are the 28 inferred relationships involving `StableHooker` (e.g. with `.hookAdvertisingIdClient()` and `.hookGservices()`) actually correct?**
+  _`StableHooker` has 28 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `Keys`, `InstalledApp`, `DashboardState` to the rest of the system?**
+  _1060 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Spoof Repository` be split into smaller, more focused modules?**
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+- **Should `Config Manager` be split into smaller, more focused modules?**
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
