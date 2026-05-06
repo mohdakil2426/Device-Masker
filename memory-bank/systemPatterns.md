@@ -110,7 +110,9 @@ sequenceDiagram
 
 Every hook should:
 - Resolve classes and methods defensively.
-- Use libxposed API 101 lambda interceptors.
+- Use libxposed API 101 through `intercept(stableHooker { ... })` or explicit named
+  `XposedInterface.Hooker` classes. Direct `.intercept { ... }` Kotlin SAM callbacks are forbidden
+  in runtime hookers because release R8 caused `AbstractMethodError` in LSPosed target processes.
 - Use one `safeHook` block per method or method family.
 - Call `xi.deoptimize(m)` for methods that are hooked.
 - Call `chain.proceed()` when original values are needed for fallback.
@@ -121,6 +123,7 @@ Every hook should:
 Forbidden in target-process hook callbacks:
 - Random fallback identifier generation.
 - Hardcoded fake defaults for malformed config.
+- Direct Kotlin SAM callback registration with `xi.hook(m).intercept { ... }`.
 - Direct reads of app-private JSON config.
 - Timber usage in `:xposed`.
 - Hardcoded RemotePreferences key strings.
@@ -138,8 +141,8 @@ Current safer anti-detection surfaces:
 Global class lookup hiding is currently disabled by default:
 - `Class.forName` and `ClassLoader.loadClass` hooks are too invasive for target startup.
 - They caused or contributed to startup instability in `com.mantle.verify`.
-- The helper still has safe-prefix pass-through rules for future reintroduction.
-- Reintroduce only behind a per-app kill switch and regression tests.
+- The helper still has safe-prefix pass-through rules for opt-in use.
+- Reintroduction now requires both per-app risky hooks and per-app class lookup hiding to be enabled.
 
 Intentional app-visible throws for package/class hiding must use `ExceptionMode.PASSTHROUGH`.
 
@@ -231,7 +234,10 @@ WebView UA spoofing is defensive:
 
 ## Build Pattern
 
-- Release minification and resource shrinking stay disabled during hook validation.
+- Release minification and resource shrinking are enabled.
+- Release R8 safety depends on the `StableHooker` adapter in `:xposed`; keep rules must preserve
+  `io.github.libxposed.api.XposedInterface$Hooker`, `Chain`, `HookBuilder`, `HookHandle`, and
+  `com.astrixforge.devicemasker.xposed.hooker.callback.**`.
 - `ciRelease` build type validates ProGuard rules without affecting debug builds.
 - Lint is fail-fast.
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.

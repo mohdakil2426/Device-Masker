@@ -181,6 +181,7 @@ fun GroupSpoofingScreen(
                             AppsTabContent(
                                 group = group,
                                 allGroups = groups,
+                                appConfigs = state.appConfigs,
                                 installedApps = installedApps,
                                 onAppToggle = { app, checked ->
                                     if (checked) {
@@ -188,6 +189,12 @@ fun GroupSpoofingScreen(
                                     } else {
                                         viewModel.removeAppFromGroup(app.packageName)
                                     }
+                                },
+                                onRiskyHooksToggle = { packageName, checked ->
+                                    viewModel.setAppRiskyHooksEnabled(packageName, checked)
+                                },
+                                onClassLookupToggle = { packageName, checked ->
+                                    viewModel.setAppClassLookupHidingEnabled(packageName, checked)
                                 },
                             )
                     }

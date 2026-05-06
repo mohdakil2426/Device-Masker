@@ -10,6 +10,7 @@ import com.astrixforge.devicemasker.common.models.LocationConfig
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +42,12 @@ class GroupSpoofingViewModel(
                 _state.update {
                     it.copy(groups = groups.toImmutableList(), group = group, isLoading = false)
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.appConfigs.collect { appConfigs ->
+                _state.update { it.copy(appConfigs = appConfigs.toImmutableMap()) }
             }
         }
 
@@ -163,6 +170,14 @@ class GroupSpoofingViewModel(
 
     fun removeAppFromGroup(packageName: String) {
         viewModelScope.launch { repository.removeAppFromGroup(groupId, packageName) }
+    }
+
+    fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
+        viewModelScope.launch { repository.setAppRiskyHooksEnabled(packageName, enabled) }
+    }
+
+    fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean) {
+        viewModelScope.launch { repository.setAppClassLookupHidingEnabled(packageName, enabled) }
     }
 
     private companion object {

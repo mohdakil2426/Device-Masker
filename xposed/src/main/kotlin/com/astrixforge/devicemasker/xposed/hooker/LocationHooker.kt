@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import android.location.Location
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -41,33 +42,41 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
         val locationClass = cl.loadClassOrNull("android.location.Location") ?: return
         safeHook("Location.getLatitude()") {
             locationClass.methodOrNull("getLatitude")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val current = (result as? Double) ?: 0.0
-                    val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) {
-                            current.toString()
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val current = (result as? Double) ?: 0.0
+                            val spoofed =
+                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) {
+                                    current.toString()
+                                }
+                            val finalVal = spoofed.toDoubleOrNull() ?: current
+                            if (finalVal != current)
+                                reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
+                            finalVal
                         }
-                    val finalVal = spoofed.toDoubleOrNull() ?: current
-                    if (finalVal != current) reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
-                    finalVal
-                }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("Location.getLongitude()") {
             locationClass.methodOrNull("getLongitude")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val current = (result as? Double) ?: 0.0
-                    val spoofed =
-                        getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) {
-                            current.toString()
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val current = (result as? Double) ?: 0.0
+                            val spoofed =
+                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) {
+                                    current.toString()
+                                }
+                            val finalVal = spoofed.toDoubleOrNull() ?: current
+                            if (finalVal != current)
+                                reportSpoofEvent(pkg, SpoofType.LOCATION_LONGITUDE)
+                            finalVal
                         }
-                    val finalVal = spoofed.toDoubleOrNull() ?: current
-                    if (finalVal != current) reportSpoofEvent(pkg, SpoofType.LOCATION_LONGITUDE)
-                    finalVal
-                }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -82,16 +91,22 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
         val lmClass = cl.loadClassOrNull("android.location.LocationManager") ?: return
         safeHook("LocationManager.getLastKnownLocation(String)") {
             lmClass.methodOrNull("getLastKnownLocation", String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val location = result as? Location ?: return@intercept result
-                    val latStr = getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) { "" }
-                    val lonStr = getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) { "" }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val location = result as? Location ?: return@stableHooker result
+                            val latStr =
+                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) { "" }
+                            val lonStr =
+                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) { "" }
 
-                    val copy = copyWithSpoof(location, latStr, lonStr)
-                    if (copy !== location) reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
-                    copy
-                }
+                            val copy = copyWithSpoof(location, latStr, lonStr)
+                            if (copy !== location)
+                                reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
+                            copy
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -106,16 +121,19 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
         val tzClass = cl.loadClassOrNull("java.util.TimeZone") ?: return
         safeHook("TimeZone.getDefault()") {
             tzClass.methodOrNull("getDefault")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val tzId = getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
-                    if (tzId.isNotBlank()) {
-                        reportSpoofEvent(pkg, SpoofType.TIMEZONE)
-                        java.util.TimeZone.getTimeZone(tzId)
-                    } else {
-                        result
-                    }
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val tzId = getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
+                            if (tzId.isNotBlank()) {
+                                reportSpoofEvent(pkg, SpoofType.TIMEZONE)
+                                java.util.TimeZone.getTimeZone(tzId)
+                            } else {
+                                result
+                            }
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -130,17 +148,20 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
         val localeClass = cl.loadClassOrNull("java.util.Locale") ?: return
         safeHook("Locale.getDefault()") {
             localeClass.methodOrNull("getDefault")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val current = result as? java.util.Locale ?: return@intercept result
-                    val localeStr = getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
-                    if (localeStr.isNotBlank()) {
-                        reportSpoofEvent(pkg, SpoofType.LOCALE)
-                        buildLocale(localeStr, current)
-                    } else {
-                        result
-                    }
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val current = result as? java.util.Locale ?: return@stableHooker result
+                            val localeStr = getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
+                            if (localeStr.isNotBlank()) {
+                                reportSpoofEvent(pkg, SpoofType.LOCALE)
+                                buildLocale(localeStr, current)
+                            } else {
+                                result
+                            }
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }

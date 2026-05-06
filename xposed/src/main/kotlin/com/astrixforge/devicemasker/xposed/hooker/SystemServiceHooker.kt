@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import com.astrixforge.devicemasker.xposed.DualLog
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.error.XposedFrameworkError
@@ -50,17 +51,20 @@ object SystemServiceHooker {
                 .filter { it.name == "systemReady" && it.parameterCount in 0..5 }
                 .forEach { method ->
                     method.isAccessible = true
-                    xi.hook(method).intercept { chain ->
-                        val result = chain.proceed()
-                        try {
-                            initializeServiceSafely("AMS.systemReady")
-                        } catch (e: XposedFrameworkError) {
-                            throw e
-                        } catch (t: Throwable) {
-                            DualLog.error(TAG, "AMS.systemReady() hook crashed", t)
-                        }
-                        result
-                    }
+                    xi.hook(method)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                try {
+                                    initializeServiceSafely("AMS.systemReady")
+                                } catch (e: XposedFrameworkError) {
+                                    throw e
+                                } catch (t: Throwable) {
+                                    DualLog.error(TAG, "AMS.systemReady() hook crashed", t)
+                                }
+                                result
+                            }
+                        )
                     DualLog.info(
                         TAG,
                         "AMS.systemReady(${method.parameterCount} params) hook registered",
@@ -79,17 +83,20 @@ object SystemServiceHooker {
         try {
             val ssClass = cl.loadClass("com.android.server.SystemServer")
             val runMethod = ssClass.getDeclaredMethod("run").also { it.isAccessible = true }
-            xi.hook(runMethod).intercept { chain ->
-                val result = chain.proceed()
-                try {
-                    initializeServiceSafely("SystemServer.run")
-                } catch (e: XposedFrameworkError) {
-                    throw e
-                } catch (t: Throwable) {
-                    DualLog.error(TAG, "SystemServer.run() hook crashed", t)
-                }
-                result
-            }
+            xi.hook(runMethod)
+                .intercept(
+                    stableHooker { chain ->
+                        val result = chain.proceed()
+                        try {
+                            initializeServiceSafely("SystemServer.run")
+                        } catch (e: XposedFrameworkError) {
+                            throw e
+                        } catch (t: Throwable) {
+                            DualLog.error(TAG, "SystemServer.run() hook crashed", t)
+                        }
+                        result
+                    }
+                )
             xi.deoptimize(runMethod)
             DualLog.info(TAG, "SystemServer.run() hook registered")
         } catch (e: XposedFrameworkError) {

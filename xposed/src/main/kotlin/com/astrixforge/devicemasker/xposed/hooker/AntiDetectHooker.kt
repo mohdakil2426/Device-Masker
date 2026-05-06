@@ -8,6 +8,7 @@ import android.util.Log
 import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.ExceptionMode
 import io.github.libxposed.api.error.XposedFrameworkError
@@ -27,7 +28,7 @@ import io.github.libxposed.api.error.XposedFrameworkError
  * ## API 101 changes
  * - Extends nothing (no YukiBaseHooker)
  * - Static hook(cl, xi, prefs, pkg) factory
- * - Lambda-based interception via `xi.hook(m).intercept { chain -> ... }`
+ * - Lambda-based interception via `xi.hook(m).intercept(stableHooker { chain -> ... })`
  * - throwToApp() replaced by throwing directly from intercept hook
  */
 object AntiDetectHooker {
@@ -123,12 +124,17 @@ object AntiDetectHooker {
                 .getDeclaredMethod("getStackTrace")
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        @Suppress("UNCHECKED_CAST")
-                        val stack = result as? Array<StackTraceElement> ?: return@intercept result
-                        filterStackTrace(stack)
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                @Suppress("UNCHECKED_CAST")
+                                val stack =
+                                    result as? Array<StackTraceElement>
+                                        ?: return@stableHooker result
+                                filterStackTrace(stack)
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {
@@ -143,12 +149,17 @@ object AntiDetectHooker {
                 .getDeclaredMethod("getStackTrace")
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        @Suppress("UNCHECKED_CAST")
-                        val stack = result as? Array<StackTraceElement> ?: return@intercept result
-                        filterStackTrace(stack)
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                @Suppress("UNCHECKED_CAST")
+                                val stack =
+                                    result as? Array<StackTraceElement>
+                                        ?: return@stableHooker result
+                                filterStackTrace(stack)
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {
@@ -175,19 +186,24 @@ object AntiDetectHooker {
                 }
                 .forEach { method ->
                     method.isAccessible = true
-                    xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
-                        if (classLookupHookActive.get() == true) return@intercept chain.proceed()
-                        classLookupHookActive.set(true)
-                        try {
-                            val className = chain.args.firstOrNull() as? String
-                            if (className != null && shouldHideClass(className)) {
-                                throw ClassNotFoundException(className)
+                    xi.hook(method)
+                        .setExceptionMode(ExceptionMode.PASSTHROUGH)
+                        .intercept(
+                            stableHooker { chain ->
+                                if (classLookupHookActive.get() == true)
+                                    return@stableHooker chain.proceed()
+                                classLookupHookActive.set(true)
+                                try {
+                                    val className = chain.args.firstOrNull() as? String
+                                    if (className != null && shouldHideClass(className)) {
+                                        throw ClassNotFoundException(className)
+                                    }
+                                    chain.proceed()
+                                } finally {
+                                    classLookupHookActive.set(false)
+                                }
                             }
-                            chain.proceed()
-                        } finally {
-                            classLookupHookActive.set(false)
-                        }
-                    }
+                        )
                     xi.deoptimize(method)
                 }
         } catch (e: XposedFrameworkError) {
@@ -214,19 +230,24 @@ object AntiDetectHooker {
                 }
                 .forEach { method ->
                     method.isAccessible = true
-                    xi.hook(method).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
-                        if (classLookupHookActive.get() == true) return@intercept chain.proceed()
-                        classLookupHookActive.set(true)
-                        try {
-                            val className = chain.args.firstOrNull() as? String
-                            if (className != null && shouldHideClass(className)) {
-                                throw ClassNotFoundException(className)
+                    xi.hook(method)
+                        .setExceptionMode(ExceptionMode.PASSTHROUGH)
+                        .intercept(
+                            stableHooker { chain ->
+                                if (classLookupHookActive.get() == true)
+                                    return@stableHooker chain.proceed()
+                                classLookupHookActive.set(true)
+                                try {
+                                    val className = chain.args.firstOrNull() as? String
+                                    if (className != null && shouldHideClass(className)) {
+                                        throw ClassNotFoundException(className)
+                                    }
+                                    chain.proceed()
+                                } finally {
+                                    classLookupHookActive.set(false)
+                                }
                             }
-                            chain.proceed()
-                        } finally {
-                            classLookupHookActive.set(false)
-                        }
-                    }
+                        )
                     xi.deoptimize(method)
                 }
         } catch (e: XposedFrameworkError) {
@@ -247,18 +268,23 @@ object AntiDetectHooker {
                 .getDeclaredMethod("readLine")
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        val line = result as? String
-                        if (
-                            line != null &&
-                                HIDDEN_LIBRARY_PATTERNS.any { line.contains(it, ignoreCase = true) }
-                        ) {
-                            ""
-                        } else {
-                            result
-                        }
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                val line = result as? String
+                                if (
+                                    line != null &&
+                                        HIDDEN_LIBRARY_PATTERNS.any {
+                                            line.contains(it, ignoreCase = true)
+                                        }
+                                ) {
+                                    ""
+                                } else {
+                                    result
+                                }
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {
@@ -283,18 +309,23 @@ object AntiDetectHooker {
                     .getDeclaredMethod("getPackageInfo", *params)
                     .also { it.isAccessible = true }
                     .let { m ->
-                        xi.hook(m).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
-                            val pkgName = chain.args.firstOrNull() as? String
-                            if (
-                                pkgName != null &&
-                                    HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }
-                            ) {
-                                throw android.content.pm.PackageManager.NameNotFoundException(
-                                    pkgName
-                                )
-                            }
-                            chain.proceed()
-                        }
+                        xi.hook(m)
+                            .setExceptionMode(ExceptionMode.PASSTHROUGH)
+                            .intercept(
+                                stableHooker { chain ->
+                                    val pkgName = chain.args.firstOrNull() as? String
+                                    if (
+                                        pkgName != null &&
+                                            HIDDEN_PACKAGES.any {
+                                                pkgName.equals(it, ignoreCase = true)
+                                            }
+                                    ) {
+                                        throw android.content.pm.PackageManager
+                                            .NameNotFoundException(pkgName)
+                                    }
+                                    chain.proceed()
+                                }
+                            )
                         xi.deoptimize(m)
                     }
             } catch (_: NoSuchMethodException) {}
@@ -310,16 +341,24 @@ object AntiDetectHooker {
                 )
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).setExceptionMode(ExceptionMode.PASSTHROUGH).intercept { chain ->
-                        val pkgName = chain.args.firstOrNull() as? String
-                        if (
-                            pkgName != null &&
-                                HIDDEN_PACKAGES.any { pkgName.equals(it, ignoreCase = true) }
-                        ) {
-                            throw android.content.pm.PackageManager.NameNotFoundException(pkgName)
-                        }
-                        chain.proceed()
-                    }
+                    xi.hook(m)
+                        .setExceptionMode(ExceptionMode.PASSTHROUGH)
+                        .intercept(
+                            stableHooker { chain ->
+                                val pkgName = chain.args.firstOrNull() as? String
+                                if (
+                                    pkgName != null &&
+                                        HIDDEN_PACKAGES.any {
+                                            pkgName.equals(it, ignoreCase = true)
+                                        }
+                                ) {
+                                    throw android.content.pm.PackageManager.NameNotFoundException(
+                                        pkgName
+                                    )
+                                }
+                                chain.proceed()
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {
@@ -334,14 +373,20 @@ object AntiDetectHooker {
                 .getDeclaredMethod("getInstalledPackages", Int::class.javaPrimitiveType!!)
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        @Suppress("UNCHECKED_CAST")
-                        val packages = result as? List<PackageInfo> ?: return@intercept result
-                        packages.filterNot { info ->
-                            HIDDEN_PACKAGES.any { info.packageName.equals(it, ignoreCase = true) }
-                        }
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                @Suppress("UNCHECKED_CAST")
+                                val packages =
+                                    result as? List<PackageInfo> ?: return@stableHooker result
+                                packages.filterNot { info ->
+                                    HIDDEN_PACKAGES.any {
+                                        info.packageName.equals(it, ignoreCase = true)
+                                    }
+                                }
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {
@@ -356,14 +401,20 @@ object AntiDetectHooker {
                 .getDeclaredMethod("getInstalledApplications", Int::class.javaPrimitiveType!!)
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        @Suppress("UNCHECKED_CAST")
-                        val apps = result as? List<ApplicationInfo> ?: return@intercept result
-                        apps.filterNot { info ->
-                            HIDDEN_PACKAGES.any { info.packageName.equals(it, ignoreCase = true) }
-                        }
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                @Suppress("UNCHECKED_CAST")
+                                val apps =
+                                    result as? List<ApplicationInfo> ?: return@stableHooker result
+                                apps.filterNot { info ->
+                                    HIDDEN_PACKAGES.any {
+                                        info.packageName.equals(it, ignoreCase = true)
+                                    }
+                                }
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {
@@ -381,16 +432,22 @@ object AntiDetectHooker {
                 )
                 .also { it.isAccessible = true }
                 .let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        @Suppress("UNCHECKED_CAST")
-                        val infos = result as? List<ResolveInfo> ?: return@intercept result
-                        infos.filterNot { info ->
-                            val packageName =
-                                info.activityInfo?.packageName ?: return@filterNot false
-                            HIDDEN_PACKAGES.any { packageName.equals(it, ignoreCase = true) }
-                        }
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                @Suppress("UNCHECKED_CAST")
+                                val infos =
+                                    result as? List<ResolveInfo> ?: return@stableHooker result
+                                infos.filterNot { info ->
+                                    val packageName =
+                                        info.activityInfo?.packageName ?: return@filterNot false
+                                    HIDDEN_PACKAGES.any {
+                                        packageName.equals(it, ignoreCase = true)
+                                    }
+                                }
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         } catch (e: XposedFrameworkError) {

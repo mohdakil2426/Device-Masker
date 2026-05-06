@@ -72,6 +72,7 @@ Current expectations:
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed module entry |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsReader.kt` | Hook-side preference reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/service/DeviceMaskerService.kt` | Best-effort diagnostics service |
@@ -92,6 +93,7 @@ Targeted gates:
 
 ```powershell
 .\gradlew.bat :xposed:testDebugUnitTest --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest --no-daemon
 .\gradlew.bat :app:testDebugUnitTest --no-daemon
 .\gradlew.bat :common:testDebugUnitTest --no-daemon
 .\gradlew.bat assembleDebug --no-daemon
@@ -103,6 +105,12 @@ Navigation 3 targeted gate:
 .\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
 .\gradlew.bat spotlessCheck :app:testDebugUnitTest lint assembleDebug --no-daemon
 adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/diagnostics" com.astrixforge.devicemasker
+```
+
+16 KB page-size verification:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\debug\app-debug.apk
 ```
 
 Install debug APK:
@@ -133,6 +141,7 @@ Get-ChildItem -Path xposed/src -Recurse -Filter '*.kt' | Select-String 'Timber\.
 Get-ChildItem -Path common/src,xposed/src -Recurse -Filter '*.kt' | Select-String 'import androidx.compose'
 Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-String 'IMEIGenerator|IMSIGenerator|ICCIDGenerator|MACGenerator|UUIDGenerator|PhoneNumberGenerator|SerialGenerator|\{ "(us|Carrier|310260|HomeNetwork)" \}|ByteArray\(32\)|\?: 310|\?: 260'
 Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-String '\(\?<=|UA_DEVICE_REGEX|hookClassForName\(cl, xi\)|hookClassLoaderLoadClass\(cl, xi\)'
+Get-ChildItem -Path xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker -Filter '*.kt' | Where-Object { $_.Name -ne 'BaseSpoofHooker.kt' } | Select-String '\.intercept\s*\{'
 ```
 
 ## Runtime Requirements
@@ -146,8 +155,7 @@ Runtime validation needs:
 
 ## Known Technical Warnings
 
-- AGP deprecated properties still warn during build.
-- Spotless `indentWithSpaces` is deprecated.
 - `material3-adaptive-navigation3` is on `1.3.0-alpha10`, which required moving the project to compile SDK 37.
-- Release shrinking is intentionally disabled until hook behavior is stable across target apps.
+- Release shrinking is enabled and was validated on emulator targets plus user-reported real
+  Android 16 hardware. Do not bypass `StableHooker` for libxposed runtime callbacks.
 - In-app diagnostics Binder can be unavailable under SELinux; LSPosed logs remain the practical runtime source.

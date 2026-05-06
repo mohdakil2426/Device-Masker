@@ -21,10 +21,23 @@
     static *;
 }
 
-# Module-active sentinel — field set by libxposed at load time
-
 # XposedModule base class — kept for subclassing
 -keep class io.github.libxposed.api.XposedModule { *; }
+
+# Hooker callback ABI — libxposed calls XposedInterface.Hooker.intercept(Chain)
+# from target processes. Device Masker uses named StableHooker subclasses instead
+# of Kotlin SAM lambdas so R8 cannot strip or rewrite the runtime callback ABI.
+-keep interface io.github.libxposed.api.XposedInterface$Hooker { *; }
+-keep class * implements io.github.libxposed.api.XposedInterface$Hooker { *; }
+-keep class com.astrixforge.devicemasker.xposed.hooker.callback.** { *; }
+
+# Chain, HookBuilder, HookHandle — used inside lambda bodies and returned by API
+-keep interface io.github.libxposed.api.XposedInterface$Chain { *; }
+-keep interface io.github.libxposed.api.XposedInterface$HookBuilder { *; }
+-keep interface io.github.libxposed.api.XposedInterface$HookHandle { *; }
+
+# Preserve META-INF/xposed/ file contents — LSPosed reads java_init.list by class name
+-adaptresourcefilecontents META-INF/xposed/java_init.list
 
 # =============================================================================
 # HOOKERS — All hookers and their lambda interceptors
@@ -45,18 +58,10 @@
     *;
 }
 
-# SystemServiceHooker registers the AIDL service at boot via AMS hook
--keep class com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker { *; }
-
 # =============================================================================
-# HOOK INFRASTRUCTURE — BaseSpoofHooker, PrefsHelper
+# UTILS — Logging, metrics, and prefs utils (xposed root package)
 # =============================================================================
--keep class com.astrixforge.devicemasker.xposed.hooker.BaseSpoofHooker { *; }
 -keep class com.astrixforge.devicemasker.xposed.PrefsHelper { *; }
-
-# =============================================================================
-# UTILS — Logging and metrics utils (xposed root package)
-# =============================================================================
 -keep class com.astrixforge.devicemasker.xposed.DualLog { *; }
 -keep class com.astrixforge.devicemasker.xposed.HookMetrics { *; }
 -keep class com.astrixforge.devicemasker.xposed.PrefsKeys { *; }

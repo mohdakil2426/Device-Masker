@@ -30,6 +30,8 @@ object SharedPrefsKeys {
     private const val PREFIX_APP_ENABLED = "app_enabled_"
     private const val PREFIX_SPOOF_ENABLED = "spoof_enabled_"
     private const val PREFIX_SPOOF_VALUE = "spoof_"
+    private const val PREFIX_RISKY_HOOKS_ENABLED = "risky_hooks_enabled_"
+    private const val PREFIX_CLASS_LOOKUP_HIDING_ENABLED = "class_lookup_hiding_enabled_"
     private const val PREFIX_PERSONA_BLOB = "persona_blob_"
     private const val PREFIX_PERSONA_VERSION = "persona_version_"
 
@@ -58,6 +60,16 @@ object SharedPrefsKeys {
     /** Gets the key for spoof value. Example: "spoof_com_example_app_IMEI" */
     fun getSpoofValueKey(packageName: String, type: SpoofType): String {
         return "$PREFIX_SPOOF_VALUE${sanitize(packageName)}_${type.name}"
+    }
+
+    /** Gets the key for per-app risky hook group opt-in. */
+    fun getRiskyHooksEnabledKey(packageName: String): String {
+        return "$PREFIX_RISKY_HOOKS_ENABLED${sanitize(packageName)}"
+    }
+
+    /** Gets the key for per-app class lookup hiding opt-in. */
+    fun getClassLookupHidingEnabledKey(packageName: String): String {
+        return "$PREFIX_CLASS_LOOKUP_HIDING_ENABLED${sanitize(packageName)}"
     }
 
     /** Gets the device profile preset key for an app. */
@@ -92,7 +104,7 @@ object SharedPrefsKeys {
     fun isValidKey(key: String): Boolean {
         return key.matches(
             Regex(
-                "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
+                "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|risky_hooks_enabled_[a-zA-Z0-9_]+|class_lookup_hiding_enabled_[a-zA-Z0-9_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
             )
         )
     }

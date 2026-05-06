@@ -1808,6 +1808,10 @@
     <string name="group_spoofing_adjust_search">Try adjusting your search or filter</string>
     <string name="group_spoofing_assigned_to">Assigned to: %s</string>
     <string name="group_spoofing_locked">Assigned to another group</string>
+    <string name="group_spoofing_risky_hooks">Risky hooks</string>
+    <string name="group_spoofing_risky_hooks_desc">Allow opt-in hook groups that may affect startup stability.</string>
+    <string name="group_spoofing_class_lookup_hiding">Class lookup hiding</string>
+    <string name="group_spoofing_class_lookup_hiding_desc">Hide Xposed classes through Class.forName and ClassLoader.loadClass.</string>
     <plurals name="group_spoofing_apps_assigned_stats">
         <item quantity="one">%1$d app • %2$d assigned</item>
         <item quantity="other">%1$d apps • %2$d assigned</item>

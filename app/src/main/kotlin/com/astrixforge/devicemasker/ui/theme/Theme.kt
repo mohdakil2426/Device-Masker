@@ -1,7 +1,10 @@
 package com.astrixforge.devicemasker.ui.theme
 
+import android.app.UiModeManager
+import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
@@ -10,6 +13,11 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.astrixforge.devicemasker.ui.screens.ThemeMode
@@ -145,11 +153,12 @@ private fun DeviceMaskerThemeInternal(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme =
+    val context = LocalContext.current
+    val contrast = rememberSystemContrast(context)
+    val baseColorScheme =
         when {
             // Dynamic colors on Android 12+
             dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                val context = LocalContext.current
                 if (darkTheme) {
                     if (amoledBlack) {
                         // Use dynamic dark colors but override with AMOLED black
@@ -225,6 +234,7 @@ private fun DeviceMaskerThemeInternal(
             // Custom light theme
             else -> LightColorScheme
         }
+    val colorScheme = baseColorScheme.withContrastPreference(contrast, darkTheme)
 
     CompositionLocalProvider(
         LocalMotionPolicy provides rememberMotionPolicy(),
@@ -236,6 +246,45 @@ private fun DeviceMaskerThemeInternal(
             typography = AppTypography,
             shapes = AppShapes,
             content = content,
+        )
+    }
+}
+
+@Composable
+private fun rememberSystemContrast(context: Context): Float {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return 0f
+
+    val uiModeManager = remember(context) { context.getSystemService(UiModeManager::class.java) }
+    var contrast by remember(uiModeManager) { mutableFloatStateOf(uiModeManager?.contrast ?: 0f) }
+
+    DisposableEffect(uiModeManager) {
+        if (uiModeManager == null) return@DisposableEffect onDispose {}
+
+        val listener =
+            UiModeManager.ContrastChangeListener { nextContrast -> contrast = nextContrast }
+        uiModeManager.addContrastChangeListener(context.mainExecutor, listener)
+        onDispose { uiModeManager.removeContrastChangeListener(listener) }
+    }
+
+    return contrast
+}
+
+private fun ColorScheme.withContrastPreference(contrast: Float, darkTheme: Boolean): ColorScheme {
+    if (contrast < 0.33f) return this
+
+    return if (darkTheme) {
+        copy(
+            onSurface = OnSurfaceHighContrastDark,
+            onSurfaceVariant = OnSurfaceVariantHighContrastDark,
+            outline = OutlineHighContrastDark,
+            outlineVariant = OutlineHighContrastDark,
+        )
+    } else {
+        copy(
+            onSurface = OnSurfaceHighContrastLight,
+            onSurfaceVariant = OnSurfaceVariantHighContrastLight,
+            outline = OutlineHighContrastLight,
+            outlineVariant = OutlineHighContrastLight,
         )
     }
 }

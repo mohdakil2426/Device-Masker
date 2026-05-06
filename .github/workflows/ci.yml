@@ -37,21 +37,23 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
       - name: Spotless check
-        run: ./gradlew spotlessCheck --stacktrace
+        run: ./gradlew spotlessCheck --build-cache --stacktrace
 
       - name: Compile debug Kotlin
-        run: ./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin --stacktrace
+        run: ./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin --build-cache --stacktrace
 
       - name: Lint
-        run: ./gradlew lint --stacktrace
+        run: ./gradlew lint --build-cache --stacktrace
 
       - name: Unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew test --build-cache --stacktrace
 
       - name: Upload lint and test reports
         if: always()
@@ -84,12 +86,14 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
       - name: Assemble debug
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --build-cache --stacktrace
 
       - name: Upload debug APKs
         uses: actions/upload-artifact@v4
@@ -120,6 +124,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
@@ -166,7 +172,7 @@ jobs:
 
       - name: Assemble signed release
         if: steps.signing.outputs.has_signing == 'true'
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease --build-cache --stacktrace
 
       - name: Upload signed release artifacts
         if: steps.signing.outputs.has_signing == 'true'

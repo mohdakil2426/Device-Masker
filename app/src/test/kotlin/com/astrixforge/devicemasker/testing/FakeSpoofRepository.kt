@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.testing
 
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
@@ -26,6 +27,9 @@ class FakeSpoofRepository(
 
     private val _groups = MutableStateFlow(initialGroups)
     override val groups: Flow<List<SpoofGroup>> = _groups.asStateFlow()
+
+    private val _appConfigs = MutableStateFlow<Map<String, AppConfig>>(emptyMap())
+    override val appConfigs: Flow<Map<String, AppConfig>> = _appConfigs.asStateFlow()
 
     override val activeGroup: Flow<SpoofGroup?> = _groups.map { list -> list.find { it.isDefault } }
 
@@ -153,11 +157,36 @@ class FakeSpoofRepository(
 
     override suspend fun addAppToGroup(groupId: String, packageName: String) {
         _groups.update { list -> list.map { if (it.id == groupId) it.addApp(packageName) else it } }
+        _appConfigs.update { configs ->
+            configs +
+                (packageName to
+                    (configs[packageName]?.copy(groupId = groupId, isEnabled = true)
+                        ?: AppConfig(packageName = packageName, groupId = groupId)))
+        }
     }
 
     override suspend fun removeAppFromGroup(groupId: String, packageName: String) {
         _groups.update { list ->
             list.map { if (it.id == groupId) it.removeApp(packageName) else it }
+        }
+        _appConfigs.update { it - packageName }
+    }
+
+    override suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
+        _appConfigs.update { configs ->
+            configs +
+                (packageName to
+                    (configs[packageName] ?: AppConfig(packageName = packageName))
+                        .withRiskyHooksEnabled(enabled))
+        }
+    }
+
+    override suspend fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean) {
+        _appConfigs.update { configs ->
+            configs +
+                (packageName to
+                    (configs[packageName] ?: AppConfig(packageName = packageName))
+                        .withClassLookupHidingEnabled(enabled))
         }
     }
 

@@ -35,6 +35,18 @@
 -keep class io.github.libxposed.service.XposedProvider { *; }
 
 # =============================================================================
+# LIBXPOSED API — Hook interface hierarchy and named callback classes.
+# Device Masker uses explicit StableHooker subclasses for release R8 stability.
+# =============================================================================
+-keep interface io.github.libxposed.api.XposedInterface$Hooker { *; }
+-keep class * implements io.github.libxposed.api.XposedInterface$Hooker { *; }
+-keep class com.astrixforge.devicemasker.xposed.hooker.callback.** { *; }
+-keep class com.astrixforge.devicemasker.xposed.hooker.** { *; }
+-keep interface io.github.libxposed.api.XposedInterface$Chain { *; }
+-keep interface io.github.libxposed.api.XposedInterface$HookBuilder { *; }
+-keep interface io.github.libxposed.api.XposedInterface$HookHandle { *; }
+
+# =============================================================================
 # DEVICE MASKER — Application class (referenced in AndroidManifest)
 # =============================================================================
 -keep class com.astrixforge.devicemasker.DeviceMaskerApp { *; }

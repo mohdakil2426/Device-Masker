@@ -343,6 +343,20 @@ object ConfigManager : IConfigManager {
         updateConfig { it.setAppConfig(appConfig) }
     }
 
+    override fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
+        val appConfig =
+            (getAppConfig(packageName) ?: AppConfig(packageName = packageName))
+                .withRiskyHooksEnabled(enabled)
+        updateConfig { it.setAppConfig(appConfig) }
+    }
+
+    override fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean) {
+        val appConfig =
+            (getAppConfig(packageName) ?: AppConfig(packageName = packageName))
+                .withClassLookupHidingEnabled(enabled)
+        updateConfig { it.setAppConfig(appConfig) }
+    }
+
     /** Resets initialization state for tests. */
     internal fun resetForTests() {
         initStarted.set(false)

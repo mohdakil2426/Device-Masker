@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.theme.AppMotion
+import com.astrixforge.devicemasker.ui.theme.ElevationTokens
 
 /**
  * Bottom navigation bar for DeviceMasker.
@@ -39,7 +40,7 @@ fun BottomNavBar(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
+        tonalElevation = ElevationTokens.Level0,
     ) {
         bottomNavItems.forEach { item ->
             BottomNavItem(

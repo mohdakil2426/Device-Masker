@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.data.repository
 
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
@@ -10,6 +11,7 @@ interface ISpoofRepository {
     val appScopeRepository: IAppScopeRepository
     val moduleEnabled: Flow<Boolean>
     val groups: Flow<List<SpoofGroup>>
+    val appConfigs: Flow<Map<String, AppConfig>>
     val activeGroup: Flow<SpoofGroup?>
     val enabledAppCount: Flow<Int>
     val dashboardState: Flow<SpoofRepository.DashboardState>
@@ -49,6 +51,10 @@ interface ISpoofRepository {
     suspend fun addAppToGroup(groupId: String, packageName: String)
 
     suspend fun removeAppFromGroup(groupId: String, packageName: String)
+
+    suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean)
+
+    suspend fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean)
 
     suspend fun exportGroups(): String
 

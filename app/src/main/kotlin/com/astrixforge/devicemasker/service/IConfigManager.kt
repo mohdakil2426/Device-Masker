@@ -57,4 +57,8 @@ interface IConfigManager {
     fun unassignApp(packageName: String)
 
     fun setAppEnabled(packageName: String, enabled: Boolean)
+
+    fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean)
+
+    fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean)
 }

@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -44,30 +45,36 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         val smClass = cl.loadClassOrNull("android.hardware.SensorManager") ?: return
         safeHook("SensorManager.getSensorList(int)") {
             smClass.methodOrNull("getSensorList", Int::class.javaPrimitiveType!!)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val type = chain.args.firstOrNull() as? Int ?: return@intercept result
-                    // Only filter TYPE_ALL to avoid breaking individual-type queries
-                    if (type != -1) return@intercept result
-                    @Suppress("UNCHECKED_CAST")
-                    val sensors = result as? List<Any> ?: return@intercept result
-                    if (sensors.size <= 10)
-                        return@intercept result // Small list — no suspicious fingerprint risk
-                    val filtered =
-                        sensors.filter { sensor ->
-                            runCatching {
-                                    val sensorType =
-                                        sensor.javaClass.getMethod("getType").invoke(sensor) as Int
-                                    sensorType in ESSENTIAL_SENSOR_TYPES
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val type =
+                                chain.args.firstOrNull() as? Int ?: return@stableHooker result
+                            // Only filter TYPE_ALL to avoid breaking individual-type queries
+                            if (type != -1) return@stableHooker result
+                            @Suppress("UNCHECKED_CAST")
+                            val sensors = result as? List<Any> ?: return@stableHooker result
+                            if (sensors.size <= 10)
+                                return@stableHooker result // Small list — no suspicious fingerprint
+                            // risk
+                            val filtered =
+                                sensors.filter { sensor ->
+                                    runCatching {
+                                            val sensorType =
+                                                sensor.javaClass.getMethod("getType").invoke(sensor)
+                                                    as Int
+                                            sensorType in ESSENTIAL_SENSOR_TYPES
+                                        }
+                                        .getOrDefault(true)
                                 }
-                                .getOrDefault(true)
-                        }
 
-                    if (sensors.size != filtered.size) {
-                        reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                    }
-                    filtered
-                }
+                            if (sensors.size != filtered.size) {
+                                reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                            }
+                            filtered
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -81,35 +88,45 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         val sensorClass = cl.loadClassOrNull("android.hardware.Sensor") ?: return
         safeHook("Sensor.getVendor()") {
             sensorClass.methodOrNull("getVendor")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    if (preset != null && preset.manufacturer.isNotEmpty()) preset.manufacturer
-                    else result
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            if (preset != null && preset.manufacturer.isNotEmpty())
+                                preset.manufacturer
+                            else result
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("Sensor.getVersion()") {
             sensorClass.methodOrNull("getVersion")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val version = result as? Int ?: return@intercept result
-                    if (version > 3) 1 else result
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val version = result as? Int ?: return@stableHooker result
+                            if (version > 3) 1 else result
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("Sensor.getName()") {
             sensorClass.methodOrNull("getName")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    var name = result as? String ?: return@intercept result
-                    val prefixes = listOf("Qualcomm ", "MediaTek ", "Samsung ")
-                    for (prefix in prefixes) {
-                        name = name.replace(prefix, "")
-                    }
-                    name
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            var name = result as? String ?: return@stableHooker result
+                            val prefixes = listOf("Qualcomm ", "MediaTek ", "Samsung ")
+                            for (prefix in prefixes) {
+                                name = name.replace(prefix, "")
+                            }
+                            name
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }

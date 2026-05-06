@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
+import com.astrixforge.devicemasker.ui.theme.ElevationTokens
 
 /**
  * Material 3 Expressive Pull-to-Refresh container.
@@ -118,8 +119,8 @@ fun ExpressiveRefreshIndicator(
                     .alpha(alpha),
             shape = CircleShape,
             color = containerColor,
-            shadowElevation = 4.dp,
-            tonalElevation = 2.dp,
+            shadowElevation = ElevationTokens.Level2,
+            tonalElevation = ElevationTokens.Level1,
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ExpressiveLoadingIndicator(

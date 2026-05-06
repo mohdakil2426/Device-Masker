@@ -72,4 +72,11 @@ object PrefsHelper {
         packageName: String,
         type: SpoofType,
     ): Boolean = prefs.getBoolean(SharedPrefsKeys.getSpoofEnabledKey(packageName, type), false)
+
+    fun areRiskyHooksEnabled(prefs: SharedPreferences, packageName: String): Boolean =
+        prefs.getBoolean(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName), false)
+
+    fun isClassLookupHidingEnabled(prefs: SharedPreferences, packageName: String): Boolean =
+        areRiskyHooksEnabled(prefs, packageName) &&
+            prefs.getBoolean(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName), false)
 }

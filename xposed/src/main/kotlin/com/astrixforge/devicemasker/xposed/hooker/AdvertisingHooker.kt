@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -32,14 +33,17 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     "com.google.android.gms.ads.identifier.AdvertisingIdClient\$Info"
                 ) ?: return@safeHook
             infoClass.methodOrNull("getId")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.ADVERTISING_ID)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.ADVERTISING_ID)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.ADVERTISING_ID)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -59,16 +63,20 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                 .filter { it.name == "getString" && it.parameterCount == 3 }
                 .forEach { m ->
                     m.isAccessible = true
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        val key = chain.args.getOrNull(1) as? String ?: return@intercept result
-                        if (key != "android_id") return@intercept result
-                        val spoofed =
-                            getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
-                                ?: return@intercept result
-                        reportSpoofEvent(pkg, SpoofType.GSF_ID)
-                        spoofed
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                val key =
+                                    chain.args.getOrNull(1) as? String ?: return@stableHooker result
+                                if (key != "android_id") return@stableHooker result
+                                val spoofed =
+                                    getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
+                                        ?: return@stableHooker result
+                                reportSpoofEvent(pkg, SpoofType.GSF_ID)
+                                spoofed
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         }
@@ -78,18 +86,22 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                 .filter { it.name == "getLong" && it.parameterCount == 3 }
                 .forEach { m ->
                     m.isAccessible = true
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        val key = chain.args.getOrNull(1) as? String ?: return@intercept result
-                        if (key != "android_id") return@intercept result
-                        val spoofed =
-                            getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
-                                ?: return@intercept result
-                        val finalVal =
-                            runCatching { spoofed.toLong(16) }.getOrElse { result as Long }
-                        reportSpoofEvent(pkg, SpoofType.GSF_ID)
-                        finalVal
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                val key =
+                                    chain.args.getOrNull(1) as? String ?: return@stableHooker result
+                                if (key != "android_id") return@stableHooker result
+                                val spoofed =
+                                    getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
+                                        ?: return@stableHooker result
+                                val finalVal =
+                                    runCatching { spoofed.toLong(16) }.getOrElse { result as Long }
+                                reportSpoofEvent(pkg, SpoofType.GSF_ID)
+                                finalVal
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         }
@@ -104,17 +116,21 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
         safeHook("MediaDrm.getPropertyByteArray(String)") {
             val drmClass = cl.loadClassOrNull("android.media.MediaDrm") ?: return@safeHook
             drmClass.methodOrNull("getPropertyByteArray", String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val property = chain.args.firstOrNull() as? String ?: return@intercept result
-                    if (property != "deviceUniqueId") return@intercept result
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID)
-                            ?: return@intercept result
-                    val bytes = hexToBytes(spoofed) ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.MEDIA_DRM_ID)
-                    bytes
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val property =
+                                chain.args.firstOrNull() as? String ?: return@stableHooker result
+                            if (property != "deviceUniqueId") return@stableHooker result
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.MEDIA_DRM_ID)
+                                    ?: return@stableHooker result
+                            val bytes = hexToBytes(spoofed) ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.MEDIA_DRM_ID)
+                            bytes
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }

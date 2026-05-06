@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -23,8 +24,8 @@ import io.github.libxposed.api.XposedInterface
  * 4. `loadClassOrNull()` used everywhere — isolated renderer processes don't crash
  *
  * ## API 101 hook pattern
- * Lambda-based interceptor: `xi.hook(m).intercept { chain -> proceed(); return spoofed }`. No
- * static callback classes or hook annotations are needed.
+ * Lambda-based interceptor: `xi.hook(m).intercept(stableHooker { chain -> proceed(); return spoofed
+ * })`. No static callback classes or hook annotations are needed.
  */
 object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
 
@@ -60,261 +61,318 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
         // getDeviceId() — no-arg (deprecated, still used by legacy apps)
         safeHook("getDeviceId()") {
             tm.methodOrNull("getDeviceId")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.IMEI)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.IMEI)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getDeviceId(int slot) — slot-indexed
         safeHook("getDeviceId(int)") {
             tm.methodOrNull("getDeviceId", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.IMEI)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.IMEI)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getImei() — no-arg (API 26+)
         safeHook("getImei()") {
             tm.methodOrNull("getImei")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.IMEI)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.IMEI)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getImei(int slot) — slot-indexed (API 26+)
         safeHook("getImei(int)") {
             tm.methodOrNull("getImei", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.IMEI)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.IMEI)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSubscriberId() — IMSI, no-arg
         safeHook("getSubscriberId()") {
             tm.methodOrNull("getSubscriberId")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMSI)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.IMSI)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.IMSI)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.IMSI)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSubscriberId(int slot) — slot-indexed
         safeHook("getSubscriberId(int)") {
             tm.methodOrNull("getSubscriberId", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.IMSI)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.IMSI)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.IMSI)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.IMSI)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSimSerialNumber() — ICCID, no-arg
         safeHook("getSimSerialNumber()") {
             tm.methodOrNull("getSimSerialNumber")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.ICCID)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.ICCID)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSimSerialNumber(int slot)
         safeHook("getSimSerialNumber(int)") {
             tm.methodOrNull("getSimSerialNumber", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.ICCID)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.ICCID)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSimCountryIso() — SIM country code
         safeHook("getSimCountryIso()") {
             tm.methodOrNull("getSimCountryIso")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("getSimCountryIso(int)") {
             tm.methodOrNull("getSimCountryIso", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getNetworkCountryIso()
         safeHook("getNetworkCountryIso()") {
             tm.methodOrNull("getNetworkCountryIso")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("getNetworkCountryIso(int)") {
             tm.methodOrNull("getNetworkCountryIso", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.NETWORK_COUNTRY_ISO)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSimOperatorName() — carrier display name
         safeHook("getSimOperatorName()") {
             tm.methodOrNull("getSimOperatorName")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("getSimOperatorName(int)") {
             tm.methodOrNull("getSimOperatorName", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_OPERATOR_NAME)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SIM_OPERATOR_NAME)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getSimOperator() — MCC+MNC string
         safeHook("getSimOperator()") {
             tm.methodOrNull("getSimOperator")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("getSimOperator(int)") {
             tm.methodOrNull("getSimOperator", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getNetworkOperator() — PLMN string
         safeHook("getNetworkOperator()") {
             tm.methodOrNull("getNetworkOperator")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("getNetworkOperator(int)") {
             tm.methodOrNull("getNetworkOperator", intClass)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.NETWORK_OPERATOR)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.NETWORK_OPERATOR)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         // getLine1Number() — phone number
         safeHook("getLine1Number()") {
             tm.methodOrNull("getLine1Number")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -333,14 +391,17 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
         safeHook("Build.getSerial()") {
             val buildClass = cl.loadClassOrNull("android.os.Build") ?: return@safeHook
             buildClass.methodOrNull("getSerial")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SERIAL)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SERIAL)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -362,16 +423,20 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             val resolverClass =
                 cl.loadClassOrNull("android.content.ContentResolver") ?: return@safeHook
             secureClass.methodOrNull("getString", resolverClass, String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val key = chain.args.getOrNull(1) as? String ?: return@intercept result
-                    if (key != "android_id") return@intercept result
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val key =
+                                chain.args.getOrNull(1) as? String ?: return@stableHooker result
+                            if (key != "android_id") return@stableHooker result
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -388,16 +453,20 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     Int::class.javaPrimitiveType!!,
                 )
                 ?.let { m ->
-                    xi.hook(m).intercept { chain ->
-                        val result = chain.proceed()
-                        val key = chain.args.getOrNull(1) as? String ?: return@intercept result
-                        if (key != "android_id") return@intercept result
-                        val spoofed =
-                            getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
-                                ?: return@intercept result
-                        reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
-                        spoofed
-                    }
+                    xi.hook(m)
+                        .intercept(
+                            stableHooker { chain ->
+                                val result = chain.proceed()
+                                val key =
+                                    chain.args.getOrNull(1) as? String ?: return@stableHooker result
+                                if (key != "android_id") return@stableHooker result
+                                val spoofed =
+                                    getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
+                                        ?: return@stableHooker result
+                                reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
+                                spoofed
+                            }
+                        )
                     xi.deoptimize(m)
                 }
         }
@@ -418,32 +487,40 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
         safeHook("SystemProperties.get(String)") {
             val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
             spClass.methodOrNull("get", String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
-                    if (key !in SERIAL_KEYS) return@intercept result
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SERIAL)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val key =
+                                chain.args.firstOrNull() as? String ?: return@stableHooker result
+                            if (key !in SERIAL_KEYS) return@stableHooker result
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SERIAL)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("SystemProperties.get(String, String)") {
             val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
             spClass.methodOrNull("get", String::class.java, String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
-                    if (key !in SERIAL_KEYS) return@intercept result
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SERIAL)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val key =
+                                chain.args.firstOrNull() as? String ?: return@stableHooker result
+                            if (key !in SERIAL_KEYS) return@stableHooker result
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.SERIAL)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }

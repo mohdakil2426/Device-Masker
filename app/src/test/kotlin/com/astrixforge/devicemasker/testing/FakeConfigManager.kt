@@ -141,6 +141,20 @@ class FakeConfigManager : IConfigManager {
         _config.value = _config.value.setAppConfig(appConfig)
     }
 
+    override fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
+        val appConfig =
+            (getAppConfig(packageName) ?: AppConfig(packageName = packageName))
+                .withRiskyHooksEnabled(enabled)
+        _config.value = _config.value.setAppConfig(appConfig)
+    }
+
+    override fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean) {
+        val appConfig =
+            (getAppConfig(packageName) ?: AppConfig(packageName = packageName))
+                .withClassLookupHidingEnabled(enabled)
+        _config.value = _config.value.setAppConfig(appConfig)
+    }
+
     /** Resets state for tests. */
     fun reset() {
         _config.value = JsonConfig.createDefault()

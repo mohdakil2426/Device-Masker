@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.data.repository
 
 import android.annotation.SuppressLint
 import android.content.Context
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofGroup
@@ -70,6 +71,10 @@ constructor(
 
     /** Flow of all groups. */
     override val groups: Flow<List<SpoofGroup>> = configManager.config.map { it.getAllGroups() }
+
+    /** Flow of canonical per-app settings. */
+    override val appConfigs: Flow<Map<String, AppConfig>> =
+        configManager.config.map { it.appConfigs }
 
     /** Flow of the active group (default group). */
     override val activeGroup: Flow<SpoofGroup?> = configManager.config.map { it.getDefaultGroup() }
@@ -588,6 +593,14 @@ constructor(
         if (isAssignedByCanonicalConfig || isAssignedByLegacyGroup) {
             configManager.unassignApp(packageName)
         }
+    }
+
+    override suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
+        configManager.setAppRiskyHooksEnabled(packageName, enabled)
+    }
+
+    override suspend fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean) {
+        configManager.setAppClassLookupHidingEnabled(packageName, enabled)
     }
 
     // ═══════════════════════════════════════════════════════════

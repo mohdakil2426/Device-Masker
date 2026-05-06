@@ -134,11 +134,22 @@ object ConfigSync {
 
         val configApp = config.getAppConfig(packageName)
         val appEnabled = config.isModuleEnabled && configApp?.isEnabled == true && group.isEnabled
+        val riskyHooksEnabled = configApp?.let { appEnabled && it.riskyHooksEnabled } == true
+        val classLookupHidingEnabled =
+            configApp?.let { riskyHooksEnabled && it.classLookupHidingEnabled } == true
         val committed =
             prefs
                 .edit()
                 .apply {
                     putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
+                    putBoolean(
+                        SharedPrefsKeys.getRiskyHooksEnabledKey(packageName),
+                        riskyHooksEnabled,
+                    )
+                    putBoolean(
+                        SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName),
+                        classLookupHidingEnabled,
+                    )
 
                     for (type in SpoofType.entries) {
                         val typeEnabled = appEnabled && group.isTypeEnabled(type)
@@ -198,6 +209,8 @@ object ConfigSync {
                 .edit()
                 .apply {
                     remove(SharedPrefsKeys.getAppEnabledKey(packageName))
+                    remove(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
+                    remove(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
 
                     for (type in SpoofType.entries) {
                         remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
@@ -234,6 +247,10 @@ object ConfigSync {
             val appEnabled =
                 config.isModuleEnabled && appConfig.isEnabled && group?.isEnabled == true
             booleans[SharedPrefsKeys.getAppEnabledKey(packageName)] = appEnabled
+            booleans[SharedPrefsKeys.getRiskyHooksEnabledKey(packageName)] =
+                appEnabled && appConfig.riskyHooksEnabled
+            booleans[SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName)] =
+                appEnabled && appConfig.riskyHooksEnabled && appConfig.classLookupHidingEnabled
 
             for (type in SpoofType.entries) {
                 val typeEnabled = appEnabled && group.isTypeEnabled(type)
@@ -269,6 +286,8 @@ object ConfigSync {
                 add(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
                 add(SharedPrefsKeys.getSpoofValueKey(packageName, type))
             }
+            add(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
+            add(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
             add(SharedPrefsKeys.getPersonaBlobKey(packageName))
             add(SharedPrefsKeys.getPersonaVersionKey(packageName))
         }

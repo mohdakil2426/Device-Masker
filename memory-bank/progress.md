@@ -4,18 +4,19 @@
 
 | Area | Status |
 | --- | --- |
-| Project phase | Development, first working base |
-| Build | Passing app-level Navigation 3 gate with deep-link coverage; previous full gate passed including `:app:assembleCiRelease` |
+| Project phase | Development, R8 enabled in release |
+| Build | Focused R8 release gate passing: `spotlessApply spotlessCheck :xposed:testDebugUnitTest :app:assembleRelease` |
 | Unit tests | Passing |
 | Lint/format | Passing |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
 | Diagnostics | Structured JSONL app logs, best-effort AIDL diagnostics, support bundle export |
-| Target hook validation | Current rebuilt APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence |
-| M3E UI | Core and advanced implementation verified: MaterialExpressiveTheme, MotionScheme.expressive, native LoadingIndicator, native ButtonGroup, SplitButtonLayout, FloatingActionButtonMenu, HorizontalFloatingToolbar, MaterialShapes hero, tokenized theme/motion/shape/typography |
-| Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks, M3E motion, adaptive list-detail metadata, and tested deep links |
-| Stable release readiness | Not ready; broader target validation required |
+| Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; user confirmed real Android 16 device success |
+| M3E UI | Core and advanced implementation verified |
+| Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks |
+| R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
+| Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
 ## What Works
 
@@ -27,8 +28,10 @@
 - Config sync writes flattened per-app RemotePreferences keys.
 - Full config sync clears stale package keys.
 - `AppConfig` is the canonical app/group assignment model.
+- Per-app risky-hook and class lookup hiding opt-ins are persisted through local config and RemotePreferences.
 - Hook-side pref reads distinguish missing/disabled values from configured values.
 - High-risk hooks pass through when config is unsafe.
+- Class lookup anti-detection remains disabled by default and only registers when both per-app opt-ins are enabled.
 - Hook-side registration and spoof events are mirrored to LSPosed logs.
 - Rootless app log export works from app-owned storage.
 - Redacted support bundle export works for Basic, Full Debug, and Root Maximum modes at the unit level.
@@ -45,6 +48,8 @@
 - Basic support export through DocumentsUI works and saved `/sdcard/devicemasker_support_20260504_150228.zip`.
 - M3E core UI now uses `MaterialExpressiveTheme`, `MotionScheme.expressive()`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, 10-step shape tokens, asymmetric shape tokens, 15 emphasized typography styles, `LocalEmphasizedTypography`, and a `MaterialShapes.SoftBurst` Home hero moment.
 - M3E advanced UI placements now use `SplitButtonLayout` in Settings export actions, `FloatingActionButtonMenu` in Groups quick actions, and `HorizontalFloatingToolbar` in the group editor.
+- API 34 contrast preference tracking applies high-contrast color-role overrides when system contrast is raised.
+- Legacy `ToggleButton` was removed; production flows use Material/Expressive switch patterns.
 - Static UI audit found no remaining `Modifier.scale()` usage under `ui/` and no hardcoded `Color(0x...)` under `ui/` outside `Color.kt`.
 - Mobile MCP smoke on `emulator-5554` verified Home, Configure action, Group Detail, category expansion, Apps tab, Groups, Settings, Settings export split buttons, Groups FAB menu, and Group Detail horizontal toolbar after the M3E changes.
 - Navigation 3 app navigation compiles and passes navigator unit tests. `NavController`, `NavHost`, Navigation Compose `composable`, and `toRoute()` have been removed from app runtime navigation. The selected top-level tab is saved with `rememberSaveable`, while each stack is saved with `rememberNavBackStack`.
@@ -235,7 +240,7 @@ Target smoke evidence:
 
 ### 2026-05-04 Master Implementation Plan Completion Status
 
-The master plan now has an updated verified checklist. Core safety/build/runtime, core M3E implementation, and advanced M3E placements are complete; formal stable-release validation remains open.
+The master plan now has an updated verified checklist. Core safety/build/runtime, core M3E implementation, and advanced M3E placements are complete. On 2026-05-06, remaining manual/device/testing checks were accepted as user-owned external validation and the master plan was closed at 100% implementation completion.
 
 **Phase 0 (Safety & Stability):**
 - ConfigManager: atomic CAS update with `MutableStateFlow.update`, Mutex for file writes, corrupted config backup preservation.
@@ -265,7 +270,7 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - Status colors mapped to semantic theme roles.
 - 10-step symmetric shape scale + asymmetric variants.
 - 15 emphasized typography styles + `LocalEmphasizedTypography` composition local.
-- API 34 contrast preference validation remains open.
+- API 34 contrast preference support implemented; high-contrast visual validation remains open.
 
 **Phase 3 (Architecture & State):**
 - `SavedStateHandle` injected in all 5 ViewModels.
@@ -290,7 +295,8 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - `ElevationTokens` Level 0-5.
 - `MotionScheme.expressive()` adopted in `MaterialExpressiveTheme`.
 - ExpressiveIconButton default size ≥48dp, Compact uses `minimumInteractiveComponentSize()`.
-- ToggleButton accessibility semantics with `Role.Switch`.
+- `surfaceColorAtElevation()` used for the remaining custom elevated surface.
+- Raw tonal-elevation dp values replaced with `ElevationTokens`.
 - All `scale()` modifiers replaced with `graphicsLayer`.
 - ExpressiveSwitch, ExpressiveCard, ExpressiveIconButton use fast spatial spring.
 - Reduced-motion manual animation-scale-off validation remains open.
@@ -299,6 +305,7 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - BOM upgraded to `2026.04.01`.
 - Material3 upgraded to `1.5.0-alpha18`.
 - `MaterialExpressiveTheme`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, `SplitButtonLayout`, `FloatingActionButtonMenu`, `HorizontalFloatingToolbar`, and `MaterialShapes.SoftBurst` adopted and compile.
+- Legacy `ToggleButton` removed after production callers migrated to Material/Expressive switch patterns.
 
 **Phase 6 (Navigation):**
 - Navigation 3 `NavKey` route types in `NavDestination`.
@@ -319,6 +326,11 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - Turbine + MockK test dependencies.
 - Redundant daemon property removed from `gradle.properties`.
 - IDE-specific build logic removed.
+- Deprecated Spotless `indentWithSpaces` removed.
+- Unused Android build features `resValues` and `shaders` disabled globally.
+- Unused `BuildConfig` generation removed from `:common`.
+- Obsolete `android.uniquePackageNames=false` removed.
+- 16 KB page-size APK verifier added and passing for current debug APK.
 
 **Phase 8 (Polish):**
 - @Preview added to SpoofTabContent and AppsTabContent.
@@ -330,9 +342,33 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - Full gate passes: `spotlessCheck`, all unit tests, `lint`, `test`, `assembleDebug`, `assembleRelease`, `:app:assembleCiRelease`.
 - `com.mantle.verify` and `flar2.devcheck` smoke runs passed with LSPosed hook registration and spoof-event evidence.
 
-## Remaining Work
+### 2026-05-05 Build, 16 KB, And Runtime Verification
 
-Before calling this stable:
+- Full gate passed: `.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --warning-mode all --no-daemon`.
+- 16 KB verifier passed: `powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\debug\app-debug.apk`.
+- Mobile MCP installed and launched the rebuilt debug APK on `emulator-5554`.
+- Device Masker UI showed `Protection Active`, `Module Enabled`, 2 protected apps, and 20 masked IDs.
+- ADB smoke launched `com.mantle.verify`; `pidof` returned `14187`.
+- LSPosed/logcat showed `XposedEntry loaded for process: com.mantle.verify`.
+- LSPosed/logcat showed `All hooks registered for: com.mantle.verify`.
+- Spoof events included ANDROID_ID, CARRIER_MCC_MNC, NETWORK_OPERATOR, IMEI, BLUETOOTH_MAC, WIFI_MAC, WIFI_SSID, and PHONE_NUMBER.
+- Mobile MCP observed Mantle showing spoofed model `Nothing A065` and spoofed fingerprint `Nothing/Pong/Pong:14/AP31.240617.009/2409251803:user/release-keys`.
+- `graphify update .` completed and refreshed `graphify-out`.
+
+### 2026-05-06 R8 Libxposed Callback Runtime Fix
+
+- Reproduced the release Mantle crash after the partial revert: R8 release built and installed, but `com.mantle.verify` died with `AbstractMethodError` from libxposed `XposedInterface.Hooker.intercept(...)`.
+- Tested smaller R8 variants first. `-dontobfuscate` alone failed, and `-dontobfuscate` plus `-dontoptimize` still failed, so the root cause was the direct Kotlin SAM callback shape passed to libxposed, not only name obfuscation or optimization.
+- Added `StableHooker`/`stableHooker` in `:xposed` and mechanically routed production hook registrations through `intercept(stableHooker { ... })`.
+- Added `R8HookerAbiTest` to prevent runtime hookers from reintroducing direct `.intercept { ... }` callbacks and to verify R8 rules keep the callback package.
+- Verification passed: `.\gradlew.bat spotlessApply spotlessCheck :xposed:testDebugUnitTest :app:assembleRelease --no-daemon`.
+- Signed and installed the full R8 release APK. Size stayed in the target range: `app-release-unsigned.apk` 4,007,831 bytes and `app-release-debugkey-signed.apk` 4,069,566 bytes.
+- Runtime smoke passed on `emulator-5554`: `com.mantle.verify` PID `7437`, `flar2.devcheck` PID `7955`; both showed `XposedEntry loaded`, target selection, `All hooks registered`, spoof events, and no `AbstractMethodError`/`FATAL EXCEPTION` in the checked log windows.
+- User confirmed the R8 build also works on a real Android 16 device.
+
+## User-Owned External Validation
+
+Accepted as user-owned completion for master-plan closure:
 
 - Validate after emulator/device reboot.
 - Validate after LSPosed module disable/enable cycle.
@@ -340,8 +376,7 @@ Before calling this stable:
 - Confirm actual returned values inside target apps, not only spoof event logs.
 - Confirm disabled/missing/malformed values pass through.
 - Confirm anti-detection behavior with current safer surfaces.
-- Add a safe-mode UI/config flag for risky hook groups.
-- Reconsider class lookup hiding only behind a per-app kill switch.
+- Validate per-app risky-hook and class lookup hiding opt-ins in LSPosed target processes.
 - Test package visibility hiding with API 33+ flag object overloads.
 - Export logs after target hook events and verify exported output is useful.
 - Smoke-test Basic, Full Debug, and Root Maximum bundle export on device.
@@ -349,9 +384,8 @@ Before calling this stable:
 - Complete light/dark/AMOLED/dynamic-color visual matrix, large-font, high-contrast, and TalkBack/Accessibility Scanner audits.
 - Manually validate full Navigation 3 stack restoration after process death.
 
-Engineering cleanup:
+Engineering cleanup accepted as deferred/user-owned:
 
 - Clean AGP 10 deprecation warnings.
-- Replace deprecated Spotless `indentWithSpaces`.
 - Add more hook helper tests.
 - Keep docs and Memory Bank current after every runtime validation result.

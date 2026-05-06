@@ -33,19 +33,16 @@
 
 # =============================================================================
 # SHARED MODELS — @Serializable data classes, JsonConfig, AppConfig, SpoofGroup
-# DeviceProfilePreset enriched with buildTime, tacPrefixes, etc. — all fields kept.
+#
+# kotlinx.serialization needs: constructors, $$serializer, Companion.serializer()
+# Data class fields are accessed via generated code, not direct reflection.
 # =============================================================================
 -keepclassmembers class com.astrixforge.devicemasker.common.** {
     <init>(...);
-    *;
 }
-
-# Serializer companion objects (covers both default and named companions)
 -keepclassmembers class com.astrixforge.devicemasker.common.**$Companion {
     kotlinx.serialization.KSerializer serializer(...);
 }
-
-# Generated $$serializer inner classes (serialization descriptor)
 -keep class com.astrixforge.devicemasker.common.**$$serializer { *; }
 
 # =============================================================================
@@ -60,55 +57,30 @@
 
 # =============================================================================
 # KOTLIN OBJECT SINGLETONS
-# SharedPrefsKeys, NetworkTypeMapper, IMEIGenerator, etc.
-# R8 full mode can strip the INSTANCE field from objects that appear unreferenced
-# from the app perspective — even if they're called reflectively from the hook process.
+# SharedPrefsKeys, NetworkTypeMapper, generators, etc.
+# R8 full mode can strip the INSTANCE field from objects that appear unreferenced.
 # =============================================================================
 -keepclassmembers class com.astrixforge.devicemasker.common.** {
     public static final ** INSTANCE;
 }
--keepclassmembers class com.astrixforge.devicemasker.common.** {
-    public static final *** INSTANCE;
-}
-
-# =============================================================================
-# DATA CLASSES — Keep component() and copy() methods
-# Used by UI ViewModels and the JSON serializer.
-# =============================================================================
--keepclassmembers class com.astrixforge.devicemasker.common.** {
-    public ** component*();
-    public ** copy(...);
-}
 
 # =============================================================================
 # GENERATORS — IMEI, IMSI, MAC, ICCID, Serial, etc.
-# Called by DeviceHooker and other hookers at hook time — must not be renamed.
-# IMEIGenerator.generateForPreset() and generateWithTac() are new entry points.
-# NetworkTypeMapper.getForMccMnc() is called from DeviceHooker.
+# Called from SpoofRepository at config time; must not be renamed.
 # =============================================================================
 -keep class com.astrixforge.devicemasker.common.generators.** { *; }
--keepclassmembers class com.astrixforge.devicemasker.common.generators.** {
-    public *;
-    public static *;
-}
 
-# NetworkTypeMapper — new in API 101 migration
--keep class com.astrixforge.devicemasker.common.NetworkTypeMapper { *; }
--keepclassmembers class com.astrixforge.devicemasker.common.NetworkTypeMapper {
-    public static *;
-}
-
-# DeviceProfilePreset.PRESETS, findById() and groupedByManufacturer() are called from UI
+# =============================================================================
+# DeviceProfilePreset — PRESETS list, findById(), groupedByManufacturer()
+# =============================================================================
 -keep class com.astrixforge.devicemasker.common.DeviceProfilePreset { *; }
--keepclassmembers class com.astrixforge.devicemasker.common.DeviceProfilePreset {
-    *;
-}
 -keepclassmembers class com.astrixforge.devicemasker.common.DeviceProfilePreset$Companion {
     public *;
 }
 
 # =============================================================================
-# MODELS sub-package (SIMConfig, LocationConfig, Carrier)
+# MODELS sub-package — Carrier, SIMConfig, DeviceHardwareConfig, LocationConfig
+# Fields accessed by generators and UI.
 # =============================================================================
 -keep class com.astrixforge.devicemasker.common.models.** { *; }
 
@@ -120,6 +92,11 @@
 -keepclassmembers class com.astrixforge.devicemasker.common.SharedPrefsKeys {
     public static *;
 }
+
+# =============================================================================
+# NetworkTypeMapper — MCC/MNC to network type mapping
+# =============================================================================
+-keep class com.astrixforge.devicemasker.common.NetworkTypeMapper { *; }
 
 # =============================================================================
 # KOTLIN SPECIFICS

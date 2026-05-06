@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 import java.lang.reflect.Field
 
@@ -102,27 +103,37 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
 
         safeHook("SystemProperties.get(String)") {
             spClass.methodOrNull("get", String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
-                    val mapped =
-                        propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                    mapped
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val key =
+                                chain.args.firstOrNull() as? String ?: return@stableHooker result
+                            val mapped =
+                                propertyMappings[key]?.takeIf { it.isNotEmpty() }
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                            mapped
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("SystemProperties.get(String, String)") {
             spClass.methodOrNull("get", String::class.java, String::class.java)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val key = chain.args.firstOrNull() as? String ?: return@intercept result
-                    val mapped =
-                        propertyMappings[key]?.takeIf { it.isNotEmpty() } ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                    mapped
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val key =
+                                chain.args.firstOrNull() as? String ?: return@stableHooker result
+                            val mapped =
+                                propertyMappings[key]?.takeIf { it.isNotEmpty() }
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                            mapped
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }

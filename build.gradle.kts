@@ -34,7 +34,6 @@ spotless {
         targetExclude("**/docs/**")
         ktfmt("0.54").kotlinlangStyle()
         trimTrailingWhitespace()
-        indentWithSpaces(4)
         endWithNewline()
     }
     kotlinGradle {

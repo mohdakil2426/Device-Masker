@@ -33,7 +33,6 @@ android {
     buildFeatures {
         // Enable AIDL for IPC
         aidl = true
-        buildConfig = true
     }
 
     lint { lintConfig = rootProject.file("lint.xml") }
