@@ -15,10 +15,9 @@ class SupportBundleBuilderTest {
         rootDir.resolve("command_manifest.jsonl").writeText("""{"status":"EXITED"}""")
         val outputDir = createTempDirectory("bundle").toFile()
         val bundle =
-            SupportBundleBuilder(
+                SupportBundleBuilder(
                     appEvents = listOf("""{"message":"app"}"""),
                     xposedEvents = listOf("""{"message":"xposed"}"""),
-                    serviceEvents = listOf("""{"message":"service"}"""),
                     snapshots =
                         mapOf(
                             "config_snapshot_redacted.json" to """{"imei":"[REDACTED_IMEI]"}""",
@@ -37,7 +36,6 @@ class SupportBundleBuilderTest {
                     "README_REPRO.md",
                     "app/app_events.jsonl",
                     "xposed/xposed_events.jsonl",
-                    "diagnostics/service_events.jsonl",
                     "config/config_snapshot_redacted.json",
                     "config/remote_prefs_snapshot_redacted.json",
                     "scope/scope_snapshot.json",

@@ -15,8 +15,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +53,7 @@ import kotlinx.coroutines.launch
  * @param onNavigateBack Callback to navigate back
  * @param modifier Optional modifier
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupSpoofingScreen(
     viewModel: GroupSpoofingViewModel,
@@ -114,30 +112,6 @@ fun GroupSpoofingScreen(
                     )
                 }
 
-                HorizontalFloatingToolbar(
-                    expanded = true,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 8.dp),
-                ) {
-                    IconButton(
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Tune,
-                            contentDescription =
-                                stringResource(id = R.string.group_spoofing_tab_spoof),
-                        )
-                    }
-                    IconButton(
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Apps,
-                            contentDescription =
-                                stringResource(id = R.string.group_spoofing_tab_apps),
-                        )
-                    }
-                }
-
                 // Tab Row
                 SecondaryTabRow(selectedTabIndex = pagerState.currentPage) {
                     Tab(
@@ -181,7 +155,6 @@ fun GroupSpoofingScreen(
                             AppsTabContent(
                                 group = group,
                                 allGroups = groups,
-                                appConfigs = state.appConfigs,
                                 installedApps = installedApps,
                                 onAppToggle = { app, checked ->
                                     if (checked) {
@@ -189,12 +162,6 @@ fun GroupSpoofingScreen(
                                     } else {
                                         viewModel.removeAppFromGroup(app.packageName)
                                     }
-                                },
-                                onRiskyHooksToggle = { packageName, checked ->
-                                    viewModel.setAppRiskyHooksEnabled(packageName, checked)
-                                },
-                                onClassLookupToggle = { packageName, checked ->
-                                    viewModel.setAppClassLookupHidingEnabled(packageName, checked)
                                 },
                             )
                     }

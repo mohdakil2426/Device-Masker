@@ -84,10 +84,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-        // AIDL still enabled in :app for the diagnostics-only service (Option B architecture)
-        // The AIDL interface is reduced to 8 methods — hook event reporting and log aggregation
-        // only
-        aidl = true
+        aidl = false
     }
 
     // CRITICAL: Prevent synthetic lambda classes that cause ClassNotFoundException in Xposed
@@ -151,7 +148,7 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     // HMA-OSS ARCHITECTURE MODULES
     // ═══════════════════════════════════════════════════════════
-    implementation(project(":common")) // Shared models and AIDL
+    implementation(project(":common")) // Shared models and contracts
     implementation(project(":xposed")) // Hook logic - bundled in APK
 
     // ═══════════════════════════════════════════════════════════

@@ -140,11 +140,7 @@ abstract class BaseSpoofHooker(protected val tag: String) {
         type: SpoofType,
     ): Boolean = PrefsHelper.isSpoofTypeEnabled(prefs, pkg, type)
 
-    /**
-     * Reports a successful spoof event to the diagnostics-only AIDL service. Fire-and-forget — if
-     * the service is unavailable, this call fails silently. Hookers should call this after
-     * returning a spoofed value.
-     */
+    /** Records a successful spoof event in hook-side metrics and LSPosed/logcat. */
     protected fun reportSpoofEvent(pkg: String, type: SpoofType) {
         runCatching { XposedEntry.instance.reportSpoofEvent(pkg, type.name) }
     }

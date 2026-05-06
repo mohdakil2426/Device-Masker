@@ -37,8 +37,7 @@ import timber.log.Timber
  * Config save path (post-migration):
  * - UI → ConfigManager → local file + ConfigSync → RemotePreferences (live to hooks)
  *
- * No AIDL service calls: config delivery uses [XposedPrefs]/RemotePreferences exclusively. The AIDL
- * service ([ServiceClient]) is diagnostics-only (hook event counts + logs).
+ * No AIDL service calls: config delivery uses [XposedPrefs]/RemotePreferences exclusively.
  */
 object ConfigManager : IConfigManager {
 

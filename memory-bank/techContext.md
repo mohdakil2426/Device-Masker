@@ -17,7 +17,7 @@
 | App-side Xposed service | libxposed service/interface 101.0.0 |
 | Config bridge | libxposed RemotePreferences |
 | Local config | JSON in app `filesDir` |
-| IPC | AIDL diagnostics only |
+| IPC | No custom AIDL/Binder path; app-side libxposed service is used for RemotePreferences |
 | Serialization | kotlinx.serialization JSON 1.10.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
 | Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
@@ -30,8 +30,8 @@
 | Module | Role |
 | --- | --- |
 | `:app` | UI, app state, local config, RemotePreferences writes, rootless logs, diagnostics views |
-| `:common` | Shared models, generators, key builders, AIDL contract |
-| `:xposed` | libxposed entry point, target-process hooks, diagnostics service, anti-detection |
+| `:common` | Shared models, generators, key builders, config contracts |
+| `:xposed` | libxposed entry point, target-process hooks, anti-detection, LSPosed/logcat diagnostics |
 
 ## Xposed Metadata
 
@@ -69,14 +69,12 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerDeepLinks.kt` | Navigation 3 deep-link URI parsing and synthetic stack definitions |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |
-| `common/src/main/aidl/com/astrixforge/devicemasker/IDeviceMaskerService.aidl` | Diagnostics-only Binder contract |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed module entry |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsReader.kt` | Hook-side preference reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
-| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/service/DeviceMaskerService.kt` | Best-effort diagnostics service |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/MainDispatcherRule.kt` | Test coroutine dispatcher rule |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/testing/*.kt` | Fake implementations for testing |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/ui/screens/*/*ViewModelTest.kt` | ViewModel unit tests |

@@ -8,11 +8,11 @@
   rootless app logs, diagnostics client.
 
 :common
-  Shared models, config contracts, preference keys, generators, AIDL contract.
+  Shared models, config contracts, preference keys, generators.
 
 :xposed
   libxposed module entry, hookers, RemotePreferences reader, hook safety helpers,
-  anti-detection, diagnostics service, LSPosed logging.
+  anti-detection, LSPosed logging.
 ```
 
 ## Architecture
@@ -35,8 +35,6 @@ flowchart TD
     Target["Target app process"]
     APIs["Android framework APIs"]
     LSLogs["LSPosed logs"]
-    Service["DeviceMaskerService best-effort diagnostics"]
-    Client["ServiceClient"]
     DiagUI["Diagnostics UI"]
 
     User --> UI --> VM --> Repo --> Config
@@ -51,8 +49,8 @@ flowchart TD
     Hookers --> Remote
     Hookers --> LSLogs
     Anti --> LSLogs
-    Entry --> Service
-    Service --> Client --> DiagUI
+    Entry --> LSLogs
+    LSLogs --> DiagUI
 ```
 
 ## Configuration Flow
@@ -93,7 +91,7 @@ sequenceDiagram
 - Hookers read stored values; hookers do not generate new identities at runtime.
 - `ConfigSync` must clear stale package keys on full sync.
 - Config delivery is RemotePreferences-first.
-- AIDL is diagnostics-only and must not deliver spoof config.
+- Do not add custom AIDL/Binder config or hook-evidence paths.
 
 ## Hook Loading Rules
 
@@ -152,19 +150,15 @@ Intentional app-visible throws for package/class hiding must use `ExceptionMode.
 sequenceDiagram
     participant Hook as Hooker
     participant LS as LSPosed log
-    participant Svc as DeviceMaskerService
     participant App as Device Masker app
     participant Store as JSONL store
     participant Root as Root collector
     participant Export as Support bundle
 
     Hook->>LS: Log hook registration and spoof events
-    Hook->>Svc: Best-effort diagnostics event when reachable
-    App->>Svc: Best-effort diagnostics read
     App->>Store: Write structured app events
     Store->>Export: Include app-owned JSONL events
-    Svc-->>Export: Include diagnostics buffer if reachable
-    Root->>Export: Include opt-in root artifacts
+    Root->>Export: Include opt-in root/logcat artifacts
 ```
 
 Diagnostics facts:
@@ -173,8 +167,8 @@ Diagnostics facts:
 - Exports are redacted by default; raw identifiers must not be logged by default.
 - Root Maximum collection is opt-in and uses bounded fixed command templates.
 - LSPosed logs are the authoritative source for target-process hook events.
-- Custom system-server diagnostics Binder can be blocked by SELinux.
-- Target app processes must not discover `user.devicemasker_diag`.
+- There is no custom Device Masker Binder service in system_server.
+- Diagnostics UI does not read custom service status; target hook proof comes from LSPosed/logcat.
 
 ## Current Hook Areas
 
@@ -188,7 +182,6 @@ Diagnostics facts:
 - `WebViewHooker`
 - `SubscriptionHooker`
 - `PackageManagerHooker`
-- `SystemServiceHooker`
 
 ## Value Correlation
 

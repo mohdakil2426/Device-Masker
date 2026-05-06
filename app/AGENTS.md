@@ -10,7 +10,7 @@ app/src/main/kotlin/com/astrixforge/devicemasker/
 │   ├── models/               InstalledApp, TypeAliases
 │   └── repository/           SpoofRepository, AppScopeRepository + interfaces
 │
-├── service/                  Config persistence, logging, AIDL client
+├── service/                  Config persistence, logging, support bundles
 │   └── diagnostics/          Root access, root capture, support bundles, JSONL store
 │
 ├── ui/                       All Compose UI
@@ -39,7 +39,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 
 **Singletons (objects):** `ConfigManager`, `XposedPrefs`, `ConfigSync`, `LogManager`, `RootAccessManager`, `RootCaptureStore`
 
-**Instance singletons (in DeviceMaskerApp companion):** `appLogStore`, `serviceClient`
+**Instance singletons (in DeviceMaskerApp companion):** `appLogStore`
 
 ## Key Files
 
@@ -59,7 +59,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 | Groups | `GroupsViewModel(ISpoofRepository)` | `createGroup()`, `deleteGroup()`, `setDefaultGroup()`, `exportGroups()`, `importGroups()` |
 | GroupSpoofing | `GroupSpoofingViewModel(ISpoofRepository, groupId)` | `generateValue()`, `updateGroupWithCarrier()`, `updateGroupWithDeviceProfile()`, `addAppToGroup()`, `removeAppFromGroup()` |
 | Settings | `SettingsViewModel(Application, ISettingsDataStore, ILogManager, ioDispatcher)` | `setThemeMode()`, `exportLogsToUri()`, `createShareableLogs()` |
-| Diagnostics | `DiagnosticsViewModel(Application, ISpoofRepository, IServiceClient)` | `refresh()`, `runDiagnosticTests()`, `runAntiDetectionTests()` |
+| Diagnostics | `DiagnosticsViewModel(Application, ISpoofRepository)` | `refresh()`, `runDiagnosticTests()`, `runAntiDetectionTests()` |
 
 ## Navigation (Navigation 3)
 
@@ -89,12 +89,11 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 - `RootAccessManager`: libsu root grant state, startup request
 - `RootLogCaptureService`: foreground service for bounded root capture
 - `BootCaptureReceiver`: `BOOT_COMPLETED` → starts root capture
-- `ServiceClient`: AIDL client to `user.devicemasker_diag` in system_server (uses `HiddenApiBypass`)
 
 ## Testing
 
 - `MainDispatcherRule` — swaps `Dispatchers.Main` with `UnconfinedTestDispatcher`
-- Hand-written fakes for all interfaces: `FakeSpoofRepository`, `FakeConfigManager`, `FakeSettingsDataStore`, `FakeServiceClient`, `FakeLogManager`, `FakeAppScopeRepository`, `FakeSharedPreferences`
+- Hand-written fakes for interfaces: `FakeSpoofRepository`, `FakeConfigManager`, `FakeSettingsDataStore`, `FakeLogManager`, `FakeAppScopeRepository`, `FakeSharedPreferences`
 - Turbine for Flow emissions
 - MockK only for Navigation 3 framework types
 - `advanceUntilIdle()` required after async ops in `runTest`
@@ -103,7 +102,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 
 - `compileSdk 37`, `targetSdk 36`, `minSdk 26`, JVM 17
 - Release minification/resource shrinking is enabled. Runtime hook callbacks must stay R8-safe through the `:xposed` StableHooker/named `XposedInterface.Hooker` pattern.
-- `aidl = true`, `buildConfig = true`, `compose = true`
+- `aidl = false`, `buildConfig = true`, `compose = true`
 - `useLegacyPackaging = true` for primary dex Xposed class loading
 - Compose compiler reports/metrics are opt-in with `enableComposeCompilerReports` and `enableComposeCompilerMetrics`
 - Signing from env vars: `KEYSTORE_PATH`, `KEYSTORE_PASS`, `KEY_ALIAS`, `KEY_PASS`

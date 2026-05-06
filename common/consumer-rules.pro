@@ -3,7 +3,7 @@
 # libxposed API 101 edition.
 #
 # Merged into :app's R8 run automatically by AGP.
-# Protects shared models, generators, AIDL interface, enums, and keys.
+# Protects shared models, generators, enums, and keys.
 # =============================================================================
 
 # =============================================================================
@@ -16,20 +16,6 @@
 -keepattributes Signature
 -keepattributes InnerClasses
 -keepattributes Exceptions
-
-# =============================================================================
-# AIDL INTERFACE — IDeviceMaskerService and its generated Stub/Proxy
-#
-# AIDL compiler outputs IDeviceMaskerService in the package declared in the
-# .aidl file: com.astrixforge.devicemasker (no .common.aidl sub-package).
-# All members are accessed via JNI/Parcel reflection at runtime.
-# =============================================================================
--keep interface com.astrixforge.devicemasker.IDeviceMaskerService { *; }
--keep class com.astrixforge.devicemasker.IDeviceMaskerService$Stub { *; }
--keep class com.astrixforge.devicemasker.IDeviceMaskerService$Stub$Proxy { *; }
--keepclassmembers class com.astrixforge.devicemasker.IDeviceMaskerService$** {
-    *;
-}
 
 # =============================================================================
 # SHARED MODELS — @Serializable data classes, JsonConfig, AppConfig, SpoofGroup

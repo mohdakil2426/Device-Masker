@@ -18,7 +18,6 @@ enum class SupportBundleMode {
 class SupportBundleBuilder(
     private val appEvents: List<String>,
     private val xposedEvents: List<String>,
-    private val serviceEvents: List<String>,
     private val snapshots: Map<String, String> = emptyMap(),
     private val rootArtifactsDir: File? = null,
 ) {
@@ -39,10 +38,6 @@ class SupportBundleBuilder(
             zip.writeText(
                 "xposed/xposed_events.jsonl",
                 xposedEvents.joinToString("\n").redact(redactor),
-            )
-            zip.writeText(
-                "diagnostics/service_events.jsonl",
-                serviceEvents.joinToString("\n").redact(redactor),
             )
 
             if (mode == SupportBundleMode.FULL || mode == SupportBundleMode.ROOT_MAXIMUM) {

@@ -5,14 +5,10 @@ import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
-import com.astrixforge.devicemasker.service.IServiceClient
-import com.astrixforge.devicemasker.service.ServiceClient
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,21 +19,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the Diagnostics screen — libxposed API 101 / Option B edition.
+ * ViewModel for the Diagnostics screen.
  *
- * Uses the diagnostics-only [ServiceClient] (post-migration):
- * - `getHookedPackages()` — packages hooked this session
- * - `getLogs()` — hook event log entries
- * - `getSpoofEventCount()` — per-package spoof counter
- * - `isAlive()` / `connectionState` — service health
- *
- * Config-related service methods (writeConfig, readConfig, etc.) have been removed. Config delivery
- * is exclusively via RemotePreferences (libxposed API 101).
+ * Config delivery is exclusively via RemotePreferences. Target-process hook proof comes from
+ * LSPosed/logcat evidence, not a custom diagnostics Binder bridge.
  */
 class DiagnosticsViewModel(
     application: Application,
     private val repository: ISpoofRepository,
-    private val serviceClient: IServiceClient = DeviceMaskerApp.serviceClient,
     isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
     @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : AndroidViewModel(application) {
@@ -51,17 +40,6 @@ class DiagnosticsViewModel(
         viewModelScope.launch {
             isXposedActiveFlow.collect { connected ->
                 _state.update { it.copy(isXposedActive = connected) }
-            }
-        }
-
-        // Observe connection state live
-        viewModelScope.launch {
-            serviceClient.connectionState.collect { connectionState ->
-                _state.update {
-                    it.copy(
-                        serviceStatus = it.serviceStatus.copy(connectionState = connectionState)
-                    )
-                }
             }
         }
 
@@ -82,56 +60,12 @@ class DiagnosticsViewModel(
         viewModelScope.launch {
             val diagnosticResults = runDiagnosticTests()
             val antiDetectionResults = runAntiDetectionTests()
-            refreshServiceStatus()
 
             _state.update {
                 it.copy(
                     diagnosticResults = diagnosticResults.toImmutableList(),
                     antiDetectionResults = antiDetectionResults.toImmutableList(),
                     isLoading = false,
-                )
-            }
-        }
-    }
-
-    /**
-     * Refreshes the diagnostics service status.
-     *
-     * Connects if not already connected, then loads:
-     * - Hooked packages count
-     * - Recent hook log entries
-     *
-     * If the service is unavailable, the UI shows "Service unavailable" gracefully — spoofing
-     * continues via RemotePreferences regardless.
-     */
-    private suspend fun refreshServiceStatus() {
-        if (!serviceClient.isConnected) {
-            serviceClient.connect()
-        }
-
-        if (serviceClient.isConnected) {
-            val hookedPackages = serviceClient.getHookedPackages()
-            val recentLogs = serviceClient.getLogs(maxCount = 50)
-
-            _state.update {
-                it.copy(
-                    serviceStatus =
-                        it.serviceStatus.copy(
-                            connectionState = ServiceClient.ConnectionState.CONNECTED,
-                            hookedAppCount = hookedPackages.size,
-                        ),
-                    hookLogs = recentLogs.toImmutableList(),
-                )
-            }
-        } else {
-            _state.update {
-                it.copy(
-                    serviceStatus =
-                        it.serviceStatus.copy(
-                            connectionState = serviceClient.connectionState.value,
-                            hookedAppCount = null,
-                        ),
-                    hookLogs = persistentListOf(),
                 )
             }
         }

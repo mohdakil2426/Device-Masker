@@ -79,8 +79,6 @@ fun DiagnosticsScreen(
         isXposedActive = state.isXposedActive,
         diagnosticResults = state.diagnosticResults,
         antiDetectionResults = state.antiDetectionResults,
-        serviceStatus = state.serviceStatus,
-        hookLogs = state.hookLogs,
         isRefreshing = state.isRefreshing,
         onRefresh = { viewModel.refresh() },
         onNavigateBack = onNavigateBack,
@@ -94,8 +92,6 @@ fun DiagnosticsContent(
     isXposedActive: Boolean,
     diagnosticResults: List<DiagnosticResult>,
     antiDetectionResults: List<AntiDetectionTest>,
-    serviceStatus: ServiceStatus = ServiceStatus(),
-    hookLogs: List<String> = emptyList(),
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onNavigateBack: () -> Unit,
@@ -149,10 +145,6 @@ fun DiagnosticsContent(
             // Config Sync Info Card
             item(key = "config_sync_info", contentType = "config_sync_info") {
                 ConfigSyncInfoCard()
-            }
-
-            item(key = "service_status", contentType = "service_status") {
-                ServiceStatusCard(serviceStatus = serviceStatus, hookLogs = hookLogs)
             }
 
             // Anti-Detection Section
@@ -369,69 +361,6 @@ private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<Dia
         }
     }
 }
-
-@Composable
-private fun ServiceStatusCard(serviceStatus: ServiceStatus, hookLogs: List<String>) {
-    ExpressiveCard(
-        onClick = { /* Read-only diagnostics */ },
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(
-                text = stringResource(id = R.string.diagnostics_service_status_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text =
-                    stringResource(
-                        id = R.string.diagnostics_service_status_summary,
-                        serviceStatus.connectionState.name,
-                        serviceStatus.hookEvidenceLabel(),
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            if (hookLogs.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(id = R.string.diagnostics_recent_logs_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                hookLogs.take(5).forEach { logLine ->
-                    Text(
-                        text = logLine,
-                        style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = FontFamily.Monospace
-                            ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ServiceStatus.hookEvidenceLabel(): String =
-    when (hookEvidenceState) {
-        HookEvidenceState.UNKNOWN -> stringResource(id = R.string.diagnostics_unknown)
-        HookEvidenceState.UNAVAILABLE ->
-            stringResource(id = R.string.diagnostics_hook_evidence_unavailable)
-        HookEvidenceState.NONE_OBSERVED -> "0"
-        HookEvidenceState.OBSERVED -> hookedAppCount?.toString().orEmpty()
-    }
 
 /** Individual diagnostic result item. */
 @Composable

@@ -12,9 +12,7 @@ import com.astrixforge.devicemasker.xposed.hooker.PackageManagerHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
-import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
-import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
@@ -38,8 +36,8 @@ import java.util.concurrent.ConcurrentHashMap
  * Config delivery path (post-migration): UI → ConfigSync → RemotePreferences → LSPosed DB →
  * getRemotePreferences() (in hooks)
  *
- * Diagnostics path: Hooks → oneway AIDL → DeviceMaskerService (system_server) →
- * DiagnosticsViewModel reads
+ * Diagnostics path: hooks log to LSPosed/logcat. Root Maximum support bundles can collect that
+ * evidence through the app's root log capture path.
  */
 class XposedEntry : XposedModule() {
 
@@ -66,10 +64,7 @@ class XposedEntry : XposedModule() {
                 "com.google.android.gms", // GMS — integrity check interference risk
             )
 
-        /**
-         * Singleton reference to this module instance. Set once per process in the init block.
-         * Hooker companion objects access this to call log() and reportSpoofEvent().
-         */
+        /** Singleton reference to this module instance. Set once per process in the init block. */
         @Volatile
         lateinit var instance: XposedEntry
             private set
@@ -94,33 +89,8 @@ class XposedEntry : XposedModule() {
         )
     }
 
-    /**
-     * Called when the System Server (android process) loads. This is the ONLY place where the AIDL
-     * diagnostics service is initialized.
-     *
-     * CRITICAL SAFETY: Every single line here must be in its own try-catch. Any uncaught exception
-     * here causes a system_server crash = device bootloop.
-     */
     override fun onSystemServerStarting(param: SystemServerStartingParam) {
-        log(
-            Log.INFO,
-            TAG,
-            "System server loading — initializing diagnostics service hooks...",
-            null,
-        )
-        try {
-            SystemServiceHooker.hook(param.classLoader, this)
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            // Non-fatal — if service registration fails, hooks still work via RemotePreferences
-            log(
-                Log.WARN,
-                TAG,
-                "SystemServiceHooker registration failed (diagnostics unavailable): ${t.message}",
-                t,
-            )
-        }
+        log(Log.INFO, TAG, "System server loaded for Device Masker", null)
     }
 
     /**
@@ -222,7 +192,6 @@ class XposedEntry : XposedModule() {
             PackageManagerHooker.hook(cl, this, prefs, hookPackage)
         }
 
-        // Report to diagnostics service (fire-and-forget, oneway AIDL — does not block hooks)
         reportPackageHooked(hookPackage)
 
         log(Log.INFO, TAG, "All hooks registered for: $hookPackage", null)
@@ -292,55 +261,18 @@ class XposedEntry : XposedModule() {
         }
     }
 
-    /** Cached reference to the diagnostics service binder. */
-    @Volatile
-    private var diagnosticService: com.astrixforge.devicemasker.IDeviceMaskerService? = null
-
-    /**
-     * Retrieves the diagnostics service binder when this module is running inside system_server.
-     *
-     * Target apps must not discover the custom diagnostics service through ServiceManager. Android
-     * user builds deny that lookup for untrusted app domains, and repeated denied lookups add
-     * startup noise to every scoped process. Hook-side diagnostics therefore fall back to the
-     * LSPosed log until a supported libxposed/app bridge exists.
-     */
-    private fun getService(): com.astrixforge.devicemasker.IDeviceMaskerService? {
-        // 1. Return cached binder if still alive
-        diagnosticService?.let { if (it.asBinder().isBinderAlive) return it }
-
-        // 2. If in system_server, use the local singleton instance
-        if (DeviceMaskerService.isInitialized()) {
-            diagnosticService = DeviceMaskerService.getInstance()
-            return diagnosticService
-        }
-
-        return null
-    }
-
-    /**
-     * Reports that this package was hooked to the diagnostics service. This is a fire-and-forget
-     * call — if the service is unavailable, it fails silently. The diagnostics service is
-     * initialized in system_server by SystemServiceHooker.
-     */
     private fun reportPackageHooked(pkg: String) {
         log(Log.INFO, TAG, "Hooks registered for: $pkg", null)
-        runCatching { getService()?.reportPackageHooked(pkg) }
     }
 
-    /**
-     * Reports a spoof event to the diagnostics service after a hooker returns a spoofed value.
-     * Declared here so hookers can call XposedEntry.instance.reportSpoofEvent().
-     */
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
         val result = XposedDiagnosticEventSink.hookHealth.recordSpoofEvent(pkg, spoofTypeName)
         if (result.shouldLog) {
             log(Log.DEBUG, TAG, "Spoof event: $pkg/$spoofTypeName", null)
-            runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
         }
     }
 
     fun reportLog(tag: String, message: String, level: Int) {
         log(level, tag, message, null)
-        runCatching { getService()?.reportLog(tag, message, level) }
     }
 }

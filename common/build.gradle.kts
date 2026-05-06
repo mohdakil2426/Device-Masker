@@ -30,10 +30,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures {
-        // Enable AIDL for IPC
-        aidl = true
-    }
+    buildFeatures { aidl = false }
 
     lint { lintConfig = rootProject.file("lint.xml") }
 }

@@ -52,11 +52,9 @@
 -keep class com.astrixforge.devicemasker.DeviceMaskerApp { *; }
 
 # =============================================================================
-# DEVICE MASKER — Service layer
-# ServiceClient communicates via AIDL to the diagnostics service in system_server.
+# DEVICE MASKER — Config service layer
 # ConfigManager (app-side) manages StateFlow config, handles JSON file + RemotePreferences sync.
 # =============================================================================
--keep class com.astrixforge.devicemasker.service.ServiceClient { *; }
 -keep class com.astrixforge.devicemasker.service.ConfigManager { *; }
 
 # XposedPrefs wraps RemotePreferences write path; keep for ConfigSync calls
@@ -69,23 +67,6 @@
 -keep class com.astrixforge.devicemasker.data.ConfigSync { *; }
 -keepclassmembers class com.astrixforge.devicemasker.data.ConfigSync {
     public static *;
-}
-
-# =============================================================================
-# AIDL — Keep generated Binder/IInterface classes
-# The AIDL aidlInterface plugin generates IDeviceMaskerService.Stub / .Proxy.
-# These are accessed via binder reflection by ServiceClient.asInterface().
-# =============================================================================
--keep interface com.astrixforge.devicemasker.IDeviceMaskerService { *; }
--keep class com.astrixforge.devicemasker.IDeviceMaskerService$Stub { *; }
--keep class com.astrixforge.devicemasker.IDeviceMaskerService$Stub$Proxy { *; }
--keepclassmembers class com.astrixforge.devicemasker.IDeviceMaskerService$** { *; }
-
-# Generic Binder keep rule — covers all AIDL stubs in any package
--keep class * implements android.os.IInterface { *; }
--keepclassmembers class * extends android.os.Binder {
-    public static ** asInterface(android.os.IBinder);
-    public android.os.IBinder asBinder();
 }
 
 # =============================================================================

@@ -15,7 +15,7 @@ Device Masker is an Android LSPosed/libxposed module that lets a user configure 
 - Keep target-process hook logic in `:xposed`.
 - Keep UI, local JSON, and config sync in `:app`.
 - Use LSPosed logs as the reliable proof of runtime hook behavior.
-- Treat custom diagnostics Binder as best-effort.
+- Do not use a custom diagnostics Binder.
 
 ## High-Level Architecture
 
@@ -39,7 +39,6 @@ flowchart TD
     Framework["Android framework APIs"]
     LSLogs["LSPosed Manager logs"]
     AppLogs["Rootless app logs"]
-    DiagSvc["DeviceMaskerService best-effort"]
     DiagUI["Diagnostics UI"]
 
     User --> UI
@@ -56,7 +55,7 @@ flowchart TD
     Hookers --> LSLogs
     Anti --> LSLogs
     App --> AppLogs
-    Entry --> DiagSvc --> DiagUI
+    LSLogs --> DiagUI
 ```
 
 ## Module Responsibilities
@@ -64,8 +63,8 @@ flowchart TD
 | Module | Responsibility | Must Not Do |
 | --- | --- | --- |
 | `:app` | UI, local config, config persistence, RemotePreferences writes, rootless logs, diagnostics UI | Run target-process hook logic |
-| `:common` | Shared models, generators, `SharedPrefsKeys`, AIDL contract | Depend on Compose or Xposed runtime |
-| `:xposed` | libxposed entry, hooks, anti-detection, LSPosed logging, best-effort diagnostics service | Generate fresh spoof identities or read app-private JSON |
+| `:common` | Shared models, generators, `SharedPrefsKeys`, config contracts | Depend on Compose or Xposed runtime |
+| `:xposed` | libxposed entry, hooks, anti-detection, LSPosed logging | Generate fresh spoof identities or read app-private JSON |
 
 ## Configuration Model
 
@@ -161,27 +160,26 @@ flowchart TD
     Export["LogManager export"]
     Hook["Target hookers"]
     LS["LSPosed logs"]
-    Svc["DeviceMaskerService"]
     UI["Diagnostics UI"]
+    Root["Root Maximum logcat artifacts"]
 
     AppTimber --> AppStore --> Export
     Hook --> LS
-    Hook --> Svc
-    Svc --> UI
-    Svc --> Export
+    LS --> UI
+    LS --> Root --> Export
 ```
 
 Important facts:
 - App logs are stored without root in app-owned storage.
 - LSPosed logs are the authoritative hook-side runtime evidence.
-- `DeviceMaskerService` diagnostics are best-effort and may be blocked by SELinux.
-- Target app processes must not discover custom diagnostics through `ServiceManager`.
+- Root Maximum exports can include opt-in root/logcat artifacts when root is available.
+- There is no custom Device Masker Binder service in system_server.
 - App export should stay minimal and structured.
 
 ## Forbidden Patterns
 
 Do not:
-- Use AIDL as the config delivery path.
+- Add a custom AIDL/Binder path for spoof config or hook evidence.
 - Generate identifiers inside target-process hooks.
 - Return fake fallback values for malformed config.
 - Read app-private JSON from target apps.

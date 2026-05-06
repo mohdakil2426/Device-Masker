@@ -26,7 +26,7 @@ import kotlinx.coroutines.withContext
  * Log manager for rootless structured export.
  *
  * The app cannot read global logcat without privileged access. Exports combine app-owned persistent
- * logs with the current diagnostics service buffer when that service is reachable.
+ * logs with optional root-captured logcat artifacts when root is available.
  */
 object LogManager : ILogManager {
 
@@ -101,17 +101,6 @@ object LogManager : ILogManager {
         outputDir: File = File(context.cacheDir, "logs"),
     ): File {
         val appEvents = AppLogStore.from(context).readDiagnosticEvents()
-        val serviceClient = DeviceMaskerApp.serviceClient
-        if (!serviceClient.isConnected) {
-            serviceClient.connect()
-        }
-
-        val serviceLogs =
-            if (serviceClient.isConnected) {
-                serviceClient.getLogs(500)
-            } else {
-                emptyList()
-            }
         val rootArtifactsDir =
             if (mode == SupportBundleMode.ROOT_MAXIMUM) {
                 RootCaptureStore.prepareExportArtifacts(context, outputDir).also { rootDir ->
@@ -144,7 +133,7 @@ object LogManager : ILogManager {
                             androidRelease = Build.VERSION.RELEASE ?: "unknown",
                             device = "${Build.MANUFACTURER} ${Build.MODEL}",
                             rootAvailable = rootAvailable,
-                            xposedServiceConnected = serviceClient.isConnected,
+                            xposedFrameworkConnected = DeviceMaskerApp.isXposedModuleActive,
                             moduleEnabled = DeviceMaskerApp.isXposedModuleActive,
                             targetPackage = null,
                             scopePackages = listOf("android", "system"),
@@ -161,10 +150,7 @@ object LogManager : ILogManager {
                     appEvents.map { event ->
                         DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
                     },
-                xposedEvents =
-                    if (serviceClient.isConnected) serviceLogs
-                    else listOf("""{"message":"Not available from service"}"""),
-                serviceEvents = serviceLogs,
+                xposedEvents = emptyList(),
                 snapshots = snapshots,
                 rootArtifactsDir = rootArtifactsDir,
             )
@@ -174,12 +160,7 @@ object LogManager : ILogManager {
     suspend fun getLogCount(): Int =
         withContext(Dispatchers.IO) {
             try {
-                val serviceClient = DeviceMaskerApp.serviceClient
-                if (!serviceClient.isConnected) {
-                    serviceClient.connect()
-                }
-                AppLogStore.from(DeviceMaskerApp.getInstance()).readEntries().size +
-                    if (serviceClient.isConnected) serviceClient.getLogs(500).size else 0
+                AppLogStore.from(DeviceMaskerApp.getInstance()).readEntries().size
             } catch (_: Exception) {
                 0
             }
@@ -187,12 +168,7 @@ object LogManager : ILogManager {
 
     private suspend fun hasAnyLogs(context: Context): Boolean =
         withContext(Dispatchers.IO) {
-            val serviceClient = DeviceMaskerApp.serviceClient
-            if (!serviceClient.isConnected) {
-                serviceClient.connect()
-            }
-            AppLogStore.from(context).readEntries().isNotEmpty() ||
-                (serviceClient.isConnected && serviceClient.getLogs(1).isNotEmpty())
+            AppLogStore.from(context).readEntries().isNotEmpty()
         }
 
     override fun generateLogFileName(): String {

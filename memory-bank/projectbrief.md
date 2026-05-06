@@ -81,7 +81,7 @@ Known stability decisions:
 - Release shrinking/minification is enabled after replacing direct libxposed SAM/lambda callbacks with the `StableHooker` adapter path.
 - Hook registration must use `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations; do not reintroduce direct `.intercept { ... }` callbacks in runtime hookers.
 - Global `Class.forName` and `ClassLoader.loadClass` anti-detection hooks are implemented but not registered by default because they caused or contributed to target startup instability.
-- AIDL diagnostics is best-effort only; LSPosed logs are the authoritative runtime source for hook events.
+- No custom diagnostics Binder remains; LSPosed logs are the authoritative runtime source for hook events.
 
 ## Quality Bar
 

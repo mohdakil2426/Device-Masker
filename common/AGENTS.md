@@ -13,8 +13,6 @@ common/src/main/
 │   └── (root)              JsonConfig, AppConfig, SpoofGroup, SpoofType, DeviceIdentifier,
 │                             DeviceProfilePreset, DevicePersona, PersonaGenerator, SharedPrefsKeys,
 │                             Constants, Utils, NetworkTypeMapper, SecureRandomUtils
-│
-└── aidl/                   Diagnostics-only Binder contracts
 ```
 
 ## Source Of Truth Rules
@@ -117,17 +115,10 @@ Package names: `.` replaced with `_`. Validation regex in `isValidKey()`.
 
 `DiagnosticRedactor`: Two modes (REDACTED/UNREDACTED). Redacts IMEI, IMSI, ICCID, MAC, Android ID, phone numbers, GPS coordinates, package names (SHA-256 prefix).
 
-## AIDL — IDeviceMaskerService
-
-Diagnostics-only. Never used for config delivery.
-
-- Oneway (hook→service): `reportSpoofEvent`, `reportLog`, `reportPackageHooked`
-- Sync (UI→service): `getSpoofEventCount`, `getHookedPackages`, `getLogs`, `clearDiagnostics`, `isAlive`
-
 ## Build
 
 - `android.library`, `kotlin.serialization`
-- `aidl = true` for the diagnostics contract
+- `aidl = false`; no custom Binder contract
 - No Compose, no UI dependencies
 - Dependencies: `kotlinx-serialization-json`, `kotlinx-coroutines-core`
 

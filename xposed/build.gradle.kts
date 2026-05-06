@@ -48,7 +48,7 @@ android {
 }
 
 dependencies {
-    // Common module for shared models and AIDL
+    // Common module for shared models and config contracts
     implementation(project(":common"))
 
     // ═══════════════════════════════════════════════════════════
@@ -61,7 +61,7 @@ dependencies {
     // Hidden API Bypass (replaces FreeReflection, still needed for system field access)
     implementation(libs.hiddenapibypass)
 
-    // Coroutines for async operations (AIDL diagnostics service init)
+    // Coroutines for shared helpers/tests
     implementation(libs.kotlinx.coroutines.core)
 
     // Serialization for config parsing

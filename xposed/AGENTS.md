@@ -1,6 +1,6 @@
 # :xposed Module Guide
 
-libxposed module entry, hook layer, RemotePreferences reader, anti-detection, diagnostics service. This code runs INSIDE target app processes and system_server. Every line must be safe for hostile process contexts.
+libxposed module entry, hook layer, RemotePreferences reader, anti-detection, and hook diagnostics. This code runs INSIDE target app processes and system_server. Every line must be safe for hostile process contexts.
 
 ## Module Structure
 
@@ -8,7 +8,6 @@ libxposed module entry, hook layer, RemotePreferences reader, anti-detection, di
 xposed/src/main/
 ├── kotlin/.../xposed/
 │   ├── hooker/             Target-process hook implementations and shared hook helpers
-│   ├── service/            System-server diagnostics service support
 │   ├── diagnostics/        Hook-side diagnostics and health tracking
 │   └── (root)              Module entry, preference reader, logging, deoptimization support
 │
@@ -37,7 +36,7 @@ Extends `XposedModule` (libxposed API 101). No-arg constructor, framework-instan
 ### Lifecycle
 
 1. **`onModuleLoaded`** — sets singleton `instance`, logs process name
-2. **`onSystemServerStarting`** — calls `SystemServiceHooker.hook()` to register diagnostics AIDL. Every line try-caught (crash = bootloop).
+2. **`onSystemServerStarting`** — logs system-server module load only. Every line try-caught (crash = bootloop).
 3. **`onPackageReady`** — main hook path:
    - Skips `android`, own package, SystemUI, Phone, GMS
    - Gets `RemotePreferences` via `getRemotePreferences(PREFS_GROUP)`
@@ -78,7 +77,7 @@ Direct `xi.hook(m).intercept { ... }` Kotlin SAM callbacks are forbidden in runt
 | `Class.methodOrNull(name, params)` | Returns null on `NoSuchMethodException`, auto-sets accessible |
 | `getSpoofValue(prefs, pkg, type, fallback)` | Read with fallback |
 | `getConfiguredSpoofValue(prefs, pkg, type)` | Returns null if not configured |
-| `reportSpoofEvent(pkg, type)` | Fire-and-forget to diagnostics |
+| `reportSpoofEvent(pkg, type)` | Records hook metrics and LSPosed/logcat evidence |
 
 ## PrefsHelper — Config Reader
 
@@ -124,12 +123,10 @@ Prevents ART JIT/AOT from inlining hooked methods. Short methods (<20 bytecodes)
 
 ## Diagnostics
 
-- `DualLog` — logs to logcat + `XposedDiagnosticEventSink` + AIDL service
+- `DualLog` — logs to module logger/LSPosed-logcat + `XposedDiagnosticEventSink`
 - `HookMetrics` — success/failure counts via `HookHealthRegistry`
 - `HookHealthRegistry` — thread-safe AtomicLong counters, per-method health, spoof event throttling (first 5, then 10/100/1000 milestones)
-- `XposedDiagnosticEventSink` — builds `DiagnosticEvent`, forwards to logcat + `XposedEntry.log()` + AIDL
-- `DeviceMaskerService` — runs in system_server, 500-entry ring buffer, per-package spoof counters
-- `SystemServiceHooker` — hooks `AMS.systemReady()` + `SystemServer.run()`, registers service as `user.devicemasker_diag`
+- `XposedDiagnosticEventSink` — builds `DiagnosticEvent`, forwards to module logger/LSPosed-logcat
 
 ## Metadata
 
@@ -148,13 +145,12 @@ Prevents ART JIT/AOT from inlining hooked methods. Short methods (<20 bytecodes)
 
 ## ProGuard (consumer-rules.pro)
 
-Keep rules must preserve the libxposed entry point, hooker classes, diagnostics service support, preference helpers, hook-side logging/metrics, libxposed service bridge types, and the R8-safe callback package `xposed.hooker.callback.**`.
+Keep rules must preserve the libxposed entry point, hooker classes, preference helpers, hook-side logging/metrics, libxposed service bridge types, and the R8-safe callback package `xposed.hooker.callback.**`.
 
 ## Testing
 
 Coverage should include:
 - `PrefsHelperTest` — null for disabled/blank, returns configured value
 - `HookSafetyTest` — WebView UA parsing, AntiDetect safe-prefix pass-through, all hookers use safeHook, PM overload discovery, Location copy safety
-- `DiagnosticsLogBufferTest` — cap, dropped count, clear
 - `HookHealthRegistryTest` — registration counters, spoof aggregation, rate-limiting
 - `R8HookerAbiTest` — forbids direct runtime `.intercept { ... }` callbacks and checks R8 callback keep coverage

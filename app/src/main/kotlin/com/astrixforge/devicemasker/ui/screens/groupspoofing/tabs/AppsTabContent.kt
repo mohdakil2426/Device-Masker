@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,10 +17,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -39,14 +35,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.ElevationTokens
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 
@@ -55,11 +49,8 @@ import kotlinx.coroutines.flow.debounce
 fun AppsTabContent(
     group: SpoofGroup?,
     allGroups: List<SpoofGroup>,
-    appConfigs: Map<String, AppConfig>,
     installedApps: List<InstalledApp>,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
-    onRiskyHooksToggle: (String, Boolean) -> Unit,
-    onClassLookupToggle: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -158,16 +149,6 @@ fun AppsTabContent(
                             onToggle = { checked -> onAppToggle(app, checked) },
                             modifier = Modifier.fillMaxWidth().animateItem(),
                         )
-
-                        if (isAssignedToThisGroup) {
-                            AppRiskControls(
-                                appConfig = appConfigs[app.packageName],
-                                packageName = app.packageName,
-                                onRiskyHooksToggle = onRiskyHooksToggle,
-                                onClassLookupToggle = onClassLookupToggle,
-                                modifier = Modifier.fillMaxWidth().animateItem(),
-                            )
-                        }
                     }
 
                     item(key = "bottom_spacer", contentType = "spacer") {
@@ -176,67 +157,6 @@ fun AppsTabContent(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AppRiskControls(
-    appConfig: AppConfig?,
-    packageName: String,
-    onRiskyHooksToggle: (String, Boolean) -> Unit,
-    onClassLookupToggle: (String, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val riskyHooksEnabled = appConfig?.riskyHooksEnabled == true
-    val classLookupEnabled =
-        appConfig?.let { riskyHooksEnabled && it.classLookupHidingEnabled } == true
-
-    Surface(
-        modifier = modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(ElevationTokens.Level1),
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            RiskControlRow(
-                title = stringResource(id = R.string.group_spoofing_risky_hooks),
-                subtitle = stringResource(id = R.string.group_spoofing_risky_hooks_desc),
-                checked = riskyHooksEnabled,
-                onCheckedChange = { checked -> onRiskyHooksToggle(packageName, checked) },
-            )
-            RiskControlRow(
-                title = stringResource(id = R.string.group_spoofing_class_lookup_hiding),
-                subtitle = stringResource(id = R.string.group_spoofing_class_lookup_hiding_desc),
-                checked = classLookupEnabled,
-                enabled = riskyHooksEnabled,
-                onCheckedChange = { checked -> onClassLookupToggle(packageName, checked) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun RiskControlRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 
@@ -251,11 +171,8 @@ private fun AppsTabContentLoadingPreview() {
         AppsTabContent(
             group = null,
             allGroups = emptyList(),
-            appConfigs = emptyMap(),
             installedApps = emptyList(),
             onAppToggle = { _, _ -> },
-            onRiskyHooksToggle = { _, _ -> },
-            onClassLookupToggle = { _, _ -> },
         )
     }
 }
@@ -267,7 +184,6 @@ private fun AppsTabContentPopulatedPreview() {
         AppsTabContent(
             group = SpoofGroup.createNew("Preview Group"),
             allGroups = emptyList(),
-            appConfigs = emptyMap(),
             installedApps =
                 listOf(
                     InstalledApp(
@@ -290,8 +206,6 @@ private fun AppsTabContentPopulatedPreview() {
                     ),
                 ),
             onAppToggle = { _, _ -> },
-            onRiskyHooksToggle = { _, _ -> },
-            onClassLookupToggle = { _, _ -> },
         )
     }
 }

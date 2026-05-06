@@ -10,7 +10,6 @@
     <ID>MatchingDeclarationName:PrefsReader.kt:PrefsHelper</ID>
     <ID>ReturnCount:XposedEntry.kt:XposedEntry$override fun onPackageReady</ID>
     <ID>ThrowsCount:AntiDetectHooker.kt:AntiDetectHooker$private fun hookPackageManager</ID>
-    <ID>ThrowsCount:SystemServiceHooker.kt:SystemServiceHooker$fun hook</ID>
     <ID>UnusedParameter:AntiDetectHooker.kt:AntiDetectHooker$cl: ClassLoader</ID>
     <ID>UnusedParameter:AntiDetectHooker.kt:AntiDetectHooker$prefs: SharedPreferences</ID>
     <ID>UnusedParameter:PackageManagerHooker.kt:PackageManagerHooker$prefs: SharedPreferences</ID>

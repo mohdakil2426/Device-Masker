@@ -79,10 +79,10 @@ Device Masker intercepts Android framework APIs inside selected app processes to
               rootless logs, diagnostics, root evidence collection
 
 :common       Shared models (JsonConfig, SpoofType, SharedPrefsKeys), identity
-              generators, DevicePersona, AIDL diagnostics contract
+              generators, DevicePersona, config contracts
 
 :xposed       libxposed module entry, 11 hookers, RemotePreferences reader,
-              anti-detection, diagnostics service in system_server
+              anti-detection, LSPosed/logcat hook diagnostics
 ```
 
 **Config delivery flow:**
@@ -94,7 +94,7 @@ UI → SpoofRepository → ConfigManager (config.json)
                               Hookers read in target process
 ```
 
-Spoof config is delivered exclusively through RemotePreferences. AIDL is used only for diagnostics.
+Spoof config is delivered exclusively through RemotePreferences. Hook evidence comes from LSPosed/logcat and optional root-captured logs.
 
 ---
 

@@ -11,7 +11,7 @@
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
-| Diagnostics | Structured JSONL app logs, best-effort AIDL diagnostics, support bundle export |
+| Diagnostics | Structured JSONL app logs, Diagnostics UI without custom Binder status, support bundle export with optional root/logcat artifacts |
 | Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; user confirmed real Android 16 device success |
 | M3E UI | Core and advanced implementation verified |
 | Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks |
@@ -56,7 +56,9 @@
 - Boot/startup Root Maximum capture writes latest root artifacts before export.
 - The current debug APK installs and launches on `emulator-5554` through Mobile MCP and ADB.
 - App-owned root capture artifacts are visible through `adb shell run-as com.astrixforge.devicemasker ls files/logs/root-capture/latest`.
-- Diagnostics state distinguishes framework connection, optional diagnostics service availability, and service-backed hook evidence.
+- Diagnostics state distinguishes framework connection and local diagnostic checks.
+- Diagnostics UI no longer displays custom Binder service status; target hook evidence is treated as
+  LSPosed/logcat-owned rather than service-owned.
 - `com.mantle.verify` launched after latest remediation and emitted spoof events.
 - `flar2.devcheck` launched after latest remediation and emitted spoof events.
 - Diagnostics UI reports `Module Active`, anti-detection `4/4 tests passed`, real/spoofed Android ID, and real/spoofed Device Profile.
@@ -81,7 +83,7 @@ Latest verification caveat:
 
 - Reworked app status around libxposed service connection.
 - Made RemotePreferences the config delivery path.
-- Kept AIDL diagnostics-only.
+- Kept custom diagnostics Binder out of config delivery; it has since been removed entirely.
 - Reworked config projection around canonical `AppConfig`.
 - Added stale-key cleanup.
 - Removed runtime generator fallback from hook callbacks.
@@ -391,6 +393,17 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - Added `xposed/detekt.yml` overrides for defensive hook patterns.
 - Gated Compose compiler reports and metrics behind Gradle properties.
 - Added Detekt to CI after Spotless.
+
+### 2026-05-07 Custom Binder Diagnostics Removal
+
+- Reconfirmed that the custom `user.devicemasker_diag` bridge was unreliable for target hook
+  evidence because target processes do not discover it through `ServiceManager`.
+- Removed the Diagnostics screen service-status card and stopped `DiagnosticsViewModel` from reading
+  service state.
+- Removed the app service client interfaces, common AIDL contract, Xposed system-server service,
+  diagnostics ring buffer, system-service hooker, tests/fakes, and stale R8 keep rules.
+- Support bundles now use app JSONL events, redacted snapshots, and optional Root Maximum
+  root/logcat artifacts. Hook evidence remains LSPosed/logcat-owned.
 
 ## User-Owned External Validation
 

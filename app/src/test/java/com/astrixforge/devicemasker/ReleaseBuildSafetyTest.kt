@@ -40,7 +40,7 @@ class ReleaseBuildSafetyTest {
     }
 
     @Test
-    fun `xposed target process does not look up custom diagnostics service`() {
+    fun `xposed target process does not use ServiceManager diagnostics lookup`() {
         val entryFile =
             projectFile("xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt")
                 .readText()
@@ -72,7 +72,6 @@ class ReleaseBuildSafetyTest {
                 "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt",
                 "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt",
                 "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt",
-                "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemServiceHooker.kt",
             )
 
         guardedFiles.forEach { path ->

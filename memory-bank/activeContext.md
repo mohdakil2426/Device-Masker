@@ -4,6 +4,22 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-07 Custom AIDL Removal
+
+- Removed the Diagnostics screen `Service Status` card because it surfaced the custom
+  `user.devicemasker_diag` bridge as an error-prone live signal.
+- Removed the custom AIDL architecture: app `ServiceClient`/`IServiceClient`, common
+  `IDeviceMaskerService.aidl`, Xposed `DeviceMaskerService`, `DiagnosticsLogBuffer`, and
+  `SystemServiceHooker`.
+- `DiagnosticsViewModel` no longer injects or reads service state; diagnostics now show module
+  connection, config-sync guidance, anti-detection checks, and local real/spoofed comparisons.
+- Hook-side evidence now stays in LSPosed/logcat plus hook-health metrics. Support bundles contain
+  app JSONL events, redacted snapshots, and optional Root Maximum root/logcat artifacts.
+- AIDL build features are disabled in `:app`, `:common`, and `:xposed`. R8 keep rules for the deleted
+  Binder types were removed.
+- Root cause confirmed again: target-process hook events are authoritative in LSPosed/logcat. The
+  custom Binder path was unreliable and added dead architecture with no config-delivery role.
+
 ## 2026-05-06 Coroutines And Performance Audit Remediation
 
 - Addressed live findings from `docs/internal/reports/coroutines-audit-report.md` and `docs/internal/reports/performance-audit-report.md` without changing Xposed config delivery or hook enablement semantics.

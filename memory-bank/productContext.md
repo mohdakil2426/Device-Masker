@@ -32,9 +32,9 @@ Device Masker has three product-facing responsibilities:
    - Logs hook and spoof events to LSPosed Manager logs.
 
 3. Diagnostics and verification
-   - Shows app-side service/config/log state.
-   - Treats custom AIDL diagnostics as best-effort.
+   - Shows app-side framework/config/log state.
    - Uses LSPosed logs as the reliable proof that target-process hooks loaded and fired.
+   - Uses optional root/logcat artifacts for deeper support bundles when root is available.
 
 ## Expected User Flow
 

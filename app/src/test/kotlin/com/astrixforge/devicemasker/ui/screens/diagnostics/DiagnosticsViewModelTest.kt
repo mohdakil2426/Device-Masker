@@ -2,8 +2,6 @@ package com.astrixforge.devicemasker.ui.screens.diagnostics
 
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
-import com.astrixforge.devicemasker.service.ServiceClient
-import com.astrixforge.devicemasker.testing.FakeServiceClient
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -23,26 +21,10 @@ class DiagnosticsViewModelTest {
 
     private fun createViewModel(
         repository: FakeSpoofRepository = FakeSpoofRepository(),
-        serviceClient: FakeServiceClient = FakeServiceClient(),
         isXposedActiveFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
     ): DiagnosticsViewModel {
         val app = RuntimeEnvironment.getApplication()
-        return DiagnosticsViewModel(app, repository, serviceClient, isXposedActiveFlow)
-    }
-
-    @Test
-    fun `service connection reflected in state`() = runTest {
-        val serviceClient = FakeServiceClient(initialConnected = true)
-        val viewModel = createViewModel(serviceClient = serviceClient)
-
-        viewModel.state.test {
-            val state = awaitItem()
-            assertTrue(state.serviceStatus.isConnected)
-            assertEquals(
-                ServiceClient.ConnectionState.CONNECTED,
-                state.serviceStatus.connectionState,
-            )
-        }
+        return DiagnosticsViewModel(app, repository, isXposedActiveFlow)
     }
 
     @Test

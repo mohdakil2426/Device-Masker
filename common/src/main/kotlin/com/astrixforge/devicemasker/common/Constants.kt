@@ -4,7 +4,6 @@ package com.astrixforge.devicemasker.common
  * Common module constants shared between the app UI and xposed module.
  *
  * This module contains:
- * - AIDL interface for IPC
  * - Shared models (SpoofGroup, SpoofType, etc.)
  * - JSON configuration management
  */
@@ -16,14 +15,10 @@ object Constants {
     // Content Provider
     const val PROVIDER_AUTHORITY = "$PACKAGE_NAME.provider"
 
-    // Service
-    const val SERVICE_NAME = "device_masker_service"
-
     // Config
     const val CONFIG_VERSION = 1
     const val CONFIG_FILE_NAME = "config.json"
 
     // Data directories
     const val APP_DATA_DIR = "devicemasker"
-    const val SYSTEM_DATA_DIR = "/data/system/devicemasker"
 }

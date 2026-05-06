@@ -4,7 +4,7 @@ Android LSPosed/libxposed module for per-app device identity spoofing. 3-module 
 
 ## Permanent Rules
 
-- Config delivery is RemotePreferences-first. AIDL is diagnostics-only and must never deliver spoof config.
+- Config delivery is RemotePreferences-first. Do not add custom AIDL/Binder config or hook-evidence paths.
 - `SharedPrefsKeys.kt` is the only source for RemotePreferences key names.
 - `JsonConfig.appConfigs` is canonical for app scope; `SpoofGroup.assignedApps` is legacy/display-only.
 - Generated identity values are created in app/common config flows, never inside target-process hooks.
@@ -20,8 +20,8 @@ Android LSPosed/libxposed module for per-app device identity spoofing. 3-module 
 | Module | What lives here | Key constraint |
 |--------|----------------|----------------|
 | `:app` | Compose UI, ViewModels, ConfigManager, ConfigSync, XposedPrefs, diagnostics, root capture | No hook logic. Timber OK here. |
-| `:common` | JsonConfig, SpoofType, SharedPrefsKeys, generators, DevicePersona, AIDL | No Android UI deps. Generators run at config time only. |
-| `:xposed` | XposedEntry, all hookers, PrefsReader, DualLog, DeviceMaskerService | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
+| `:common` | JsonConfig, SpoofType, SharedPrefsKeys, generators, DevicePersona | No Android UI deps. Generators run at config time only. |
+| `:xposed` | XposedEntry, all hookers, PrefsReader, DualLog | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
 
 ## Architecture Reference
 
@@ -47,13 +47,11 @@ devicemasker/
 │       │   ├── generators/   Config-time identity generators
 │       │   ├── diagnostics/  Shared diagnostics schema and redaction
 │       │   └── (root)        Shared config contracts, key builders, constants
-│       └── aidl/             Diagnostics-only Binder contracts
 │
 ├── xposed/               :xposed module — hooks in target app processes
 │   └── src/main/
 │       ├── kotlin/.../xposed/
 │       │   ├── hooker/       Target-process hook implementations and shared hook helpers
-│       │   ├── service/      System-server diagnostics service support
 │       │   ├── diagnostics/  Hook-side diagnostics and health tracking
 │       │   └── (root)        Module entry, preference reader, logging, deoptimization support
 │       └── resources/META-INF/xposed/   libxposed module metadata
@@ -121,7 +119,7 @@ Before claiming hooks work:
 Detailed per-module guides with folder structures, APIs, and constraints:
 
 - `app/AGENTS.md` — Compose UI, ViewModels, navigation, diagnostics, build config
-- `common/AGENTS.md` — data models, generators, SharedPrefsKeys, AIDL contract
+- `common/AGENTS.md` — data models, generators, SharedPrefsKeys, config contracts
 - `xposed/AGENTS.md` — hookers, hook patterns, anti-detection, ProGuard, metadata
 
 ## Skills
