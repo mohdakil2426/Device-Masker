@@ -7,12 +7,10 @@ libxposed module entry, hook layer, RemotePreferences reader, anti-detection, di
 ```
 xposed/src/main/
 ├── kotlin/.../xposed/
-│   ├── hooker/             11 hookers: AntiDetect, Device, Subscription, Network, System,
-│   │                         Location, Sensor, Advertising, WebView, PackageManager, SystemService
-│   │                         + BaseSpoofHooker (shared safety helpers)
-│   ├── service/            DeviceMaskerService (system_server AIDL stub), DiagnosticsLogBuffer
-│   ├── diagnostics/        XposedDiagnosticEventSink (central sink), HookHealthRegistry (health tracking)
-│   └── (root)              XposedEntry (module entry), PrefsReader, PrefsKeys, DualLog, DeoptimizeManager
+│   ├── hooker/             Target-process hook implementations and shared hook helpers
+│   ├── service/            System-server diagnostics service support
+│   ├── diagnostics/        Hook-side diagnostics and health tracking
+│   └── (root)              Module entry, preference reader, logging, deoptimization support
 │
 └── resources/META-INF/xposed/
     ├── java_init.list      XposedEntry class name
@@ -27,6 +25,7 @@ xposed/src/main/
 - **No reading app-private JSON** from target processes
 - **No hardcoded key strings** — use `PrefsKeys` (delegates to `SharedPrefsKeys` in `:common`)
 - **No Compose imports** — pure Kotlin + Android framework only
+- **No direct Kotlin SAM `.intercept { ... }` callbacks** — use `stableHooker { ... }` or explicit named `XposedInterface.Hooker`
 - `libxposed:api` is `compileOnly` — LSPosed provides runtime
 - Rethrow `XposedFrameworkError` before generic `Throwable` in all catch blocks
 
@@ -43,17 +42,7 @@ Extends `XposedModule` (libxposed API 101). No-arg constructor, framework-instan
    - Gets `RemotePreferences` via `getRemotePreferences(PREFS_GROUP)`
    - Checks global kill-switch + per-app enable
    - Deduplicates per ClassLoader (`ConcurrentHashMap` of identity hashes)
-   - Registers 10 hookers in order (DO NOT REORDER):
-     1. AntiDetectHooker (MUST be first — hides Xposed before detection apps check)
-     2. DeviceHooker
-     3. SubscriptionHooker (cross-checked with DeviceHooker by banking apps)
-     4. NetworkHooker
-     5. SystemHooker
-     6. LocationHooker
-     7. SensorHooker
-     8. AdvertisingHooker
-     9. WebViewHooker
-     10. PackageManagerHooker
+   - Registers target hookers in the project-defined order. Keep anti-detection first unless a fresh runtime validation proves a different order safe.
 
 ### Package Selection
 
@@ -66,16 +55,18 @@ Every hook follows this pattern:
 ```kotlin
 safeHook("methodName") {
     class.methodOrNull(params)?.let { m ->
-        xi.hook(m).intercept { chain ->
+        xi.hook(m).intercept(stableHooker { chain ->
             val original = chain.proceed()           // get real value first
             val spoofed = getConfiguredValue(...)    // from RemotePreferences
-            if (spoofed != null) { reportSpoof(); return spoofed }
+            if (spoofed != null) { reportSpoof(); return@stableHooker spoofed }
             original                                 // fallback to real value
-        }
+        })
         xi.deoptimize(m)    // prevent ART JIT inlining
     }
 }
 ```
+
+Direct `xi.hook(m).intercept { ... }` Kotlin SAM callbacks are forbidden in runtime hookers unless release R8/runtime validation explicitly proves them safe.
 
 ## BaseSpoofHooker — Shared Helpers
 
@@ -156,12 +147,13 @@ Prevents ART JIT/AOT from inlining hooked methods. Short methods (<20 bytecodes)
 
 ## ProGuard (consumer-rules.pro)
 
-Keep rules for: `XposedEntry` (no-arg constructor + all members), all `hooker.**`, `DeviceMaskerService` (AIDL stub), `BaseSpoofHooker`, `PrefsHelper`, `DualLog`, `HookMetrics`, `PrefsKeys`, `io.github.libxposed.service.**`.
+Keep rules must preserve the libxposed entry point, hooker classes, diagnostics service support, preference helpers, hook-side logging/metrics, libxposed service bridge types, and the R8-safe callback package `xposed.hooker.callback.**`.
 
 ## Testing
 
-4 test files, 17 tests:
+Coverage should include:
 - `PrefsHelperTest` — null for disabled/blank, returns configured value
 - `HookSafetyTest` — WebView UA parsing, AntiDetect safe-prefix pass-through, all hookers use safeHook, PM overload discovery, Location copy safety
 - `DiagnosticsLogBufferTest` — cap, dropped count, clear
 - `HookHealthRegistryTest` — registration counters, spoof aggregation, rate-limiting
+- `R8HookerAbiTest` — forbids direct runtime `.intercept { ... }` callbacks and checks R8 callback keep coverage

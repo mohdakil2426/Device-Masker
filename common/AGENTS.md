@@ -7,14 +7,14 @@ Shared contracts, data models, identity generators, preference key builder, and 
 ```
 common/src/main/
 ├── kotlin/.../common/
-│   ├── models/             Carrier (~110 real), SIMConfig, DeviceHardwareConfig, LocationConfig, Country (16)
-│   ├── generators/         IMEI, IMSI, ICCID, MAC, Serial, UUID, PhoneNumber, SIM, DeviceHardware, Fingerprint
-│   ├── diagnostics/        DiagnosticEvent (22 fields, 31 types), DiagnosticRedactor
+│   ├── models/             Shared data models and value objects
+│   ├── generators/         Config-time identity generators
+│   ├── diagnostics/        Shared diagnostics schema and redaction
 │   └── (root)              JsonConfig, AppConfig, SpoofGroup, SpoofType, DeviceIdentifier,
 │                             DeviceProfilePreset, DevicePersona, PersonaGenerator, SharedPrefsKeys,
 │                             Constants, Utils, NetworkTypeMapper, SecureRandomUtils
 │
-└── aidl/                   IDeviceMaskerService (diagnostics-only: 3 oneway + 5 sync methods)
+└── aidl/                   Diagnostics-only Binder contracts
 ```
 
 ## Source Of Truth Rules
@@ -46,7 +46,7 @@ JsonConfig (root, @Serializable)
 
 Migration: `withDerivedAppConfigsFromAssignedApps()` moves legacy group assignments into `appConfigs`.
 
-## SpoofType Enum (24 values)
+## SpoofType Enum
 
 | Category | Types | CorrelationGroup |
 |----------|-------|-----------------|
@@ -68,16 +68,16 @@ Values that MUST be generated together to avoid detection:
 
 | Generator | Output | Algorithm |
 |-----------|--------|-----------|
-| `IMEIGenerator` | 15-digit IMEI | TAC (8) + Serial (6) + Luhn check (1). 60+ real TAC prefixes. |
-| `IMSIGenerator` | 15-digit IMSI | MCC/MNC + MSIN. 28 real carrier combos. Location-aware. |
+| `IMEIGenerator` | 15-digit IMEI | TAC + serial + Luhn check using realistic TAC data. |
+| `IMSIGenerator` | 15-digit IMSI | MCC/MNC + MSIN using carrier-aware data. |
 | `ICCIDGenerator` | 19-digit ICCID | MII(89) + Country + Issuer + Account + Luhn. Carrier-specific. |
 | `MACGenerator` | `XX:XX:XX:XX:XX:XX` | Real OUIs for Samsung/Apple/Google/Xiaomi/etc. Unicast + locally-administered bits. |
 | `SerialGenerator` | Manufacturer-specific | Samsung: `R`+2+year+8. Pixel: 16 hex. Xiaomi: 12-16 alphanumeric. |
 | `UUIDGenerator` | Android ID, GAID, GSF ID, Media DRM ID, Instance ID | `SecureRandom` hex/UUID |
-| `PhoneNumberGenerator` | `+{code}{number}` | 150+ US area codes, NANP rules |
+| `PhoneNumberGenerator` | `+{code}{number}` | Country/carrier-aware phone number formats |
 | `SIMGenerator` | Complete `SIMConfig` | Orchestrates IMSI+ICCID+Phone+Carrier |
 | `DeviceHardwareGenerator` | Complete `DeviceHardwareConfig` | Orchestrates IMEI+Serial+WiFiMAC+BTMAC |
-| `FingerprintGenerator` | Build fingerprint + Build.* properties | 21 device configs |
+| `FingerprintGenerator` | Build fingerprint + Build.* properties | Device profile presets |
 
 ## PersonaGenerator — Deterministic Coherent Identity
 
@@ -91,12 +91,12 @@ Values that MUST be generated together to avoid detection:
 
 | Model | Key Fields | Validation |
 |-------|-----------|------------|
-| `Carrier` | name, mccMnc, countryCode, countryIso, iccidIssuerCode | ~110 real carriers across 16 countries |
+| `Carrier` | name, mccMnc, countryCode, countryIso, iccidIssuerCode | Real carrier metadata |
 | `SIMConfig` | carrier, imsi, iccid, phoneNumber, simCountryIso, networkCountryIso | IMSI must start with carrier MCC/MNC. Constructor throws on mismatch. |
 | `DeviceHardwareConfig` | deviceProfile, imei, serial, wifiMAC, bluetoothMAC | IMEI must be 15 digits |
-| `LocationConfig` | country, timezone, locale, latitude, longitude | GPS bounds for 16 countries, multiple cities each |
-| `Country` | iso, name, emoji, phoneCode | 16 countries |
-| `DeviceProfilePreset` | id, name, brand, model, device, fingerprint, tacPrefixes, simCount | 10 presets (Pixel, Samsung, OnePlus, Xiaomi, Sony, Nothing) |
+| `LocationConfig` | country, timezone, locale, latitude, longitude | Country/city GPS bounds |
+| `Country` | iso, name, emoji, phoneCode | Supported country metadata |
+| `DeviceProfilePreset` | id, name, brand, model, device, fingerprint, tacPrefixes, simCount | Device profile presets |
 
 ## SharedPrefsKeys — Key Patterns
 
@@ -113,7 +113,7 @@ Package names: `.` replaced with `_`. Validation regex in `isValidKey()`.
 
 ## Diagnostics Schema
 
-`DiagnosticEvent`: 22 fields, 31 event types, 7 sources, 7 severity levels. Event ID format: `evt_{wallMillis}_{sequence6digits}`.
+`DiagnosticEvent`: shared structured event schema with typed sources, severities, and event IDs. Event ID format: `evt_{wallMillis}_{sequence6digits}`.
 
 `DiagnosticRedactor`: Two modes (REDACTED/UNREDACTED). Redacts IMEI, IMSI, ICCID, MAC, Android ID, phone numbers, GPS coordinates, package names (SHA-256 prefix).
 
@@ -133,4 +133,4 @@ Diagnostics-only. Never used for config delivery.
 
 ## Testing
 
-9 test files covering: JsonConfig parsing/migration, PersonaGenerator stability, IMEI/MAC/Serial/AndroidId generators, DiagnosticEvent serialization, DiagnosticRedactor, DeviceHardwareConfig.
+Coverage should include: JsonConfig parsing/migration, PersonaGenerator stability, identity generators, DiagnosticEvent serialization, DiagnosticRedactor, and DeviceHardwareConfig validation.

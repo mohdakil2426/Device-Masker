@@ -34,7 +34,7 @@ Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed 
 - Created `docs/internal/reports/BUILD_AUDIT_AND_R8_ENABLEMENT_2026-05-06.md`.
 
 ### Agent Guides
-- Created `AGENTS1.md` (root), `app/AGENTS1.md`, `common/AGENTS1.md`, `xposed/AGENTS1.md`.
+- Created `AGENTS.md` (root), `app/AGENTS.md`, `common/AGENTS.md`, `xposed/AGENTS.md`.
 - Each contains folder structure, key files, constraints, and module-specific guidance.
 
 ### Cleanup

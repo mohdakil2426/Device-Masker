@@ -101,7 +101,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 ## Build
 
 - `compileSdk 37`, `targetSdk 36`, `minSdk 26`, JVM 17
-- `isMinifyEnabled = false` for release (R8 breaks libxposed lambdas). `ciRelease` build type exists for minified validation.
+- Release minification/resource shrinking is enabled. Runtime hook callbacks must stay R8-safe through the `:xposed` StableHooker/named `XposedInterface.Hooker` pattern.
 - `aidl = true`, `buildConfig = true`, `compose = true`
 - `useLegacyPackaging = true` for primary dex Xposed class loading
 - Compose compiler metrics in `build/compose_compiler/`

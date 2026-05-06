@@ -178,26 +178,6 @@ Important facts:
 - Target app processes must not discover custom diagnostics through `ServiceManager`.
 - App export should stay minimal and structured.
 
-
-
-## Lessons From The First Working Base
-
-### R8 Can Break Hooker Lambdas
-
-Release minification caused invalid runtime behavior for libxposed hook lambdas in target processes. Release shrinking and minification are disabled during validation.
-
-### Target Apps Must Not Use Custom Diagnostics Binder Lookup
-
-Target app processes cannot reliably discover custom diagnostics services through `ServiceManager` on SELinux-enforcing Android user builds. Hook-side events must go to LSPosed logs.
-
-### Global Class Lookup Hooks Are Too Risky By Default
-
-Global `Class.forName` and `ClassLoader.loadClass` hooks were on the crash path for AndroidX Startup / WorkManager discovery and class-loading ANRs. They are currently not registered by default.
-
-### WebView Hooks Must Be Defensive
-
-WebView UA parsing must not use static regex initializers that can throw. Abstract `WebSettings` declarations must be skipped.
-
 ## Forbidden Patterns
 
 Do not:

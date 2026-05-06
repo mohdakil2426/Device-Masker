@@ -99,10 +99,10 @@ docs/
 
 ### 8. Agent Guides Created
 
-- `AGENTS1.md` — root agent guide (replaces old AGENTS.md content)
-- `app/AGENTS1.md` — app module guide with folder structure
-- `common/AGENTS1.md` — common module guide with folder structure
-- `xposed/AGENTS1.md` — xposed module guide with folder structure
+- `AGENTS.md` — root agent guide
+- `app/AGENTS.md` — app module guide with folder structure
+- `common/AGENTS.md` — common module guide with folder structure
+- `xposed/AGENTS.md` — xposed module guide with folder structure
 
 ### 9. .gitignore Cleanup
 
