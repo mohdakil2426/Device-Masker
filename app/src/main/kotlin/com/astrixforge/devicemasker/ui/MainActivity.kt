@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -403,7 +404,8 @@ fun DeviceMaskerMainApp(
                                     }
                                 },
                                 onClearExportResult = { settingsViewModel.clearExportResult() },
-                                onNavigateToDiagnostics = navigator::navigateToDiagnostics,
+                                onNavigateToDiagnostics =
+                                    dropUnlessResumed(block = navigator::navigateToDiagnostics),
                                 generateLogFileName = { settingsViewModel.generateLogFileName() },
                             )
                         }
@@ -499,9 +501,10 @@ private fun NavRail(
     ) {
         bottomNavItems.forEach { item ->
             val isSelected = currentDestination == item.destination
+            val navigateToItem = dropUnlessResumed { onNavigate(item.destination) }
             NavigationRailItem(
                 selected = isSelected,
-                onClick = { onNavigate(item.destination) },
+                onClick = navigateToItem,
                 icon = {
                     Icon(
                         imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,

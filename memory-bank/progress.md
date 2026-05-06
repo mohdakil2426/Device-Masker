@@ -405,6 +405,16 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - Support bundles now use app JSONL events, redacted snapshots, and optional Root Maximum
   root/logcat artifacts. Hook evidence remains LSPosed/logcat-owned.
 
+### 2026-05-07 Navigation 3 Audit Cleanup
+
+- Reviewed `docs/internal/reports/NAVIGATION3_AUDIT_REPORT.md` against current code, local
+  `$navigation-3` recipes, and Google developer docs.
+- Added `dropUnlessResumed` to navigation click paths that mutate Navigation 3 state.
+- Fixed corrupted local Navigation 3 result recipe snippets and clarified deep-link guide wording.
+- Revised the audit report to scope the verdict to Navigation 3 release-candidate quality instead of
+  claiming full app production readiness.
+- Verification passed: `.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon`.
+
 ## User-Owned External Validation
 
 Accepted as user-owned completion for master-plan closure:

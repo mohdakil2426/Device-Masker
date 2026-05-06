@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.ui.components.IconCircle
@@ -97,6 +98,15 @@ fun HomeScreen(
     onNavigateToGroup: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val navigateToSpoofWhenResumed =
+        dropUnlessResumed {
+            val selectedGroup = state.selectedGroup
+            if (onNavigateToGroup != null && selectedGroup != null) {
+                onNavigateToGroup(selectedGroup.id)
+            } else {
+                onNavigateToSpoof()
+            }
+        }
 
     HomeScreenContent(
         isXposedActive = state.isXposedActive,
@@ -107,15 +117,7 @@ fun HomeScreen(
         enabledAppsCount = state.enabledAppsCount,
         maskedIdentifiersCount = state.maskedIdentifiersCount,
         onModuleEnabledChange = { enabled -> viewModel.setModuleEnabled(enabled) },
-        onNavigateToSpoof = {
-            // Navigate to the selected group's spoofing screen
-            val selectedGroup = state.selectedGroup
-            if (onNavigateToGroup != null && selectedGroup != null) {
-                onNavigateToGroup(selectedGroup.id)
-            } else {
-                onNavigateToSpoof()
-            }
-        },
+        onNavigateToSpoof = navigateToSpoofWhenResumed,
         onRegenerateAll = { viewModel.regenerateAll { onRegenerateAll() } },
         isLoading = state.isLoading,
         modifier = modifier,

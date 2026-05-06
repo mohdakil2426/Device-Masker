@@ -57,9 +57,8 @@ devicemasker/
 │       └── resources/META-INF/xposed/   libxposed module metadata
 │
 ├── gradle/               Gradle version catalog and build dependency metadata
-├── docs/                 Public docs, internal reports, implementation plans
-├── scripts/              Build, verification, and maintenance scripts
-├── logs/                 Build logs, device evidence, temporary agent/user artifacts
+├── docs/                 Public docs, internal audits/reports, implementation plans
+├── logs/                 Build logs, device evidence, temporary agent/user artifacts, temp build logs file
 ├── build.gradle.kts      Root Gradle conventions
 ├── settings.gradle.kts   Gradle module/repository settings
 ├── lint.xml              Android lint configuration

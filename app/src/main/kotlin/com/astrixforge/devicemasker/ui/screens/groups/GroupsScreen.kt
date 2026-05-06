@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.ui.components.EmptyState
@@ -334,7 +335,7 @@ fun GroupsScreenContent(
                         GroupCard(
                             group = group,
                             isEnabled = group.isEnabled,
-                            onClick = { onGroupClick(group) },
+                            onClick = dropUnlessResumed { onGroupClick(group) },
                             onEdit = { onEditGroup(group) },
                             onDelete = { onDeleteGroup(group) },
                             onSetDefault = { onSetDefault(group) },

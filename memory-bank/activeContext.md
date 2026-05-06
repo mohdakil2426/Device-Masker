@@ -4,6 +4,20 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-07 Navigation 3 Audit Cleanup
+
+- Hardened Navigation 3 click navigation by adding `dropUnlessResumed` to bottom navigation,
+  navigation rail, group-card navigation, home configure navigation, and Settings diagnostics
+  navigation callbacks.
+- Fixed local `$navigation-3` recipe documentation corruption in `results-event.md` and
+  `results-state.md` by removing embedded GitHub URLs from `PersonDetailsForm : NavKey` snippets.
+- Clarified the local Navigation 3 migration guide deep-link wording: deep links are not covered by
+  the migration guide and should follow the deep-link recipes.
+- Updated `docs/internal/reports/NAVIGATION3_AUDIT_REPORT.md` to stop overclaiming full app
+  production readiness. The report now scopes the verdict to the Navigation 3 layer and marks the
+  local documentation defects as fixed.
+- Verification: `.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon` passed; `graphify update .` refreshed the graph.
+
 ## 2026-05-07 Custom AIDL Removal
 
 - Removed the Diagnostics screen `Service Status` card because it surfaced the custom
