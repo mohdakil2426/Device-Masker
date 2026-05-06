@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.data.repository
 
-import android.annotation.SuppressLint
 import android.content.Context
 import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.CorrelationGroup
@@ -43,7 +42,7 @@ import kotlinx.coroutines.flow.map
 class SpoofRepository
 @JvmOverloads
 constructor(
-    private val context: Context,
+    context: Context,
     private val configManager: IConfigManager = ConfigManager,
     override val appScopeRepository: IAppScopeRepository = AppScopeRepository(context),
 ) : ISpoofRepository {
@@ -624,7 +623,7 @@ constructor(
     }
 
     companion object {
-        @SuppressLint("StaticFieldLeak") @Volatile private var INSTANCE: SpoofRepository? = null
+        @Volatile private var INSTANCE: SpoofRepository? = null
 
         /** Gets the singleton instance. */
         fun getInstance(context: Context): SpoofRepository {

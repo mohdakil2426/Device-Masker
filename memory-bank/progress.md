@@ -18,6 +18,20 @@
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## Latest Audit Remediation
+
+- Fixed current live coroutine/performance audit issues across `:app`, `:common`, and `:xposed`.
+- Production app sources no longer contain `runBlocking` or `Thread.sleep` from the audited paths.
+- `AppLogStore` uses non-blocking channel append plus monitor-based flush.
+- `ConfigManager.resetForTests()` no longer blocks on a coroutine mutex.
+- `SpoofRepository` no longer stores a `Context` property in the singleton instance.
+- `HomeViewModel` now combines repository/module/Xposed flows through one collector.
+- Common key/MAC/UUID validation regexes are precompiled.
+- `Country` is serializable.
+- `SensorHooker` avoids per-sensor reflection in the hook callback, and `AntiDetectHooker.filterStackTrace()` avoids array allocation when there are no hidden frames.
+- Verified with `spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon --no-configuration-cache` and `lint test assembleDebug assembleRelease --no-daemon --no-configuration-cache`, both `BUILD SUCCESSFUL`.
+- `graphify update .` completed after code changes.
+
 ## What Works
 
 - Three-module Gradle structure: `:app`, `:common`, `:xposed`.

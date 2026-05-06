@@ -62,9 +62,7 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun withGroup(group: SpoofGroup): JsonConfig {
-        val newGroups = groups.toMutableMap()
-        newGroups[group.id] = group
-        return copy(groups = newGroups)
+        return copy(groups = groups + (group.id to group))
     }
 
     /**
@@ -80,10 +78,8 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun removeGroup(groupId: String): JsonConfig {
-        val newGroups = groups.toMutableMap()
-        newGroups.remove(groupId)
         val newAppConfigs = appConfigs.filterValues { it.groupId != groupId }
-        return copy(groups = newGroups, appConfigs = newAppConfigs)
+        return copy(groups = groups - groupId, appConfigs = newAppConfigs)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -127,9 +123,7 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun withAppConfig(appConfig: AppConfig): JsonConfig {
-        val newAppConfigs = appConfigs.toMutableMap()
-        newAppConfigs[appConfig.packageName] = appConfig
-        return copy(appConfigs = newAppConfigs)
+        return copy(appConfigs = appConfigs + (appConfig.packageName to appConfig))
     }
 
     /**
@@ -145,9 +139,7 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun removeAppConfig(packageName: String): JsonConfig {
-        val newAppConfigs = appConfigs.toMutableMap()
-        newAppConfigs.remove(packageName)
-        return copy(appConfigs = newAppConfigs)
+        return copy(appConfigs = appConfigs - packageName)
     }
 
     /**

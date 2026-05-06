@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -361,7 +360,6 @@ object ConfigManager : IConfigManager {
     internal fun resetForTests() {
         initStarted.set(false)
         initGeneration.incrementAndGet()
-        runBlocking { saveMutex.withLock {} }
         _isInitialized.value = false
         _config.value = JsonConfig.createDefault()
     }

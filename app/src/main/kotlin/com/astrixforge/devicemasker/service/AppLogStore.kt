@@ -21,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 data class AppLogEntry(
@@ -44,6 +43,7 @@ class AppLogStore(
     private val eventChannel = Channel<DiagnosticEvent>(Channel.BUFFERED)
     private val writerScope = CoroutineScope(SupervisorJob() + dispatcher)
     private val pendingEvents = AtomicInteger(0)
+    @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") private val pendingMonitor = java.lang.Object()
 
     init {
         writerScope.launch {
@@ -52,6 +52,7 @@ class AppLogStore(
                     eventStore.append(redactor.redactEvent(event))
                 } finally {
                     pendingEvents.decrementAndGet()
+                    synchronized(pendingMonitor) { pendingMonitor.notifyAll() }
                 }
             }
         }
@@ -63,7 +64,10 @@ class AppLogStore(
 
     fun appendEvent(event: DiagnosticEvent) {
         pendingEvents.incrementAndGet()
-        runBlocking { eventChannel.send(event) }
+        if (eventChannel.trySend(event).isFailure) {
+            pendingEvents.decrementAndGet()
+            synchronized(pendingMonitor) { pendingMonitor.notifyAll() }
+        }
     }
 
     @Synchronized
@@ -168,8 +172,10 @@ class AppLogStore(
         }
 
     private fun flushPendingWrites() {
-        while (pendingEvents.get() > 0) {
-            Thread.sleep(5)
+        synchronized(pendingMonitor) {
+            while (pendingEvents.get() > 0) {
+                pendingMonitor.wait(1_000)
+            }
         }
     }
 

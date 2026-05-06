@@ -9,6 +9,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,26 +32,18 @@ class HomeViewModel(
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
-        // Set initial Xposed status
-        _state.update { it.copy(isXposedActive = isXposedActiveFlow.value) }
-
         viewModelScope.launch {
-            isXposedActiveFlow.collect { connected ->
-                _state.update { it.copy(isXposedActive = connected) }
-            }
-        }
-
-        // Collect groups
-        viewModelScope.launch {
-            repository.groups.collect { groups ->
-                _state.update { currentState ->
-                    // Find the default group from the fresh list
-                    val defaultGroup = groups.find { it.isDefault }
-
-                    // Use default group (synced), or fallback to first
-                    val selectedGroup = defaultGroup ?: groups.firstOrNull()
-
-                    currentState.copy(
+            combine(
+                    isXposedActiveFlow,
+                    repository.moduleEnabled,
+                    repository.groups,
+                    repository.activeGroup,
+                ) { connected, moduleEnabled, groups, activeGroup ->
+                    val selectedGroup =
+                        activeGroup ?: groups.find { it.isDefault } ?: groups.firstOrNull()
+                    HomeState(
+                        isXposedActive = connected,
+                        isModuleEnabled = moduleEnabled,
                         groups = groups.toImmutableList(),
                         selectedGroup = selectedGroup,
                         maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
@@ -61,33 +54,7 @@ class HomeViewModel(
                         isLoading = false,
                     )
                 }
-            }
-        }
-
-        // Collect active group changes (when default changes)
-        viewModelScope.launch {
-            repository.activeGroup.collect { activeGroup ->
-                _state.update { currentState ->
-                    // Always sync selectedGroup with the active (default) group
-                    val selectedGroup = activeGroup ?: currentState.groups.firstOrNull()
-
-                    currentState.copy(
-                        selectedGroup = selectedGroup,
-                        enabledAppsCount =
-                            if (selectedGroup?.isEnabled == true) {
-                                selectedGroup.assignedAppCount()
-                            } else 0,
-                        maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
-                    )
-                }
-            }
-        }
-
-        // Collect module enabled state
-        viewModelScope.launch {
-            repository.moduleEnabled.collect { isEnabled ->
-                _state.update { it.copy(isModuleEnabled = isEnabled) }
-            }
+                .collect { homeState -> _state.value = homeState }
         }
     }
 

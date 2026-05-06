@@ -1,5 +1,7 @@
 package com.astrixforge.devicemasker.common.models
 
+import kotlinx.serialization.Serializable
+
 /**
  * Country data for the country picker.
  *
@@ -8,6 +10,7 @@ package com.astrixforge.devicemasker.common.models
  * @property emoji Flag emoji (e.g., "🇮🇳", "🇺🇸")
  * @property phoneCode Phone prefix without + (e.g., "91", "1")
  */
+@Serializable
 @Suppress("unused") // displayName is API for UI use
 data class Country(val iso: String, val name: String, val emoji: String, val phoneCode: String) {
     /** Display string with emoji and name. */

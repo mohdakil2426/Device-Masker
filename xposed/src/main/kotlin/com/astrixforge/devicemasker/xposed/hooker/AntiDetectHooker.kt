@@ -467,23 +467,37 @@ object AntiDetectHooker {
         if (filteringFlag.get() == true) return stack
         filteringFlag.set(true)
         return try {
-            stack
-                .filterNot { frame ->
-                    val cn = frame.className
-                    if (cn.startsWith("com.astrixforge.devicemasker")) return@filterNot false
-                    if (
-                        cn.startsWith("android.") ||
-                            cn.startsWith("java.") ||
-                            cn.startsWith("kotlin.") ||
-                            cn.startsWith("androidx.")
-                    )
-                        return@filterNot false
-                    HIDDEN_CLASS_PATTERNS.any { cn.contains(it, ignoreCase = true) }
+            var hiddenCount = 0
+            for (frame in stack) {
+                if (shouldHideStackFrame(frame.className)) hiddenCount++
+            }
+            if (hiddenCount == 0) return stack
+
+            val filtered = arrayOfNulls<StackTraceElement>(stack.size - hiddenCount)
+            var writeIndex = 0
+            for (frame in stack) {
+                if (!shouldHideStackFrame(frame.className)) {
+                    filtered[writeIndex] = frame
+                    writeIndex++
                 }
-                .toTypedArray()
+            }
+            @Suppress("UNCHECKED_CAST")
+            filtered as Array<StackTraceElement>
         } finally {
             filteringFlag.set(false)
         }
+    }
+
+    private fun shouldHideStackFrame(className: String): Boolean {
+        if (className.startsWith("com.astrixforge.devicemasker")) return false
+        if (
+            className.startsWith("android.") ||
+                className.startsWith("java.") ||
+                className.startsWith("kotlin.") ||
+                className.startsWith("androidx.")
+        )
+            return false
+        return shouldMatchHiddenPattern(className)
     }
 
     private fun shouldHideClass(className: String): Boolean {
@@ -492,6 +506,13 @@ object AntiDetectHooker {
         }
         for (pattern in HIDDEN_CLASS_PATTERNS) {
             if (containsIgnoreCase(className, pattern)) return true
+        }
+        return false
+    }
+
+    private fun shouldMatchHiddenPattern(value: String): Boolean {
+        for (pattern in HIDDEN_CLASS_PATTERNS) {
+            if (containsIgnoreCase(value, pattern)) return true
         }
         return false
     }

@@ -1,8 +1,11 @@
 package com.astrixforge.devicemasker.common
 
+import com.astrixforge.devicemasker.common.models.Country
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Test
 
 class PersonaGeneratorTest {
@@ -43,6 +46,36 @@ class PersonaGeneratorTest {
         assertTrue(SharedPrefsKeys.isPersonaBlobKey(SharedPrefsKeys.getPersonaBlobKey(packageName)))
         assertTrue(
             SharedPrefsKeys.isPersonaVersionKey(SharedPrefsKeys.getPersonaVersionKey(packageName))
+        )
+    }
+
+    @Test
+    fun `country is serializable for config and UI persistence`() {
+        val encoded = Json.encodeToString(Country("US", "United States", "US", "1"))
+
+        assertTrue(encoded.contains("\"iso\":\"US\""))
+        assertEquals("United States", Json.decodeFromString<Country>(encoded).name)
+    }
+
+    @Test
+    fun `shared pref validation accepts generated keys`() {
+        val packageName = "com.example.target"
+
+        assertTrue(SharedPrefsKeys.isValidKey(SharedPrefsKeys.KEY_MODULE_ENABLED))
+        assertTrue(SharedPrefsKeys.isValidKey(SharedPrefsKeys.getAppEnabledKey(packageName)))
+        assertTrue(
+            SharedPrefsKeys.isValidKey(
+                SharedPrefsKeys.getSpoofEnabledKey(packageName, SpoofType.IMEI)
+            )
+        )
+        assertTrue(
+            SharedPrefsKeys.isValidKey(
+                SharedPrefsKeys.getSpoofValueKey(packageName, SpoofType.ANDROID_ID)
+            )
+        )
+        assertTrue(SharedPrefsKeys.isValidKey(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName)))
+        assertTrue(
+            SharedPrefsKeys.isValidKey(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
         )
     }
 }

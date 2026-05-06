@@ -34,6 +34,10 @@ object SharedPrefsKeys {
     private const val PREFIX_CLASS_LOOKUP_HIDING_ENABLED = "class_lookup_hiding_enabled_"
     private const val PREFIX_PERSONA_BLOB = "persona_blob_"
     private const val PREFIX_PERSONA_VERSION = "persona_version_"
+    private val VALID_KEY_REGEX =
+        Regex(
+            "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|risky_hooks_enabled_[a-zA-Z0-9_]+|class_lookup_hiding_enabled_[a-zA-Z0-9_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
+        )
 
     // ═══════════════════════════════════════════════════════════
     // KEY GENERATORS
@@ -102,10 +106,6 @@ object SharedPrefsKeys {
      * and xposed module.
      */
     fun isValidKey(key: String): Boolean {
-        return key.matches(
-            Regex(
-                "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|risky_hooks_enabled_[a-zA-Z0-9_]+|class_lookup_hiding_enabled_[a-zA-Z0-9_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
-            )
-        )
+        return VALID_KEY_REGEX.matches(key)
     }
 }

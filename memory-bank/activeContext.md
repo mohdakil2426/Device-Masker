@@ -4,6 +4,20 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-06 Coroutines And Performance Audit Remediation
+
+- Addressed live findings from `docs/internal/reports/coroutines-audit-report.md` and `docs/internal/reports/performance-audit-report.md` without changing Xposed config delivery or hook enablement semantics.
+- Removed production `runBlocking` and busy `Thread.sleep` polling from `AppLogStore`; app log append now uses non-blocking channel send and flush waits on a monitor.
+- Removed `runBlocking` from `ConfigManager.resetForTests()`.
+- Removed the stored `Context` property and `StaticFieldLeak` suppression from `SpoofRepository`; singleton creation still uses `context.applicationContext`.
+- Consolidated `HomeViewModel` collection through `Flow.combine` instead of separate redundant collectors.
+- Hardened group import null stream handling and wrapped the group spoofing app-list load in a non-crashing `runCatching`.
+- Precompiled common validation regexes in `SharedPrefsKeys` and `Utils`.
+- Made `Country` `@Serializable`.
+- Optimized Xposed hot paths: `SensorHooker` no longer reflects for `Sensor.getType()` inside the callback, and `AntiDetectHooker.filterStackTrace()` returns the original stack array when no hidden frame exists while using manual filtering for hidden frames.
+- Audit findings intentionally not applied: `XposedPrefs` already uses `CopyOnWriteArrayList`, so the reported concurrent modification issue is stale; `useLegacyPackaging=true` remains because the project guide documents it as required for primary-dex Xposed class loading.
+- Verification: `spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-configuration-cache` passed; `lint test assembleDebug assembleRelease --no-configuration-cache` passed; static searches found no production `runBlocking`, `Thread.sleep`, sensor `getType` reflection lookup, `StaticFieldLeak` suppression, import `checkNotNull(inputStream)`, or stack-frame `filterNot` allocation. `graphify update .` refreshed the graph.
+
 ## 2026-05-06 StrictMode And Detekt Guardrails
 
 - Added app-process-only `StrictModeGuard` for debug builds. It is installed from `DeviceMaskerApp` after the application singleton is assigned and uses `penaltyLog()` only.

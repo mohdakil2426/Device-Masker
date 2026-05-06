@@ -1,16 +1,16 @@
 # Graph Report - devicemasker  (2026-05-06)
 
 ## Corpus Check
-- 196 files · ~156,250 words
+- 197 files · ~156,349 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3369 nodes · 4614 edges · 271 communities (117 shown, 154 thin omitted)
-- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 648 edges (avg confidence: 0.81)
+- 3377 nodes · 4627 edges · 273 communities (121 shown, 152 thin omitted)
+- Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 651 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d515574d`
+- Built from commit: `fd38c8ac`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -142,12 +142,12 @@
 - [[_COMMUNITY_LSPosed Logs Authoritative Evidence|LSPosed Logs Authoritative Evidence]]
 - [[_COMMUNITY_Device Masker App|Device Masker App]]
 - [[_COMMUNITY_Default Diagnostics Provider|Default Diagnostics Provider]]
+- [[_COMMUNITY_IDiagnostics Provider|IDiagnostics Provider]]
 - [[_COMMUNITY_Toggle Button|Toggle Button]]
 - [[_COMMUNITY_Value Row|Value Row]]
 - [[_COMMUNITY_Standard Dialogs|Standard Dialogs]]
 - [[_COMMUNITY_Timezone Picker Dialog|Timezone Picker Dialog]]
 - [[_COMMUNITY_Animated Section|Animated Section]]
-- [[_COMMUNITY_Expressive Card|Expressive Card]]
 - [[_COMMUNITY_Expressive Icon Button|Expressive Icon Button]]
 - [[_COMMUNITY_Diagnostics State Test|Diagnostics State Test]]
 - [[_COMMUNITY_Dispatcher Rule|Dispatcher Rule]]
@@ -197,6 +197,7 @@
 - [[_COMMUNITY_Home State|Home State]]
 - [[_COMMUNITY_Constants|Constants]]
 - [[_COMMUNITY_Device Hardware Config|Device Hardware Config]]
+- [[_COMMUNITY_Diagnostics Redaction Default|Diagnostics Redaction Default]]
 - [[_COMMUNITY_Class Lookup Hooks Disabled|Class Lookup Hooks Disabled]]
 - [[_COMMUNITY_build gradle kts|build gradle kts]]
 - [[_COMMUNITY_settings gradle kts|settings gradle kts]]
@@ -205,7 +206,6 @@
 - [[_COMMUNITY_package info|package info]]
 - [[_COMMUNITY_package info|package info]]
 - [[_COMMUNITY_package info|package info]]
-- [[_COMMUNITY_Color|Color]]
 - [[_COMMUNITY_Shapes|Shapes]]
 - [[_COMMUNITY_Typography|Typography]]
 - [[_COMMUNITY_build gradle kts|build gradle kts]]
@@ -256,8 +256,10 @@
 - [[_COMMUNITY_Community 240|Community 240]]
 - [[_COMMUNITY_Community 241|Community 241]]
 - [[_COMMUNITY_Community 242|Community 242]]
-- [[_COMMUNITY_Community 245|Community 245]]
-- [[_COMMUNITY_Community 246|Community 246]]
+- [[_COMMUNITY_Community 243|Community 243]]
+- [[_COMMUNITY_Community 244|Community 244]]
+- [[_COMMUNITY_Community 247|Community 247]]
+- [[_COMMUNITY_Community 248|Community 248]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `FakeSpoofRepository` - 36 edges
@@ -291,11 +293,7 @@
 - **hyperedge:xxhdpi_launcher_branding_composition** — image:app/src/main/res/mipmap-xxhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp, asset:xxhdpi_launcher_icon, asset:xxhdpi_round_launcher_icon, visual:white_android_robot_head, visual:green_grid_background, concept:android_platform_identity, concept:android_launcher_branding [INFERRED 0.92]
 - **XXXHDPI Launcher Branding** — image:app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp, image:app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp, visual:green_grid_background, visual:android_robot_head, concept:android_platform_branding [INFERRED 0.90]
 
-## Communities (271 total, 154 thin omitted)
-
-### Community 0 - "Spoof Repository"
-Cohesion: 0.05
-Nodes (11): PersistentAppLogTree, ContentProvider, DeviceMaskerApp, DeviceMaskerApp, ConnectionState, ServiceClient, XposedProvider, OnServiceListener (+3 more)
+## Communities (273 total, 152 thin omitted)
 
 ### Community 1 - "Config Manager"
 Cohesion: 0.05
@@ -303,195 +301,191 @@ Nodes (33): BrowserPersona, DevicePersona, formatCoordinate(), HardwarePersona, 
 
 ### Community 2 - "Fake Shared Preferences"
 Cohesion: 0.05
-Nodes (8): AppScopeRepository, AppScopeRepositoryTest, AppScopeRepository, AppScopeRepositoryTest, RuntimeException, OnScopeEventListener, ServiceException, XposedService
+Nodes (11): PersistentAppLogTree, ContentProvider, DeviceMaskerApp, DeviceMaskerApp, ConnectionState, ServiceClient, XposedProvider, OnServiceListener (+3 more)
 
 ### Community 3 - "Fake Config Manager"
+Cohesion: 0.05
+Nodes (8): AppScopeRepository, AppScopeRepositoryTest, AppScopeRepository, AppScopeRepositoryTest, RuntimeException, OnScopeEventListener, ServiceException, XposedService
+
+### Community 4 - "Green grid background"
 Cohesion: 0.06
 Nodes (8): DiagnosticSessionManager, JsonlDiagnosticStore, StoreStats, JsonlDiagnosticStoreTest, DiagnosticSessionManager, JsonlDiagnosticStore, StoreStats, JsonlDiagnosticStoreTest
 
-### Community 7 - "ISpoof Repository"
-Cohesion: 0.05
-Nodes (20): ConstructorMatch, ConstructorMatcher, FieldMatch, BaseMatcherImpl, BaseMatchImpl, BinaryOperands, ConstructorMatcherImpl, ConstructorMatchImpl (+12 more)
+### Community 6 - "Fake Spoof Repository"
+Cohesion: 0.1
+Nodes (5): ClassMatch, ClassMatchImpl, ExecutableLazySequenceImpl, PendingExecutor, SimpleExecutor
 
 ### Community 8 - "App Log Store"
+Cohesion: 0.09
+Nodes (4): ClassLazySequence, ClassLazySequenceImpl, HookBuilderImpl, HookBuilder
+
+### Community 9 - "Spoof Group"
 Cohesion: 0.06
 Nodes (4): createDefaultGroup(), createNew(), SpoofGroup, SpoofGroup
 
 ### Community 10 - "Xposed Prefs"
+Cohesion: 0.05
+Nodes (18): ConstructorMatch, ConstructorMatcher, BaseMatcherImpl, BaseMatchImpl, BinaryOperands, ConstructorMatcherImpl, ConstructorMatchImpl, ExecutableMatchImpl (+10 more)
+
+### Community 12 - "Map Shared Preferences"
 Cohesion: 0.07
 Nodes (12): HookHealthRegistry, HookHealthSnapshot, HookMethodHealth, MutableMethodHealth, SpoofEventRecord, HookHealthRegistryTest, HookHealthRegistry, HookHealthSnapshot (+4 more)
 
-### Community 11 - "Json Config"
-Cohesion: 0.09
-Nodes (21): CategorySection(), DeviceHardwareCategoryContent(), LocationCategoryContent(), SIMCardCategoryContent(), CorrelatedSpoofItem(), DeviceHardwareCategoryContent(), CountryPickerDialog(), ExpressiveCard() (+13 more)
-
-### Community 12 - "Map Shared Preferences"
-Cohesion: 0.1
-Nodes (3): HookBuilderImpl, MemberLazySequenceImpl, HookBuilder
-
 ### Community 13 - "Root Shell"
-Cohesion: 0.09
-Nodes (4): PendingExecutor, SimpleExecutor, RemotePreferences, SharedPreferences
+Cohesion: 0.1
+Nodes (23): CategorySection(), DeviceHardwareCategoryContent(), LocationCategoryContent(), SIMCardCategoryContent(), GroupCard(), SpoofValueCard(), CorrelatedSpoofItem(), DeviceHardwareCategoryContent() (+15 more)
 
 ### Community 14 - "Hook Health Registry"
-Cohesion: 0.06
-Nodes (16): ConstructorLazySequence, ConstructorMatch, ConstructorMatcher, Consumer, ExecutableLazySequence, FieldMatch, MemberLazySequence, MemberMatch (+8 more)
+Cohesion: 0.09
+Nodes (3): ReflectSyntaxImpl, RemotePreferences, SharedPreferences
 
 ### Community 15 - "Diagnostics Screen"
 Cohesion: 0.12
 Nodes (7): DeviceMaskerDeepLink, DeviceMaskerDeepLinks, asDestinationStack(), DeviceMaskerNavigationState, DeviceMaskerNavigator, rememberDeviceMaskerNavigationState(), DeviceMaskerNavigatorTest
 
 ### Community 16 - "Device Persona"
-Cohesion: 0.15
-Nodes (3): configureDeviceMaskerDetekt(), Reflector, Editor
-
-### Community 17 - "Hook Metrics"
 Cohesion: 0.07
 Nodes (4): MapSharedPreferences, PrefsHelperTest, MapSharedPreferences, PrefsHelperTest
 
-### Community 21 - "Hook Safety Test"
-Cohesion: 0.09
-Nodes (13): StatCard(), StatCardIdentifiersPreview(), QuickAction, QuickActionGroup(), SelectionButtonGroup(), SelectionButtonGroupPreview(), HomeScreen(), HomeScreenContent() (+5 more)
+### Community 19 - "Service Client"
+Cohesion: 0.07
+Nodes (14): ConstructorLazySequence, ConstructorMatch, ConstructorMatcher, Consumer, FieldLazySequence, FieldMatch, LazyBind, MemberMatch (+6 more)
 
-### Community 23 - "Settings View Model"
+### Community 20 - "Device Masker Service"
 Cohesion: 0.09
 Nodes (4): DualLog, HookMetrics, DualLog, HookMetrics
 
-### Community 24 - "Shared Prefs Keys"
-Cohesion: 0.17
-Nodes (3): ClassMatch, ClassMatchImpl, ExecutableLazySequenceImpl
-
-### Community 26 - "Group Spoofing View Model"
-Cohesion: 0.09
-Nodes (3): ConfigSyncTest, ConfigSyncTest, FakeSharedPreferences
-
-### Community 28 - "MACGenerator Test"
+### Community 22 - "Jsonl Diagnostic Store"
 Cohesion: 0.12
 Nodes (12): AntiDetectionSection(), AntiDetectionTestItem(), CategoryDiagnosticSection(), ConfigSyncInfoCard(), DiagnosticResultItem(), DiagnosticsContent(), DiagnosticsScreen(), hookEvidenceLabel() (+4 more)
 
-### Community 29 - "Serial Generator Test"
-Cohesion: 0.09
-Nodes (3): DeviceMaskerService, DeviceMaskerService, getInstance()
-
-### Community 30 - "Xposed Entry"
+### Community 23 - "Settings View Model"
 Cohesion: 0.11
 Nodes (13): ActionItem, ActionBottomSheet(), ActionBottomSheetPreview(), ActionItem, ActionItemRow(), ThemeModeDialog(), ExportActionsBottomSheet(), ExportModeAction (+5 more)
 
-### Community 31 - "Location Hooker"
+### Community 24 - "Shared Prefs Keys"
 Cohesion: 0.12
 Nodes (15): ScreenHeader(), ScreenHeaderWithActionsPreview(), CreateGroupDialog(), CreateGroupDialogPreview(), DeleteGroupDialog(), EditGroupDialog(), GroupCard(), CreateGroupDialog() (+7 more)
 
-### Community 32 - "Config Sync"
+### Community 25 - "Anti Detect Hooker"
+Cohesion: 0.09
+Nodes (3): DeviceMaskerService, DeviceMaskerService, getInstance()
+
+### Community 26 - "Group Spoofing View Model"
 Cohesion: 0.08
 Nodes (4): FakePackageManager, HookSafetyTest, FakePackageManager, HookSafetyTest
 
-### Community 33 - "Root Access Manager"
-Cohesion: 0.1
-Nodes (4): DiagnosticsViewModelTest, DiagnosticsViewModelTest, FakeServiceClient, FakeServiceClient
-
-### Community 34 - "Root Log Capture Service"
+### Community 28 - "MACGenerator Test"
 Cohesion: 0.12
 Nodes (14): AppListItem(), AppIcon(), AppIconFallback(), AppListItem(), AppListItemLockedPreview(), EmptyState(), EmptyStateNoSubtitlePreview(), EmptyState() (+6 more)
 
-### Community 35 - "Nav Destination"
+### Community 29 - "Serial Generator Test"
+Cohesion: 0.1
+Nodes (4): DiagnosticsViewModelTest, DiagnosticsViewModelTest, FakeServiceClient, FakeServiceClient
+
+### Community 30 - "Xposed Entry"
 Cohesion: 0.15
 Nodes (14): Android launcher icon, Android round launcher icon, XXHDPI launcher icon, XXHDPI round launcher icon, Android launcher icon, Android app branding, Android app branding, Android launcher branding (+6 more)
 
-### Community 37 - "Package Manager Hooker"
-Cohesion: 0.12
-Nodes (12): CompactGroupCard(), CompactGroupCardPreview(), DefaultBadge(), GroupCard(), ExpressiveSwitch(), ExpressiveSwitchLightPreview(), ExpressiveSwitchWithLabel(), SwitchDimensions (+4 more)
+### Community 31 - "Location Hooker"
+Cohesion: 0.1
+Nodes (3): GroupSpoofingViewModel, GroupSpoofingViewModelTest, GroupSpoofingViewModelTest
 
-### Community 38 - "Three Module Architecture"
+### Community 33 - "Root Access Manager"
+Cohesion: 0.17
+Nodes (3): configureDeviceMaskerDetekt(), ReflectMatchImpl, Reflector
+
+### Community 35 - "Nav Destination"
 Cohesion: 0.13
 Nodes (4): FakeLogManager, SettingsViewModelTest, SettingsViewModelTest, FakeLogManager
 
-### Community 44 - "Support Bundle Builder"
-Cohesion: 0.29
+### Community 36 - "Motion"
+Cohesion: 0.31
 Nodes (3): AdvertisingHooker, DeviceHooker, NetworkHooker
 
-### Community 45 - "Diagnostics State"
-Cohesion: 0.12
-Nodes (11): jsonEscape(), LibsuCommandExecutor, RootCommandResult, RootCommandStatus, RootExecutionResult, toManifestJson(), LibsuCommandExecutor, RootCommand (+3 more)
+### Community 37 - "Package Manager Hooker"
+Cohesion: 0.16
+Nodes (3): FieldMatch, FieldMatchImpl, Editor
+
+### Community 38 - "Three Module Architecture"
+Cohesion: 0.1
+Nodes (11): jsonEscape(), RootCommandExecutor, RootCommandStatus, toManifestJson(), LibsuCommandExecutor, RootCommand, RootCommandExecutor, RootCommandResult (+3 more)
+
+### Community 39 - "Groups View Model"
+Cohesion: 0.13
+Nodes (10): StatCard(), StatCardIdentifiersPreview(), animatedRoundedCornerShape(), HomeScreen(), HomeScreenContent(), HomeScreenContentPreview(), HomeScreenInactivePreview(), StatusCard() (+2 more)
 
 ### Community 47 - "Settings State"
-Cohesion: 0.12
-Nodes (5): createDefault(), DeviceIdentifier, ConfigSyncSnapshotTest, ConfigSyncSnapshotTest, DeviceIdentifier
-
-### Community 48 - "Release Build Safety Test"
-Cohesion: 0.14
-Nodes (3): MethodMatcherImpl, ReflectMatcherImpl, MethodMatcher
-
-### Community 49 - "Root Shell Test"
-Cohesion: 0.11
-Nodes (3): ConstructorLazySequence, ConstructorLazySequenceImpl, LazySequenceImpl
-
-### Community 50 - "Diagnostic Redactor"
-Cohesion: 0.1
-Nodes (3): ReflectMatchImpl, StringMatchImpl, StringMatch
-
-### Community 51 - "Fingerprint Generator"
 Cohesion: 0.14
 Nodes (6): DeviceConfig, FingerprintGenerator, DeviceConfig, FingerprintGenerator, nextInt(), secureRandom()
 
-### Community 52 - "Json Config Test"
+### Community 48 - "Release Build Safety Test"
 Cohesion: 0.13
 Nodes (4): RootAccessManager, RootAccessState, RootAccessManager, RootAccessState
 
-### Community 53 - "App Scope Repository"
+### Community 49 - "Root Shell Test"
 Cohesion: 0.11
 Nodes (16): Diagnostics, Groups, GroupSpoofing, Home, NavDestination, NavItem, NavRoutes, Settings (+8 more)
 
-### Community 54 - "Root Capture Store"
-Cohesion: 0.13
-Nodes (8): ValueRow(), ValueRowPreview(), SectionHeader(), SectionHeaderNoExpandPreview(), DeviceMaskerTheme(), DeviceMaskerThemeInternal(), rememberSystemContrast(), withContrastPreference()
-
-### Community 55 - "Root Log Collector"
+### Community 50 - "Diagnostic Redactor"
 Cohesion: 0.19
 Nodes (15): IconCircle(), IconCircleLargePreview(), SettingsClickableItem(), SettingsClickableItemWithValue(), SettingsInfoItem(), SettingsInfoItemPreview(), SettingsSection(), SettingsSwitchItem() (+7 more)
 
-### Community 58 - "Diagnostics View Model"
+### Community 52 - "Json Config Test"
+Cohesion: 0.16
+Nodes (11): Error, LogExportResult, NoLogs, ShareableLogResult, Success, Error, LogExportResult, LogManager (+3 more)
+
+### Community 53 - "App Scope Repository"
+Cohesion: 0.11
+Nodes (4): PersonaGeneratorTest, Country, Country, PersonaGeneratorTest
+
+### Community 56 - "Activity"
 Cohesion: 0.13
 Nodes (4): DiagnosticsLogBuffer, DiagnosticsLogBufferTest, DiagnosticsLogBuffer, DiagnosticsLogBufferTest
 
-### Community 62 - "App Scope Repository Test"
-Cohesion: 0.12
-Nodes (4): LogLevel, Utils, LogLevel, Utils
+### Community 57 - "Settings Item"
+Cohesion: 0.16
+Nodes (9): DiagnosticsScreen(), MainActivity, DeviceMaskerMainApp(), MainActivity, navBackTransform(), navForwardTransform(), NavRail(), RootAccessWarningDialog() (+1 more)
 
-### Community 63 - "Spoof Repository Test"
-Cohesion: 0.14
-Nodes (6): Carrier, Carrier, getByCountry(), indiaCarriers(), nextSecureRandomFromCountry(), nextSecureRandomIndia()
-
-### Community 64 - "Config Manager Test"
-Cohesion: 0.13
-Nodes (6): DeviceHardwareConfig, DeviceHardwareConfigTest, DeviceHardwareGenerator, DeviceHardwareGenerator, DeviceHardwareConfig, DeviceHardwareConfigTest
-
-### Community 65 - "Config Sync Test"
+### Community 58 - "Diagnostics View Model"
 Cohesion: 0.14
 Nodes (7): CompactLoadingIndicator(), CompactLoadingIndicatorPreview(), ExpressiveLoadingIndicator(), ExpressiveLoadingIndicatorWithLabel(), ExpressivePullToRefresh(), ExpressiveRefreshIndicator(), LoadingIndicator()
 
-### Community 66 - "Implementation Plan Hardening Test"
+### Community 59 - "Groups Screen"
+Cohesion: 0.12
+Nodes (4): LogLevel, Utils, LogLevel, Utils
+
+### Community 60 - "Settings Screen"
+Cohesion: 0.13
+Nodes (6): DeviceHardwareConfig, DeviceHardwareConfigTest, DeviceHardwareGenerator, DeviceHardwareGenerator, DeviceHardwareConfig, DeviceHardwareConfigTest
+
+### Community 61 - "Recording Executor"
+Cohesion: 0.12
+Nodes (8): AtomicHelper, BaseObserver, FieldAndMethodVisitor, ItemObserver, ListObserver, MatchCache, Transformer, TypeOnlyParameter
+
+### Community 64 - "Config Manager Test"
+Cohesion: 0.14
+Nodes (6): Carrier, Carrier, getByCountry(), indiaCarriers(), nextSecureRandomFromCountry(), nextSecureRandomIndia()
+
+### Community 67 - "Diagnostics View Model Test"
 Cohesion: 0.17
 Nodes (3): Chain, HookBuilder, Invoker
 
-### Community 67 - "Diagnostics View Model Test"
-Cohesion: 0.13
-Nodes (13): DiagnosticsState, DiagnosticStatus, HookEvidenceState, ReproCaptureState, ServiceStatus, DiagnosticsStateTest, AntiDetectionTest, DiagnosticResult (+5 more)
-
 ### Community 69 - "Persona Generator"
-Cohesion: 0.14
-Nodes (6): Keys, SettingsDataStore, Keys, SettingsDataStore, MainActivity, RootAccessWarningDialog()
+Cohesion: 0.13
+Nodes (3): ConstructorLazySequence, ConstructorLazySequenceImpl, LazySequenceImpl
 
 ### Community 70 - "Serial Generator"
+Cohesion: 0.16
+Nodes (3): HomeViewModel, HomeViewModelTest, HomeViewModelTest
+
+### Community 71 - "UUIDGenerator"
 Cohesion: 0.13
 Nodes (14): BundleExportMode, Error, ExportResult, NoLogs, RedactionChoice, SettingsState, Success, BundleExportMode (+6 more)
 
-### Community 73 - "Android Generator Test"
+### Community 74 - "Advertising Hooker"
 Cohesion: 0.22
 Nodes (4): Constructor, Field, MemberKey, Method
-
-### Community 75 - "Device Hooker"
-Cohesion: 0.16
-Nodes (6): DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest, DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest
 
 ### Community 76 - "Network Hooker"
 Cohesion: 0.15
@@ -499,175 +493,199 @@ Nodes (12): Effect, MotionPolicy, Spatial, Effect, Effects, ElevationTokens, Exp
 
 ### Community 79 - "Group Card"
 Cohesion: 0.16
+Nodes (6): DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest, DiagnosticSnapshotBuilder, DiagnosticSnapshotMetadata, DiagnosticSnapshotBuilderTest
+
+### Community 81 - "Quick Action Group"
+Cohesion: 0.16
+Nodes (4): MethodLazySequenceImpl, MethodMatchImpl, MethodLazySequence, MethodMatch
+
+### Community 82 - "Config Sync Snapshot Test"
+Cohesion: 0.16
 Nodes (4): FieldLazySequence, FieldLazySequenceImpl, ParameterLazySequenceImpl, ParameterLazySequence
 
-### Community 80 - "Expressive Loading Indicator"
+### Community 83 - "App Log Store Test"
 Cohesion: 0.18
-Nodes (5): RecordingExecutor, RootLogCollectorTest, RootShell, RecordingExecutor, RootLogCollectorTest
+Nodes (4): createDefault(), DeviceIdentifier, ConfigSyncSnapshotTest, DeviceIdentifier
 
 ### Community 84 - "Fake App Scope Repository"
-Cohesion: 0.21
-Nodes (7): DiagnosticsScreen(), MainActivity, DeviceMaskerMainApp(), navBackTransform(), navForwardTransform(), NavRail(), toTopLevelDestination()
-
-### Community 94 - "Diagnostic Event Test"
-Cohesion: 0.22
-Nodes (3): Snapshot, ConfigSync, Snapshot
-
-### Community 99 - "IApp Scope Repository"
 Cohesion: 0.17
-Nodes (3): LocationSnapshot, LocationHooker, LocationSnapshot
+Nodes (5): CompactSpoofValueCard(), CompactSpoofValueCardPreview(), maskValueString(), CompactExpressiveIconButtonPreview(), ExpressiveIconButton()
 
-### Community 100 - "ILog Manager"
-Cohesion: 0.17
-Nodes (7): AtomicHelper, BaseObserver, FieldAndMethodVisitor, ItemObserver, ListObserver, MatchCache, Transformer
-
-### Community 101 - "IService Client"
-Cohesion: 0.17
-Nodes (6): DummyHooker, Hooker, Matcher, ParameterKt, ReflectMatcherKt, SyntaxKt
-
-### Community 102 - "Diagnostic Session Manager"
-Cohesion: 0.2
-Nodes (3): AppLogStoreTest, AppLogEntry, AppLogStoreTest
-
-### Community 103 - "Diagnostic Snapshot Builder"
+### Community 96 - "Prefs Keys"
 Cohesion: 0.18
 Nodes (3): DiagnosticEventTest, DiagnosticEvent, DiagnosticEventTest
 
-### Community 105 - "App List Item"
-Cohesion: 0.27
-Nodes (3): SupportBundleBuilder, SupportBundleBuilderTest, SupportBundleBuilderTest
+### Community 97 - "Subscription Hooker"
+Cohesion: 0.17
+Nodes (11): DiagnosticsState, DiagnosticStatus, HookEvidenceState, ReproCaptureState, AntiDetectionTest, DiagnosticResult, DiagnosticsState, DiagnosticStatus (+3 more)
 
-### Community 112 - "Fake Settings Data Store"
+### Community 98 - "ISettings Data Store"
+Cohesion: 0.2
+Nodes (6): QuickAction, QuickActionGroup(), SelectionButtonGroup(), SelectionButtonGroupPreview(), QuickActionsSection(), QuickAction
+
+### Community 99 - "IApp Scope Repository"
+Cohesion: 0.23
+Nodes (6): SectionHeader(), SectionHeaderNoExpandPreview(), DeviceMaskerTheme(), DeviceMaskerThemeInternal(), rememberSystemContrast(), withContrastPreference()
+
+### Community 100 - "ILog Manager"
+Cohesion: 0.17
+Nodes (3): LocationSnapshot, LocationHooker, LocationSnapshot
+
+### Community 103 - "Diagnostic Snapshot Builder"
+Cohesion: 0.17
+Nodes (6): DummyHooker, Hooker, Matcher, ParameterKt, ReflectMatcherKt, SyntaxKt
+
+### Community 104 - "Action Bottom Sheet"
+Cohesion: 0.2
+Nodes (4): RecordingExecutor, RootLogCollectorTest, RecordingExecutor, RootLogCollectorTest
+
+### Community 108 - "Status Indicator"
+Cohesion: 0.18
+Nodes (4): Keys, SettingsDataStore, Keys, SettingsDataStore
+
+### Community 110 - "Home View Model"
+Cohesion: 0.22
+Nodes (3): AppLogStoreTest, AppLogEntry, AppLogStoreTest
+
+### Community 116 - "Prefs Helper"
 Cohesion: 0.27
 Nodes (4): addServiceStateListener(), App, dispatchServiceState(), ServiceStateListener
 
-### Community 113 - "Device Identifier"
+### Community 117 - "Xposed Diagnostic Event Sink"
 Cohesion: 0.22
-Nodes (3): PackageLoadedParam, PackageReadyParam, SystemServerStartingParam
+Nodes (3): ModuleMain, ModuleMainKt, XposedModule
 
-### Community 114 - "IMSIGenerator"
+### Community 118 - "Sensor Hooker"
 Cohesion: 0.27
 Nodes (4): RootCommand, FakeExecutor, RootShellTest, FakeExecutor
 
-### Community 121 - "Diagnostics Log Buffer"
-Cohesion: 0.2
-Nodes (5): AppLogEntry, LogFileFormatter, from(), LogFileFormatter, PersistentAppLogTree
-
-### Community 128 - "Toggle Button"
-Cohesion: 0.2
-Nodes (4): CtorInvoker, Hooker, HookHandle, Type
-
-### Community 129 - "Value Row"
+### Community 124 - "LSPosed Logs Authoritative Evidence"
 Cohesion: 0.22
 Nodes (5): DefaultDiagnosticsProvider, DiagnosticsContentPreview(), AntiDetectionTest, DiagnosticResult, DefaultDiagnosticsProvider
 
-### Community 131 - "Timezone Picker Dialog"
+### Community 126 - "Default Diagnostics Provider"
 Cohesion: 0.2
-Nodes (7): DiagnosticEvent, DiagnosticEventType, DiagnosticSeverity, DiagnosticSource, DiagnosticEventType, DiagnosticSeverity, DiagnosticSource
+Nodes (4): CtorInvoker, Hooker, HookHandle, Type
 
-### Community 132 - "Animated Section"
+### Community 127 - "IDiagnostics Provider"
+Cohesion: 0.2
+Nodes (3): ModuleLoadedParam, SystemServerStartingParam, XposedModuleInterface
+
+### Community 134 - "Expressive Icon Button"
 Cohesion: 0.24
-Nodes (5): CompactSpoofValueCard(), CompactSpoofValueCardPreview(), maskValueString(), SpoofValueCard(), ExpressiveIconButton()
+Nodes (4): LibsuCommandExecutor, RootCommandResult, RootExecutionResult, RootShell
 
-### Community 133 - "Expressive Card"
+### Community 136 - "Dispatcher Rule"
 Cohesion: 0.22
 Nodes (10): :app Configuration Module, :common Shared Contracts, Three Module Architecture, :xposed Hook Module, JsonConfig.appConfigs Canonical Assignment, RemotePreferences Config Delivery, SharedPrefsKeys Source Of Truth, Hook Safety Pass Through (+2 more)
 
-### Community 138 - "Device Profile Preset"
-Cohesion: 0.36
-Nodes (3): Error, LogManager, Success
-
 ### Community 139 - "Network Type Mapper"
-Cohesion: 0.22
-Nodes (3): SupportBundleMode, SupportBundleBuilder, SupportBundleMode
-
-### Community 140 - "Spoof Type"
-Cohesion: 0.22
-Nodes (3): DiagnosticRedactor, RedactionMode, RedactionMode
-
-### Community 141 - "Device Hardware Generator"
-Cohesion: 0.22
-Nodes (8): Error, LogExportResult, NoLogs, ShareableLogResult, Success, LogExportResult, NoLogs, ShareableLogResult
-
-### Community 142 - "ICCIDGenerator"
 Cohesion: 0.31
 Nodes (4): AnimatedNavIcon(), BottomNavBar(), BottomNavItem(), navContentDescriptionRes()
 
+### Community 142 - "ICCIDGenerator"
+Cohesion: 0.22
+Nodes (6): DiagnosticEventType, DiagnosticSeverity, DiagnosticSource, DiagnosticEventType, DiagnosticSeverity, DiagnosticSource
+
 ### Community 145 - "Deoptimize Manager"
-Cohesion: 0.31
-Nodes (4): createDefault(), parse(), parseCatching(), parseOrDefault()
+Cohesion: 0.22
+Nodes (3): DiagnosticRedactor, RedactionMode, RedactionMode
 
-### Community 153 - "Section Header"
-Cohesion: 0.28
-Nodes (3): ModuleLoadedParam, ModuleMain, XposedModule
+### Community 146 - "Example Instrumented Test"
+Cohesion: 0.22
+Nodes (3): SupportBundleMode, SupportBundleBuilder, SupportBundleMode
 
-### Community 156 - "Theme"
+### Community 147 - "Boot Capture Receiver"
 Cohesion: 0.31
 Nodes (4): HeroStatusIndicator(), HeroStatusIndicatorPreview(), StatusIndicator(), StatusIndicatorWithIcon()
 
-### Community 166 - "Country Picker Dialog"
+### Community 148 - "Empty State"
+Cohesion: 0.28
+Nodes (3): CompactGroupCard(), CompactGroupCardPreview(), DefaultBadge()
+
+### Community 157 - "Image Utils"
+Cohesion: 0.31
+Nodes (3): Snapshot, ConfigSync, Snapshot
+
+### Community 159 - "Config Manager Persona Test"
+Cohesion: 0.31
+Nodes (4): createDefault(), parse(), parseCatching(), parseOrDefault()
+
+### Community 160 - "Diagnostic Snapshot Builder Test"
+Cohesion: 0.25
+Nodes (4): AppLogEntry, LogFileFormatter, from(), LogFileFormatter
+
+### Community 161 - "Support Bundle Builder Test"
+Cohesion: 0.29
+Nodes (3): ServiceStatus, DiagnosticsStateTest, DiagnosticsStateTest
+
+### Community 162 - "SIMConfig"
 Cohesion: 0.32
 Nodes (4): GroupSpoofingScreen(), SpoofTabContent(), SpoofTabContent(), SpoofTabContentPopulatedPreview()
 
-### Community 171 - "Group Spoofing State"
-Cohesion: 0.29
-Nodes (6): CorrelationGroup, SpoofCategory, SpoofType, CorrelationGroup, SpoofCategory, SpoofType
+### Community 163 - "Secure Random Utils"
+Cohesion: 0.25
+Nodes (4): ExpressiveSwitchLightPreview(), ExpressiveSwitchWithLabel(), SwitchDimensions, SwitchDimensions
 
-### Community 187 - "build gradle kts"
-Cohesion: 0.38
-Nodes (3): AnimatedSection(), AnimatedSectionCollapsedPreview(), AnimatedSectionStateful()
-
-### Community 191 - "package info"
-Cohesion: 0.48
-Nodes (6): Read-UInt16LE(), Read-UInt32LE(), Read-UInt64LE(), Resolve-AndroidSdk(), Resolve-Zipalign(), Test-ElfLoadAlignment()
-
-### Community 192 - "Color"
-Cohesion: 0.33
-Nodes (4): search(), TimezoneEntry, TimezonePickerDialog(), TimezoneEntry
-
-### Community 194 - "Typography"
+### Community 173 - "Device Hardware Content"
 Cohesion: 0.38
 Nodes (3): ConfirmationDialog(), DeleteConfirmationDialog(), DeleteDialogPreview()
 
-### Community 208 - "Community 208"
+### Community 174 - "Location Content"
+Cohesion: 0.33
+Nodes (4): search(), TimezoneEntry, TimezonePickerDialog(), TimezoneEntry
+
+### Community 176 - "Correlated Spoof Item"
+Cohesion: 0.38
+Nodes (3): AnimatedSection(), AnimatedSectionCollapsedPreview(), AnimatedSectionStateful()
+
+### Community 181 - "Constants"
+Cohesion: 0.29
+Nodes (6): CorrelationGroup, SpoofCategory, SpoofType, CorrelationGroup, SpoofCategory, SpoofType
+
+### Community 198 - "Community 198"
+Cohesion: 0.48
+Nodes (6): Read-UInt16LE(), Read-UInt32LE(), Read-UInt64LE(), Resolve-AndroidSdk(), Resolve-Zipalign(), Test-ElfLoadAlignment()
+
+### Community 214 - "Community 214"
 Cohesion: 0.5
 Nodes (3): create(), SIMConfig, SIMConfig
 
-### Community 215 - "Community 215"
+### Community 217 - "Community 217"
 Cohesion: 0.4
 Nodes (3): DashboardState, getInstance(), DashboardState
 
-### Community 217 - "Community 217"
+### Community 219 - "Community 219"
 Cohesion: 0.4
 Nodes (5): libxposed Audit Remediation, Xposed Spoofing And Logging Audit, LSPosed Logs Authoritative Evidence, com.mantle.verify Working Base, Defensive WebView Hooking
 
-### Community 220 - "Community 220"
+### Community 223 - "Community 223"
 Cohesion: 0.5
 Nodes (3): XposedModule, XposedInterfaceWrapper, XposedModuleInterface
 
-### Community 239 - "Community 239"
+### Community 241 - "Community 241"
 Cohesion: 0.67
 Nodes (3): Master Implementation Plan Completion, Material 3 Expressive Implementation, Quality Gate Pipeline
 
 ## Knowledge Gaps
-- **170 isolated node(s):** `Keys`, `DashboardState`, `AppLogEntry`, `LogExportResult`, `Success` (+165 more)
+- **168 isolated node(s):** `Keys`, `DashboardState`, `LogExportResult`, `Success`, `Error` (+163 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **154 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **152 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DeviceMaskerMainApp()` connect `Fake App Scope Repository` to `ISettings Data Store`, `Persona Generator`, `Country Picker Dialog`, `Expressive Switch`, `Community 203`, `Community 205`, `ICCIDGenerator`, `Diagnostics Screen`, `Country`, `Device Hardware Config Test`, `MACGenerator Test`, `Hook Safety Test`, `Groups View Model Test`, `Groups Screen`, `Type Aliases`, `Xposed Entry`, `Location Hooker`?**
-  _High betweenness centrality (0.280) - this node is a cross-community bridge._
-- **Why does `FakeSpoofRepository` connect `Groups View Model` to `Motion`, `Device Hardware Config Test`, `Groups View Model Test`, `Group Spoofing View Model Test`, `Groups Screen`?**
-  _High betweenness centrality (0.135) - this node is a cross-community bridge._
-- **Why does `AppConfig` connect `Group Spoofing View Model Test` to `Jsonl Diagnostic Store Test`, `Service Client`, `Green grid background`, `Settings State`?**
-  _High betweenness centrality (0.128) - this node is a cross-community bridge._
+- **Why does `DeviceMaskerMainApp()` connect `Settings Item` to `SIMConfig`, `Serial Generator`, `Groups View Model`, `Community 201`, `Device Profile Preset`, `Network Type Mapper`, `Bottom Nav Bar`, `Diagnostics Screen`, `SIMCard Content`, `Community 211`, `Fake Service Client`, `Jsonl Diagnostic Store`, `Settings View Model`, `Shared Prefs Keys`, `Location Hooker`, `Diagnostic Redactor Test`?**
+  _High betweenness centrality (0.286) - this node is a cross-community bridge._
+- **Why does `FakeSpoofRepository` connect `Jsonl Diagnostic Store Test` to `Config Sync`, `Serial Generator`, `Fake Service Client`, `Root Log Collector`, `Location Hooker`?**
+  _High betweenness centrality (0.137) - this node is a cross-community bridge._
+- **Why does `AppConfig` connect `Root Log Collector` to `Spoof Repository`, `App Log Store Test`, `Support Bundle Builder`?**
+  _High betweenness centrality (0.129) - this node is a cross-community bridge._
 - **Are the 12 inferred relationships involving `FakeSpoofRepository` (e.g. with `.`create group adds to list`()` and `.`delete group removes from list`()`) actually correct?**
   _`FakeSpoofRepository` has 12 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 30 inferred relationships involving `DeviceMaskerTheme()` (e.g. with `.onCreate()` and `CreateGroupDialogPreview()`) actually correct?**
   _`DeviceMaskerTheme()` has 30 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 29 inferred relationships involving `StableHooker` (e.g. with `.hookAdvertisingIdClient()` and `.hookGservices()`) actually correct?**
   _`StableHooker` has 29 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Keys`, `DashboardState`, `AppLogEntry` to the rest of the system?**
-  _170 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `Keys`, `DashboardState`, `LogExportResult` to the rest of the system?**
+  _168 weakly-connected nodes found - possible documentation gaps or missing edges._

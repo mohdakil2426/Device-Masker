@@ -144,8 +144,9 @@ fun GroupsScreen(
                     val jsonResult =
                         withContext(Dispatchers.IO) {
                             runCatching {
-                                    val inputStream = context.contentResolver.openInputStream(uri)
-                                    checkNotNull(inputStream)
+                                    val inputStream =
+                                        context.contentResolver.openInputStream(uri)
+                                            ?: return@runCatching ""
                                     inputStream.bufferedReader().use { reader -> reader.readText() }
                                 }
                                 .getOrNull()

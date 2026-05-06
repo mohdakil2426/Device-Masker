@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
+import android.hardware.Sensor
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
@@ -60,13 +61,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                             // risk
                             val filtered =
                                 sensors.filter { sensor ->
-                                    runCatching {
-                                            val sensorType =
-                                                sensor.javaClass.getMethod("getType").invoke(sensor)
-                                                    as Int
-                                            sensorType in ESSENTIAL_SENSOR_TYPES
-                                        }
-                                        .getOrDefault(true)
+                                    sensor !is Sensor || sensor.type in ESSENTIAL_SENSOR_TYPES
                                 }
 
                             if (sensors.size != filtered.size) {

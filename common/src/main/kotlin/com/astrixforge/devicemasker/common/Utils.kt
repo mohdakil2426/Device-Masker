@@ -3,6 +3,9 @@ package com.astrixforge.devicemasker.common
 /** Utility functions shared between the app UI and xposed module. */
 @Suppress("unused") // Utility functions for cross-module use
 object Utils {
+    private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+    private val UUID_REGEX =
+        Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
     /** Log levels for service logging. */
     object LogLevel {
@@ -67,8 +70,7 @@ object Utils {
      * @return True if valid format
      */
     fun isValidMac(mac: String): Boolean {
-        val macRegex = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
-        return macRegex.matches(mac)
+        return MAC_REGEX.matches(mac)
     }
 
     /**
@@ -78,9 +80,7 @@ object Utils {
      * @return True if valid format
      */
     fun isValidUuid(uuid: String): Boolean {
-        val uuidRegex =
-            Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-        return uuidRegex.matches(uuid)
+        return UUID_REGEX.matches(uuid)
     }
 
     /**

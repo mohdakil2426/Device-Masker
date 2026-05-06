@@ -51,7 +51,7 @@ class GroupSpoofingViewModel(
             }
         }
 
-        viewModelScope.launch { repository.appScopeRepository.loadApps() }
+        viewModelScope.launch { runCatching { repository.appScopeRepository.loadApps() } }
 
         viewModelScope.launch {
             repository.appScopeRepository.installedApps.collect { apps ->
