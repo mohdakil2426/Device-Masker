@@ -70,13 +70,19 @@ devicemasker/
 | Type | Correct Location | Wrong |
 | --- | --- | --- |
 | User-facing docs | `docs/public/` | `docs/internal/` |
-| write reports/audits file | `docs/internal/reports/` | project root |
+| Active internal reports/audits | `docs/internal/reports/active/` | project root or `docs/internal/reports/` root |
+| Closed internal reports/audits | `docs/internal/reports/closed/` | project root or `docs/internal/reports/` root |
 | Implementation plans | `docs/superpowers/plans/` | `docs/reports/` or project root |
 | Build logs and command output | `logs/build/` | project root, docs, module dirs |
 | Device testing logs, logcat, screenshots, captures, exported evidence | `logs/device/` | project root or docs |
 | Agent/user temporary check artifacts | `logs/tmp/` | project root or source folders |
 
 All agent-created and user-created build logs, device logs, temporary captures, smoke-test exports, and scratch evidence must stay under `logs/` using the closest matching subfolder. Do not scatter temporary evidence files in the project root.
+
+Report lifecycle:
+- Put reports with pending decisions, open remediation, or active analysis in `docs/internal/reports/active/`.
+- Move reports to `docs/internal/reports/closed/` only after the decision is recorded or the remediation is complete.
+- Do not leave report files directly under `docs/internal/reports/`.
 
 ## Commands And Rules
 
