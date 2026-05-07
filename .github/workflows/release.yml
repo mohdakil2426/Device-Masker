@@ -1,29 +1,31 @@
-name: Signed Release Artifacts
+name: Manual Release
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       tag_name:
-        description: Release tag to build
+        description: "Release tag, example: v0.1.1"
         required: true
         type: string
+      draft:
+        description: "Create as draft release"
+        required: true
+        default: true
+        type: boolean
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.inputs.tag_name }}
+  cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   JAVA_VERSION: "17"
 
 jobs:
   release:
-    name: Build Signed Release Artifacts
+    name: Build And Draft GitHub Release
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -32,6 +34,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.tag_name }}
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -45,8 +48,25 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
+      - name: Verify release version
+        env:
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+        run: |
+          VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          VERSION_CODE=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
+          EXPECTED_TAG="v${VERSION_NAME}"
+
+          if [ "$TAG_NAME" != "$EXPECTED_TAG" ]; then
+            echo "Tag $TAG_NAME does not match gradle.properties VERSION_NAME=$VERSION_NAME"
+            exit 1
+          fi
+
+          git rev-parse "$TAG_NAME" >/dev/null
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
       - name: Check release signing secrets
-        id: signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
@@ -61,24 +81,17 @@ jobs:
 
           if [ "${#missing[@]}" -gt 0 ]; then
             echo "Release signing secrets are incomplete: ${missing[*]}"
-            echo "has_signing=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "Add KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS, and KEY_PASS as repository Actions secrets."
+            exit 1
           fi
 
-          echo "has_signing=true" >> "$GITHUB_OUTPUT"
-
       - name: Decode release keystore
-        if: steps.signing.outputs.has_signing == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASS: ${{ secrets.KEY_PASS }}
         run: |
-          test -n "$KEYSTORE_BASE64"
-          test -n "$KEYSTORE_PASS"
-          test -n "$KEY_ALIAS"
-          test -n "$KEY_PASS"
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
           echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
           echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
@@ -86,37 +99,68 @@ jobs:
           echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
 
       - name: Spotless check
-        if: steps.signing.outputs.has_signing == 'true'
-        run: ./gradlew spotlessCheck --stacktrace
+        run: ./gradlew spotlessCheck --build-cache --stacktrace
+
+      - name: Detekt
+        run: ./gradlew detekt --build-cache --stacktrace
 
       - name: Lint
-        if: steps.signing.outputs.has_signing == 'true'
-        run: ./gradlew lint --stacktrace
+        run: ./gradlew lint --build-cache --stacktrace
 
       - name: Unit tests
-        if: steps.signing.outputs.has_signing == 'true'
-        run: ./gradlew test --stacktrace
+        run: ./gradlew test --build-cache --stacktrace
 
       - name: Assemble signed release
-        if: steps.signing.outputs.has_signing == 'true'
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease :app:assembleCiRelease --build-cache --stacktrace
 
-      - name: Upload release artifacts
-        if: steps.signing.outputs.has_signing == 'true'
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p dist
+
+          apk_files=(app/build/outputs/apk/release/*.apk)
+          if [ "${#apk_files[@]}" -ne 1 ]; then
+            echo "Expected exactly one release APK, found ${#apk_files[@]}"
+            printf '%s\n' "${apk_files[@]}"
+            exit 1
+          fi
+
+          cp "${apk_files[0]}" "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-release-signed.apk"
+
+          if [ -d app/build/outputs/mapping/release ]; then
+            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-mapping-release.zip" .)
+          fi
+
+          git archive --format=zip \
+            --output "dist/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
+            HEAD
+
+          ls -la dist
+
+      - name: Upload release workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: signed-release-artifacts-${{ github.run_id }}
+          name: DeviceMasker-release-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/mapping/release/**
+            dist/**
             app/build/reports/**
             common/build/reports/**
             xposed/build/reports/**
           if-no-files-found: error
           retention-days: 14
 
-      - name: Report skipped signed release
-        if: steps.signing.outputs.has_signing != 'true'
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+          DRAFT_RELEASE: ${{ github.event.inputs.draft }}
         run: |
-          echo "Signed release artifact was skipped because release signing secrets are incomplete."
-          echo "Add KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS, and KEY_PASS as repository Actions secrets."
+          draft_arg=""
+          if [ "$DRAFT_RELEASE" = "true" ]; then
+            draft_arg="--draft"
+          fi
+
+          gh release create "$TAG_NAME" dist/* \
+            --title "DeviceMasker $TAG_NAME" \
+            --generate-notes \
+            --verify-tag \
+            $draft_arg

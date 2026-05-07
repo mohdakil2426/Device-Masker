@@ -4,6 +4,15 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-08 CI/CD And 0.1.1 Release Workflow
+
+- App release version moved to `gradle.properties` as `VERSION_NAME=0.1.1` and `VERSION_CODE=2`.
+- `app/build.gradle.kts` now reads version values through Gradle providers instead of hardcoded literals.
+- CI keeps quality/debug responsibilities only: it runs the existing checks plus `:app:assembleCiRelease` for R8 validation and uploads a renamed debug APK from `dist/`.
+- Signed release assembly was removed from CI.
+- `release.yml` is manual-only with `workflow_dispatch`; it checks that `tag_name` matches `v${VERSION_NAME}`, requires signing secrets, builds signed release plus `ciRelease`, prepares versioned APK/mapping/source artifacts under `dist/`, uploads Actions artifacts, and creates a draft-capable GitHub Release with generated notes.
+- Local verification passed: `.\gradlew.bat :app:assembleDebug --no-daemon` and `.\gradlew.bat spotlessCheck detekt :app:assembleCiRelease --no-daemon`; debug and `ciRelease` output metadata both showed `versionName=0.1.1`, `versionCode=2`.
+
 ## 2026-05-07 Dependency Candidate Updates
 
 - Updated the agreed low-risk candidates after checking Google Developer Knowledge, web search, and Maven metadata: Gradle wrapper `9.5.0`, Spotless `8.4.0`, Compose BOM `2026.05.00`, Material3 `1.5.0-alpha19`, and `adaptive-navigation3` `1.3.0-beta01`.

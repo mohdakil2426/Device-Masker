@@ -24,6 +24,7 @@
 | Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and single root/logcat support export |
 | Image loading | Coil Compose 3.4.0 |
 | Static analysis | Detekt 2.0.0-alpha.3 with Compose rules 0.5.8 |
+| App version | `VERSION_NAME=0.1.1`, `VERSION_CODE=2` in `gradle.properties` |
 
 ## Modules
 
@@ -81,6 +82,15 @@ Current expectations:
 | `docs/reports/IMPLEMENTATION_COMPLETION_SUMMARY_2026-05-04.md` | Plan completion summary |
 
 ## Build Commands
+
+Release prep:
+
+```powershell
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+Then run the manual `Manual Release` workflow with `tag_name=v0.1.1`.
 
 Primary gate:
 

@@ -58,6 +58,9 @@ jobs:
       - name: Unit tests
         run: ./gradlew test --build-cache --stacktrace
 
+      - name: R8 validation build
+        run: ./gradlew :app:assembleCiRelease --build-cache --stacktrace
+
       - name: Upload lint and test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,98 +101,25 @@ jobs:
       - name: Assemble debug
         run: ./gradlew assembleDebug --build-cache --stacktrace
 
+      - name: Prepare debug artifact
+        run: |
+          VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          VERSION_CODE=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
+          SHORT_SHA="${GITHUB_SHA::7}"
+          mkdir -p dist
+          apk_files=(app/build/outputs/apk/debug/*.apk)
+          if [ "${#apk_files[@]}" -ne 1 ]; then
+            echo "Expected exactly one debug APK, found ${#apk_files[@]}"
+            printf '%s\n' "${apk_files[@]}"
+            exit 1
+          fi
+          cp "${apk_files[0]}" "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-debug-${SHORT_SHA}.apk"
+
       - name: Upload debug APKs
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apks-${{ github.run_id }}
+          name: DeviceMasker-debug-${{ github.run_id }}
           path: |
-            app/build/outputs/apk/debug/*.apk
+            dist/*.apk
           if-no-files-found: error
           retention-days: 14
-
-  assemble-signed-release:
-    name: Assemble Signed Release
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs:
-      - quality
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
-        with:
-          cache-read-only: true
-
-      - name: Ensure Gradle wrapper is executable
-        run: chmod +x ./gradlew
-
-      - name: Check release signing secrets
-        id: signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASS: ${{ secrets.KEY_PASS }}
-        run: |
-          missing=()
-          [ -n "$KEYSTORE_BASE64" ] || missing+=("KEYSTORE_BASE64")
-          [ -n "$KEYSTORE_PASS" ] || missing+=("KEYSTORE_PASS")
-          [ -n "$KEY_ALIAS" ] || missing+=("KEY_ALIAS")
-          [ -n "$KEY_PASS" ] || missing+=("KEY_PASS")
-
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "Release signing secrets are incomplete: ${missing[*]}"
-            echo "has_signing=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "has_signing=true" >> "$GITHUB_OUTPUT"
-
-      - name: Decode release keystore
-        if: steps.signing.outputs.has_signing == 'true'
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASS: ${{ secrets.KEY_PASS }}
-        run: |
-          test -n "$KEYSTORE_BASE64"
-          test -n "$KEYSTORE_PASS"
-          test -n "$KEY_ALIAS"
-          test -n "$KEY_PASS"
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
-          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
-          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
-          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
-
-      - name: Assemble signed release
-        if: steps.signing.outputs.has_signing == 'true'
-        run: ./gradlew assembleRelease --build-cache --stacktrace
-
-      - name: Upload signed release artifacts
-        if: steps.signing.outputs.has_signing == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: signed-release-artifacts-${{ github.run_id }}
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/mapping/release/**
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Report skipped signed release
-        if: steps.signing.outputs.has_signing != 'true'
-        run: |
-          echo "Signed release artifact was skipped because release signing secrets are incomplete."
-          echo "Add KEYSTORE_BASE64, KEYSTORE_PASS, KEY_ALIAS, and KEY_PASS as repository Actions secrets."

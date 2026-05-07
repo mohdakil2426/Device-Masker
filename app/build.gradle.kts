@@ -20,6 +20,9 @@ kotlin {
     }
 }
 
+val appVersionName = providers.gradleProperty("VERSION_NAME").get()
+val appVersionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
+
 android {
     namespace = "com.astrixforge.devicemasker"
     compileSdk = 37
@@ -28,8 +31,8 @@ android {
         applicationId = "com.astrixforge.devicemasker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
