@@ -11,7 +11,7 @@
     <ID>CyclomaticComplexMethod:ConfigSync.kt:ConfigSync$internal fun syncApp</ID>
     <ID>CyclomaticComplexMethod:ExpressiveSwitch.kt:@Composable fun ExpressiveSwitch</ID>
     <ID>CyclomaticComplexMethod:MainActivity.kt:@Composable fun DeviceMaskerMainApp</ID>
-    <ID>CyclomaticComplexMethod:SIMCardContent.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
+    <ID>CyclomaticComplexMethod:SIMCardContent.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
     <ID>FunctionNaming:ActionBottomSheet.kt:@Composable private fun ActionItemRow</ID>
     <ID>FunctionNaming:ActionBottomSheet.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun ActionBottomSheet</ID>
     <ID>FunctionNaming:ActionBottomSheet.kt:@OptIn(ExperimentalMaterial3Api::class) @Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun ActionBottomSheetPreview</ID>
@@ -34,9 +34,9 @@
     <ID>FunctionNaming:BottomNavBar.kt:@Composable private fun AnimatedNavIcon</ID>
     <ID>FunctionNaming:BottomNavBar.kt:@Composable private fun RowScope.BottomNavItem</ID>
     <ID>FunctionNaming:CategorySection.kt:@Composable fun CategorySection</ID>
-    <ID>FunctionNaming:CorrelatedSpoofItem.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun CorrelatedSpoofItem</ID>
+    <ID>FunctionNaming:CorrelatedSpoofItem.kt:@Composable fun CorrelatedSpoofItem</ID>
     <ID>FunctionNaming:CountryPickerDialog.kt:@Composable fun CountryPickerDialog</ID>
-    <ID>FunctionNaming:DeviceHardwareContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun DeviceHardwareCategoryContent</ID>
+    <ID>FunctionNaming:DeviceHardwareContent.kt:@Composable fun DeviceHardwareCategoryContent</ID>
     <ID>FunctionNaming:DiagnosticsScreen.kt:@Composable fun DiagnosticsContent</ID>
     <ID>FunctionNaming:DiagnosticsScreen.kt:@Composable fun DiagnosticsScreen</ID>
     <ID>FunctionNaming:DiagnosticsScreen.kt:@Composable private fun AntiDetectionSection</ID>
@@ -101,8 +101,8 @@
     <ID>FunctionNaming:IconCircle.kt:@Composable fun IconCircle</ID>
     <ID>FunctionNaming:IconCircle.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun IconCircleLargePreview</ID>
     <ID>FunctionNaming:IconCircle.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun IconCirclePreview</ID>
-    <ID>FunctionNaming:IndependentSpoofItem.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun IndependentSpoofItem</ID>
-    <ID>FunctionNaming:LocationContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun LocationCategoryContent</ID>
+    <ID>FunctionNaming:IndependentSpoofItem.kt:@Composable fun IndependentSpoofItem</ID>
+    <ID>FunctionNaming:LocationContent.kt:@Composable fun LocationCategoryContent</ID>
     <ID>FunctionNaming:MainActivity.kt:@Composable fun DeviceMaskerMainApp</ID>
     <ID>FunctionNaming:MainActivity.kt:@Composable private fun NavRail</ID>
     <ID>FunctionNaming:MainActivity.kt:@Composable private fun RootAccessWarningDialog</ID>
@@ -112,8 +112,8 @@
     <ID>FunctionNaming:QuickActionGroup.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun QuickActionGroupPreview</ID>
     <ID>FunctionNaming:QuickActionGroup.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun QuickActionRowPreview</ID>
     <ID>FunctionNaming:QuickActionGroup.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun SelectionButtonGroupPreview</ID>
-    <ID>FunctionNaming:ReadOnlyValueRow.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun ReadOnlyValueRow</ID>
-    <ID>FunctionNaming:SIMCardContent.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
+    <ID>FunctionNaming:ReadOnlyValueRow.kt:@Composable fun ReadOnlyValueRow</ID>
+    <ID>FunctionNaming:SIMCardContent.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
     <ID>FunctionNaming:ScreenHeader.kt:@Composable fun ScreenHeader</ID>
     <ID>FunctionNaming:ScreenHeader.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun ScreenHeaderPreview</ID>
     <ID>FunctionNaming:ScreenHeader.kt:@Preview(showBackground = true, backgroundColor = 0xFF121212) @Composable private fun ScreenHeaderWithActionsPreview</ID>
@@ -173,7 +173,7 @@
     <ID>LongMethod:AppsTabContent.kt:@OptIn(FlowPreview::class) @Composable fun AppsTabContent</ID>
     <ID>LongMethod:CategorySection.kt:@Composable fun CategorySection</ID>
     <ID>LongMethod:CountryPickerDialog.kt:@Composable fun CountryPickerDialog</ID>
-    <ID>LongMethod:DeviceHardwareContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun DeviceHardwareCategoryContent</ID>
+    <ID>LongMethod:DeviceHardwareContent.kt:@Composable fun DeviceHardwareCategoryContent</ID>
     <ID>LongMethod:DiagnosticsScreen.kt:@Composable fun DiagnosticsContent</ID>
     <ID>LongMethod:ExpressiveSwitch.kt:@Composable fun ExpressiveSwitch</ID>
     <ID>LongMethod:GroupCard.kt:@Composable fun GroupCard</ID>
@@ -182,11 +182,11 @@
     <ID>LongMethod:GroupsScreen.kt:@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun GroupsScreenContent</ID>
     <ID>LongMethod:HomeScreen.kt:@Composable private fun GroupSelectorCard</ID>
     <ID>LongMethod:HomeScreen.kt:@Composable private fun StatusCard</ID>
-    <ID>LongMethod:LocationContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun LocationCategoryContent</ID>
+    <ID>LongMethod:LocationContent.kt:@Composable fun LocationCategoryContent</ID>
     <ID>LongMethod:LogManager.kt:LogManager$private suspend fun buildSupportBundle: File</ID>
     <ID>LongMethod:MainActivity.kt:@Composable fun DeviceMaskerMainApp</ID>
     <ID>LongMethod:MainActivity.kt:MainActivity$override fun onCreate</ID>
-    <ID>LongMethod:SIMCardContent.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
+    <ID>LongMethod:SIMCardContent.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
     <ID>LongMethod:SectionHeader.kt:@Composable fun SectionHeader</ID>
     <ID>LongMethod:SettingsScreen.kt:@Composable private fun SettingsScreenContent</ID>
     <ID>LongMethod:SettingsScreen.kt:@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SettingsScreen</ID>
@@ -224,14 +224,14 @@
     <ID>MaxLineLength:RootCaptureStore.kt:RootCaptureStore$"""{"trigger":"${trigger.jsonEscape()}","status":"${status.jsonEscape()}","message":"${message.jsonEscape()}","timestampMillis":${System.currentTimeMillis()}}"""</ID>
     <ID>MaxLineLength:RootLogCollector.kt:RootLogCollector$"logcat -d -v threadtime | grep -i -E 'DeviceMasker|LSPosed|lspd|AndroidRuntime|FATAL EXCEPTION|ANR|com.mantle.verify$targetPattern'"</ID>
     <ID>MaxLineLength:SIMCardContent.kt:"${selectedCountry?.emoji ?: "🌍"} ${selectedCountry?.name ?: selectedCountryIso}"</ID>
-    <ID>ModifierMissing:DeviceHardwareContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun DeviceHardwareCategoryContent</ID>
-    <ID>ModifierMissing:LocationContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun LocationCategoryContent</ID>
+    <ID>ModifierMissing:DeviceHardwareContent.kt:@Composable fun DeviceHardwareCategoryContent</ID>
+    <ID>ModifierMissing:LocationContent.kt:@Composable fun LocationCategoryContent</ID>
     <ID>ModifierMissing:MainActivity.kt:@Composable fun DeviceMaskerMainApp</ID>
-    <ID>ModifierMissing:ReadOnlyValueRow.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun ReadOnlyValueRow</ID>
-    <ID>ModifierMissing:SIMCardContent.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
-    <ID>MultipleEmitters:DeviceHardwareContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun DeviceHardwareCategoryContent</ID>
-    <ID>MultipleEmitters:LocationContent.kt:@OptIn(ExperimentalFoundationApi::class) @Composable fun LocationCategoryContent</ID>
-    <ID>MultipleEmitters:SIMCardContent.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
+    <ID>ModifierMissing:ReadOnlyValueRow.kt:@Composable fun ReadOnlyValueRow</ID>
+    <ID>ModifierMissing:SIMCardContent.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
+    <ID>MultipleEmitters:DeviceHardwareContent.kt:@Composable fun DeviceHardwareCategoryContent</ID>
+    <ID>MultipleEmitters:LocationContent.kt:@Composable fun LocationCategoryContent</ID>
+    <ID>MultipleEmitters:SIMCardContent.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun SIMCardCategoryContent</ID>
     <ID>ObjectPropertyNaming:XposedPrefs.kt:XposedPrefs$internal val _isServiceConnected = MutableStateFlow(false)</ID>
     <ID>ParameterNaming:CategorySection.kt:onTimezoneSelected: (String) -&gt; Unit</ID>
     <ID>ParameterNaming:CountryPickerDialog.kt:onCountrySelected: (Country) -&gt; Unit</ID>

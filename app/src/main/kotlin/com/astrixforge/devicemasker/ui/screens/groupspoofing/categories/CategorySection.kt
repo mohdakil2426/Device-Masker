@@ -58,7 +58,6 @@ fun CategorySection(
     onToggle: (SpoofType, Boolean) -> Unit,
     onCarrierChange: (Carrier) -> Unit,
     onTimezoneSelected: (String) -> Unit,
-    onCopy: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val categoryColor = category.themeColor()
@@ -169,7 +168,6 @@ fun CategorySection(
                                 onToggle = onToggle,
                                 onRegenerate = onRegenerate,
                                 onCarrierChange = onCarrierChange,
-                                onCopy = onCopy,
                             )
                         }
 
@@ -180,7 +178,6 @@ fun CategorySection(
                                 onRegenerate = onRegenerate,
                                 onRegenerateLocation = onRegenerateLocation,
                                 onTimezoneSelected = onTimezoneSelected,
-                                onCopy = onCopy,
                             )
                         }
 
@@ -190,7 +187,6 @@ fun CategorySection(
                                 onToggle = onToggle,
                                 onRegenerate = onRegenerate,
                                 onRegenerateCategory = onRegenerateCategory,
-                                onCopy = onCopy,
                             )
                         }
 
@@ -214,7 +210,6 @@ fun CategorySection(
                                         type = type,
                                         value = displayValue,
                                         isEnabled = isCategoryEnabled,
-                                        onCopy = { onCopy(displayValue) },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 } else {
@@ -225,7 +220,6 @@ fun CategorySection(
                                         isEnabled = isGroupEnabled,
                                         onToggle = { enabled -> onToggle(type, enabled) },
                                         onRegenerate = { onRegenerate(type) },
-                                        onCopy = { onCopy(displayValue) },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 }

@@ -6,7 +6,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,19 +45,14 @@ import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.IndependentSp
  * UI Structure:
  * 1. Location Selection Card - "Choose Location" switch, Timezone picker, Locale display
  * 2. Latitude/Longitude - Each has its own Switch + Regenerate (fully independent)
- *
- * Long-press on values to copy.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LocationCategoryContent(
     group: SpoofGroup?,
     onToggle: (SpoofType, Boolean) -> Unit,
     onRegenerate: (SpoofType) -> Unit,
-    @Suppress("UNUSED_PARAMETER") // Parameter kept for interface compatibility
-    onRegenerateLocation: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onRegenerateLocation: () -> Unit,
     onTimezoneSelected: (String) -> Unit,
-    onCopy: (String) -> Unit,
 ) {
     var showTimezoneDialog by remember { mutableStateOf(false) }
 
@@ -140,7 +134,6 @@ fun LocationCategoryContent(
                         ExpressiveOutlinedCard(
                             enabled = timezoneEnabled,
                             onClick = { showTimezoneDialog = true },
-                            onLongClick = { if (timezoneValue.isNotEmpty()) onCopy(timezoneValue) },
                             modifier = Modifier.width(200.dp),
                             shape = RoundedCornerShape(12.dp),
                         ) {
@@ -189,9 +182,8 @@ fun LocationCategoryContent(
 
                         // Locale display (same style as Carrier dropdown, but disabled/read-only)
                         ExpressiveOutlinedCard(
-                            enabled = false, // Read-only
+                            enabled = false,
                             onClick = { /* No action - read only */ },
-                            onLongClick = { if (localeValue.isNotEmpty()) onCopy(localeValue) },
                             modifier = Modifier.width(200.dp),
                             shape = RoundedCornerShape(12.dp),
                         ) {
@@ -226,7 +218,6 @@ fun LocationCategoryContent(
         isEnabled = latEnabled,
         onToggle = { enabled -> onToggle(SpoofType.LOCATION_LATITUDE, enabled) },
         onRegenerate = { onRegenerate(SpoofType.LOCATION_LATITUDE) },
-        onCopy = { onCopy(latValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 
@@ -239,7 +230,6 @@ fun LocationCategoryContent(
         isEnabled = longEnabled,
         onToggle = { enabled -> onToggle(SpoofType.LOCATION_LONGITUDE, enabled) },
         onRegenerate = { onRegenerate(SpoofType.LOCATION_LONGITUDE) },
-        onCopy = { onCopy(longValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 }

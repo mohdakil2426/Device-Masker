@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing.items
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,21 +23,17 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 /**
  * Display-only spoof item for correlated categories.
  *
- * No individual switch or regenerate - those are at the category level. Long-press on value to
- * copy.
+ * No individual switch or regenerate - those are at the category level.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CorrelatedSpoofItem(
     type: SpoofType,
     value: String,
     isEnabled: Boolean,
-    onCopy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ExpressiveCard(
         onClick = { /* Item click feedback */ },
-        onLongClick = onCopy,
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
         containerColor =

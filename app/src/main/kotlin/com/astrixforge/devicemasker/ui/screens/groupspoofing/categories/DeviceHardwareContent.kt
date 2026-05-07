@@ -6,7 +6,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,18 +41,13 @@ import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.ReadOnlyValue
  * - Device Profile (shows preset name)
  * - IMEI
  * - Serial
- *
- * Long-press on values to copy.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DeviceHardwareCategoryContent(
     group: SpoofGroup?,
     onToggle: (SpoofType, Boolean) -> Unit,
     onRegenerate: (SpoofType) -> Unit,
-    @Suppress("UNUSED_PARAMETER") // Parameter kept for interface compatibility
-    onRegenerateCategory: () -> Unit,
-    onCopy: (String) -> Unit,
+    @Suppress("UNUSED_PARAMETER") onRegenerateCategory: () -> Unit,
 ) {
     val deviceProfileEnabled = group?.isTypeEnabled(SpoofType.DEVICE_PROFILE) ?: false
     val deviceProfileRawValue = group?.getValue(SpoofType.DEVICE_PROFILE) ?: ""
@@ -69,10 +63,6 @@ fun DeviceHardwareCategoryContent(
 
     ExpressiveCard(
         onClick = { /* Card click feedback */ },
-        onLongClick = {
-            if (deviceProfileEnabled && deviceProfileDisplayValue.isNotEmpty())
-                onCopy(deviceProfileDisplayValue)
-        },
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -139,44 +129,36 @@ fun DeviceHardwareCategoryContent(
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_manufacturer),
                                 value = preset.manufacturer,
-                                onCopy = { onCopy(preset.manufacturer) },
                             )
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_brand),
                                 value = preset.brand,
-                                onCopy = { onCopy(preset.brand) },
                             )
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_model),
                                 value = preset.model,
-                                onCopy = { onCopy(preset.model) },
                             )
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_device),
                                 value = preset.device,
-                                onCopy = { onCopy(preset.device) },
                             )
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_product),
                                 value = preset.product,
-                                onCopy = { onCopy(preset.product) },
                             )
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_board),
                                 value = preset.board,
-                                onCopy = { onCopy(preset.board) },
                             )
                             ReadOnlyValueRow(
                                 label = stringResource(id = R.string.group_spoofing_fingerprint),
                                 value = preset.fingerprint,
-                                onCopy = { onCopy(preset.fingerprint) },
                             )
                             if (preset.securityPatch.isNotBlank()) {
                                 ReadOnlyValueRow(
                                     label =
                                         stringResource(id = R.string.group_spoofing_security_patch),
                                     value = preset.securityPatch,
-                                    onCopy = { onCopy(preset.securityPatch) },
                                 )
                             }
                         }
@@ -193,7 +175,6 @@ fun DeviceHardwareCategoryContent(
         isEnabled = imeiEnabled,
         onToggle = { enabled -> onToggle(SpoofType.IMEI, enabled) },
         onRegenerate = { onRegenerate(SpoofType.IMEI) },
-        onCopy = { onCopy(imeiValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 
@@ -204,7 +185,6 @@ fun DeviceHardwareCategoryContent(
         isEnabled = serialEnabled,
         onToggle = { enabled -> onToggle(SpoofType.SERIAL, enabled) },
         onRegenerate = { onRegenerate(SpoofType.SERIAL) },
-        onCopy = { onCopy(serialValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 }

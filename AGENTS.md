@@ -96,6 +96,7 @@ Rules:
 - Always Run Detekt after Kotlin/Compose changes; update baselines only for accepted existing debt.
 - Run module tests for touched modules; run the full gate before release/R8 claims.
 - Do not claim hook success without LSPosed/logcat evidence and target-app value checks where possible.
+- When getting any errors and build failed, examine it and find root couse,and must use mcp Google-developer-knowledge mcp and web search and also chek-out available skills to find best possible solutions.
 
 ## Xposed Safety
 

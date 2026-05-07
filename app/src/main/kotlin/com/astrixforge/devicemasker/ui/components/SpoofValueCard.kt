@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.MaterialTheme
@@ -37,13 +36,12 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 /**
  * Card displaying a single spoof value with controls.
  *
- * Shows the identifier label, current value, and action buttons for regenerating, editing, and
- * copying the value.
+ * Shows the identifier label, current value, and action buttons for regenerating and editing the
+ * value.
  *
  * @param identifier The device identifier to display
  * @param onRegenerate Callback to regenerate the value
  * @param onEdit Callback to edit the value
- * @param onCopy Callback to copy the value to clipboard
  * @param onToggle Callback to enable/disable this spoof
  * @param modifier Optional modifier
  * @param showActions Whether to show action buttons
@@ -54,7 +52,6 @@ fun SpoofValueCard(
     identifier: DeviceIdentifier,
     onRegenerate: () -> Unit,
     onEdit: (String) -> Unit,
-    onCopy: () -> Unit,
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     showActions: Boolean = true,
@@ -138,14 +135,6 @@ fun SpoofValueCard(
                         onClick = { onEdit(identifier.value ?: "") },
                         icon = Icons.Default.Edit,
                         contentDescription = stringResource(id = R.string.action_edit_item),
-                    )
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    CompactExpressiveIconButton(
-                        onClick = onCopy,
-                        icon = Icons.Default.ContentCopy,
-                        contentDescription = stringResource(id = R.string.action_copy),
                     )
                 }
             }
@@ -269,7 +258,6 @@ private fun SpoofValueCardPreview() {
                 ),
             onRegenerate = {},
             onEdit = {},
-            onCopy = {},
             onToggle = {},
         )
     }
@@ -288,7 +276,6 @@ private fun SpoofValueCardMaskedPreview() {
                 ),
             onRegenerate = {},
             onEdit = {},
-            onCopy = {},
             onToggle = {},
             maskValue = true,
         )

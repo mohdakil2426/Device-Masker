@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing.categories
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,17 +49,14 @@ import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.ReadOnlyValue
  * 1. Carrier Selection Card - Country picker + Carrier dropdown
  * 2. Locked Values Section - Read-only derived values (no switch/regenerate)
  * 3. Regeneratable Values Section - Phone, IMSI, ICCID with regenerate buttons
- *
- * Long-press on any value to copy.
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SIMCardCategoryContent(
     group: SpoofGroup?,
     onToggle: (SpoofType, Boolean) -> Unit,
     onRegenerate: (SpoofType) -> Unit,
     onCarrierChange: (Carrier) -> Unit,
-    onCopy: (String) -> Unit,
 ) {
     // State for country picker dialog
     var showCountryPicker by rememberSaveable { mutableStateOf(false) }
@@ -277,36 +273,12 @@ fun SIMCardCategoryContent(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        ReadOnlyValueRow(
-                            label = "SIM Country",
-                            value = simCountryValue,
-                            onCopy = { onCopy(simCountryValue) },
-                        )
-                        ReadOnlyValueRow(
-                            label = "Network Country",
-                            value = networkCountryValue,
-                            onCopy = { onCopy(networkCountryValue) },
-                        )
-                        ReadOnlyValueRow(
-                            label = "MCC/MNC",
-                            value = mccMncValue,
-                            onCopy = { onCopy(mccMncValue) },
-                        )
-                        ReadOnlyValueRow(
-                            label = "Carrier Name",
-                            value = carrierNameValue,
-                            onCopy = { onCopy(carrierNameValue) },
-                        )
-                        ReadOnlyValueRow(
-                            label = "SIM Operator",
-                            value = simOperatorValue,
-                            onCopy = { onCopy(simOperatorValue) },
-                        )
-                        ReadOnlyValueRow(
-                            label = "Network Operator",
-                            value = networkOperatorValue,
-                            onCopy = { onCopy(networkOperatorValue) },
-                        )
+                        ReadOnlyValueRow(label = "SIM Country", value = simCountryValue)
+                        ReadOnlyValueRow(label = "Network Country", value = networkCountryValue)
+                        ReadOnlyValueRow(label = "MCC/MNC", value = mccMncValue)
+                        ReadOnlyValueRow(label = "Carrier Name", value = carrierNameValue)
+                        ReadOnlyValueRow(label = "SIM Operator", value = simOperatorValue)
+                        ReadOnlyValueRow(label = "Network Operator", value = networkOperatorValue)
                     }
                 }
             }
@@ -324,7 +296,6 @@ fun SIMCardCategoryContent(
         isEnabled = phoneEnabled,
         onToggle = { enabled -> onToggle(SpoofType.PHONE_NUMBER, enabled) },
         onRegenerate = { onRegenerate(SpoofType.PHONE_NUMBER) },
-        onCopy = { onCopy(phoneValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 
@@ -335,7 +306,6 @@ fun SIMCardCategoryContent(
         isEnabled = imsiEnabled,
         onToggle = { enabled -> onToggle(SpoofType.IMSI, enabled) },
         onRegenerate = { onRegenerate(SpoofType.IMSI) },
-        onCopy = { onCopy(imsiValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 
@@ -346,7 +316,6 @@ fun SIMCardCategoryContent(
         isEnabled = iccidEnabled,
         onToggle = { enabled -> onToggle(SpoofType.ICCID, enabled) },
         onRegenerate = { onRegenerate(SpoofType.ICCID) },
-        onCopy = { onCopy(iccidValue) },
         modifier = Modifier.fillMaxWidth(),
     )
 }
