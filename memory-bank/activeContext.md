@@ -4,6 +4,14 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-07 Dependency Candidate Updates
+
+- Updated the agreed low-risk candidates after checking Google Developer Knowledge, web search, and Maven metadata: Gradle wrapper `9.5.0`, Spotless `8.4.0`, Compose BOM `2026.05.00`, Material3 `1.5.0-alpha19`, and `adaptive-navigation3` `1.3.0-beta01`.
+- Catalog currently contains Kotlin `2.3.21`; this was present in the working diff during the update and was verified by the build, but it was not part of the agreed candidate set.
+- `spotlessApply` was required because the dependency gate exposed existing formatting violations; it mechanically formatted touched Kotlin files.
+- Verification passed: `.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon` and `.\gradlew.bat assembleRelease :app:assembleCiRelease --no-daemon`.
+- `graphify update .` refreshed the graph after source formatting changes.
+
 ## 2026-05-07 Single Root-Backed Export Implementation
 
 - Settings export is now a single `Export Logs` sheet with Save and Share actions.

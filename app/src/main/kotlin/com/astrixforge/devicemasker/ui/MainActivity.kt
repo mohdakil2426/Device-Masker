@@ -78,7 +78,7 @@ import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsScreen
 import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModel
 import com.astrixforge.devicemasker.ui.screens.groups.GroupsScreen
 import com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModel
-import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingScreen
+import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingScreenContent
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModel
 import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
 import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
@@ -419,7 +419,7 @@ fun DeviceMaskerMainApp(
                             val groupSpoofingViewModel = viewModel {
                                 GroupSpoofingViewModel(repository, destination.groupId)
                             }
-                            GroupSpoofingScreen(
+                            GroupSpoofingScreenContent(
                                 viewModel = groupSpoofingViewModel,
                                 onNavigateBack = navigationBackHandler,
                             )

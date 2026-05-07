@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.tabs.AppsTabContent
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.tabs.SpoofTabContent
@@ -55,7 +56,8 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroupSpoofingScreen(
+@Suppress("FunctionNaming", "ViewModelForwarding")
+fun GroupSpoofingScreenContent(
     viewModel: GroupSpoofingViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -90,83 +92,104 @@ fun GroupSpoofingScreen(
             ExpressiveLoadingIndicator(modifier = Modifier.align(Alignment.Center))
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.group_spoofing_back),
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = group.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                // Tab Row
-                SecondaryTabRow(selectedTabIndex = pagerState.currentPage) {
-                    Tab(
-                        selected = pagerState.currentPage == 0,
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
-                        text = { Text(stringResource(id = R.string.group_spoofing_tab_spoof)) },
-                        icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-                    )
-                    Tab(
-                        selected = pagerState.currentPage == 1,
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                        text = { Text(stringResource(id = R.string.group_spoofing_tab_apps)) },
-                        icon = { Icon(Icons.Filled.Apps, contentDescription = null) },
-                    )
-                }
-
-                // Pager content
-                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-                    when (page) {
-                        0 ->
-                            SpoofTabContent(
-                                group = group,
-                                onRegenerate = { type -> viewModel.regenerateValue(type) },
-                                onRegenerateCategory = { category ->
-                                    viewModel.regenerateCategory(
-                                        category.types,
-                                        category.isCorrelated,
-                                    )
-                                },
-                                onToggle = { type, enabled ->
-                                    viewModel.toggleSpoofType(type, enabled)
-                                },
-                                onRegenerateLocation = { viewModel.regenerateLocation() },
-                                onCarrierChange = { carrier -> viewModel.updateCarrier(carrier) },
-                                onTimezoneSelected = { timezone ->
-                                    viewModel.updateTimezone(timezone)
-                                },
-                            )
-
-                        1 ->
-                            AppsTabContent(
-                                group = group,
-                                allGroups = groups,
-                                installedApps = installedApps,
-                                onAppToggle = { app, checked ->
-                                    if (checked) {
-                                        viewModel.addAppToGroup(app.packageName)
-                                    } else {
-                                        viewModel.removeAppFromGroup(app.packageName)
-                                    }
-                                },
-                            )
-                    }
-                }
+                GroupSpoofingHeader(groupName = group.name, onNavigateBack = onNavigateBack)
+                GroupSpoofingTabs(pagerState = pagerState, coroutineScope = coroutineScope)
+                GroupSpoofingPager(
+                    pagerState = pagerState,
+                    group = group,
+                    groups = groups,
+                    installedApps = installedApps,
+                    viewModel = viewModel,
+                )
             }
+        }
+    }
+}
+
+@Composable
+@Suppress("FunctionNaming")
+private fun GroupSpoofingHeader(groupName: String, onNavigateBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onNavigateBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(id = R.string.group_spoofing_back),
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = groupName,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+@Suppress("FunctionNaming")
+private fun GroupSpoofingTabs(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+) {
+    SecondaryTabRow(selectedTabIndex = pagerState.currentPage) {
+        Tab(
+            selected = pagerState.currentPage == 0,
+            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
+            text = { Text(stringResource(id = R.string.group_spoofing_tab_spoof)) },
+            icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
+        )
+        Tab(
+            selected = pagerState.currentPage == 1,
+            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
+            text = { Text(stringResource(id = R.string.group_spoofing_tab_apps)) },
+            icon = { Icon(Icons.Filled.Apps, contentDescription = null) },
+        )
+    }
+}
+
+@Composable
+@Suppress("FunctionNaming", "ViewModelForwarding")
+private fun GroupSpoofingPager(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    group: com.astrixforge.devicemasker.common.SpoofGroup,
+    groups: List<com.astrixforge.devicemasker.common.SpoofGroup>,
+    installedApps: List<InstalledApp>,
+    viewModel: GroupSpoofingViewModel,
+) {
+    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+        when (page) {
+            0 ->
+                SpoofTabContent(
+                    group = group,
+                    onRegenerate = { type -> viewModel.regenerateValue(type) },
+                    onRegenerateCategory = { category ->
+                        viewModel.regenerateCategory(category.types, category.isCorrelated)
+                    },
+                    onToggle = { type, enabled -> viewModel.toggleSpoofType(type, enabled) },
+                    onRegenerateLocation = { viewModel.regenerateLocation() },
+                    onCarrierChange = { carrier -> viewModel.updateCarrier(carrier) },
+                    onTimezoneSelected = { timezone -> viewModel.updateTimezone(timezone) },
+                )
+
+            1 ->
+                AppsTabContent(
+                    group = group,
+                    allGroups = groups,
+                    installedApps = installedApps,
+                    onAppToggle = { app, checked ->
+                        if (checked) {
+                            viewModel.addAppToGroup(app.packageName)
+                        } else {
+                            viewModel.removeAppFromGroup(app.packageName)
+                        }
+                    },
+                )
         }
     }
 }

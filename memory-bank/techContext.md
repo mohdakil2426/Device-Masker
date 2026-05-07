@@ -4,14 +4,14 @@
 
 | Area | Current |
 | --- | --- |
-| Language | Kotlin 2.3.0 |
+| Language | Kotlin 2.3.21 |
 | Android | compile SDK 37, target SDK 36, min SDK 26 |
-| Build | Android Gradle Plugin 9.2.0 |
+| Build | Android Gradle Plugin 9.2.1, Gradle wrapper 9.5.0 |
 | Java/Kotlin toolchain | JVM 17 for Android modules |
-| UI | Jetpack Compose BOM 2026.04.01 |
-| Material | Material 3 1.5.0-alpha18 |
+| UI | Jetpack Compose BOM 2026.05.00 |
+| Material | Material 3 1.5.0-alpha19 |
 | Navigation | Navigation 3 runtime/ui 1.1.1, lifecycle-viewmodel-navigation3 2.10.0 |
-| Adaptive navigation | material3-adaptive-navigation3 1.3.0-alpha10 |
+| Adaptive navigation | material3-adaptive-navigation3 1.3.0-beta01 |
 | Lifecycle | Lifecycle 2.10.0 |
 | Hooking | libxposed API 101.0.1 |
 | App-side Xposed service | libxposed service/interface 101.0.0 |

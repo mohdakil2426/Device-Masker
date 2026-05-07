@@ -78,6 +78,25 @@ devicemasker/
 
 All agent-created and user-created build logs, device logs, temporary captures, smoke-test exports, and scratch evidence must stay under `logs/` using the closest matching subfolder. Do not scatter temporary evidence files in the project root.
 
+## Commands And Rules
+
+Use Windows Gradle wrapper commands from repo root.
+
+```powershell
+.\gradlew.bat spotlessApply --no-daemon
+.\gradlew.bat spotlessCheck --no-daemon
+.\gradlew.bat detekt --no-daemon
+.\gradlew.bat :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon
+.\gradlew.bat lint test assembleDebug --no-daemon
+.\gradlew.bat assembleRelease :app:assembleCiRelease --no-daemon
+```
+
+Rules:
+- Format with Spotless; do not hand-format unrelated code.
+- Always Run Detekt after Kotlin/Compose changes; update baselines only for accepted existing debt.
+- Run module tests for touched modules; run the full gate before release/R8 claims.
+- Do not claim hook success without LSPosed/logcat evidence and target-app value checks where possible.
+
 ## Xposed Safety
 
 **Every hook must:**

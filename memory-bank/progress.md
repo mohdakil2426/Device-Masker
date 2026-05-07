@@ -20,6 +20,9 @@
 
 ## Latest Audit Remediation
 
+- Dependency candidate update completed after checking Google Developer Knowledge, web search, and Maven metadata: Gradle wrapper `9.5.0`, Spotless `8.4.0`, Compose BOM `2026.05.00`, Material3 `1.5.0-alpha19`, and `adaptive-navigation3` `1.3.0-beta01`.
+- Verification passed with `spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon` and `assembleRelease :app:assembleCiRelease --no-daemon`.
+- `graphify update .` completed after Spotless-formatted source changes.
 - Fixed current live coroutine/performance audit issues across `:app`, `:common`, and `:xposed`.
 - Production app sources no longer contain `runBlocking` or `Thread.sleep` from the audited paths.
 - `AppLogStore` uses non-blocking channel append plus monitor-based flush.

@@ -191,7 +191,7 @@ fun SettingsScreen(
     }
 
     if (showExportSheet) {
-        ExportActionsBottomSheet(
+        ExportActionsBottomSheetContent(
             title = exportSheetTitle,
             saveLabel = saveTitle,
             saveDescription = saveDesc,
@@ -206,7 +206,8 @@ fun SettingsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExportActionsBottomSheet(
+@Suppress("FunctionNaming")
+private fun ExportActionsBottomSheetContent(
     title: String,
     saveLabel: String,
     saveDescription: String,

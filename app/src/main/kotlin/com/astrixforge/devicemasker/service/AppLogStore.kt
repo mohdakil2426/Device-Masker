@@ -174,13 +174,14 @@ class AppLogStore(
     private fun flushPendingWrites() {
         synchronized(pendingMonitor) {
             while (pendingEvents.get() > 0) {
-                pendingMonitor.wait(1_000)
+                pendingMonitor.wait(FLUSH_WAIT_TIMEOUT_MS)
             }
         }
     }
 
     companion object {
         private const val DEFAULT_MAX_ENTRIES = 500
+        private const val FLUSH_WAIT_TIMEOUT_MS = 1_000L
 
         fun from(context: Context): AppLogStore =
             AppLogStore(File(File(File(context.filesDir, "logs"), "sessions"), "session_app"))
