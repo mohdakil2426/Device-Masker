@@ -1,6 +1,6 @@
 # Device Masker Architecture And Runtime Guide
 
-Date: 2026-05-08
+Date: 2026-05-09
 
 ## Summary
 
@@ -14,6 +14,7 @@ Device Masker is an Android LSPosed/libxposed module that lets a user configure 
 - Keep shared contracts in `:common`.
 - Keep target-process hook logic in `:xposed`.
 - Keep UI, local JSON, and config sync in `:app`.
+- Keep local validation in `:verifier`, separate from the production APK.
 - Use LSPosed logs as the reliable proof of runtime hook behavior.
 - Do not use a custom diagnostics Binder.
 - Keep release R8 enabled; runtime hook callbacks must use the `StableHooker` path.
@@ -33,6 +34,7 @@ flowchart TD
     XPrefs["XposedPrefs"]
     Remote["libxposed RemotePreferences"]
     Common[":common"]
+    Verifier[":verifier"]
     Entry[":xposed XposedEntry"]
     Hookers["Spoof hookers"]
     Anti["AntiDetectHooker"]
@@ -47,6 +49,7 @@ flowchart TD
     Config --> Json
     Config --> Sync --> XPrefs --> Remote
     App --> Common
+    Verifier --> Target
     Entry --> Common
     Entry --> Anti
     Entry --> Hookers
@@ -64,8 +67,9 @@ flowchart TD
 | Module | Responsibility | Must Not Do |
 | --- | --- | --- |
 | `:app` | UI, local config, config persistence, RemotePreferences writes, rootless logs, diagnostics UI | Run target-process hook logic |
-| `:common` | Shared models, generators, `SharedPrefsKeys`, config contracts | Depend on Compose or Xposed runtime |
+| `:common` | Shared models, generators, `SharedPrefsKeys`, `DevicePersona`, config contracts | Depend on Compose or Xposed runtime |
 | `:xposed` | libxposed entry, hooks, anti-detection, LSPosed logging | Generate fresh spoof identities or read app-private JSON |
+| `:verifier` | Local target app that reads framework surfaces and writes `files/verifier/latest.json` | Ship as the production app |
 
 ## Configuration Model
 
@@ -75,6 +79,7 @@ flowchart LR
     AppConfigs["appConfigs"]
     Groups["spoofGroups"]
     Values["Spoof values"]
+    Persona["DevicePersona blob"]
     Keys["SharedPrefsKeys"]
     Remote["RemotePreferences"]
     Hook["Target hook"]
@@ -82,8 +87,10 @@ flowchart LR
     JsonConfig --> AppConfigs
     JsonConfig --> Groups
     Groups --> Values
+    Groups --> Persona
     AppConfigs --> Keys
     Values --> Keys
+    Persona --> Keys
     Keys --> Remote --> Hook
 ```
 
@@ -91,9 +98,9 @@ Rules:
 - `JsonConfig.appConfigs` is canonical.
 - `SpoofGroup.assignedApps` is legacy/display compatibility only.
 - `SharedPrefsKeys` builds all RemotePreferences keys.
-- `ConfigSync` writes flattened per-app keys.
+- `ConfigSync` writes flattened per-app keys plus a coherent per-package `DevicePersona` blob/version.
 - Full sync clears stale package keys.
-- Hookers read stored values only.
+- Hookers read stored values only; persona fallback is allowed only after a spoof type is enabled.
 
 ## Config Flow
 
