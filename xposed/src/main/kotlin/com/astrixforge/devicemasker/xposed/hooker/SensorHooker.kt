@@ -1,8 +1,10 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
+import android.hardware.Sensor
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -18,6 +20,11 @@ import io.github.libxposed.api.XposedInterface
  * device-specific and hard to spoof individually.
  */
 object SensorHooker : BaseSpoofHooker("SensorHooker") {
+
+    private const val TYPE_ALL = -1
+    private const val SENSOR_LIST_FINGERPRINT_THRESHOLD = 10
+    private const val MAX_NORMALIZED_SENSOR_VERSION = 3
+    private const val NORMALIZED_SENSOR_VERSION = 1
 
     // Sensor types that should always be present on modern Android devices
     private val ESSENTIAL_SENSOR_TYPES =
@@ -44,30 +51,15 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         val smClass = cl.loadClassOrNull("android.hardware.SensorManager") ?: return
         safeHook("SensorManager.getSensorList(int)") {
             smClass.methodOrNull("getSensorList", Int::class.javaPrimitiveType!!)?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val type = chain.args.firstOrNull() as? Int ?: return@intercept result
-                    // Only filter TYPE_ALL to avoid breaking individual-type queries
-                    if (type != -1) return@intercept result
-                    @Suppress("UNCHECKED_CAST")
-                    val sensors = result as? List<Any> ?: return@intercept result
-                    if (sensors.size <= 10)
-                        return@intercept result // Small list — no suspicious fingerprint risk
-                    val filtered =
-                        sensors.filter { sensor ->
-                            runCatching {
-                                    val sensorType =
-                                        sensor.javaClass.getMethod("getType").invoke(sensor) as Int
-                                    sensorType in ESSENTIAL_SENSOR_TYPES
-                                }
-                                .getOrDefault(true)
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val type =
+                                chain.args.firstOrNull() as? Int ?: return@stableHooker result
+                            filteredSensorListOrOriginal(type, result, pkg)
                         }
-
-                    if (sensors.size != filtered.size) {
-                        reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                    }
-                    filtered
-                }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -79,39 +71,78 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         preset: DeviceProfilePreset?,
     ) {
         val sensorClass = cl.loadClassOrNull("android.hardware.Sensor") ?: return
+        hookSensorVendor(sensorClass, xi, preset)
+        hookSensorVersion(sensorClass, xi)
+        hookSensorName(sensorClass, xi)
+    }
+
+    private fun hookSensorVendor(
+        sensorClass: Class<*>,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+    ) {
         safeHook("Sensor.getVendor()") {
             sensorClass.methodOrNull("getVendor")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    if (preset != null && preset.manufacturer.isNotEmpty()) preset.manufacturer
-                    else result
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            if (preset != null && preset.manufacturer.isNotEmpty())
+                                preset.manufacturer
+                            else result
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun hookSensorVersion(sensorClass: Class<*>, xi: XposedInterface) {
         safeHook("Sensor.getVersion()") {
             sensorClass.methodOrNull("getVersion")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val version = result as? Int ?: return@intercept result
-                    if (version > 3) 1 else result
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val version = result as? Int ?: return@stableHooker result
+                            if (version > MAX_NORMALIZED_SENSOR_VERSION) NORMALIZED_SENSOR_VERSION
+                            else result
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun hookSensorName(sensorClass: Class<*>, xi: XposedInterface) {
         safeHook("Sensor.getName()") {
             sensorClass.methodOrNull("getName")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    var name = result as? String ?: return@intercept result
-                    val prefixes = listOf("Qualcomm ", "MediaTek ", "Samsung ")
-                    for (prefix in prefixes) {
-                        name = name.replace(prefix, "")
-                    }
-                    name
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            var name = result as? String ?: return@stableHooker result
+                            val prefixes = listOf("Qualcomm ", "MediaTek ", "Samsung ")
+                            for (prefix in prefixes) {
+                                name = name.replace(prefix, "")
+                            }
+                            name
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun filteredSensorListOrOriginal(type: Int, result: Any?, pkg: String): Any? {
+        if (type != TYPE_ALL) return result
+
+        @Suppress("UNCHECKED_CAST") val sensors = result as? List<Any> ?: return result
+        if (sensors.size <= SENSOR_LIST_FINGERPRINT_THRESHOLD) return result
+
+        val filtered =
+            sensors.filter { sensor -> sensor !is Sensor || sensor.type in ESSENTIAL_SENSOR_TYPES }
+        if (sensors.size != filtered.size) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+        return filtered
     }
 }

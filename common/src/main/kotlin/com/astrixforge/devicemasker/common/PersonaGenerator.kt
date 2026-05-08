@@ -1,11 +1,8 @@
 package com.astrixforge.devicemasker.common
 
 import com.astrixforge.devicemasker.common.models.Carrier
-import com.astrixforge.devicemasker.common.models.GPSBounds
 import com.astrixforge.devicemasker.common.models.LocationConfig
-import java.security.MessageDigest
 import java.util.Locale
-import java.util.UUID
 
 /**
  * Builds a coherent per-package [DevicePersona] from a [SpoofGroup].
@@ -63,8 +60,8 @@ object PersonaGenerator {
         if (preset == null) {
             issues += "Unknown device profile: ${persona.deviceProfileId}"
         } else {
-            val tac = persona.hardware.primaryImei.take(8)
-            if (preset.tacPrefixes.none { tac.startsWith(it.take(6)) }) {
+            val tac = persona.hardware.primaryImei.take(TAC_LENGTH)
+            if (preset.tacPrefixes.none { tac.startsWith(it.take(TAC_VALIDATION_PREFIX_LENGTH)) }) {
                 issues += "Primary IMEI does not align with preset TAC prefixes"
             }
         }
@@ -82,7 +79,7 @@ object PersonaGenerator {
         if (persona.networkEnvironment.ssid.isBlank()) {
             issues += "SSID must not be blank"
         }
-        if (persona.networkEnvironment.bssid.count { it == ':' } != 5) {
+        if (persona.networkEnvironment.bssid.count { it == ':' } != MAC_BYTES - 1) {
             issues += "BSSID must be MAC-like"
         }
         if (
@@ -92,7 +89,7 @@ object PersonaGenerator {
                     persona.tracking.advertisingId,
                     persona.tracking.mediaDrmId,
                 )
-                .size < 4
+                .size < MIN_DISTINCT_TRACKING_IDS
         ) {
             issues += "Tracking identifiers must remain distinct"
         }
@@ -161,12 +158,7 @@ object PersonaGenerator {
                 timezone ?: pickFrom(rootSeed, "timezone:$countryIso", countryTimezones(countryIso))
             val resolvedLocale =
                 locale ?: pickFrom(rootSeed, "locale:$countryIso", countryLocales(countryIso))
-            val bounds =
-                pickFrom(
-                    rootSeed,
-                    "bounds:$countryIso",
-                    COUNTRY_GPS_BOUNDS[countryIso] ?: listOf(DEFAULT_GPS_BOUNDS),
-                )
+            val bounds = pickFrom(rootSeed, "bounds:$countryIso", gpsBoundsFor(countryIso))
             LocationConfig(
                 country = carrier.countryIso,
                 timezone = resolvedTimezone,
@@ -239,42 +231,28 @@ object PersonaGenerator {
         val primary =
             SubscriptionPersona(
                 slotIndex = 0,
-                carrierName =
-                    group.getExplicitOverrideValue(SpoofType.CARRIER_NAME)
-                        ?: group.getValue(SpoofType.CARRIER_NAME)
-                        ?: carrier.name,
-                carrierMccMnc =
-                    group.getExplicitOverrideValue(SpoofType.CARRIER_MCC_MNC)
-                        ?: group.getValue(SpoofType.CARRIER_MCC_MNC)
-                        ?: carrier.mccMnc,
-                simOperatorName =
-                    group.getExplicitOverrideValue(SpoofType.SIM_OPERATOR_NAME)
-                        ?: group.getValue(SpoofType.SIM_OPERATOR_NAME)
-                        ?: carrier.name,
-                networkOperator =
-                    group.getExplicitOverrideValue(SpoofType.NETWORK_OPERATOR)
-                        ?: group.getValue(SpoofType.NETWORK_OPERATOR)
-                        ?: carrier.mccMnc,
-                simCountryIso =
-                    group.getExplicitOverrideValue(SpoofType.SIM_COUNTRY_ISO)
-                        ?: group.getValue(SpoofType.SIM_COUNTRY_ISO)
-                        ?: carrier.countryIsoLower,
+                carrierName = group.valueFor(SpoofType.CARRIER_NAME, carrier.name),
+                carrierMccMnc = group.valueFor(SpoofType.CARRIER_MCC_MNC, carrier.mccMnc),
+                simOperatorName = group.valueFor(SpoofType.SIM_OPERATOR_NAME, carrier.name),
+                networkOperator = group.valueFor(SpoofType.NETWORK_OPERATOR, carrier.mccMnc),
+                simCountryIso = group.valueFor(SpoofType.SIM_COUNTRY_ISO, carrier.countryIsoLower),
                 networkCountryIso =
-                    group.getExplicitOverrideValue(SpoofType.NETWORK_COUNTRY_ISO)
-                        ?: group.getValue(SpoofType.NETWORK_COUNTRY_ISO)
-                        ?: carrier.countryIsoLower,
+                    group.valueFor(SpoofType.NETWORK_COUNTRY_ISO, carrier.countryIsoLower),
                 phoneNumber =
-                    group.getExplicitOverrideValue(SpoofType.PHONE_NUMBER)
-                        ?: group.getValue(SpoofType.PHONE_NUMBER)
-                        ?: deterministicPhoneNumber(rootSeed, "phone-primary", carrier),
+                    group.valueFor(
+                        type = SpoofType.PHONE_NUMBER,
+                        defaultValue = deterministicPhoneNumber(rootSeed, "phone-primary", carrier),
+                    ),
                 imsi =
-                    group.getExplicitOverrideValue(SpoofType.IMSI)
-                        ?: group.getValue(SpoofType.IMSI)
-                        ?: deterministicImsi(rootSeed, "imsi-primary", carrier),
+                    group.valueFor(
+                        type = SpoofType.IMSI,
+                        defaultValue = deterministicImsi(rootSeed, "imsi-primary", carrier),
+                    ),
                 iccid =
-                    group.getExplicitOverrideValue(SpoofType.ICCID)
-                        ?: group.getValue(SpoofType.ICCID)
-                        ?: deterministicIccid(rootSeed, "iccid-primary", carrier),
+                    group.valueFor(
+                        type = SpoofType.ICCID,
+                        defaultValue = deterministicIccid(rootSeed, "iccid-primary", carrier),
+                    ),
             )
 
         if (preset.simCount <= 1) {
@@ -291,6 +269,9 @@ object PersonaGenerator {
             ),
         )
     }
+
+    private fun SpoofGroup.valueFor(type: SpoofType, defaultValue: String): String =
+        getExplicitOverrideValue(type) ?: getValue(type) ?: defaultValue
 
     private fun resolveNetworkEnvironment(
         group: SpoofGroup,
@@ -325,11 +306,11 @@ object PersonaGenerator {
         TrackingPersona(
             androidId =
                 group.getExplicitOverrideValue(SpoofType.ANDROID_ID)
-                    ?: deterministicHex(rootSeed, "android-id:$packageName", 8),
+                    ?: deterministicHex(rootSeed, "android-id:$packageName", ID_BYTES),
             gsfId =
                 group.getExplicitOverrideValue(SpoofType.GSF_ID)
                     ?: group.getValue(SpoofType.GSF_ID)
-                    ?: deterministicHex(rootSeed, "gsf-id", 8),
+                    ?: deterministicHex(rootSeed, "gsf-id", ID_BYTES),
             advertisingId =
                 group.getExplicitOverrideValue(SpoofType.ADVERTISING_ID)
                     ?: group.getValue(SpoofType.ADVERTISING_ID)
@@ -337,297 +318,6 @@ object PersonaGenerator {
             mediaDrmId =
                 group.getExplicitOverrideValue(SpoofType.MEDIA_DRM_ID)
                     ?: group.getValue(SpoofType.MEDIA_DRM_ID)
-                    ?: deterministicHex(rootSeed, "media-drm-id", 32),
+                    ?: deterministicHex(rootSeed, "media-drm-id", MEDIA_DRM_BYTES),
         )
-
-    private fun generateSsid(rootSeed: String, carrier: Carrier, location: LocationConfig): String {
-        val countryPatterns =
-            when (carrier.countryIso.uppercase(Locale.US)) {
-                "US" ->
-                    listOf(
-                        "\"NETGEAR-${deterministicHex(rootSeed, "ssid-us-netgear", 2).uppercase(Locale.US)}\"",
-                        "\"ATT-${deterministicHex(rootSeed, "ssid-us-att", 3).uppercase(Locale.US)}\"",
-                        "\"${carrier.name}_5G\"",
-                    )
-                "IN" ->
-                    listOf(
-                        "\"${carrier.name}Fiber-${deterministicDigits(rootSeed, "ssid-in-fiber", 4)}\"",
-                        "\"Airtel_Xstream_${deterministicDigits(rootSeed, "ssid-in-airtel", 3)}\"",
-                        "\"JioFiber-${deterministicHex(rootSeed, "ssid-in-jio", 2).uppercase(Locale.US)}\"",
-                    )
-                "AU" ->
-                    listOf(
-                        "\"Telstra-${deterministicDigits(rootSeed, "ssid-au-telstra", 4)}\"",
-                        "\"Home-${location.timezone.substringAfter('/').take(4)}\"",
-                        "\"TP-Link_${deterministicHex(rootSeed, "ssid-au-tplink", 2).uppercase(Locale.US)}\"",
-                    )
-                else ->
-                    listOf(
-                        "\"${carrier.name}_${deterministicDigits(rootSeed, "ssid-carrier", 4)}\"",
-                        "\"Home_WiFi_${deterministicHex(rootSeed, "ssid-home", 2).uppercase(Locale.US)}\"",
-                        "\"Guest_${carrier.countryIso.uppercase(Locale.US)}\"",
-                    )
-            }
-        return pickFrom(rootSeed, "ssid-pattern:${carrier.mccMnc}", countryPatterns)
-    }
-
-    private fun generateBssid(rootSeed: String, carrier: Carrier): String {
-        val bytes = digestBytes(rootSeed, "bssid:${carrier.mccMnc}")
-        val mac = bytes.copyOfRange(0, 6)
-        mac[0] = (mac[0].toInt() and 0xFC).toByte()
-        return mac.joinToString(":") { "%02X".format(it) }
-    }
-
-    private fun countryTimezones(countryIso: String): List<String> =
-        COUNTRY_TIMEZONES[countryIso] ?: listOf("UTC")
-
-    private fun countryLocales(countryIso: String): List<String> =
-        COUNTRY_LOCALES[countryIso] ?: listOf("en_US")
-
-    private fun deterministicCoordinate(
-        rootSeed: String,
-        label: String,
-        min: Double,
-        max: Double,
-    ): Double {
-        if (max <= min) return min
-        val ratio =
-            digestBytes(rootSeed, label)
-                .take(8)
-                .fold(0L) { acc, byte -> (acc shl 8) or (byte.toLong() and 0xFF) }
-                .toDouble() / ULong.MAX_VALUE.toLong().toDouble()
-        return min + (max - min) * ratio.coerceIn(0.0, 1.0)
-    }
-
-    private fun deterministicImei(
-        rootSeed: String,
-        label: String,
-        preset: DeviceProfilePreset,
-    ): String {
-        val tac =
-            if (preset.tacPrefixes.isNotEmpty()) {
-                pickFrom(rootSeed, "$label:tac", preset.tacPrefixes)
-            } else {
-                "35000000"
-            }
-        val serial = deterministicDigits(rootSeed, "$label:serial", 6)
-        val partial = tac + serial
-        return partial + calculateLuhnCheckDigit(partial)
-    }
-
-    private fun deterministicImsi(rootSeed: String, label: String, carrier: Carrier): String {
-        val remaining = (15 - carrier.mccMnc.length).coerceAtLeast(1)
-        return carrier.mccMnc + deterministicDigits(rootSeed, label, remaining)
-    }
-
-    private fun deterministicIccid(rootSeed: String, label: String, carrier: Carrier): String {
-        val prefix = "89${carrier.countryCode}${carrier.iccidIssuerCode}"
-        val remaining = (19 - prefix.length).coerceAtLeast(1)
-        return prefix + deterministicDigits(rootSeed, label, remaining)
-    }
-
-    private fun deterministicPhoneNumber(
-        rootSeed: String,
-        label: String,
-        carrier: Carrier,
-    ): String {
-        val nationalLength =
-            COUNTRY_PHONE_LENGTH[carrier.countryIso.uppercase(Locale.US)] ?: DEFAULT_PHONE_LENGTH
-        return "+${carrier.countryCode}${deterministicDigits(rootSeed, label, nationalLength)}"
-    }
-
-    private fun deterministicMac(rootSeed: String, label: String, manufacturer: String): String {
-        val ouis =
-            MANUFACTURER_OUIS[manufacturer.lowercase(Locale.US)]
-                ?: MANUFACTURER_OUIS["generic"].orEmpty()
-        val prefix = pickFrom(rootSeed, "$label:oui", ouis).split(':')
-        val bytes = digestBytes(rootSeed, label).copyOf(3)
-        val suffix = bytes.joinToString(":") { "%02X".format(it) }
-        return (prefix + suffix.split(':')).joinToString(":")
-    }
-
-    private fun deterministicSerial(rootSeed: String, label: String, manufacturer: String): String =
-        when (manufacturer.lowercase(Locale.US)) {
-            "samsung" ->
-                "R${deterministicDigits(rootSeed, "$label:prefix", 2)}" +
-                    "ABCDEFGHJKLMNPRSTUVWXYZ"[deterministicInt(rootSeed, "$label:year", 21)] +
-                    deterministicDigits(rootSeed, "$label:body", 8)
-            "google" -> deterministicHex(rootSeed, "$label:pixel", 8).uppercase(Locale.US)
-            "xiaomi",
-            "redmi",
-            "poco",
-            "mi" -> deterministicAlphaNumeric(rootSeed, "$label:xiaomi", 14)
-            else -> deterministicAlphaNumeric(rootSeed, "$label:generic", 12)
-        }
-
-    private fun deterministicAlphaNumeric(rootSeed: String, label: String, count: Int): String {
-        val alphabet = "0123456789ABCDEFGHJKLMNPRSTUVWXYZ"
-        val bytes = digestBytes(rootSeed, label)
-        return buildString {
-            repeat(count) { index ->
-                append(alphabet[(bytes[index].toInt() and 0xFF) % alphabet.length])
-            }
-        }
-    }
-
-    private fun calculateLuhnCheckDigit(partial: String): Int {
-        require(partial.all(Char::isDigit)) { "Luhn input must be decimal digits only" }
-        var sum = 0
-        for (index in partial.indices) {
-            var digit = partial[index].digitToInt()
-            if (index % 2 != 0) {
-                digit *= 2
-                if (digit > 9) digit -= 9
-            }
-            sum += digit
-        }
-        return (10 - (sum % 10)) % 10
-    }
-
-    private fun parseAndroidRelease(fingerprint: String): String =
-        fingerprint.substringAfter(':', "16").substringBefore('/')
-
-    private fun <T> pickFrom(rootSeed: String, label: String, options: List<T>): T {
-        require(options.isNotEmpty()) { "Options must not be empty" }
-        val index = deterministicInt(rootSeed, label, options.size)
-        return options[index]
-    }
-
-    private fun deterministicInt(rootSeed: String, label: String, bound: Int): Int {
-        if (bound <= 1) return 0
-        val value =
-            digestBytes(rootSeed, label).take(4).fold(0) { acc, byte ->
-                (acc shl 8) or (byte.toInt() and 0xFF)
-            }
-        return (value and Int.MAX_VALUE) % bound
-    }
-
-    private fun deterministicDigits(rootSeed: String, label: String, count: Int): String =
-        buildString {
-            val bytes = digestBytes(rootSeed, label)
-            repeat(count) { index -> append((bytes[index].toInt() and 0xFF) % 10) }
-        }
-
-    private fun deterministicHex(rootSeed: String, label: String, byteCount: Int): String =
-        digestBytes(rootSeed, label).copyOf(byteCount).joinToString("") { "%02x".format(it) }
-
-    private fun deterministicUuid(rootSeed: String, label: String): UUID {
-        val bytes = digestBytes(rootSeed, label).copyOf(16)
-        bytes[6] = ((bytes[6].toInt() and 0x0F) or 0x40).toByte()
-        bytes[8] = ((bytes[8].toInt() and 0x3F) or 0x80).toByte()
-        var mostSigBits = 0L
-        var leastSigBits = 0L
-        for (index in 0 until 8) {
-            mostSigBits = (mostSigBits shl 8) or (bytes[index].toLong() and 0xFF)
-        }
-        for (index in 8 until 16) {
-            leastSigBits = (leastSigBits shl 8) or (bytes[index].toLong() and 0xFF)
-        }
-        return UUID(mostSigBits, leastSigBits)
-    }
-
-    private fun digestBytes(rootSeed: String, label: String): ByteArray =
-        MessageDigest.getInstance("SHA-256").digest("$rootSeed|$label".encodeToByteArray())
-
-    private val COUNTRY_TIMEZONES =
-        mapOf(
-            "US" to listOf("America/New_York", "America/Chicago", "America/Los_Angeles"),
-            "CA" to listOf("America/Toronto", "America/Vancouver"),
-            "GB" to listOf("Europe/London"),
-            "DE" to listOf("Europe/Berlin"),
-            "FR" to listOf("Europe/Paris"),
-            "IN" to listOf("Asia/Kolkata"),
-            "CN" to listOf("Asia/Shanghai"),
-            "JP" to listOf("Asia/Tokyo"),
-            "AU" to listOf("Australia/Sydney", "Australia/Perth"),
-            "KR" to listOf("Asia/Seoul"),
-            "BR" to listOf("America/Sao_Paulo"),
-            "RU" to listOf("Europe/Moscow", "Asia/Novosibirsk"),
-            "MX" to listOf("America/Mexico_City"),
-            "ID" to listOf("Asia/Jakarta"),
-            "SA" to listOf("Asia/Riyadh"),
-            "AE" to listOf("Asia/Dubai"),
-        )
-
-    private val COUNTRY_LOCALES =
-        mapOf(
-            "US" to listOf("en_US", "es_US"),
-            "CA" to listOf("en_CA", "fr_CA"),
-            "GB" to listOf("en_GB"),
-            "DE" to listOf("de_DE"),
-            "FR" to listOf("fr_FR"),
-            "IN" to listOf("en_IN", "hi_IN"),
-            "CN" to listOf("zh_CN"),
-            "JP" to listOf("ja_JP"),
-            "AU" to listOf("en_AU"),
-            "KR" to listOf("ko_KR"),
-            "BR" to listOf("pt_BR"),
-            "RU" to listOf("ru_RU"),
-            "MX" to listOf("es_MX"),
-            "ID" to listOf("id_ID"),
-            "SA" to listOf("ar_SA"),
-            "AE" to listOf("ar_AE", "en_AE"),
-        )
-
-    private val COUNTRY_GPS_BOUNDS =
-        mapOf(
-            "US" to
-                listOf(
-                    GPSBounds(40.4774, 40.9176, -74.2591, -73.7004),
-                    GPSBounds(33.7037, 34.3373, -118.6682, -117.6462),
-                ),
-            "CA" to listOf(GPSBounds(43.5810, 43.8555, -79.6393, -79.1158)),
-            "GB" to listOf(GPSBounds(51.3841, 51.6723, -0.3514, 0.1484)),
-            "DE" to listOf(GPSBounds(52.3382, 52.6755, 13.0884, 13.7611)),
-            "FR" to listOf(GPSBounds(48.8155, 48.9022, 2.2242, 2.4699)),
-            "IN" to
-                listOf(
-                    GPSBounds(18.8928, 19.2705, 72.7758, 72.9866),
-                    GPSBounds(28.4041, 28.8835, 76.8380, 77.3419),
-                ),
-            "CN" to listOf(GPSBounds(39.7555, 40.0235, 116.1850, 116.5428)),
-            "JP" to listOf(GPSBounds(35.5306, 35.8174, 139.4670, 139.9108)),
-            "AU" to listOf(GPSBounds(-33.9991, -33.5781, 150.9204, 151.3430)),
-            "KR" to listOf(GPSBounds(37.4138, 37.7017, 126.7642, 127.1838)),
-            "BR" to listOf(GPSBounds(-23.7494, -23.3569, -46.8755, -46.3654)),
-            "RU" to listOf(GPSBounds(55.5699, 55.9116, 37.3193, 37.9451)),
-            "MX" to listOf(GPSBounds(19.2040, 19.5929, -99.3647, -98.9454)),
-            "ID" to listOf(GPSBounds(-6.3702, -6.0873, 106.6829, 107.0200)),
-            "SA" to listOf(GPSBounds(24.5501, 24.8677, 46.5420, 46.8571)),
-            "AE" to listOf(GPSBounds(25.0657, 25.3589, 55.0976, 55.4023)),
-        )
-
-    private val MANUFACTURER_OUIS =
-        mapOf(
-            "samsung" to listOf("00:16:32", "78:AB:BB"),
-            "google" to listOf("3C:5A:B4", "94:EB:2C"),
-            "xiaomi" to listOf("04:CF:8C", "34:CE:00"),
-            "oneplus" to listOf("02:00:00", "06:00:00"),
-            "sony" to listOf("00:1A:11", "3C:2E:F9"),
-            "nothing" to listOf("02:00:00", "0A:00:00"),
-            "generic" to listOf("02:00:00", "06:00:00", "0A:00:00"),
-        )
-
-    private val COUNTRY_PHONE_LENGTH =
-        mapOf(
-            "US" to 10,
-            "CA" to 10,
-            "GB" to 10,
-            "DE" to 10,
-            "FR" to 9,
-            "IN" to 10,
-            "CN" to 11,
-            "JP" to 10,
-            "AU" to 9,
-            "KR" to 10,
-            "BR" to 11,
-            "RU" to 10,
-            "MX" to 10,
-            "ID" to 10,
-            "SA" to 9,
-            "AE" to 9,
-        )
-
-    private val DEFAULT_GPS_BOUNDS = GPSBounds(-33.8688, -33.7, 151.0, 151.3)
-    private const val DEFAULT_PHONE_LENGTH = 10
 }

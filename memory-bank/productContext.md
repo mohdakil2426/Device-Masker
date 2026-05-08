@@ -32,9 +32,9 @@ Device Masker has three product-facing responsibilities:
    - Logs hook and spoof events to LSPosed Manager logs.
 
 3. Diagnostics and verification
-   - Shows app-side service/config/log state.
-   - Treats custom AIDL diagnostics as best-effort.
+   - Shows app-side framework/config/log state.
    - Uses LSPosed logs as the reliable proof that target-process hooks loaded and fired.
+   - Uses optional root/logcat artifacts for deeper support bundles when root is available.
 
 ## Expected User Flow
 
@@ -57,7 +57,15 @@ The first working base was validated on 2026-05-02:
 - Multiple spoof events were emitted to LSPosed logs.
 - Earlier startup crash signatures were absent in the final smoke check.
 
-This proves the architecture can work end to end for at least one scoped target under the current emulator setup. It does not prove stable release readiness.
+The latest R8 release working base was validated on 2026-05-06:
+- Emulator targets: `com.mantle.verify` and `flar2.devcheck`.
+- Release minification/resource shrinking stayed enabled.
+- Production hook callbacks use `StableHooker`/named `XposedInterface.Hooker` implementations instead of direct Kotlin SAM `.intercept { ... }` callbacks.
+- LSPosed logs showed target selection, hook registration, and spoof events.
+- Mobile MCP observed Mantle displaying spoofed model/fingerprint values.
+- The user confirmed the same R8 build path works on a real Android 16 device.
+
+This proves the architecture can work end to end for scoped targets with release R8 enabled. It does not prove stable release readiness.
 
 ## UX Principles
 

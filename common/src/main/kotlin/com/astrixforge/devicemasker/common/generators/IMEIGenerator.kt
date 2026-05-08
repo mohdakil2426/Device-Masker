@@ -14,6 +14,11 @@ import java.security.SecureRandom
  * - Check Digit: 1 digit — Luhn checksum for ITU-T E.212 validation
  */
 object IMEIGenerator {
+    private const val TAC_LENGTH = 8
+    private const val SERIAL_LENGTH = 6
+    private const val PARTIAL_IMEI_LENGTH = 14
+    private const val DECIMAL_RADIX = 10
+    private const val LUHN_DOUBLE_THRESHOLD = 9
 
     /** Secure random instance for cryptographic-quality randomness. */
     private val secureRandom = SecureRandom()
@@ -141,55 +146,7 @@ object IMEIGenerator {
      * @return A valid IMEI string (15 digits)
      */
     fun generate(manufacturer: String? = null): String {
-        // Filter TAC prefixes if manufacturer is provided
-        val filteredTacs =
-            if (manufacturer != null) {
-                val lowerManufacturer = manufacturer.lowercase()
-                when {
-                    lowerManufacturer.contains("samsung") ->
-                        TAC_PREFIXES.filter {
-                            it.startsWith("3533") ||
-                                it.startsWith("3539") ||
-                                it.startsWith("354") ||
-                                it.startsWith("355") ||
-                                it.startsWith("356") ||
-                                it.startsWith("357")
-                        }
-                    lowerManufacturer.contains("apple") || lowerManufacturer.contains("iphone") ->
-                        TAC_PREFIXES.filter {
-                            it.startsWith("35") && !it.startsWith("3533") && !it.startsWith("3539")
-                        } // Simplified logic
-                    lowerManufacturer.contains("google") || lowerManufacturer.contains("pixel") ->
-                        TAC_PREFIXES.filter {
-                            it.startsWith("3582") ||
-                                it.startsWith("35331") ||
-                                it.startsWith("3538") ||
-                                it.startsWith("3588") ||
-                                it.startsWith("3512") ||
-                                it.startsWith("3592") ||
-                                it.startsWith("359")
-                        }
-                    lowerManufacturer.contains("xiaomi") ||
-                        lowerManufacturer.contains("redmi") ||
-                        lowerManufacturer.contains("poco") ->
-                        TAC_PREFIXES.filter {
-                            it.startsWith("867834") ||
-                                it.startsWith("860762") ||
-                                it.startsWith("86")
-                        }
-                    lowerManufacturer.contains("oneplus") ->
-                        TAC_PREFIXES.filter {
-                            it.startsWith("868318") ||
-                                it.startsWith("868094") ||
-                                it.startsWith("864685") ||
-                                it.startsWith("868996") ||
-                                it.startsWith("869125")
-                        }
-                    else -> TAC_PREFIXES
-                }
-            } else {
-                TAC_PREFIXES
-            }
+        val filteredTacs = filterTacPrefixes(manufacturer)
 
         // Fallback to all TACs if filtered list is empty
         val finalTacs = filteredTacs.ifEmpty { TAC_PREFIXES }
@@ -198,7 +155,7 @@ object IMEIGenerator {
         val tac = finalTacs[secureRandom.nextInt(finalTacs.size)]
 
         // Generate 6 random digits for the serial number
-        val serial = buildString { repeat(6) { append(secureRandom.nextInt(10)) } }
+        val serial = buildString { repeat(SERIAL_LENGTH) { append(secureRandom.nextInt(10)) } }
 
         // Combine TAC and serial (14 digits without check digit)
         val imeiWithoutCheck = tac + serial
@@ -208,6 +165,34 @@ object IMEIGenerator {
 
         return imeiWithoutCheck + checkDigit
     }
+
+    private fun filterTacPrefixes(manufacturer: String?): List<String> {
+        val matcher =
+            manufacturer?.lowercase()?.let(::manufacturerTacMatcher) ?: return TAC_PREFIXES
+        return TAC_PREFIXES.filter(matcher)
+    }
+
+    private fun manufacturerTacMatcher(manufacturer: String): (String) -> Boolean =
+        when {
+            manufacturer.contains("samsung") ->
+                startsWithAny("3533", "3539", "354", "355", "356", "357")
+            manufacturer.contains("apple") || manufacturer.contains("iphone") -> ::isAppleTac
+            manufacturer.contains("google") || manufacturer.contains("pixel") ->
+                startsWithAny("3582", "35331", "3538", "3588", "3512", "3592", "359")
+            manufacturer.contains("xiaomi") ||
+                manufacturer.contains("redmi") ||
+                manufacturer.contains("poco") -> startsWithAny("867834", "860762", "86")
+            manufacturer.contains("oneplus") ->
+                startsWithAny("868318", "868094", "864685", "868996", "869125")
+            else -> { _ -> true }
+        }
+
+    private fun startsWithAny(vararg prefixes: String): (String) -> Boolean = { tac ->
+        prefixes.any(tac::startsWith)
+    }
+
+    private fun isAppleTac(tac: String): Boolean =
+        tac.startsWith("35") && !tac.startsWith("3533") && !tac.startsWith("3539")
 
     /**
      * Generates a IMEI correlated to the given [DeviceProfilePreset].
@@ -236,10 +221,10 @@ object IMEIGenerator {
      * @throws IllegalArgumentException if [tac] is not exactly 8 digits
      */
     fun generateWithTac(tac: String): String {
-        require(tac.length == 8 && tac.all { it.isDigit() }) {
+        require(tac.length == TAC_LENGTH && tac.all { it.isDigit() }) {
             "TAC must be exactly 8 decimal digits, got: '$tac'"
         }
-        val serial = buildString { repeat(6) { append(secureRandom.nextInt(10)) } }
+        val serial = buildString { repeat(SERIAL_LENGTH) { append(secureRandom.nextInt(10)) } }
         val partial = tac + serial
         val checkDigit = calculateLuhnCheckDigit(partial)
         return partial + checkDigit
@@ -252,7 +237,7 @@ object IMEIGenerator {
      * @return The single check digit (0-9)
      */
     private fun calculateLuhnCheckDigit(partial: String): Int {
-        require(partial.length == 14) { "Partial IMEI must be 14 digits" }
+        require(partial.length == PARTIAL_IMEI_LENGTH) { "Partial IMEI must be 14 digits" }
         require(partial.all { it.isDigit() }) { "Partial IMEI must contain only digits" }
 
         var sum = 0
@@ -263,14 +248,14 @@ object IMEIGenerator {
             // Double every second digit starting from position 1
             if (i % 2 != 0) {
                 digit *= 2
-                if (digit > 9) {
-                    digit -= 9
+                if (digit > LUHN_DOUBLE_THRESHOLD) {
+                    digit -= LUHN_DOUBLE_THRESHOLD
                 }
             }
 
             sum += digit
         }
 
-        return (10 - (sum % 10)) % 10
+        return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
     }
 }

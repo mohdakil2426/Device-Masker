@@ -168,19 +168,9 @@ object IMSIGenerator {
      * (caller should fall back to random).
      */
     private fun selectLocationAwareMccMnc(): String? {
-        // Try timezone-based selection first
         val timeZone = java.util.TimeZone.getDefault().id
-        REGION_MCC_MNC[timeZone]?.let { regionalList ->
-            return regionalList[secureRandom.nextInt(regionalList.size)]
-        }
-
-        // Fall back to locale-based selection
         val locale = java.util.Locale.getDefault()
-        LOCALE_MCC_MNC[locale.country]?.let { regionalList ->
-            return regionalList[secureRandom.nextInt(regionalList.size)]
-        }
-
-        // No match found
-        return null
+        val regionalList = REGION_MCC_MNC[timeZone] ?: LOCALE_MCC_MNC[locale.country]
+        return regionalList?.let { it[secureRandom.nextInt(it.size)] }
     }
 }

@@ -20,7 +20,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven { url = uri("https://repo.lsposed.foundation/") }
     }
 }

@@ -1,13 +1,17 @@
 package com.astrixforge.devicemasker.ui.screens.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.astrixforge.devicemasker.DeviceMaskerApp
+import com.astrixforge.devicemasker.common.assignedAppCount
+import com.astrixforge.devicemasker.common.enabledCount
 import com.astrixforge.devicemasker.data.XposedPrefs
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -17,35 +21,32 @@ import kotlinx.coroutines.launch
  * Manages the UI state by collecting from repository flows and provides action methods for UI
  * events.
  *
- * @param repository The SpoofRepository for data access
+ * @param repository The [ISpoofRepository] for data access
+ * @param isXposedActiveFlow Flow that emits Xposed service connection state
  */
-class HomeViewModel(private val repository: SpoofRepository) : ViewModel() {
+class HomeViewModel(
+    private val repository: ISpoofRepository,
+    private val isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
-        // Set initial Xposed status
-        _state.update { it.copy(isXposedActive = DeviceMaskerApp.isXposedModuleActive) }
-
         viewModelScope.launch {
-            XposedPrefs.isServiceConnected.collect { connected ->
-                _state.update { it.copy(isXposedActive = connected) }
-            }
-        }
-
-        // Collect groups
-        viewModelScope.launch {
-            repository.groups.collect { groups ->
-                _state.update { currentState ->
-                    // Find the default group from the fresh list
-                    val defaultGroup = groups.find { it.isDefault }
-
-                    // Use default group (synced), or fallback to first
-                    val selectedGroup = defaultGroup ?: groups.firstOrNull()
-
-                    currentState.copy(
-                        groups = groups,
+            combine(
+                    isXposedActiveFlow,
+                    repository.moduleEnabled,
+                    repository.groups,
+                    repository.activeGroup,
+                ) { connected, moduleEnabled, groups, activeGroup ->
+                    val selectedGroup =
+                        activeGroup ?: groups.find { it.isDefault } ?: groups.firstOrNull()
+                    HomeState(
+                        isXposedActive = connected,
+                        isModuleEnabled = moduleEnabled,
+                        groups = groups.toImmutableList(),
                         selectedGroup = selectedGroup,
                         maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
                         enabledAppsCount =
@@ -55,33 +56,7 @@ class HomeViewModel(private val repository: SpoofRepository) : ViewModel() {
                         isLoading = false,
                     )
                 }
-            }
-        }
-
-        // Collect active group changes (when default changes)
-        viewModelScope.launch {
-            repository.activeGroup.collect { activeGroup ->
-                _state.update { currentState ->
-                    // Always sync selectedGroup with the active (default) group
-                    val selectedGroup = activeGroup ?: currentState.groups.firstOrNull()
-
-                    currentState.copy(
-                        selectedGroup = selectedGroup,
-                        enabledAppsCount =
-                            if (selectedGroup?.isEnabled == true) {
-                                selectedGroup.assignedAppCount()
-                            } else 0,
-                        maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
-                    )
-                }
-            }
-        }
-
-        // Collect module enabled state
-        viewModelScope.launch {
-            repository.moduleEnabled.collect { isEnabled ->
-                _state.update { it.copy(isModuleEnabled = isEnabled) }
-            }
+                .collect { homeState -> _state.value = homeState }
         }
     }
 

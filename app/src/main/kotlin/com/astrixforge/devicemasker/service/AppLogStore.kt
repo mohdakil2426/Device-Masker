@@ -14,6 +14,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 data class AppLogEntry(
@@ -24,20 +31,43 @@ data class AppLogEntry(
     val message: String,
 )
 
-class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_MAX_ENTRIES) {
+class AppLogStore(
+    private val file: File,
+    private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
     private val sessionId = "app-log"
     private val bootId = "unknown"
     private val redactor = DiagnosticRedactor(RedactionMode.REDACTED)
-    private val eventStore = JsonlDiagnosticStore(sessionDir = file.toSessionDir())
+    private val eventStore = JsonlDiagnosticStore(sessionDir = file.toAppLogSessionDir())
+    private val eventChannel = Channel<DiagnosticEvent>(Channel.BUFFERED)
+    private val writerScope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val pendingEvents = AtomicInteger(0)
+    @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") private val pendingMonitor = java.lang.Object()
 
-    @Synchronized
+    init {
+        writerScope.launch {
+            for (event in eventChannel) {
+                try {
+                    eventStore.append(redactor.redactEvent(event))
+                } finally {
+                    pendingEvents.decrementAndGet()
+                    synchronized(pendingMonitor) { pendingMonitor.notifyAll() }
+                }
+            }
+        }
+    }
+
     fun append(entry: AppLogEntry) {
         appendEvent(entry.toDiagnosticEvent())
     }
 
-    @Synchronized
     fun appendEvent(event: DiagnosticEvent) {
-        eventStore.append(redactor.redactEvent(event))
+        pendingEvents.incrementAndGet()
+        if (eventChannel.trySend(event).isFailure) {
+            pendingEvents.decrementAndGet()
+            synchronized(pendingMonitor) { pendingMonitor.notifyAll() }
+        }
     }
 
     @Synchronized
@@ -45,19 +75,23 @@ class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_
         readDiagnosticEvents().takeLast(maxEntries).map { event ->
             AppLogEntry(
                 timestampMillis = event.timestampWallMillis,
-                level = event.severity.toLevel(),
+                level = event.severity.toLogLevel(),
                 source = event.source.name.lowercase(Locale.US),
                 tag = event.hooker ?: event.extras["tag"].orEmpty().ifBlank { "DeviceMasker" },
                 message = event.message,
             )
         }
 
-    @Synchronized fun readDiagnosticEvents(): List<DiagnosticEvent> = eventStore.readEvents()
+    @Synchronized
+    fun readDiagnosticEvents(): List<DiagnosticEvent> {
+        flushPendingWrites()
+        return eventStore.readEvents()
+    }
 
     @Synchronized
     fun clear() {
         file
-            .toSessionDir()
+            .toAppLogSessionDir()
             .listFiles { candidate ->
                 candidate.isFile &&
                     (candidate.extension == "jsonl" || candidate.name == "store_state.json")
@@ -66,7 +100,7 @@ class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_
     }
 
     fun appStartEvent(timestampMillis: Long = System.currentTimeMillis()): DiagnosticEvent =
-        baseEvent(
+        appDiagnosticEvent(
             timestampMillis = timestampMillis,
             severity = DiagnosticSeverity.INFO,
             eventType = DiagnosticEventType.APP_START,
@@ -75,75 +109,88 @@ class AppLogStore(private val file: File, private val maxEntries: Int = DEFAULT_
         )
 
     private fun AppLogEntry.toDiagnosticEvent(): DiagnosticEvent =
-        baseEvent(
+        appDiagnosticEvent(
             timestampMillis = timestampMillis,
-            severity = level.toSeverity(),
+            severity = level.toDiagnosticSeverity(),
             eventType = DiagnosticEventType.APP_LOG,
-            tag = tag.cleanField(),
-            message = message.cleanField(),
+            tag = tag.cleanLogField(),
+            message = message.cleanLogField(),
         )
 
-    private fun baseEvent(
-        timestampMillis: Long,
-        severity: DiagnosticSeverity,
-        eventType: DiagnosticEventType,
-        tag: String,
-        message: String,
-        throwable: Throwable? = null,
-    ): DiagnosticEvent =
-        DiagnosticEvent(
-            eventId = DiagnosticEvent.nextEventId(timestampMillis),
-            timestampWallMillis = timestampMillis,
-            timestampElapsedMillis = System.nanoTime() / 1_000_000,
-            sessionId = sessionId,
-            bootId = bootId,
-            source = DiagnosticSource.APP,
-            severity = severity,
-            eventType = eventType,
-            threadName = Thread.currentThread().name,
-            hooker = tag,
-            message = message.cleanField(),
-            throwableClass = throwable?.javaClass?.simpleName,
-            stacktrace = throwable?.stackTraceToString()?.lines().orEmpty(),
-            extras = mapOf("tag" to tag.cleanField()),
-        )
-
-    private fun String.cleanField(): String =
-        replace('\t', ' ').replace('\n', ' ').replace('\r', ' ').trim()
-
-    private fun String.toSeverity(): DiagnosticSeverity =
-        when (this) {
-            "E" -> DiagnosticSeverity.ERROR
-            "W" -> DiagnosticSeverity.WARN
-            "I" -> DiagnosticSeverity.INFO
-            "V" -> DiagnosticSeverity.VERBOSE
-            else -> DiagnosticSeverity.DEBUG
+    private fun flushPendingWrites() {
+        synchronized(pendingMonitor) {
+            while (pendingEvents.get() > 0) {
+                pendingMonitor.wait(FLUSH_WAIT_TIMEOUT_MS)
+            }
         }
-
-    private fun DiagnosticSeverity.toLevel(): String =
-        when (this) {
-            DiagnosticSeverity.ERROR,
-            DiagnosticSeverity.FATAL -> "E"
-            DiagnosticSeverity.WARN -> "W"
-            DiagnosticSeverity.INFO -> "I"
-            DiagnosticSeverity.VERBOSE -> "V"
-            DiagnosticSeverity.DEBUG -> "D"
-        }
-
-    private fun File.toSessionDir(): File =
-        if (extension == "log") {
-            parentFile ?: File(".")
-        } else {
-            this
-        }
+    }
 
     companion object {
         private const val DEFAULT_MAX_ENTRIES = 500
+        private const val FLUSH_WAIT_TIMEOUT_MS = 1_000L
 
         fun from(context: Context): AppLogStore =
             AppLogStore(File(File(File(context.filesDir, "logs"), "sessions"), "session_app"))
     }
 }
+
+private fun appDiagnosticEvent(
+    timestampMillis: Long,
+    severity: DiagnosticSeverity,
+    eventType: DiagnosticEventType,
+    tag: String,
+    message: String,
+    throwable: Throwable? = null,
+): DiagnosticEvent =
+    DiagnosticEvent(
+        eventId = DiagnosticEvent.nextEventId(timestampMillis),
+        timestampWallMillis = timestampMillis,
+        timestampElapsedMillis = System.nanoTime() / NANOS_PER_MILLI,
+        sessionId = APP_LOG_SESSION_ID,
+        bootId = APP_LOG_BOOT_ID,
+        source = DiagnosticSource.APP,
+        severity = severity,
+        eventType = eventType,
+        threadName = Thread.currentThread().name,
+        hooker = tag,
+        message = message.cleanLogField(),
+        throwableClass = throwable?.javaClass?.simpleName,
+        stacktrace = throwable?.stackTraceToString()?.lines().orEmpty(),
+        extras = mapOf("tag" to tag.cleanLogField()),
+    )
+
+private fun String.cleanLogField(): String =
+    replace('\t', ' ').replace('\n', ' ').replace('\r', ' ').trim()
+
+private fun String.toDiagnosticSeverity(): DiagnosticSeverity =
+    when (this) {
+        "E" -> DiagnosticSeverity.ERROR
+        "W" -> DiagnosticSeverity.WARN
+        "I" -> DiagnosticSeverity.INFO
+        "V" -> DiagnosticSeverity.VERBOSE
+        else -> DiagnosticSeverity.DEBUG
+    }
+
+private fun DiagnosticSeverity.toLogLevel(): String =
+    when (this) {
+        DiagnosticSeverity.ERROR,
+        DiagnosticSeverity.FATAL -> "E"
+        DiagnosticSeverity.WARN -> "W"
+        DiagnosticSeverity.INFO -> "I"
+        DiagnosticSeverity.VERBOSE -> "V"
+        DiagnosticSeverity.DEBUG -> "D"
+    }
+
+private fun File.toAppLogSessionDir(): File =
+    if (extension == "log") {
+        parentFile ?: File(".")
+    } else {
+        this
+    }
+
+private const val APP_LOG_SESSION_ID = "app-log"
+private const val APP_LOG_BOOT_ID = "unknown"
+private const val NANOS_PER_MILLI = 1_000_000
 
 class PersistentAppLogTree(private val store: AppLogStore) : Timber.Tree() {
 

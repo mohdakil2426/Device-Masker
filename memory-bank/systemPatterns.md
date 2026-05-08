@@ -8,11 +8,11 @@
   rootless app logs, diagnostics client.
 
 :common
-  Shared models, config contracts, preference keys, generators, AIDL contract.
+  Shared models, config contracts, preference keys, generators.
 
 :xposed
   libxposed module entry, hookers, RemotePreferences reader, hook safety helpers,
-  anti-detection, diagnostics service, LSPosed logging.
+  anti-detection, LSPosed logging.
 ```
 
 ## Architecture
@@ -35,8 +35,6 @@ flowchart TD
     Target["Target app process"]
     APIs["Android framework APIs"]
     LSLogs["LSPosed logs"]
-    Service["DeviceMaskerService best-effort diagnostics"]
-    Client["ServiceClient"]
     DiagUI["Diagnostics UI"]
 
     User --> UI --> VM --> Repo --> Config
@@ -51,8 +49,8 @@ flowchart TD
     Hookers --> Remote
     Hookers --> LSLogs
     Anti --> LSLogs
-    Entry --> Service
-    Service --> Client --> DiagUI
+    Entry --> LSLogs
+    LSLogs --> DiagUI
 ```
 
 ## Configuration Flow
@@ -93,7 +91,7 @@ sequenceDiagram
 - Hookers read stored values; hookers do not generate new identities at runtime.
 - `ConfigSync` must clear stale package keys on full sync.
 - Config delivery is RemotePreferences-first.
-- AIDL is diagnostics-only and must not deliver spoof config.
+- Do not add custom AIDL/Binder config or hook-evidence paths.
 
 ## Hook Loading Rules
 
@@ -110,7 +108,9 @@ sequenceDiagram
 
 Every hook should:
 - Resolve classes and methods defensively.
-- Use libxposed API 101 lambda interceptors.
+- Use libxposed API 101 through `intercept(stableHooker { ... })` or explicit named
+  `XposedInterface.Hooker` classes. Direct `.intercept { ... }` Kotlin SAM callbacks are forbidden
+  in runtime hookers because release R8 caused `AbstractMethodError` in LSPosed target processes.
 - Use one `safeHook` block per method or method family.
 - Call `xi.deoptimize(m)` for methods that are hooked.
 - Call `chain.proceed()` when original values are needed for fallback.
@@ -121,6 +121,7 @@ Every hook should:
 Forbidden in target-process hook callbacks:
 - Random fallback identifier generation.
 - Hardcoded fake defaults for malformed config.
+- Direct Kotlin SAM callback registration with `xi.hook(m).intercept { ... }`.
 - Direct reads of app-private JSON config.
 - Timber usage in `:xposed`.
 - Hardcoded RemotePreferences key strings.
@@ -138,8 +139,8 @@ Current safer anti-detection surfaces:
 Global class lookup hiding is currently disabled by default:
 - `Class.forName` and `ClassLoader.loadClass` hooks are too invasive for target startup.
 - They caused or contributed to startup instability in `com.mantle.verify`.
-- The helper still has safe-prefix pass-through rules for future reintroduction.
-- Reintroduce only behind a per-app kill switch and regression tests.
+- The helper still has safe-prefix pass-through rules for opt-in use.
+- Reintroduction now requires both per-app risky hooks and per-app class lookup hiding to be enabled.
 
 Intentional app-visible throws for package/class hiding must use `ExceptionMode.PASSTHROUGH`.
 
@@ -149,29 +150,25 @@ Intentional app-visible throws for package/class hiding must use `ExceptionMode.
 sequenceDiagram
     participant Hook as Hooker
     participant LS as LSPosed log
-    participant Svc as DeviceMaskerService
     participant App as Device Masker app
     participant Store as JSONL store
     participant Root as Root collector
     participant Export as Support bundle
 
     Hook->>LS: Log hook registration and spoof events
-    Hook->>Svc: Best-effort diagnostics event when reachable
-    App->>Svc: Best-effort diagnostics read
     App->>Store: Write structured app events
     Store->>Export: Include app-owned JSONL events
-    Svc-->>Export: Include diagnostics buffer if reachable
-    Root->>Export: Include opt-in root artifacts
+    Root->>Export: Include opt-in root/logcat artifacts
 ```
 
 Diagnostics facts:
 - App logs are rootless structured `DiagnosticEvent` JSONL stored in app sandbox.
-- Support bundles are ZIP files with Basic, Full Debug, and Root Maximum modes.
+- Support export has one user-facing `Export Logs` path backed by the maximum root/logcat bundle.
 - Exports are redacted by default; raw identifiers must not be logged by default.
-- Root Maximum collection is opt-in and uses bounded fixed command templates.
+- Root/logcat collection uses bounded fixed command templates during boot/startup capture and export-time fresh snapshot.
 - LSPosed logs are the authoritative source for target-process hook events.
-- Custom system-server diagnostics Binder can be blocked by SELinux.
-- Target app processes must not discover `user.devicemasker_diag`.
+- There is no custom Device Masker Binder service in system_server.
+- Diagnostics UI does not read custom service status; target hook proof comes from LSPosed/logcat.
 
 ## Current Hook Areas
 
@@ -185,7 +182,6 @@ Diagnostics facts:
 - `WebViewHooker`
 - `SubscriptionHooker`
 - `PackageManagerHooker`
-- `SystemServiceHooker`
 
 ## Value Correlation
 
@@ -231,7 +227,51 @@ WebView UA spoofing is defensive:
 
 ## Build Pattern
 
-- Release minification and resource shrinking stay disabled during hook validation.
+- Release minification and resource shrinking are enabled.
+- Release R8 safety depends on the `StableHooker` adapter in `:xposed`; keep rules must preserve
+  `io.github.libxposed.api.XposedInterface$Hooker`, `Chain`, `HookBuilder`, `HookHandle`, and
+  `com.astrixforge.devicemasker.xposed.hooker.callback.**`.
+- `ciRelease` build type validates ProGuard rules without affecting debug builds.
 - Lint is fail-fast.
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.
+- Detekt runs for `:app`, `:common`, and `:xposed` using `config/detekt.yml`, module overrides, and per-module baselines.
+- Detekt runs with `allRules=true`; module baselines are currently empty and should stay empty.
+- Compose compiler reports/metrics are opt-in through `enableComposeCompilerReports` and `enableComposeCompilerMetrics`.
 - Memory Bank must be updated after architecture or runtime behavior changes.
+
+## App Contract Pattern
+
+- `IConfigManager` and `ISpoofRepository` are compatibility facades over smaller workflow-focused interfaces.
+- Prefer narrow interfaces for new call sites when practical.
+- `ConfigManager` and `SpoofRepository` carry targeted `TooManyFunctions` suppressions only because they are compatibility facades; do not treat those suppressions as permission to grow random APIs.
+
+## Testing Pattern
+
+- `MainDispatcherRule` swaps `Dispatchers.Main` for a `TestDispatcher` in ViewModel tests.
+- Hand-written fakes preferred over mocking libraries per module rules.
+- Turbine used for Flow emission testing.
+- MockK permitted only for Navigation 3 framework types.
+- Fake repositories carry real state and test hooks.
+- `advanceUntilIdle()` required after async operations in `runTest`.
+
+## ViewModel State Pattern
+
+- `SavedStateHandle` injected for process-death survival of critical UI state.
+- State classes annotated `@Immutable` with `kotlinx.collections.immutable.ImmutableList`.
+- `Flow.combine` used to merge multiple repository flows into single UI state.
+- Redundant `suspend` modifiers removed from non-suspending methods.
+
+## Navigation Pattern
+
+- Navigation uses Navigation 3, not Navigation Compose 2.x.
+- `NavDestination` is the typed `NavKey` sealed interface for Home, Groups, GroupSpoofing, Settings, and Diagnostics.
+- `DeviceMaskerNavigationState` owns separate top-level Home, Groups, and Settings back stacks.
+- The selected top-level destination is saved with `rememberSaveable`; individual stacks are saved with `rememberNavBackStack`.
+- `DeviceMaskerNavigator` is the narrow imperative API screens use for navigation intents.
+- `NavDisplay` renders the active stack through typed `entryProvider` entries.
+- `rememberSaveableStateHolderNavEntryDecorator` and `rememberViewModelStoreNavEntryDecorator` preserve entry state and ViewModel stores.
+- Navigation motion is configured through `NavDisplay` transition specs and uses M3E motion tokens with reduced-motion fallback.
+- Window size class adaptation: `NavigationRail` for medium/expanded, bottom navigation for compact, both hidden on focus/detail screens.
+- Groups and GroupSpoofing use adaptive Navigation 3 list-detail scene metadata.
+- Compact width intentionally uses Navigation 3's default single-pane scene; the Material list-detail scene strategy is only passed on medium/expanded widths after compact runtime validation showed excessive scene startup cost.
+- Deep links use explicit `devicemasker://open/...` URI parsing and synthetic stacks. `groups/{groupId}` opens Groups -> GroupSpoofing, and `diagnostics` opens Settings -> Diagnostics so Back returns to the parent top-level destination.

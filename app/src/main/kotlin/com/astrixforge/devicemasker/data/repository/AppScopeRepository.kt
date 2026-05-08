@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import com.astrixforge.devicemasker.data.models.InstalledApp
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,39 +13,41 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-class AppScopeRepository(private val context: Context) {
-
-    private val packageManager: PackageManager
-        get() = context.packageManager
+class AppScopeRepository
+@JvmOverloads
+constructor(
+    private val context: Context,
+    private val packageManager: PackageManager = context.packageManager,
+) : IAppScopeRepository {
 
     private val _installedApps = MutableStateFlow<List<InstalledApp>>(emptyList())
-    val installedApps: StateFlow<List<InstalledApp>> = _installedApps.asStateFlow()
+    override val installedApps: StateFlow<List<InstalledApp>> = _installedApps.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    override val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val cacheMutex = Mutex()
-    private var isCacheValid = false
+    private val isCacheValid = AtomicBoolean(false)
 
-    suspend fun loadApps(forceRefresh: Boolean = false) {
+    override suspend fun loadApps(forceRefresh: Boolean) {
         cacheMutex.withLock {
-            if (isCacheValid && !forceRefresh) return
+            if (isCacheValid.get() && !forceRefresh) return
 
             _isLoading.value = true
 
             val apps = withContext(Dispatchers.IO) { queryInstalledApps() }
 
             _installedApps.value = apps
-            isCacheValid = true
+            isCacheValid.set(true)
             _isLoading.value = false
         }
     }
 
-    suspend fun getInstalledApps(
-        includeSystem: Boolean = false,
-        refreshCache: Boolean = false,
+    override suspend fun getInstalledApps(
+        includeSystem: Boolean,
+        refreshCache: Boolean,
     ): List<InstalledApp> {
-        if (refreshCache || !isCacheValid) {
+        if (refreshCache || !isCacheValid.get()) {
             loadApps(refreshCache)
         }
         return if (includeSystem) {
@@ -85,7 +88,7 @@ class AppScopeRepository(private val context: Context) {
         }
     }
 
-    fun invalidateCache() {
-        isCacheValid = false
+    override fun invalidateCache() {
+        isCacheValid.set(false)
     }
 }

@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.service.diagnostics
 
 import kotlin.io.path.createTempDirectory
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -33,6 +34,46 @@ class RootLogCollectorTest {
             }
         )
         assertTrue(executor.commands.any { it.contains("dumpsys package com.mantle.verify") })
+        assertTrue(outputDir.resolve("command_manifest.jsonl").exists())
+        assertTrue(outputDir.resolve("command_manifest.jsonl").readText().contains("rootAvailable"))
+    }
+
+    @Test
+    fun `collector skips target commands when package is blank or invalid`() {
+        val executor = RecordingExecutor()
+        val collector = RootLogCollector(RootShell(executor))
+        val outputDir = createTempDirectory("collector").toFile()
+
+        collector.collect(outputDir, targetPackage = "com.example.bad; rm -rf /")
+
+        assertFalse(executor.commands.any { it.contains("com.example.bad") })
+        assertFalse(executor.commands.any { it.contains("com.mantle.verify") })
+        assertFalse(outputDir.resolve("dumpsys_package_target.txt").exists())
+        assertTrue(
+            executor.commands.any {
+                it.contains(
+                    "DeviceMasker|LSPosed|lspd|XposedEntry|All hooks registered|Spoof event"
+                )
+            }
+        )
+    }
+
+    @Test
+    fun `collector filtered logcat is generic when target package is absent`() {
+        val executor = RecordingExecutor()
+        val collector = RootLogCollector(RootShell(executor))
+        val outputDir = createTempDirectory("collector").toFile()
+
+        collector.collect(outputDir, targetPackage = null)
+
+        val filteredCommand =
+            executor.commands.single { it.contains("logcat -d -v threadtime | grep") }
+        assertTrue(filteredCommand.contains("DeviceMasker"))
+        assertTrue(filteredCommand.contains("LSPosed"))
+        assertTrue(filteredCommand.contains("XposedEntry"))
+        assertTrue(filteredCommand.contains("All hooks registered"))
+        assertTrue(filteredCommand.contains("Spoof event"))
+        assertFalse(filteredCommand.contains("com.mantle.verify"))
     }
 
     private class RecordingExecutor : RootCommandExecutor {

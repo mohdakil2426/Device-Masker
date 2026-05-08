@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.astrixforge.devicemasker.ui.screens.ThemeMode
+import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
 private val Context.settingsDataStore: DataStore<Preferences> by
     preferencesDataStore(name = "settings")
 
-class SettingsDataStore(private val context: Context) {
+class SettingsDataStore(private val context: Context) : ISettingsDataStore {
 
     private val dataStore: DataStore<Preferences>
         get() = context.settingsDataStore
@@ -37,7 +37,7 @@ class SettingsDataStore(private val context: Context) {
     // ═══════════════════════════════════════════════════════════
 
     /** Flow of theme mode preference. */
-    val themeMode: Flow<ThemeMode> =
+    override val themeMode: Flow<ThemeMode> =
         dataStore.data.map { prefs ->
             when (prefs[Keys.THEME_MODE]) {
                 0 -> ThemeMode.SYSTEM
@@ -48,7 +48,7 @@ class SettingsDataStore(private val context: Context) {
         }
 
     /** Sets the theme mode. */
-    suspend fun setThemeMode(mode: ThemeMode) {
+    override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { prefs ->
             prefs[Keys.THEME_MODE] =
                 when (mode) {
@@ -60,19 +60,20 @@ class SettingsDataStore(private val context: Context) {
     }
 
     /** Flow of AMOLED dark mode preference. */
-    val amoledMode: Flow<Boolean> = dataStore.data.map { prefs -> prefs[Keys.AMOLED_MODE] ?: true }
+    override val amoledMode: Flow<Boolean> =
+        dataStore.data.map { prefs -> prefs[Keys.AMOLED_MODE] ?: true }
 
     /** Sets AMOLED dark mode. */
-    suspend fun setAmoledMode(enabled: Boolean) {
+    override suspend fun setAmoledMode(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[Keys.AMOLED_MODE] = enabled }
     }
 
     /** Flow of dynamic colors preference. */
-    val dynamicColors: Flow<Boolean> =
+    override val dynamicColors: Flow<Boolean> =
         dataStore.data.map { prefs -> prefs[Keys.DYNAMIC_COLORS] ?: true }
 
     /** Sets dynamic colors. */
-    suspend fun setDynamicColors(enabled: Boolean) {
+    override suspend fun setDynamicColors(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[Keys.DYNAMIC_COLORS] = enabled }
     }
 }

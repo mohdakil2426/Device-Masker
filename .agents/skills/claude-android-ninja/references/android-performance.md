@@ -145,7 +145,7 @@ Rendering should stay within the display's frame budget:
 | 90 Hz   | ~11.1 ms per frame     |
 | 120 Hz  | ~8.3 ms per frame      |
 
-**Slow frames** exceed the budget; **frozen frames** are long stalls (typically hundreds of ms or more). Investigate with `FrameTimingMetric()`, Perfetto, and Android Studio profilers.
+**Slow frames** exceed the budget; **frozen frames** are long stalls (typically hundreds of ms or more). Investigate with `FrameTimingMetric()`, [Perfetto (system traces)](#perfetto-system-traces), and Android Studio profilers.
 
 ### Background work and battery
 
@@ -265,7 +265,32 @@ suspend fun taskOne(tracer: Tracer) {
 }
 ```
 
-These custom sections will appear in the Perfetto trace when you run your Macrobenchmarks, allowing you to see exactly how long your specific methods take.
+Custom `trace` / `traceCoroutine` slices from [Custom System Tracing](#custom-system-tracing) show up in system traces opened in Perfetto-capable viewers.
+
+### Perfetto (system traces)
+
+Required: treat scheduling, Binder/IPC waits, I/O blocks, and frame pipeline timing as **trace-backed** claims; Kotlin-only reasoning does not substitute for timeline evidence.
+
+| Symptom or goal                                      | Collection path                                                                                                                                                                                                           |
+|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Jank, missed frame deadlines, UI latency             | System trace with Frame Timeline context: Android Studio Profiler, Macrobenchmark trace output, or headless `perfetto` / SDK capture ([Android Perfetto](https://developer.android.com/tools/perfetto)).                  |
+| Repeatable startup or scroll regressions             | Macrobenchmark metrics plus trace artifacts; align slice names with `trace {}` / `traceCoroutine` strings in app code.                                                                                                    |
+| GPU-focused render stages / counters                 | Android GPU Inspector (Perfetto-backed); follow AGI docs for capture scope.                                                                                                                                               |
+| Programmatic on-device capture                       | `ProfilingManager` and related Android SDK APIs when the task requires SDK-driven sessions ([Android Perfetto](https://developer.android.com/tools/perfetto)).                                                            |
+| User supplies `bugreport.zip` or a `.perfetto-trace` | User opens the artifact in [Perfetto UI](https://perfetto.dev/docs/visualization/perfetto-ui); routing and tool choice: [How do I start using Perfetto?](https://perfetto.dev/docs/getting-started/start-using-perfetto). |
+
+**Required:**
+
+- Add or extend `androidx.tracing` slices with **stable, grep-friendly names** before recommending thread splits, dispatcher changes, or Binder-heavy refactors when the symptom is jank, frozen frames, or ANRs.
+- When the user has **no** trace and **no** benchmark numbers: output a minimal repro (physical device, animation scales off, one Macrobenchmark scenario or one manual capture) and the benchmark output paths from [Reports & Artifacts](#reports--artifacts); do not assert root cause from static code alone.
+- When the user pastes **text** from a trace viewer (slice names, durations, thread labels): map those names to code paths by identifier; when they attach only a binary trace or bugreport without description, state that timeline truth needs local inspection in Perfetto UI (or trace processor output they paste) and ask for named slices or exported text.
+
+**Forbidden when:**
+
+- Stating frame timings, Binder wait durations, or scheduler gaps without a trace, benchmark metric, or user-supplied measurement text.
+- Treating Logcat alone as proof of frame scheduling or cross-process latency for jank investigations.
+
+Perfetto overview, data sources, and analysis stack: [perfetto.dev/docs](https://perfetto.dev/docs/). Cookbook-style Android trace workflows live under that doc tree (Getting Started → Cookbooks). For role-based entry (app dev vs platform vs other), use [How do I start using Perfetto?](https://perfetto.dev/docs/getting-started/start-using-perfetto).
 
 ### Startup Performance Metrics (TTID & TTFD)
 
@@ -629,6 +654,77 @@ val locationRequest = LocationRequest.create().apply {
     priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
 }
 ```
+
+### Excessive partial wake locks (Play Vitals core metric)
+
+A user session is excessive when cumulative non-exempt wake locks exceed **2 hours in a 24-hour period**. The bad-behavior threshold trips when **>5% of sessions over 28 days** are excessive (enforced March 1, 2026). Crossing the threshold can warn users on the store listing and exclude the app from discovery surfaces. Inspect tag-level P90/P99 durations on the [Excessive partial wake locks dashboard](https://play.google.com/console/developers/app/vitals/metrics/details?metric=EXCESSIVE_BACKGROUND_WAKELOCKS&days=28); investigate any tag with P90/P99 > 60 minutes. Definition: [Android vitals - Excessive wake locks](https://developer.android.com/topic/performance/vitals/excessive-wakelock).
+
+Exempted: system-held wake locks for audio playback, location update callbacks, and user-initiated data transfer.
+
+Forbidden: acquiring a manual wake lock alongside an API that already wakes the CPU.
+
+#### Use case to substitute matrix
+
+Replace manual partial wake locks with the API listed for each use case. See [Choose the right API to keep the device awake](https://developer.android.com/develop/background-work/background-tasks/awake) for the platform decision flow.
+
+| Use case                                      | Substitute                                                                                                                                                                                                                                                                      |
+|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| User-initiated upload or download             | [UIDT API](https://developer.android.com/develop/background-work/background-tasks/uidt) (exempted from the metric).                                                                                                                                                             |
+| One-time or periodic background sync          | [WorkManager](https://developer.android.com/develop/background-work/background-tasks/persistent); observe `WorkInfo.stopReason`.                                                                                                                                                |
+| Location callbacks                            | `FusedLocationProviderClient` / `LocationManager` - the system holds the brief wake lock for the callback.                                                                                                                                                                      |
+| Caching location data for later upload        | Persist in memory or local storage; process via WorkManager. No separate wake lock.                                                                                                                                                                                             |
+| High-frequency sensor monitoring              | `SensorManager.registerListener(..., samplingPeriodUs, maxReportLatencyUs)` with `maxReportLatencyUs >= 30_000_000` (30 s) for batching.                                                                                                                                        |
+| Step or distance tracking                     | [Recording API](https://developer.android.com/health-and-fitness/guides/recording-api) or [Health Connect](https://developer.android.com/health-and-fitness/health-connect/features/steps).                                                                                     |
+| Bluetooth pairing or background communication | [CompanionDeviceManager](https://developer.android.com/develop/connectivity/bluetooth/companion-device-pairing) and [BLE background guidance](https://developer.android.com/develop/connectivity/bluetooth/ble/background). Manual wake lock only for the duration of activity. |
+| Remote messaging from a server                | FCM; schedule an [expedited worker](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work#expedited) if extra processing is required.                                                                                   |
+| Network socket waiting for packets            | Acquire a wake lock only **after** a packet arrives, never while waiting on `readChannel.readRemaining(...)`.                                                                                                                                                                   |
+
+#### Diagnose stuck workers
+
+Stuck workers (timing out, retried in a loop) hold wake locks under `WorkManager` and `JobScheduler` tags. Observe `WorkInfo.stopReason` to detect them; high `STOP_REASON_TIMEOUT` counts mean a worker is misconfigured.
+
+```kotlin
+workManager.getWorkInfoByIdFlow(syncWorker.id)
+    .collect { workInfo ->
+        if (workInfo != null) {
+            val stopReason = workInfo.stopReason
+            logStopReason(syncWorker.id, stopReason)
+        }
+    }
+```
+
+#### Sensor batching
+
+Set `maxReportLatencyUs` so the OS delivers buffered samples on its own wake schedule instead of the app polling.
+
+```kotlin
+val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+sensorManager.registerListener(
+    listener,
+    accelerometer,
+    samplingPeriodUs,
+    maxReportLatencyUs, // >= 30_000_000 (30 s) keeps tag duration under the excessive threshold
+)
+```
+
+#### Network socket wake-lock placement
+
+Hold a wake lock around packet processing only, never around the read loop.
+
+```kotlin
+val readChannel = socket.openReadChannel()
+while (!readChannel.isClosedForRead) {
+    // CPU may sleep here; the radio's hardware interrupt wakes it on packet arrival.
+    val packet = readChannel.readRemaining(1024)
+    if (!packet.isEmpty) {
+        performWorkWithWakeLock {
+            processPacket(packet.readBytes())
+        }
+    }
+}
+```
+
+Identifying the offending wake lock by tag (especially when an SDK created it): cross-reference the dashboard tag against [Identify wake locks created by other APIs](https://developer.android.com/develop/background-work/background-tasks/awake/wakelock/identify-wls). Capture a system trace via [Perfetto](https://developer.android.com/topic/performance/tracing/on-device) when the tag is unknown.
 
 ## Network Performance Optimization
 
@@ -1256,3 +1352,6 @@ BasicTextField2(state = state)
 - Create Baseline Profiles: https://developer.android.com/topic/performance/baselineprofiles/create-baselineprofile
 - Configure Baseline Profiles: https://developer.android.com/topic/performance/baselineprofiles/configure-baselineprofiles
 - Measure Baseline Profiles: https://developer.android.com/topic/performance/baselineprofiles/measure-baselineprofile
+- Android `perfetto` CLI and tools: https://developer.android.com/tools/perfetto
+- Perfetto tracing docs (overview): https://perfetto.dev/docs/
+- Perfetto: How do I start using Perfetto?: https://perfetto.dev/docs/getting-started/start-using-perfetto

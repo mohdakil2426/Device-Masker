@@ -18,57 +18,53 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Fingerprint
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofGroup
-import com.astrixforge.devicemasker.ui.components.IconCircle
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.StatCard
-import com.astrixforge.devicemasker.ui.components.expressive.AnimatedLoadingOverlay
-import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
-import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
+import com.astrixforge.devicemasker.ui.navigation.homeViewModelFactory
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /**
  * Home screen displaying module status and quick stats.
@@ -90,32 +86,33 @@ import com.astrixforge.devicemasker.ui.theme.StatusInactive
  */
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel,
+    repository: ISpoofRepository,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToGroup: ((String) -> Unit)? = null,
+    viewModel: HomeViewModel =
+        viewModel(factory = remember(repository) { homeViewModelFactory(repository) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val navigateToSpoofWhenResumed = dropUnlessResumed {
+        val selectedGroup = state.selectedGroup
+        if (onNavigateToGroup != null && selectedGroup != null) {
+            onNavigateToGroup(selectedGroup.id)
+        } else {
+            onNavigateToSpoof()
+        }
+    }
 
     HomeScreenContent(
         isXposedActive = state.isXposedActive,
         isModuleEnabled = state.isModuleEnabled,
         groups = state.groups,
         selectedGroup = state.selectedGroup,
-        onGroupSelected = { group -> viewModel.selectGroup(group.id) },
+        groupSelected = { group -> viewModel.selectGroup(group.id) },
         enabledAppsCount = state.enabledAppsCount,
         maskedIdentifiersCount = state.maskedIdentifiersCount,
-        onModuleEnabledChange = { enabled -> viewModel.setModuleEnabled(enabled) },
-        onNavigateToSpoof = {
-            // Navigate to the selected group's spoofing screen
-            val selectedGroup = state.selectedGroup
-            if (onNavigateToGroup != null && selectedGroup != null) {
-                onNavigateToGroup(selectedGroup.id)
-            } else {
-                onNavigateToSpoof()
-            }
-        },
+        onNavigateToSpoof = navigateToSpoofWhenResumed,
         onRegenerateAll = { viewModel.regenerateAll { onRegenerateAll() } },
         isLoading = state.isLoading,
         modifier = modifier,
@@ -127,82 +124,77 @@ fun HomeScreen(
 fun HomeScreenContent(
     isXposedActive: Boolean,
     isModuleEnabled: Boolean,
-    groups: List<SpoofGroup>,
+    groups: ImmutableList<SpoofGroup>,
     selectedGroup: SpoofGroup?,
-    onGroupSelected: (SpoofGroup) -> Unit,
+    groupSelected: (SpoofGroup) -> Unit,
     enabledAppsCount: Int,
     maskedIdentifiersCount: Int,
-    onModuleEnabledChange: (Boolean) -> Unit,
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier =
-                Modifier.fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .alpha(if (isLoading) 0f else 1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Status Card - Hero Section
-            StatusCard(
-                isXposedActive = isXposedActive,
-                isModuleEnabled = isModuleEnabled,
-                onModuleEnabledChange = onModuleEnabledChange,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Quick Stats Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+        if (isLoading) {
+            ExpressiveLoadingIndicator(modifier = Modifier.align(Alignment.Center))
+        } else {
+            Column(
+                modifier =
+                    Modifier.fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                StatCard(
-                    icon = Icons.Outlined.Apps,
-                    value = enabledAppsCount.toString(),
-                    label = stringResource(id = R.string.home_protected_apps_label),
-                    modifier = Modifier.weight(1f),
+                // Status Card - Hero Section
+                StatusCard(
+                    isXposedActive = isXposedActive,
+                    isModuleEnabled = isModuleEnabled,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                StatCard(
-                    icon = Icons.Outlined.Fingerprint,
-                    value = maskedIdentifiersCount.toString(),
-                    label = stringResource(id = R.string.home_masked_ids_label),
-                    modifier = Modifier.weight(1f),
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Quick Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    StatCard(
+                        icon = Icons.Outlined.Apps,
+                        value = enabledAppsCount.toString(),
+                        label = stringResource(id = R.string.home_protected_apps_label),
+                        modifier = Modifier.weight(1f),
+                    )
+                    StatCard(
+                        icon = Icons.Outlined.Fingerprint,
+                        value = maskedIdentifiersCount.toString(),
+                        label = stringResource(id = R.string.home_masked_ids_label),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Group Selector Card with Dropdown
+                GroupSelectorCard(
+                    groups = groups,
+                    selectedGroup = selectedGroup,
+                    groupSelected = groupSelected,
+                    onClick = onNavigateToSpoof,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Quick Actions
+                QuickActionsSection(
+                    onNavigateToSpoof = onNavigateToSpoof,
+                    onRegenerateAll = onRegenerateAll,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Group Selector Card with Dropdown
-            GroupSelectorCard(
-                groups = groups,
-                selectedGroup = selectedGroup,
-                onGroupSelected = onGroupSelected,
-                onClick = onNavigateToSpoof,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Quick Actions
-            QuickActionsSection(
-                onNavigateToSpoof = onNavigateToSpoof,
-                onRegenerateAll = onRegenerateAll,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        AnimatedLoadingOverlay(isLoading = isLoading) {
-            ExpressiveLoadingIndicatorWithLabel(
-                label = stringResource(R.string.home_loading_dashboard)
-            )
         }
     }
 }
@@ -212,7 +204,6 @@ fun HomeScreenContent(
 private fun StatusCard(
     isXposedActive: Boolean,
     isModuleEnabled: Boolean,
-    onModuleEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val statusColor by
@@ -241,7 +232,11 @@ private fun StatusCard(
         )
 
     Card(
-        modifier = modifier.scale(scale),
+        modifier =
+            modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         colors =
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = statusShape,
@@ -256,109 +251,116 @@ private fun StatusCard(
                     )
                     .padding(24.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                // Shield Icon with Status
-                Box(
-                    modifier =
-                        Modifier.size(80.dp)
-                            .clip(CircleShape)
-                            .background(statusColor.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Shield,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = statusColor,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Status Text
-                Text(
-                    text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Status Badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(statusColor))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text =
-                            when {
-                                !isXposedActive ->
-                                    stringResource(id = R.string.home_module_not_injected)
-                                isModuleEnabled ->
-                                    stringResource(id = R.string.home_protection_active)
-                                else -> stringResource(id = R.string.home_protection_disabled)
-                            },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                // LSPosed Status Indicator
-                if (!isXposedActive) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedCard(
-                        colors =
-                            CardDefaults.outlinedCardColors(
-                                containerColor =
-                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                            )
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.home_enable_instruction),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
-                    }
-                }
-
-                // Enable/Disable Toggle
-                if (isXposedActive) {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(id = R.string.home_module_enabled_label),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        ExpressiveSwitch(
-                            checked = isModuleEnabled,
-                            onCheckedChange = onModuleEnabledChange,
-                        )
-                    }
-                }
-            }
+            StatusCardContent(
+                isXposedActive = isXposedActive,
+                isModuleEnabled = isModuleEnabled,
+                statusColor = statusColor,
+            )
         }
     }
 }
 
+@Composable
+private fun StatusCardContent(
+    isXposedActive: Boolean,
+    isModuleEnabled: Boolean,
+    statusColor: Color,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        StatusIcon(isActive = isXposedActive && isModuleEnabled, statusColor = statusColor)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(id = R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        StatusBadge(
+            isXposedActive = isXposedActive,
+            isModuleEnabled = isModuleEnabled,
+            statusColor = statusColor,
+        )
+        if (!isXposedActive) {
+            Spacer(modifier = Modifier.height(12.dp))
+            ModuleEnableInstruction()
+        }
+    }
+}
+
+@Composable
+private fun StatusIcon(isActive: Boolean, statusColor: Color) {
+    val statusIconShape = MaterialShapes.SoftBurst.toShape(startAngle = -90)
+    Box(
+        modifier =
+            Modifier.size(80.dp).clip(statusIconShape).background(statusColor.copy(alpha = 0.2f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Shield,
+            contentDescription =
+                if (isActive) {
+                    stringResource(id = R.string.home_protection_active)
+                } else {
+                    stringResource(id = R.string.home_protection_disabled)
+                },
+            modifier = Modifier.size(48.dp),
+            tint = statusColor,
+        )
+    }
+}
+
+@Composable
+private fun StatusBadge(isXposedActive: Boolean, isModuleEnabled: Boolean, statusColor: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(statusColor))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = statusText(isXposedActive = isXposedActive, isModuleEnabled = isModuleEnabled),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun ModuleEnableInstruction() {
+    OutlinedCard(
+        colors =
+            CardDefaults.outlinedCardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+            )
+    ) {
+        Text(
+            text = stringResource(id = R.string.home_enable_instruction),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun statusText(isXposedActive: Boolean, isModuleEnabled: Boolean): String =
+    when {
+        !isXposedActive -> stringResource(id = R.string.home_module_not_injected)
+        isModuleEnabled -> stringResource(id = R.string.home_protection_active)
+        else -> stringResource(id = R.string.home_protection_disabled)
+    }
+
 /** Group selector card with dropdown menu. */
 @Composable
 private fun GroupSelectorCard(
-    groups: List<SpoofGroup>,
+    groups: ImmutableList<SpoofGroup>,
     selectedGroup: SpoofGroup?,
-    onGroupSelected: (SpoofGroup) -> Unit,
+    groupSelected: (SpoofGroup) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var dropdownExpanded by rememberSaveable { mutableStateOf(false) }
     val rotationAngle by
         animateFloatAsState(
             targetValue = if (dropdownExpanded) 180f else 0f,
@@ -379,125 +381,18 @@ private fun GroupSelectorCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
     ) {
         Column {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconCircle(icon = Icons.Filled.Groups, size = 48.dp, iconSize = 24.dp)
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.home_active_group_label),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text =
-                                selectedGroup?.name ?: stringResource(id = R.string.home_no_group),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        if (selectedGroup?.isEnabled == false) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(id = R.string.home_group_disabled_tag),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.home_select_group),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.rotate(rotationAngle),
-                    )
-                    CompactExpressiveIconButton(
-                        onClick = onClick,
-                        icon = Icons.Outlined.Visibility,
-                        contentDescription = stringResource(R.string.home_view_group),
-                    )
-                }
-            }
-
-            // Dropdown menu for group selection
-            DropdownMenu(
+            GroupSelectorHeader(
+                selectedGroup = selectedGroup,
+                rotationAngle = rotationAngle,
+                onViewGroup = onClick,
+            )
+            GroupDropdownMenu(
+                groups = groups,
+                selectedGroup = selectedGroup,
                 expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false },
-                modifier = Modifier.fillMaxWidth(0.9f),
-            ) {
-                if (groups.isEmpty()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(id = R.string.home_no_groups_available)) },
-                        onClick = { dropdownExpanded = false },
-                        enabled = false,
-                    )
-                } else {
-                    groups.forEach { group ->
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = group.name,
-                                            fontWeight =
-                                                if (group.id == selectedGroup?.id) FontWeight.Bold
-                                                else FontWeight.Normal,
-                                        )
-                                        Text(
-                                            text =
-                                                pluralStringResource(
-                                                    id = R.plurals.home_apps_count,
-                                                    count = group.assignedAppCount(),
-                                                    group.assignedAppCount(),
-                                                ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        if (!group.isEnabled) {
-                                            Text(
-                                                text =
-                                                    stringResource(
-                                                            id = R.string.home_group_disabled_tag
-                                                        )
-                                                        .trim('(', ')'),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.error,
-                                            )
-                                        }
-                                        if (group.id == selectedGroup?.id) {
-                                            Icon(
-                                                imageVector = Icons.Filled.Check,
-                                                contentDescription =
-                                                    stringResource(R.string.home_selected),
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp),
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            onClick = {
-                                onGroupSelected(group)
-                                dropdownExpanded = false
-                            },
-                        )
-                    }
-                }
-            }
+                groupSelected = groupSelected,
+                dismiss = { dropdownExpanded = false },
+            )
         }
     }
 }
@@ -520,7 +415,7 @@ private fun QuickActionsSection(
         // Material 3 Expressive Button Group
         QuickActionGroup(
             actions =
-                listOf(
+                persistentListOf(
                     QuickAction(
                         label = stringResource(id = R.string.home_action_configure),
                         icon = Icons.Outlined.Fingerprint,
@@ -538,22 +433,21 @@ private fun QuickActionsSection(
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-fun HomeScreenContentPreview() {
+private fun HomeScreenContentPreview() {
     DeviceMaskerTheme {
         HomeScreenContent(
             isXposedActive = true,
             isModuleEnabled = true,
             groups =
-                listOf(
+                persistentListOf(
                     SpoofGroup.createDefaultGroup(),
                     SpoofGroup.createNew("Work Group"),
                     SpoofGroup.createNew("Gaming"),
                 ),
             selectedGroup = SpoofGroup.createDefaultGroup(),
-            onGroupSelected = {},
+            groupSelected = {},
             enabledAppsCount = 12,
             maskedIdentifiersCount = 24,
-            onModuleEnabledChange = {},
             onNavigateToSpoof = {},
             onRegenerateAll = {},
         )
@@ -562,17 +456,16 @@ fun HomeScreenContentPreview() {
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-fun HomeScreenInactivePreview() {
+private fun HomeScreenInactivePreview() {
     DeviceMaskerTheme {
         HomeScreenContent(
             isXposedActive = false,
             isModuleEnabled = false,
-            groups = emptyList(),
+            groups = persistentListOf(),
             selectedGroup = null,
-            onGroupSelected = {},
+            groupSelected = {},
             enabledAppsCount = 0,
             maskedIdentifiersCount = 0,
-            onModuleEnabledChange = {},
             onNavigateToSpoof = {},
             onRegenerateAll = {},
         )

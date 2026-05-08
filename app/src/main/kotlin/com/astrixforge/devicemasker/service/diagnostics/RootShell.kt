@@ -1,12 +1,15 @@
 package com.astrixforge.devicemasker.service.diagnostics
 
+import com.topjohnwu.superuser.Shell
 import java.io.File
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 data class RootCommand(
     val command: String,
     val timeoutMillis: Long = 5_000,
-    val maxOutputBytes: Int = 256 * 1024,
+    val maxOutputBytes: Int = DEFAULT_MAX_OUTPUT_BYTES,
 )
 
 enum class RootCommandStatus {
@@ -21,6 +24,7 @@ data class RootCommandResult(
     val exitCode: Int?,
     val stdoutPath: File?,
     val stderrPath: File?,
+    val stderrSummary: String,
     val timedOut: Boolean,
     val durationMillis: Long,
     val rootAvailable: Boolean,
@@ -40,20 +44,24 @@ interface RootCommandExecutor {
     fun execute(command: String, timeoutMillis: Long): RootExecutionResult
 }
 
-class RootShell(private val executor: RootCommandExecutor = SuCommandExecutor()) {
+class RootShell(private val executor: RootCommandExecutor = LibsuCommandExecutor()) {
     fun run(command: RootCommand, outputDir: File): RootCommandResult {
         outputDir.mkdirs()
         if (!executor.isRootAvailable()) {
-            return RootCommandResult(
-                command = command.command,
-                status = RootCommandStatus.ROOT_UNAVAILABLE,
-                exitCode = null,
-                stdoutPath = null,
-                stderrPath = null,
-                timedOut = false,
-                durationMillis = 0,
-                rootAvailable = false,
-            )
+            val result =
+                RootCommandResult(
+                    command = command.command,
+                    status = RootCommandStatus.ROOT_UNAVAILABLE,
+                    exitCode = null,
+                    stdoutPath = null,
+                    stderrPath = null,
+                    stderrSummary = "",
+                    timedOut = false,
+                    durationMillis = 0,
+                    rootAvailable = false,
+                )
+            outputDir.resolve("manifest.json").writeText(result.toManifestJson(""), Charsets.UTF_8)
+            return result
         }
 
         val execution = executor.execute(command.command, command.timeoutMillis)
@@ -62,17 +70,24 @@ class RootShell(private val executor: RootCommandExecutor = SuCommandExecutor())
         stdoutFile.writeText(execution.stdout.limitBytes(command.maxOutputBytes), Charsets.UTF_8)
         stderrFile.writeText(execution.stderr, Charsets.UTF_8)
 
-        return RootCommandResult(
-            command = command.command,
-            status =
-                if (execution.timedOut) RootCommandStatus.TIMED_OUT else RootCommandStatus.EXITED,
-            exitCode = execution.exitCode,
-            stdoutPath = stdoutFile,
-            stderrPath = stderrFile,
-            timedOut = execution.timedOut,
-            durationMillis = execution.durationMillis,
-            rootAvailable = true,
-        )
+        val result =
+            RootCommandResult(
+                command = command.command,
+                status =
+                    if (execution.timedOut) RootCommandStatus.TIMED_OUT
+                    else RootCommandStatus.EXITED,
+                exitCode = execution.exitCode,
+                stdoutPath = stdoutFile,
+                stderrPath = stderrFile,
+                stderrSummary = execution.stderr.take(STDERR_SUMMARY_LENGTH),
+                timedOut = execution.timedOut,
+                durationMillis = execution.durationMillis,
+                rootAvailable = true,
+            )
+        outputDir
+            .resolve("manifest.json")
+            .writeText(result.toManifestJson(execution.stderr), Charsets.UTF_8)
+        return result
     }
 
     private fun String.limitBytes(maxBytes: Int): String {
@@ -82,29 +97,63 @@ class RootShell(private val executor: RootCommandExecutor = SuCommandExecutor())
     }
 }
 
-class SuCommandExecutor : RootCommandExecutor {
-    override fun isRootAvailable(): Boolean =
-        runCatching {
-                val process = ProcessBuilder("su", "-c", "id").redirectErrorStream(false).start()
-                process.waitFor(2, TimeUnit.SECONDS) && process.exitValue() == 0
-            }
-            .getOrDefault(false)
+class LibsuCommandExecutor : RootCommandExecutor {
+    override fun isRootAvailable(): Boolean = RootAccessManager.hasGrantedRoot()
 
     override fun execute(command: String, timeoutMillis: Long): RootExecutionResult {
         val started = System.currentTimeMillis()
-        val process = ProcessBuilder("su", "-c", command).redirectErrorStream(false).start()
-        val completed = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
-        if (!completed) {
-            process.destroyForcibly()
+        val executor = Executors.newSingleThreadExecutor()
+        val future =
+            executor.submit<RootExecutionResult> {
+                val stdout = mutableListOf<String>()
+                val stderr = mutableListOf<String>()
+                val result = Shell.cmd(command).to(stdout, stderr).exec()
+                RootExecutionResult(
+                    exitCode = result.code,
+                    stdout = stdout.joinToString("\n"),
+                    stderr = stderr.joinToString("\n"),
+                    timedOut = false,
+                    durationMillis = System.currentTimeMillis() - started,
+                )
+            }
+        return try {
+            future.get(timeoutMillis, TimeUnit.MILLISECONDS)
+        } catch (_: TimeoutException) {
+            future.cancel(true)
+            RootExecutionResult(
+                exitCode = -1,
+                stdout = "",
+                stderr = "Timed out after ${timeoutMillis}ms",
+                timedOut = true,
+                durationMillis = System.currentTimeMillis() - started,
+            )
+        } finally {
+            executor.shutdownNow()
         }
-        val stdout = process.inputStream.bufferedReader().use { it.readText() }
-        val stderr = process.errorStream.bufferedReader().use { it.readText() }
-        return RootExecutionResult(
-            exitCode = if (completed) process.exitValue() else -1,
-            stdout = stdout,
-            stderr = stderr,
-            timedOut = !completed,
-            durationMillis = System.currentTimeMillis() - started,
-        )
+    }
+}
+
+private fun RootCommandResult.toManifestJson(stderr: String): String = buildString {
+    append("""{"command":"${command.jsonEscape()}","status":"$status","exitCode":""")
+    append(exitCode ?: "null")
+    append(""","timedOut":$timedOut,"durationMillis":$durationMillis""")
+    append(""","rootAvailable":$rootAvailable,"stderrSummary":""")
+    append(""""${stderr.take(STDERR_SUMMARY_LENGTH).jsonEscape()}"}""")
+}
+
+private const val KIB_BYTES = 1024
+private const val DEFAULT_MAX_OUTPUT_BYTES = 256 * KIB_BYTES
+private const val STDERR_SUMMARY_LENGTH = 500
+
+private fun String.jsonEscape(): String = buildString {
+    this@jsonEscape.forEach { ch ->
+        when (ch) {
+            '\\' -> append("\\\\")
+            '"' -> append("\\\"")
+            '\n' -> append("\\n")
+            '\r' -> append("\\r")
+            '\t' -> append("\\t")
+            else -> append(ch)
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.service
 
 import com.astrixforge.devicemasker.common.SpoofGroup
+import com.astrixforge.devicemasker.common.withPersona
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test

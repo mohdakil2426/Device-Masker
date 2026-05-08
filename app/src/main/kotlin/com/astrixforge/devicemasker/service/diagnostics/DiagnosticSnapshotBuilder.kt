@@ -14,7 +14,7 @@ data class DiagnosticSnapshotMetadata(
     val androidRelease: String,
     val device: String,
     val rootAvailable: Boolean,
-    val xposedServiceConnected: Boolean,
+    val xposedFrameworkConnected: Boolean,
     val moduleEnabled: Boolean,
     val targetPackage: String?,
     val scopePackages: List<String>,

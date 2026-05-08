@@ -2,16 +2,15 @@ package com.astrixforge.devicemasker.ui.components.expressive
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,54 +22,41 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /**
- * Quick Action Button data class.
- *
- * @param label Button label text
- * @param icon Optional leading icon
- * @param onClick Click handler
- * @param enabled Whether the button is enabled
- */
-data class QuickAction(
-    val label: String,
-    val icon: ImageVector? = null,
-    val onClick: () -> Unit,
-    val enabled: Boolean = true,
-)
-
-/**
- * Material 3 Button Group for quick actions (Stable fallback).
- *
- * Uses Row with weighted buttons as ButtonGroup is only available in alpha.
+ * Material 3 Expressive ButtonGroup for quick actions.
  *
  * @param actions List of quick actions to display
  * @param modifier Modifier for the button group
  */
 @Composable
-fun QuickActionGroup(actions: List<QuickAction>, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+fun QuickActionGroup(actions: ImmutableList<QuickAction>, modifier: Modifier = Modifier) {
+    ButtonGroup(
+        overflowIndicator = { state -> ButtonGroupDefaults.OverflowIndicator(state) },
+        modifier = modifier.fillMaxWidth(),
+    ) {
         actions.forEach { action ->
-            FilledTonalButton(
+            clickableItem(
                 onClick = action.onClick,
+                label = action.label,
+                icon =
+                    action.icon?.let { icon ->
+                        {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                weight = 1f,
                 enabled = action.enabled,
-                modifier = Modifier.weight(1f),
-                contentPadding = ButtonDefaults.TextButtonContentPadding,
-            ) {
-                if (action.icon != null) {
-                    Icon(
-                        imageVector = action.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(text = action.label, style = MaterialTheme.typography.labelLarge)
-            }
+            )
         }
     }
 }
@@ -90,29 +76,18 @@ fun QuickActionRow(
     secondaryAction: QuickAction,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        FilledTonalButton(
-            onClick = primaryAction.onClick,
-            enabled = primaryAction.enabled,
-            modifier = Modifier.weight(1f),
-        ) {
-            if (primaryAction.icon != null) {
-                Icon(primaryAction.icon, null)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(primaryAction.label)
-        }
-
-        FilledTonalButton(
-            onClick = secondaryAction.onClick,
-            enabled = secondaryAction.enabled,
-            modifier = Modifier.weight(1f),
-        ) {
-            if (secondaryAction.icon != null) {
-                Icon(secondaryAction.icon, null)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(secondaryAction.label)
+    ButtonGroup(
+        overflowIndicator = { state -> ButtonGroupDefaults.OverflowIndicator(state) },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        listOf(primaryAction, secondaryAction).forEach { action ->
+            clickableItem(
+                onClick = action.onClick,
+                label = action.label,
+                icon = action.icon?.let { icon -> { Icon(icon, null) } },
+                weight = 1f,
+                enabled = action.enabled,
+            )
         }
     }
 }
@@ -127,12 +102,15 @@ fun QuickActionRow(
  */
 @Composable
 fun SelectionButtonGroup(
-    options: List<String>,
+    options: ImmutableList<String>,
     selectedIndex: Int,
     onSelectionChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    androidx.compose.foundation.layout.Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         options.forEachIndexed { index, option ->
             val isSelected = selectedIndex == index
             if (isSelected) {
@@ -167,7 +145,7 @@ private fun QuickActionGroupPreview() {
         Box(modifier = Modifier.padding(16.dp)) {
             QuickActionGroup(
                 actions =
-                    listOf(
+                    persistentListOf(
                         QuickAction(
                             label = "Configure",
                             icon = Icons.Outlined.Fingerprint,
@@ -206,7 +184,7 @@ private fun SelectionButtonGroupPreview() {
         var selectedIndex by remember { mutableIntStateOf(0) }
         Box(modifier = Modifier.padding(16.dp)) {
             SelectionButtonGroup(
-                options = listOf("Day", "Week", "Month"),
+                options = persistentListOf("Day", "Week", "Month"),
                 selectedIndex = selectedIndex,
                 onSelectionChange = { selectedIndex = it },
             )

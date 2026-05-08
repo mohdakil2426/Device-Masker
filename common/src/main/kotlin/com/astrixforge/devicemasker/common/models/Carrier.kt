@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.common.models
 
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.secureRandom
 import kotlinx.serialization.Serializable
 
 /**

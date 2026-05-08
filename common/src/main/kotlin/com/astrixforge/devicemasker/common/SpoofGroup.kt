@@ -88,53 +88,11 @@ data class SpoofGroup(
         return identifiers[type]?.isEnabled ?: true
     }
 
-    /** Returns the count of configured (non-null) identifier values. */
-    fun configuredCount(): Int {
-        return identifiers.count { it.value.value != null }
-    }
-
-    /** Returns the count of enabled identifiers. */
-    fun enabledCount(): Int {
-        return identifiers.count { it.value.isEnabled }
-    }
-
     /** Creates a copy with an updated identifier. */
     fun withIdentifier(identifier: DeviceIdentifier): SpoofGroup {
         val newIdentifiers = identifiers.toMutableMap()
         newIdentifiers[identifier.type] = identifier
         return copy(identifiers = newIdentifiers, updatedAt = System.currentTimeMillis())
-    }
-
-    /** Alias for withIdentifier - sets an identifier. */
-    fun setIdentifier(identifier: DeviceIdentifier): SpoofGroup = withIdentifier(identifier)
-
-    /** Creates a copy with an updated value for a specific type. */
-    fun withValue(type: SpoofType, value: String?): SpoofGroup {
-        val existing = identifiers[type] ?: DeviceIdentifier.createDefault(type)
-        return withIdentifier(existing.withValue(value))
-    }
-
-    /** Creates a copy with updated enabled state. */
-    fun withEnabled(enabled: Boolean): SpoofGroup {
-        return copy(isEnabled = enabled, updatedAt = System.currentTimeMillis())
-    }
-
-    /** Creates a copy with updated persona metadata. */
-    fun withPersona(seed: String?, generatedAt: Long): SpoofGroup {
-        return copy(
-            personaSeed = seed,
-            personaGeneratedAt = generatedAt,
-            updatedAt = System.currentTimeMillis(),
-        )
-    }
-
-    /** Regenerates all identifier values. */
-    fun regenerateAll(): SpoofGroup {
-        val regeneratedIdentifiers =
-            identifiers.mapValues { (_, identifier) ->
-                identifier.withValue(null) // Trigger regeneration
-            }
-        return copy(identifiers = regeneratedIdentifiers, updatedAt = System.currentTimeMillis())
     }
 
     /** Gets last modification timestamp (alias for updatedAt). */
@@ -144,48 +102,6 @@ data class SpoofGroup(
     // ═══════════════════════════════════════════════════════════
     // ASSIGNED APPS MANAGEMENT
     // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Checks if an app is assigned to this group.
-     *
-     * @param packageName The app's package name to check
-     * @return True if the app is assigned to this group
-     */
-    fun isAppAssigned(packageName: String): Boolean {
-        return packageName in assignedApps
-    }
-
-    /**
-     * Creates a copy with an app added to assignedApps.
-     *
-     * @param packageName The app's package name to add
-     * @return Updated SpoofGroup with the app assigned
-     */
-    fun addApp(packageName: String): SpoofGroup {
-        val newAssignedApps = assignedApps + packageName
-        return copy(assignedApps = newAssignedApps, updatedAt = System.currentTimeMillis())
-    }
-
-    /**
-     * Creates a copy with an app removed from assignedApps.
-     *
-     * @param packageName The app's package name to remove
-     * @return Updated SpoofGroup with the app removed
-     */
-    fun removeApp(packageName: String): SpoofGroup {
-        val newAssignedApps = assignedApps - packageName
-        return copy(assignedApps = newAssignedApps, updatedAt = System.currentTimeMillis())
-    }
-
-    /** Returns the count of assigned apps. */
-    fun assignedAppCount(): Int = assignedApps.size
-
-    /** Returns a summary string for display in lists. */
-    fun summary(): String {
-        val enabled = enabledCount()
-        val configured = configuredCount()
-        return "$configured configured, $enabled enabled"
-    }
 
     companion object {
         /**

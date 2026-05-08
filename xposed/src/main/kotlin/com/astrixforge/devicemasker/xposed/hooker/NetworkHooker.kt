@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 import java.net.NetworkInterface
 
@@ -21,6 +22,8 @@ import java.net.NetworkInterface
  */
 object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
 
+    private const val MAC_HEX_RADIX = 16
+
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         hookWifiInfo(cl, xi, prefs, pkg)
         hookNetworkInterface(cl, xi, prefs, pkg)
@@ -37,40 +40,49 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         val wifiInfoClass = cl.loadClassOrNull("android.net.wifi.WifiInfo") ?: return
         safeHook("WifiInfo.getMacAddress()") {
             wifiInfoClass.methodOrNull("getMacAddress")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("WifiInfo.getSSID()") {
             wifiInfoClass.methodOrNull("getSSID")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val ssid =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_SSID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.WIFI_SSID)
-                    if (ssid.startsWith("\"")) ssid else "\"$ssid\""
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val ssid =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_SSID)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.WIFI_SSID)
+                            if (ssid.startsWith("\"")) ssid else "\"$ssid\""
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("WifiInfo.getBSSID()") {
             wifiInfoClass.methodOrNull("getBSSID")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.WIFI_BSSID)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.WIFI_BSSID)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -85,25 +97,32 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         val niClass = cl.loadClassOrNull("java.net.NetworkInterface") ?: return
         safeHook("NetworkInterface.getHardwareAddress()") {
             niClass.methodOrNull("getHardwareAddress")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val networkInterface =
-                        chain.thisObject as? NetworkInterface ?: return@intercept result
-                    val interfaceName = networkInterface.name ?: return@intercept result
-                    if (
-                        !interfaceName.startsWith("wlan", ignoreCase = true) &&
-                            !interfaceName.startsWith("wifi", ignoreCase = true) &&
-                            !interfaceName.startsWith("p2p", ignoreCase = true)
-                    ) {
-                        return@intercept result
-                    }
-                    val mac =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
-                    runCatching { mac.split(":").map { it.toInt(16).toByte() }.toByteArray() }
-                        .getOrElse { result }
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val networkInterface =
+                                chain.thisObject as? NetworkInterface ?: return@stableHooker result
+                            val interfaceName = networkInterface.name ?: return@stableHooker result
+                            if (
+                                !interfaceName.startsWith("wlan", ignoreCase = true) &&
+                                    !interfaceName.startsWith("wifi", ignoreCase = true) &&
+                                    !interfaceName.startsWith("p2p", ignoreCase = true)
+                            ) {
+                                return@stableHooker result
+                            }
+                            val mac =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
+                            runCatching {
+                                    mac.split(":")
+                                        .map { it.toInt(MAC_HEX_RADIX).toByte() }
+                                        .toByteArray()
+                                }
+                                .getOrElse { result }
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -118,14 +137,17 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         val btClass = cl.loadClassOrNull("android.bluetooth.BluetoothAdapter") ?: return
         safeHook("BluetoothAdapter.getAddress()") {
             btClass.methodOrNull("getAddress")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.BLUETOOTH_MAC)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.BLUETOOTH_MAC)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -140,27 +162,33 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
         val tmClass = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
         safeHook("TelephonyManager.getNetworkOperatorName()") {
             tmClass.methodOrNull("getNetworkOperatorName")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
         safeHook("TelephonyManager.getNetworkOperator()") {
             tmClass.methodOrNull("getNetworkOperator")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    spoofed
-                }
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }

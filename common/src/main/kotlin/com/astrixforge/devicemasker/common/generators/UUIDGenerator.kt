@@ -23,6 +23,7 @@ object UUIDGenerator {
 
     /** Hex characters for ID generation. */
     private const val HEX_CHARS = "0123456789abcdef"
+    private const val INSTANCE_ID_LENGTH = 22
 
     /**
      * Generates a random Android ID. Android ID is a 64-bit number (16 hex characters) unique to
@@ -81,6 +82,8 @@ object UUIDGenerator {
      */
     fun generateInstanceId(): String {
         val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"
-        return buildString { repeat(22) { append(chars[secureRandom.nextInt(chars.length)]) } }
+        return buildString {
+            repeat(INSTANCE_ID_LENGTH) { append(chars[secureRandom.nextInt(chars.length)]) }
+        }
     }
 }

@@ -15,12 +15,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -49,7 +50,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
  * @param enabled Whether the button is clickable
  * @param tint Icon tint color (defaults to LocalContentColor)
  * @param iconSize Icon size (default 24.dp)
- * @param buttonSize Overall button touch target size (default 40.dp)
+ * @param buttonSize Overall button touch target size (default 48.dp)
  */
 @Composable
 fun ExpressiveIconButton(
@@ -60,7 +61,7 @@ fun ExpressiveIconButton(
     enabled: Boolean = true,
     tint: Color = LocalContentColor.current,
     iconSize: Dp = 24.dp,
-    buttonSize: Dp = 40.dp,
+    buttonSize: Dp = 48.dp,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -75,7 +76,11 @@ fun ExpressiveIconButton(
 
     IconButton(
         onClick = onClick,
-        modifier = modifier.size(buttonSize).scale(scale),
+        modifier =
+            modifier.minimumInteractiveComponentSize().size(buttonSize).graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         enabled = enabled,
         interactionSource = interactionSource,
         colors =
@@ -93,8 +98,8 @@ fun ExpressiveIconButton(
 }
 
 /**
- * Compact version of ExpressiveIconButton for action rows. Uses smaller default sizes (36.dp
- * button, 20.dp icon).
+ * Compact visual version of ExpressiveIconButton for action rows. The visual button is compact,
+ * while minimumInteractiveComponentSize keeps the touch target accessible.
  */
 @Composable
 fun CompactExpressiveIconButton(

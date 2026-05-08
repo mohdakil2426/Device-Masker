@@ -20,9 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
@@ -64,11 +64,10 @@ fun ExpressiveCard(
     // Effect spring for color (NO overshoot)
     val baseColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
     val targetColor =
-        when {
-            isSelected ->
-                selectionColor ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-
-            else -> baseColor
+        if (isSelected) {
+            selectionColor ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        } else {
+            baseColor
         }
 
     val animatedContainerColor by
@@ -84,7 +83,10 @@ fun ExpressiveCard(
     ElevatedCard(
         modifier =
             modifier
-                .scale(scale)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .combinedClickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -131,11 +133,10 @@ fun ExpressiveOutlinedCard(
         )
 
     val targetColor =
-        when {
-            isSelected ->
-                selectionColor ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-
-            else -> Color.Transparent
+        if (isSelected) {
+            selectionColor ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+        } else {
+            Color.Transparent
         }
 
     val animatedContainerColor by
@@ -148,7 +149,10 @@ fun ExpressiveOutlinedCard(
     OutlinedCard(
         modifier =
             modifier
-                .scale(scale)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .combinedClickable(
                     interactionSource = interactionSource,
                     indication = null,

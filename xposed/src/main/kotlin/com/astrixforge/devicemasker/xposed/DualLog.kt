@@ -5,7 +5,7 @@ import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
 import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 
 /**
- * Dual Logger — logs to Android logcat and mirrors structured entries to the diagnostics service.
+ * Dual Logger — logs to Android logcat and mirrors structured entries to the module logger.
  *
  * ## Migration note (libxposed API 101)
  *
@@ -14,8 +14,8 @@ import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
  * process logcat output and displays it in its log screen, so all logs remain visible in LSPosed
  * Manager as before.
  *
- * Structured logs are also forwarded to the diagnostics AIDL service when it is available so the UI
- * sees the same failures that reach logcat.
+ * Structured logs are mirrored to the module logger so LSPosed/logcat remains the authoritative
+ * target-process evidence source.
  *
  * Usage:
  * ```kotlin

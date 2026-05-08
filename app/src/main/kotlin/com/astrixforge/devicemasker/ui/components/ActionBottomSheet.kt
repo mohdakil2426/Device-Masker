@@ -29,21 +29,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-
-/**
- * Data class representing an action item in the bottom sheet.
- *
- * @param icon Icon to display for the action
- * @param title Primary title text
- * @param description Optional subtitle/description text
- * @param onClick Callback when the action is selected
- */
-data class ActionItem(
-    val icon: ImageVector,
-    val title: String,
-    val description: String? = null,
-    val onClick: () -> Unit,
-)
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /**
  * A reusable modal bottom sheet that displays a list of action items.
@@ -60,7 +47,7 @@ data class ActionItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionBottomSheet(
-    actions: List<ActionItem>,
+    actions: ImmutableList<ActionItem>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
@@ -92,6 +79,7 @@ fun ActionBottomSheet(
                     icon = action.icon,
                     title = action.title,
                     description = action.description,
+                    enabled = action.enabled,
                     onClick = {
                         action.onClick()
                         onDismiss()
@@ -108,6 +96,7 @@ private fun ActionItemRow(
     icon: ImageVector,
     title: String,
     description: String?,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -116,14 +105,16 @@ private fun ActionItemRow(
             modifier
                 .fillMaxWidth()
                 .semantics(mergeDescendants = true) {}
-                .clickable(onClick = onClick)
+                .clickable(enabled = enabled, onClick = onClick)
                 .padding(vertical = 14.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint =
+                if (enabled) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -131,7 +122,9 @@ private fun ActionItemRow(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color =
+                    if (enabled) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (description != null) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -157,7 +150,7 @@ private fun ActionBottomSheetPreview() {
         ActionBottomSheet(
             title = stringResource(R.string.settings_export_sheet_title),
             actions =
-                listOf(
+                persistentListOf(
                     ActionItem(
                         icon = Icons.Outlined.Save,
                         title = stringResource(R.string.settings_export_save),

@@ -7,21 +7,40 @@ import org.junit.Test
 class ReleaseBuildSafetyTest {
 
     @Test
-    fun `release build keeps xposed hooker bytecode unminified`() {
+    fun `release build keeps minification enabled with stable hooker guardrails`() {
         val buildFile = projectFile("app/build.gradle.kts").readText()
+        val stableHookerFile =
+            projectFile(
+                    "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt"
+                )
+                .readText()
+        val r8GuardTest =
+            projectFile(
+                    "xposed/src/test/kotlin/com/astrixforge/devicemasker/xposed/hooker/R8HookerAbiTest.kt"
+                )
+                .readText()
 
         assertTrue(
-            "Release R8 minification must stay disabled until libxposed hooker lambdas are live-validated.",
-            Regex("release\\s*\\{[\\s\\S]*isMinifyEnabled\\s*=\\s*false").containsMatchIn(buildFile),
+            "Release R8 minification must stay enabled; StableHooker is the validated callback path.",
+            Regex("release\\s*\\{[\\s\\S]*isMinifyEnabled\\s*=\\s*true").containsMatchIn(buildFile),
         )
         assertTrue(
-            "Resource shrinking requires minification and must stay disabled with xposed hookers unminified.",
-            buildFile.contains("isShrinkResources = false"),
+            "Resource shrinking should stay enabled with release minification.",
+            Regex("release\\s*\\{[\\s\\S]*isShrinkResources\\s*=\\s*true")
+                .containsMatchIn(buildFile),
+        )
+        assertTrue(
+            "StableHooker must keep libxposed runtime callbacks as concrete Hooker implementations.",
+            stableHookerFile.contains("XposedInterface.Hooker"),
+        )
+        assertTrue(
+            "R8HookerAbiTest must prevent direct runtime intercept lambdas from returning.",
+            r8GuardTest.contains("direct Kotlin SAM lambdas"),
         )
     }
 
     @Test
-    fun `xposed target process does not look up custom diagnostics service`() {
+    fun `xposed target process does not use ServiceManager diagnostics lookup`() {
         val entryFile =
             projectFile("xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt")
                 .readText()
@@ -53,7 +72,6 @@ class ReleaseBuildSafetyTest {
                 "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt",
                 "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt",
                 "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt",
-                "xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemServiceHooker.kt",
             )
 
         guardedFiles.forEach { path ->
@@ -75,7 +93,8 @@ class ReleaseBuildSafetyTest {
                 .readText()
 
         assertTrue(
-            "Class lookup hooks must guard reentry; otherwise target startup can ANR while hook registration loads classes.",
+            "Class lookup hooks must guard reentry; otherwise target startup can ANR " +
+                "while hook registration loads classes.",
             hookerFile.contains("classLookupHookActive"),
         )
         assertTrue(
@@ -88,7 +107,8 @@ class ReleaseBuildSafetyTest {
                 !hookerFile.contains("hookClassLoaderLoadClass(cl, xi)"),
         )
         assertTrue(
-            "Bootstrap classes should be resolved directly instead of through the target ClassLoader after class-loading hooks are active.",
+            "Bootstrap classes should be resolved directly instead of through the target " +
+                "ClassLoader after class-loading hooks are active.",
             hookerFile.contains("ClassLoader::class.java") &&
                 hookerFile.contains("Class::class.java"),
         )

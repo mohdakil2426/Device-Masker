@@ -91,49 +91,86 @@ fun SectionHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        SectionHeaderTitle(
+            title = title,
+            icon = icon,
+            count = count,
+            countColor = countColor,
             modifier = Modifier.weight(1f),
-        ) {
-            // Optional leading icon
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+        )
+        SectionHeaderExpandIcon(
+            isVisible = onExpandChange != null,
+            isExpanded = isExpanded,
+            iconRotation = iconRotation,
+        )
+    }
+}
 
-            // Title and optional count
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+@Composable
+private fun SectionHeaderTitle(
+    title: String,
+    icon: ImageVector?,
+    count: String?,
+    countColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier,
+    ) {
+        SectionHeaderIcon(icon = icon)
+        SectionHeaderText(title = title, count = count, countColor = countColor)
+    }
+}
 
-                if (count != null) {
-                    Text(
-                        text = count,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = countColor,
-                    )
-                }
-            }
+@Composable
+private fun SectionHeaderIcon(icon: ImageVector?, modifier: Modifier = Modifier) {
+    if (icon != null) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = modifier.size(24.dp),
+        )
+    }
+}
+
+@Composable
+private fun SectionHeaderText(
+    title: String,
+    count: String?,
+    countColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        if (count != null) {
+            Text(text = count, style = MaterialTheme.typography.bodySmall, color = countColor)
         }
+    }
+}
 
-        // Expand/collapse icon (only shown if expandable)
-        if (onExpandChange != null) {
-            Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    modifier = Modifier.rotate(iconRotation),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+@Composable
+private fun SectionHeaderExpandIcon(
+    isVisible: Boolean,
+    isExpanded: Boolean,
+    iconRotation: Float,
+    modifier: Modifier = Modifier,
+) {
+    if (isVisible) {
+        Box(modifier = modifier.size(40.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                modifier = Modifier.rotate(iconRotation),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

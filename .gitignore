@@ -2,7 +2,6 @@
 # ANDROID & GRADLE BUILD FILES
 # ═══════════════════════════════════════════════════════════
 *.iml
-.gradle
 .gradle/
 /build
 /*/build
@@ -74,13 +73,6 @@ signing.properties
 /docs/local-signing/
 
 # ═══════════════════════════════════════════════════════════
-# YUKIHOOKAPI AUTO-GENERATED FILES
-# ═══════════════════════════════════════════════════════════
-assets/xposed_init
-resources/META-INF/yukihookapi_init
-LogsOutput
-
-# ═══════════════════════════════════════════════════════════
 # KOTLIN
 # ═══════════════════════════════════════════════════════════
 .kotlin/
@@ -108,16 +100,21 @@ Thumbs.db
 *.prof
 
 # ═══════════════════════════════════════════════════════════
-# MEMORY BANK & OPENSPEC (Project-specific)
+# AI AGENTS
 # ═══════════════════════════════════════════════════════════
-# Keep memory-bank/ and openspec/ - these are safe
-# Keep .agent/ - workflow definitions
-
 .playwright-cli/
 .playwright-mcp/
 .worktrees/
 scripts/logs/*.txt
-docs/references/
+docs/internal/references/
+.opencode/
+
+# graphify local/generated files
+/graphify-scope/
+/graphify-out/cache/
+/graphify-out/.graphify_*
+/graphify-out/manifest.json
+/graphify-out/cost.json
 
 # ═══════════════════════════════════════════════════════════
 # VERSION CONTROL
@@ -136,5 +133,3 @@ docs/references/
 *.rej
 *.tmp
 LOGS/
-
-xposed-backup-2026-01-20

@@ -1,315 +1,174 @@
-# Device Masker Agent Guide
+# Device Masker — Agent Guide
 
-Device Masker is an Android LSPosed/libxposed module for privacy research and controlled per-app device identity spoofing.
+Android LSPosed/libxposed module for per-app device identity spoofing. 3-module Gradle project: `:app` (Compose UI + config), `:common` (shared contracts + generators), `:xposed` (hooks running inside target app processes).
 
-Current state: active development with a first working base. As of 2026-05-02, `com.mantle.verify` launched under LSPosed on `emulator-5554`, Device Masker hooks registered, and LSPosed logs showed live spoof events for multiple identifiers. This is not a stable release yet.
+## Permanent Rules
 
-## Required First Step
+- Config delivery is RemotePreferences-first. Do not add custom AIDL/Binder config or hook-evidence paths.
+- `SharedPrefsKeys.kt` is the only source for RemotePreferences key names.
+- `JsonConfig.appConfigs` is canonical for app scope; `SpoofGroup.assignedApps` is legacy/display-only.
+- Generated identity values are created in app/common config flows, never inside target-process hooks.
+- `:xposed` must return original values for disabled, missing, blank, malformed, unsafe, or unsupported config.
+- `:xposed` must not use Timber, Compose, random generation, app-private JSON reads, or hardcoded preference keys.
+- Runtime hooks must not use direct Kotlin SAM `.intercept { ... }` callbacks unless release R8/runtime validation explicitly proves it safe.
+- App launch and app-side Xposed service connection do not prove hooks work.
+- Hook success requires LSPosed/logcat evidence and, where possible, actual spoofed values inside target apps.
+- Target app safety is more important than broad spoof coverage.
 
-Read every file in `memory-bank/` before architecture, implementation, review, debugging, or documentation work.
+## Module Boundaries
 
-Core files:
-- `memory-bank/projectbrief.md`
-- `memory-bank/productContext.md`
-- `memory-bank/systemPatterns.md`
-- `memory-bank/techContext.md`
-- `memory-bank/activeContext.md`
-- `memory-bank/progress.md`
+| Module | What lives here | Key constraint |
+|--------|----------------|----------------|
+| `:app` | Compose UI, ViewModels, ConfigManager, ConfigSync, XposedPrefs, diagnostics, root capture | No hook logic. Timber OK here. |
+| `:common` | JsonConfig, SpoofType, SharedPrefsKeys, generators, DevicePersona | No Android UI deps. Generators run at config time only. |
+| `:xposed` | XposedEntry, all hookers, PrefsHelper, DualLog | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
 
-## Project Purpose
+## Architecture Reference
 
-Device Masker lets users configure stable alternate identities for selected Android apps. The app writes configuration into local JSON and libxposed RemotePreferences. The LSPosed module reads RemotePreferences inside scoped target processes and intercepts selected Android framework APIs.
+For full architecture, config flow, diagnostics flow, and module interaction details, read `docs/public/ARCHITECTURE.md`.
 
-In scope:
-- Per-app and per-group spoof configuration.
-- Stable stored identity values.
-- Android ID, device profile, telephony, SIM/carrier, network, Advertising ID, Media DRM, location, sensor, WebView, and package visibility hooks.
-- Safer anti-detection surfaces: stack traces, package visibility, and maps filtering.
-- Rootless app logs and LSPosed hook-side runtime logs.
-- Local-first structured diagnostics, redacted support bundles, and opt-in root maximum evidence collection.
+Root `AGENTS.md` only keeps permanent guardrails. Do not duplicate detailed architecture here; update the architecture doc and Memory Bank when architecture changes.
 
-Out of scope:
-- Root hiding.
-- Play Integrity, SafetyNet, or hardware attestation bypass.
-- Bootloader or verified boot bypass.
-- Fraud, ban evasion, or unauthorized access workflows.
+## Project Structure
 
-## Architecture
-
-```mermaid
-flowchart TD
-    User["User"]
-    UI[":app Compose UI"]
-    VM["ViewModels"]
-    Repo["SpoofRepository"]
-    Config["ConfigManager"]
-    Json["filesDir/config.json"]
-    Sync["ConfigSync"]
-    XPrefs["XposedPrefs"]
-    Remote["libxposed RemotePreferences"]
-    Common[":common shared contracts"]
-    Entry[":xposed XposedEntry"]
-    Hookers["Spoof hookers"]
-    Anti["AntiDetectHooker"]
-    Target["Target app process"]
-    APIs["Android framework APIs"]
-    LSLogs["LSPosed logs"]
-    DiagSvc["DeviceMaskerService best-effort diagnostics"]
-    AppLogs["Rootless app logs"]
-
-    User --> UI --> VM --> Repo --> Config
-    Config --> Json
-    Config --> Sync --> XPrefs --> Remote
-    Common --> UI
-    Common --> Entry
-    Entry --> Anti
-    Entry --> Hookers
-    Target --> APIs
-    Hookers --> APIs
-    Hookers --> Remote
-    Hookers --> LSLogs
-    Anti --> LSLogs
-    Entry --> DiagSvc
-    UI --> AppLogs
+```
+devicemasker/
+├── app/                  :app module — user-facing app, config, diagnostics, root capture
+│   └── src/main/kotlin/com/astrixforge/devicemasker/
+│       ├── data/             App data access, repositories, RemotePreferences bridge
+│       ├── service/          App services, config persistence, logs, diagnostics
+│       ├── ui/               Compose UI, navigation, theme, reusable components
+│       └── utils/            App utility helpers
+│
+├── common/               :common module — shared contracts, models, generators
+│   └── src/main/
+│       ├── kotlin/.../common/
+│       │   ├── models/       Shared data models and value objects
+│       │   ├── generators/   Config-time identity generators
+│       │   ├── diagnostics/  Shared diagnostics schema and redaction
+│       │   └── (root)        Shared config contracts, key builders, constants
+│
+├── xposed/               :xposed module — hooks in target app processes
+│   └── src/main/
+│       ├── kotlin/.../xposed/
+│       │   ├── hooker/       Target-process hook implementations and shared hook helpers
+│       │   ├── diagnostics/  Hook-side diagnostics and health tracking
+│       │   └── (root)        Module entry, preference reader, logging, deoptimization support
+│       └── resources/META-INF/xposed/   libxposed module metadata
+│
+├── gradle/               Gradle version catalog and build dependency metadata
+├── docs/                 Public docs, internal audits/reports, implementation plans
+├── logs/                 Build logs, device evidence, temporary agent/user artifacts, temp build logs file
+├── build.gradle.kts      Root Gradle conventions
+├── settings.gradle.kts   Gradle module/repository settings
+├── lint.xml              Android lint configuration
+└── gradle.properties     Gradle/Android build properties
 ```
 
-### Config Flow
+### File & Boundaries
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant UI as Compose UI
-    participant R as SpoofRepository
-    participant C as ConfigManager
-    participant S as ConfigSync
-    participant P as RemotePreferences
-    participant H as Hooker
-    participant API as Android API
+| Type | Correct Location | Wrong |
+| --- | --- | --- |
+| User-facing docs | `docs/public/` | `docs/internal/` |
+| Active internal reports/audits | `docs/internal/reports/active/` | project root or `docs/internal/reports/` root |
+| Closed internal reports/audits | `docs/internal/reports/closed/` | project root or `docs/internal/reports/` root |
+| Implementation plans | `docs/superpowers/plans/` | reports folders or project root |
+| Build logs and command output | `logs/build/` | project root, docs, module dirs |
+| Device testing logs, logcat, screenshots, captures, exported evidence | `logs/device/` | project root or docs |
+| Agent/user temporary check artifacts | `logs/tmp/` | project root or source folders |
 
-    U->>UI: Enable app/type or edit value
-    UI->>R: Update config
-    R->>C: Mutate JsonConfig
-    C->>S: Sync current config
-    S->>P: Write flattened per-app keys
-    H->>P: Read app/type/value
-    H->>API: Intercept framework call
-    alt Enabled and valid stored value
-        H-->>API: Return spoofed value
-    else Disabled, missing, blank, malformed, unsafe
-        H-->>API: Return original value
-    end
-```
+All agent-created and user-created build logs, device logs, temporary captures, smoke-test exports, and scratch evidence must stay under `logs/` using the closest matching subfolder. Do not scatter temporary evidence files in the project root.
 
-## Current Source Of Truth Rules
+Report lifecycle:
+- Put reports with pending decisions, open remediation, or active analysis in `docs/internal/reports/active/`.
+- Move reports to `docs/internal/reports/closed/` only after the decision is recorded or the remediation is complete.
+- Do not leave report files directly under `docs/internal/reports/`.
 
-- `JsonConfig.appConfigs` is canonical for app assignment and enablement.
-- `SpoofGroup.assignedApps` is legacy/display compatibility only.
-- `SharedPrefsKeys` in `:common` is the only place to build preference keys.
-- Config delivery is RemotePreferences-first.
-- AIDL is diagnostics-only. Never use AIDL to deliver spoof config.
-- Diagnostics are local-first. Do not add cloud logging, crash SDKs, analytics SDKs, or network telemetry.
-- Redacted export is the default. Never log raw identifiers by default.
-- Root Maximum export is opt-in and requires root; root output must be bounded and redacted before export.
-- Generators live in `:common`.
-- Hookers must not generate fresh identifiers at runtime.
-- LSPosed logs are authoritative proof of target-process hook registration and spoof events.
-- App-side `XposedPrefs.isServiceConnected` proves service connection only; it does not prove a target app is hooked.
+## Commands And Rules
 
-## Hook Safety Rules
+Use Windows Gradle wrapper commands from repo root.
 
-Every hook should:
-- Resolve classes and methods defensively.
-- Use libxposed API 101 lambda interceptors.
-- Call `xi.deoptimize(m)` for hooked methods.
-- Call `chain.proceed()` when original values are needed.
-- Return original results for unsafe config.
-- Skip abstract or otherwise unhookable methods.
-- Avoid static initializers that can throw in target processes.
-- Avoid mutating framework-returned lists in place.
-
-Never do this:
-- Generate random fallback identifiers in `:xposed`.
-- Return hardcoded fake defaults for malformed config.
-- Read app-private JSON directly from target processes.
-- Use Timber in `:xposed`.
-- Hardcode RemotePreferences key strings.
-- Use custom `ServiceManager` lookup from target app processes.
-- Re-enable global `Class.forName` or `ClassLoader.loadClass` hooks without a per-app kill switch and fresh runtime validation.
-
-## Critical libxposed/Xposed Practices
-
-Use the local `libxposed` skill before any Xposed/libxposed implementation, review, debugging, or documentation work. The modern API differs from legacy XposedBridge in ways that can compile but fail silently at runtime.
-
-### API 101 Contract
-
-- Module entry classes must extend `io.github.libxposed.api.XposedModule` and use the framework-created no-arg constructor.
-- Use the modern lifecycle names exactly:
-  - `onModuleLoaded(ModuleLoadedParam)`
-  - `onPackageReady(PackageReadyParam)` for most app hooks
-  - `onSystemServerStarting(SystemServerStartingParam)` for system-server setup
-- Do not invent or use legacy callback names such as `onSystemServerLoaded`, `onServiceConnected`, `onScopeRequestGranted`, `beforeHookedMethod`, or `afterHookedMethod`.
-- `:xposed` must keep `io.github.libxposed:api` as `compileOnly`; add it to test runtime only when local unit tests instantiate code that references API classes.
-- `java_init.list` must contain `com.astrixforge.devicemasker.xposed.XposedEntry`.
-- `module.prop` must keep `minApiVersion=101` and `targetApiVersion=101`.
-- `scope.list` must keep `android` and `system`; target apps still need LSPosed scope plus force-stop/relaunch after changes.
-
-### Chain And Hook Calls
-
-- `chain.args` / `chain.getArgs()` is immutable. Never assign into it.
-- To change arguments, copy the args and call `chain.proceed(Object[])`.
-- Use `chain.proceed()` whenever the original value is needed for fallback.
-- Do not pass a `List` to `chain.proceed`; libxposed expects `Object[]`.
-- `chain.thisObject` can be `null` for static methods and constructors.
-- Skip abstract methods and other unhookable declarations before calling `xi.hook(m)`.
-- Call `xi.deoptimize(m)` after registering hooks for methods where ART/JIT inlining can bypass the hook.
-
-### Error Handling
-
-- `HookFailedError` extends `XposedFrameworkError`, which extends `Error`.
-- Hook registration and deoptimization wrappers must rethrow `XposedFrameworkError` before generic `Throwable` fallback handling.
-- Keep ordinary reflection/OEM API variation failures isolated so one missing method does not block unrelated hooks.
-- Intentional app-visible throws for anti-detection package/class hiding must use `ExceptionMode.PASSTHROUGH`.
-- Do not hide libxposed framework errors behind "safe" logging fallbacks.
-
-### Config And Identity Semantics
-
-- RemotePreferences is the config delivery channel. AIDL is diagnostics-only.
-- App-side config sync should use explicit `commit()` when sync success matters.
-- `JsonConfig.appConfigs` is canonical for app assignment and enablement; `SpoofGroup.assignedApps` is legacy/display compatibility.
-- `SharedPrefsKeys` in `:common` is the only source for RemotePreferences key names.
-- Hookers must read stored values and return originals for disabled, missing, blank, malformed, unsafe, or unsupported config.
-- Hookers must not generate fresh identifiers at runtime.
-- Do not read app-private JSON files from target processes.
-- Some hooks intentionally read config at registration time. Do not claim full live update behavior for those hooks unless callback-time reads are implemented and runtime-tested.
-
-### Process And Scope Behavior
-
-- libxposed may invoke package callbacks multiple times in one process.
-- `XposedEntry` uses process/package selection and one hook registration per classloader to avoid duplicate hook chains.
-- One classloader still has one effective hook package. Do not assume true simultaneous per-package identities inside a shared process.
-- App-side `XposedPrefs.isServiceConnected` proves only libxposed service binding; it does not prove any target app is scoped, hooked, or spoofed.
-- LSPosed logs are the authoritative target-process evidence for hook registration and spoof events.
-
-### Anti-Detection Stability
-
-- Keep safer anti-detection surfaces focused on stack traces, package visibility, and `/proc/self/maps`.
-- Keep global `Class.forName` and `ClassLoader.loadClass` hooks disabled by default.
-- Reintroduce global class lookup hiding only behind a per-app kill switch and fresh runtime validation.
-- Avoid static initializers in hookers that can throw during target startup.
-- Target app processes must not discover the custom diagnostics service through `ServiceManager`; diagnostics service access is best-effort and system-server/app-side only.
-
-### Runtime Validation
-
-Before claiming Xposed behavior works:
-- Run the relevant unit/static tests.
-- Build and install the module APK.
-- Ensure LSPosed scope includes `android`, `system`, and the selected target app.
-- Force-stop and relaunch the target app after scope/module/config changes.
-- Check LSPosed logs for `XposedEntry loaded`, hook registration, and spoof events.
-- Verify actual returned spoof values inside target apps when possible, not only app launch or service connection.
-- Re-test `com.mantle.verify` after hook safety changes, then validate at least two more target apps before stability claims.
-
-## Anti-Detection State
-
-Current active safer surfaces:
-- Stack trace filtering.
-- `/proc/self/maps` filtering.
-- PackageManager/package list hiding.
-
-Currently disabled by default:
-- Global `Class.forName` hiding.
-- Global `ClassLoader.loadClass` hiding.
-
-Reason: global class lookup interception destabilized target app startup and was on the crash path for AndroidX Startup / WorkManager discovery. Reintroduce only behind a per-app safe-mode flag.
-
-Intentional package/class hiding throws must use `ExceptionMode.PASSTHROUGH`.
-
-## Working Base Evidence
-
-Latest known good runtime:
-- Device/emulator: `emulator-5554`.
-- Target: `com.mantle.verify`.
-- Result: target process stayed alive after startup.
-- LSPosed logs showed `XposedEntry loaded`, `All hooks registered`, and spoof events.
-- Spoof events included Android ID, carrier, network operator, IMEI, Wi-Fi MAC, Wi-Fi SSID, Advertising ID, Media DRM ID, and SIM operator name.
-
-Previous crash signatures that should remain absent:
-- `androidx.work.WorkManagerInitializer`
-- WebView regex `PatternSyntaxException`
-- `Cannot hook abstract methods` from WebView hooks
-- `AbstractMethodError` from minified hooker lambdas
-- class-loading ANR in `AntiDetectHooker`
-
-## Important Files
-
-| File | Role |
-| --- | --- |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/DeviceMaskerApp.kt` | App initialization and wiring |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/data/XposedPrefs.kt` | App-side libxposed service and RemotePreferences |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt` | Config flattening into RemotePreferences |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/service/ConfigManager.kt` | JSON config persistence |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/service/AppLogStore.kt` | Rootless app log store |
-| `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Minimal log export |
-| `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model |
-| `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key source of truth |
-| `common/src/main/aidl/com/astrixforge/devicemasker/IDeviceMaskerService.aidl` | Diagnostics-only AIDL |
-| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed entry |
-| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook safety helpers |
-| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
-| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
-
-## Build And Verification
-
-Primary full gate:
+Before writing or changing code, read `docs/public/AGENTS_CODING_RULES.md` and apply those rules.
 
 ```powershell
-.\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon
+.\gradlew.bat :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon
+.\gradlew.bat spotlessCheck detekt lint test assembleDebug --no-daemon
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleRelease :app:assembleCiRelease --no-daemon
+.\gradlew.bat detektBaseline --no-daemon
 ```
 
-Install debug APK:
+Rules:
+- Format with Spotless; do not hand-format unrelated code.
+- Run Spotless and Detekt together after Kotlin/Compose changes.
+- Run module tests for touched modules.
+- Run the release/R8 gate before release or hook-safety claims.
+- Run `detektBaseline` separately from `detekt`; update baselines only for accepted, documented existing debt.
+- Do not claim hook success without LSPosed/logcat evidence and target-app value checks where possible.
+- On build failures, find the root cause first; use relevant skills, official docs, Google-developer-knowledge MCP for Android/Google APIs, and web search when current docs are needed.
 
-```powershell
-adb install -r app\build\outputs\apk\debug\app-debug.apk
-```
+## Xposed Safety
 
-Target smoke:
+**Every hook must:**
+- Return original value when config is disabled, missing, blank, malformed, or unsafe
+- Register callbacks with `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations
+- Call `xi.deoptimize(m)` after hooking (prevents ART/JIT inlining from bypassing hook)
+- Use `safeHook()` isolation — one failed method never blocks other hooks
+- Skip abstract methods before calling `xi.hook(m)`
 
-```powershell
-adb shell am force-stop com.mantle.verify
-adb logcat -c
-adb shell monkey -p com.mantle.verify -c android.intent.category.LAUNCHER 1
-adb shell pidof com.mantle.verify
-adb logcat -d -t 1200
-```
+**Never do in `:xposed`:**
+- Generate random/fallback identifiers
+- Use Timber (use `DualLog` instead)
+- Read app-private JSON files
+- Hardcode RemotePreferences key strings
+- Mutate `chain.args` in place — it's immutable. Copy and call `chain.proceed(Object[])`
+- Use direct Kotlin SAM intercept callbacks; release R8 caused `AbstractMethodError` from that callback shape
+- Re-enable global `Class.forName` / `ClassLoader.loadClass` hooks without per-app kill switch
 
-## Runtime Validation Requirements
+**libxposed API 101 specifics:**
+- Lifecycle: `onModuleLoaded` → `onPackageReady` (app hooks) / `onSystemServerStarting` (system_server setup)
+- `chain.thisObject` can be `null` for static methods
+- `HookFailedError` extends `XposedFrameworkError` extends `Error` — rethrow before generic `Throwable` catches
+- Legacy XposedBridge patterns compile but fail silently at runtime — always load the libxposed skill first (`.agents/skills/libxposed/SKILL.md`)
 
-- Rooted device/emulator.
-- LSPosed with libxposed API 101 support.
-- Device Masker enabled as an LSPosed module.
-- Required scope: `android`, `system`, and selected target apps.
-- Target app force-stopped and relaunched after scope/module/config changes.
+## Runtime Validation
 
-## Documentation Rules
+Before claiming hooks work:
+- Run the relevant unit/static tests and build/install the APK variant being validated.
+- For release/R8 claims, validate the minified release APK with R8 enabled.
+- LSPosed scope must include `android`, `system`, and the target app.
+- Force-stop and relaunch target apps after any scope/module/config change.
+- Check LSPosed/logcat for module load, target selection, hook registration, and spoof events.
+- Verify actual spoofed values inside target apps when possible, not only app launch or service connection.
+- After hook safety or R8 callback changes, run the R8 hook ABI guard and validate more than one target app before stability claims.
 
-- Keep docs current with the development state.
-- Do not describe AIDL as a config channel.
-- Do not claim stable readiness from app launch alone.
-- Mention LSPosed log evidence when claiming target hook success.
-- Update Memory Bank after architecture, runtime validation, or hook safety changes.
+## Module Guides
 
-## Known Gaps
+Detailed per-module guides with folder structures, APIs, and constraints:
 
-- Broader target app validation is still required.
-- Anti-detection is intentionally weaker while class lookup hooks are disabled.
-- In-app diagnostics service is best-effort under SELinux.
-- AGP and Spotless deprecation warnings remain cleanup work.
-- Actual returned spoof values need more target-side verification beyond spoof event logs.
+- `app/AGENTS.md` — Compose UI, ViewModels, navigation, diagnostics, build config
+- `common/AGENTS.md` — data models, generators, SharedPrefsKeys, config contracts
+- `xposed/AGENTS.md` — hookers, hook patterns, anti-detection, ProGuard, metadata
 
-## Official Documentation
+## Skills
 
-- [libxposed API](https://github.com/libxposed/api)
-- [libxposed API reference](https://libxposed.github.io/api/)
-- [libxposed service](https://github.com/libxposed/service)
-- [libxposed service docs](https://libxposed.github.io/service/)
-- [libxposed example](https://github.com/libxposed/example)
+Critical rule: Load the `libxposed` skill before any Xposed work: `.agents/skills/libxposed/SKILL.md` becouse all you need about lsposed/xposed/libxposed are out-dated this skill have the latest official documentations and raw github cloned repo and javadoc, full imformation so befor any xposed work load/read the skill first its critical.
+
+Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expressive`, `navigation-3`, `r8-analyzer`.
+
+## MCP Usage
+
+- Use `Google-developer-knowledge` MCP for Android, Google, Material 3 Expressive, Firebase, Play, Web, or Google Cloud and all the google documentations. this is best for that things, dont use context7 for these.
+- Use `mobile_mcp` for emulator/device to controll the emulator and manual app tests.
+- Use `context7` for current library/framework/API documentation before changing code that depends on external APIs.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost).

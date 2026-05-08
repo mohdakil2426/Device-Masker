@@ -1,149 +1,159 @@
-# 🔒 Device Masker
+# Device Masker
 
-**Elite Android Identifier Spoofing LSPosed Module**
+**Android LSPosed module for per-app device identity spoofing with anti-detection.**
 
 [![Android](https://img.shields.io/badge/Android-8.0%2B-green.svg)](https://developer.android.com)
 [![API](https://img.shields.io/badge/API-26%2B-brightgreen.svg)](https://android-arsenal.com/api?level=26)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 [![LSPosed](https://img.shields.io/badge/LSPosed-1.10.2%2B-orange.svg)](https://github.com/LSPosed/LSPosed)
 
-Device Masker is a production-grade LSPosed/Xposed module that **spoofs device identifiers** while maintaining a sophisticated **anti-detection layer**. It features a modern Material 3 Expressive UI and uses a robust multi-module architecture for maximum stability.
+---
+
+Device Masker intercepts Android framework APIs inside selected app processes to present controlled, spoofed device identities. It uses libxposed API 101 with RemotePreferences for live configuration delivery — no target app restart required for config reads.
 
 ---
 
-## 📌 Project Info
+## Features
 
-For a complete technical snapshot (modules, runtime architecture, current dependency versions, root files, and commands), see:
+### Identifier Spoofing
 
-- [PROJECT_INFO.md](PROJECT_INFO.md)
+- **Android ID**, **Advertising ID**, **GSF ID**, **Media DRM ID**
+- **IMEI**, **IMSI**, **ICCID**, **phone number**, **serial number**
+- **SIM/carrier**: carrier name, MCC/MNC, country ISO, network operator
+- **Network**: WiFi MAC, SSID, BSSID, Bluetooth MAC
+- **Device profile**: manufacturer, model, brand, device, board, hardware, fingerprint
+- **Location**: GPS coordinates, timezone, locale
+- **Sensor**: sensor list filtering, vendor/version normalization
+- **WebView**: user-agent string spoofing matching active device profile
 
----
+### Anti-Detection
 
-## ✨ Key Features
+- Stack trace filtering (removes Xposed/libxposed frames)
+- `/proc/self/maps` line filtering
+- Package visibility hiding (LSPosed, Magisk, Device Masker self-hide from target app queries)
 
-### 🛡️ Anti-Detection (Stealth First)
-- **Stack Trace Filtering**: Sophisticated removal of Xposed/YukiHookAPI frames from stack traces.
-- **Class Hiding**: Blocks detection via `Class.forName()` for all framework classes.
-- **XSharedPreferences**: Secure cross-process config sharing that doesn't leak to target apps.
-- **proc/maps Protection**: Hides module libraries from memory maps.
+### Configuration
 
-### 🎭 Spoofing Groups
-- **Independent Configurations**: Create multiple spoofing "Groups" for different use cases.
-- **Per-App Assignment**: Assign different groups to different apps (e.g., "Banking Group", "Privacy Group").
-- **Group Enable/Disable**: Master switch per group for quick control.
+- **Per-app spoof groups**: create multiple identity profiles, assign different apps to different groups
+- **Correlated values**: SIM/carrier values stay internally consistent; device hardware values match the same preset; location/timezone/locale derive from the same country
+- **10 device presets**: Pixel 8 Pro, Samsung S24 Ultra, OnePlus 12, Xiaomi 14 Pro, Nothing Phone 2, and more
+- **Live config delivery**: changes sync to hooked processes via libxposed RemotePreferences — force-stop target app to pick up new values
 
-### 📱 Device Profile Presets
-- **Hardware Identity**: Realistic predefined profiles for popular devices (Pixel 8 Pro, Samsung S24 Ultra, OnePlus 12, etc.).
-- **Consistent Fingerprints**: Synchronized Model, Manufacturer, Brand, and Build Fingerprint to prevent hardware mismatch detection.
+### Diagnostics
 
-### 🧩 Intelligent Correlation
-- **SIM-Location Sync**: Automatically generates matching Timezone, Locale, and GPS coordinates based on the selected SIM carrier's country.
-- **Realistic Generators**: Luhn-valid IMEI/ICCID, hardware-derived Serials, and brand-compliant WiFi SSID patterns.
-- **GPS City Bounds**: Valid coordinates within 42+ major cities across 16+ countries.
-
----
-
-## ⚠️ Important Notes
-
-### Configuration Sync Behavior
-
-**Config changes require target app restart to take effect.**
-
-This is a fundamental limitation of Android's cross-process SharedPreferences mechanism (XSharedPreferences). When you:
-- Enable/disable spoofing for an app
-- Change spoof values
-- Assign an app to a different group
-
-You must **force-stop and restart the target app** for changes to apply. This is because:
-1. XSharedPreferences caches values in the hooked process
-2. The cached values persist until the app process is killed
-3. New values are read only when the app starts fresh
-
-> 💡 **Tip**: Use the "Force Stop" option in Android Settings → Apps → [App Name] → Force Stop
+- Structured JSONL app-side logs (rootless)
+- LSPosed log integration for hook registration and spoof event verification
+- Support bundle export (Basic, Full Debug, Root Maximum)
+- Opt-in root evidence collection with bounded artifact capture
 
 ---
 
-## 🏗️ Architecture
+## Requirements
 
-Device Masker uses a high-performance 3-module architecture inspired by HMA-OSS:
-
-- **`:app`**: Material 3 Expressive UI, `ConfigManager` state management, and `ServiceClient` proxy.
-- **`:xposed`**: High-performance hooker logic running in target processes. Anti-detection always loads first.
-- **`:common`**: Shared AIDL interfaces, `@Serializable` data models, and logic-heavy value generators.
+- Android 8.0 — 16 (API 26 — 36)
+- Rooted device (Magisk, KernelSU, or APatch)
+- LSPosed 1.10.2+ (Zygisk version recommended)
 
 ---
 
-## 📥 Installation
+## Installation
 
-### Requirements
-- **Android 8.0 - 16** (API 26-36)
-- **Rooted device** with Magisk/KernelSU/APatch
-- **LSPosed** 1.10.2+ (Zygisk version recommended)
+1. Install and activate LSPosed framework.
+2. Install the Device Masker APK.
+3. In LSPosed Manager, enable Device Masker and select scope:
+   - **Required**: `android` (system framework) + `system` (system_server)
+   - **Add**: each target app you want to spoof
+   - **Do not** scope Device Masker itself
+4. Open Device Masker and wait for the service connection indicator.
+5. Create a spoof group, assign apps, enable spoof types, and verify generated values.
+6. Force-stop and relaunch target apps.
 
-### Steps
-
-1. **Install LSPosed framework** and ensure it's active.
-2. **Install Device Masker APK**.
-3. **Enable in LSPosed Manager**:
-   - Find Device Masker in the Modules tab.
-   - Enable the module.
-   - **Recommended Scope**: Select "System Framework" and any target apps.
-   - **⚠️ CAUTION**: Do NOT select Device Masker itself in the scope.
-4. **Configure in App**:
-   - Open Device Masker.
-   - Navigate to the **Groups** tab to create a profile.
-   - Use the **Apps** tab to select apps and assign them to your Group.
-5. **Reboot** (Required for the first time or when changing scope).
+> **Note**: Config changes require a target app restart. Use Android Settings → Apps → [App Name] → Force Stop.
 
 ---
 
-## 🏗️ Build from Source
+## Architecture
+
+```
+:app          Compose UI, ViewModels, config persistence, RemotePreferences writer,
+              rootless logs, diagnostics, root evidence collection
+
+:common       Shared models (JsonConfig, SpoofType, SharedPrefsKeys), identity
+              generators, DevicePersona, config contracts
+
+:xposed       libxposed module entry, 11 hookers, RemotePreferences reader,
+              anti-detection, LSPosed/logcat hook diagnostics
+```
+
+**Config delivery flow:**
+
+```
+UI → SpoofRepository → ConfigManager (config.json)
+    → ConfigSync → XposedPrefs → RemotePreferences (LSPosed bridge)
+                                        ↓
+                              Hookers read in target process
+```
+
+Spoof config is delivered exclusively through RemotePreferences. Hook evidence comes from LSPosed/logcat and optional root-captured logs.
+
+---
+
+## Build from Source
 
 ### Prerequisites
-- **Android Studio Ladybug** (2024.1+) or newer
-- **JDK 17** (module toolchain target)
-- **Gradle 9.1.0**
 
-### Build Commands
+- JDK 17
+- Android SDK (compile SDK 37)
+- Gradle (wrapper included)
+
+### Commands
 
 ```bash
 # Clone
 git clone https://github.com/astrixforge/devicemasker.git
 cd devicemasker
 
-# Sync & Build Debug
+# Debug build
 ./gradlew assembleDebug
 
-# Install to device
-./gradlew installDebug
+# Install to connected device
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Full quality gate (formatting, lint, tests, debug + release builds)
+./gradlew spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest \
+  :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
 ```
 
 ---
 
-## 🔧 Technology Stack
+## Technology Stack
 
-| Component | Library | Version |
-|-----------|---------|---------|
-| **Core** | Kotlin | 2.3.0 |
-| **Framework** | YukiHookAPI | 1.3.1 |
-| **Reflection** | KavaRef | 1.0.2 |
-| **UI** | Compose Material 3 | 1.5.0-alpha11 |
-| **Persistence** | DataStore / JSON | 1.2.0 / 1.9.0 |
-
----
-
-## ⚠️ Disclaimer
-
-This module is for **educational and security research purposes only**. 
-
-- Do NOT use to bypass security measures illegally.
-- Users are solely responsible for compliance with local laws.
-- The developers assume no liability for misuse or damage caused by this module.
+| Component    | Library              | Version      |
+|-------------|----------------------|-------------|
+| Language     | Kotlin               | 2.3.0       |
+| Android      | compileSdk / targetSdk | 37 / 36   |
+| Hooking      | libxposed API        | 101.0.1     |
+| UI           | Jetpack Compose + Material 3 | BOM 2026.04.01 |
+| Navigation   | Navigation 3         | 1.1.1       |
+| Serialization | kotlinx.serialization | 1.10.0    |
+| Async        | kotlinx.coroutines   | 1.10.2      |
+| Persistence  | DataStore + JSON     | 1.2.0       |
+| Root access  | libsu                | 6.0.0       |
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Please follow the conventional commit standard and ensure all code matches the project's architecture patterns.
+Contributions are welcome. Please follow conventional commit standards and ensure all code passes the project's quality gate before submitting.
 
-Made with ❤️ by **AstrixForge**
+---
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+
+---
+
+## Disclaimer
+
+This module is intended for **security research and privacy education only**. Users are solely responsible for compliance with applicable laws. The developers assume no liability for misuse.

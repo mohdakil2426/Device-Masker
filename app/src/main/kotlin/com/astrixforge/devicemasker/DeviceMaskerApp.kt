@@ -5,7 +5,8 @@ import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.service.AppLogStore
 import com.astrixforge.devicemasker.service.ConfigManager
 import com.astrixforge.devicemasker.service.PersistentAppLogTree
-import com.astrixforge.devicemasker.service.ServiceClient
+import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
+import com.astrixforge.devicemasker.service.diagnostics.StrictModeGuard
 import timber.log.Timber
 
 /**
@@ -17,17 +18,15 @@ import timber.log.Timber
  * - **ConfigManager**: local JSON configuration storage
  * - **XposedPrefs.init**: registers the libxposed service listener so RemotePreferences writes are
  *   available to [com.astrixforge.devicemasker.data.ConfigSync]
- * - **ServiceClient**: AIDL client for the *diagnostics-only* service in `system_server`
  */
 class DeviceMaskerApp : Application() {
 
-    /** AIDL client for the diagnostics service (hook event counts, logs, health). */
-    private lateinit var _serviceClient: ServiceClient
     private lateinit var _appLogStore: AppLogStore
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        StrictModeGuard.install()
 
         _appLogStore = AppLogStore.from(this)
         Timber.plant(PersistentAppLogTree(_appLogStore))
@@ -48,9 +47,8 @@ class DeviceMaskerApp : Application() {
         XposedPrefs.addServiceBindCallback { ConfigManager.syncCurrentConfig() }
         Timber.d("ConfigManager initialised")
 
-        // Diagnostics-only AIDL client — non-fatal if service is unavailable
-        _serviceClient = ServiceClient(this)
-        Timber.d("ServiceClient initialised")
+        RootAccessManager.init(this)
+        Timber.d("RootAccessManager initialised")
 
         Timber.i("Device Masker module active: $isXposedModuleActive")
     }
@@ -68,15 +66,6 @@ class DeviceMaskerApp : Application() {
                 ?: throw IllegalStateException(
                     "DeviceMaskerApp not initialised. Has Application.onCreate() run?"
                 )
-
-        /**
-         * Diagnostics-only [ServiceClient].
-         *
-         * Post-migration the service only exposes hook event counts, log aggregation, and a
-         * health-check. Config delivery is via [XposedPrefs] / RemotePreferences.
-         */
-        val serviceClient: ServiceClient
-            get() = getInstance()._serviceClient
 
         val appLogStore: AppLogStore
             get() = getInstance()._appLogStore

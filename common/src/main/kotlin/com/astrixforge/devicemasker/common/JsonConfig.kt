@@ -51,28 +51,14 @@ data class JsonConfig(
         return groups.values.find { it.isDefault }
     }
 
-    /** Gets all groups as a list. */
-    fun getAllGroups(): List<SpoofGroup> {
-        return groups.values.toList()
-    }
-
     /**
      * Adds or updates a group.
      *
      * @return Updated JsonConfig
      */
     fun withGroup(group: SpoofGroup): JsonConfig {
-        val newGroups = groups.toMutableMap()
-        newGroups[group.id] = group
-        return copy(groups = newGroups)
+        return copy(groups = groups + (group.id to group))
     }
-
-    /**
-     * Alias for withGroup - adds or updates a group.
-     *
-     * @return Updated JsonConfig
-     */
-    fun addOrUpdateGroup(group: SpoofGroup): JsonConfig = withGroup(group)
 
     /**
      * Removes a group by ID.
@@ -80,10 +66,8 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun removeGroup(groupId: String): JsonConfig {
-        val newGroups = groups.toMutableMap()
-        newGroups.remove(groupId)
         val newAppConfigs = appConfigs.filterValues { it.groupId != groupId }
-        return copy(groups = newGroups, appConfigs = newAppConfigs)
+        return copy(groups = groups - groupId, appConfigs = newAppConfigs)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -106,19 +90,11 @@ data class JsonConfig(
      */
     fun getGroupForApp(packageName: String): SpoofGroup? {
         val appConfig = appConfigs[packageName]
-
-        // If app is explicitly disabled, return null
-        if (appConfig?.isEnabled == false) return null
-
-        // If app has a specific group assignment, use it
-        appConfig?.groupId?.let { groupId ->
-            groups[groupId]?.let {
-                return it
-            }
+        return if (appConfig?.isEnabled == false) {
+            null
+        } else {
+            appConfig?.groupId?.let(groups::get) ?: getDefaultGroup()
         }
-
-        // Fall back to default group
-        return getDefaultGroup()
     }
 
     /**
@@ -127,17 +103,8 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun withAppConfig(appConfig: AppConfig): JsonConfig {
-        val newAppConfigs = appConfigs.toMutableMap()
-        newAppConfigs[appConfig.packageName] = appConfig
-        return copy(appConfigs = newAppConfigs)
+        return copy(appConfigs = appConfigs + (appConfig.packageName to appConfig))
     }
-
-    /**
-     * Alias for withAppConfig - sets app configuration.
-     *
-     * @return Updated JsonConfig
-     */
-    fun setAppConfig(appConfig: AppConfig): JsonConfig = withAppConfig(appConfig)
 
     /**
      * Removes app configuration for a package.
@@ -145,9 +112,7 @@ data class JsonConfig(
      * @return Updated JsonConfig
      */
     fun removeAppConfig(packageName: String): JsonConfig {
-        val newAppConfigs = appConfigs.toMutableMap()
-        newAppConfigs.remove(packageName)
-        return copy(appConfigs = newAppConfigs)
+        return copy(appConfigs = appConfigs - packageName)
     }
 
     /**
@@ -181,23 +146,11 @@ data class JsonConfig(
         return jsonSerializer.encodeToString(this)
     }
 
-    /** Serializes this config to a pretty-printed JSON string. */
-    fun toPrettyJsonString(): String {
-        return prettyJsonSerializer.encodeToString(this)
-    }
-
     companion object {
         // JSON serializer for compact output
         private val jsonSerializer = Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
-        }
-
-        // JSON serializer for pretty output
-        private val prettyJsonSerializer = Json {
-            ignoreUnknownKeys = true
-            encodeDefaults = true
-            prettyPrint = true
         }
 
         /**
@@ -211,32 +164,46 @@ data class JsonConfig(
             return jsonSerializer.decodeFromString<JsonConfig>(json)
         }
 
-        /**
-         * Parses a JSON string into a [JsonConfig], preserving parse failures for callers that need
-         * to surface recovery or logging decisions.
-         */
-        fun parseCatching(json: String?): Result<JsonConfig> = runCatching {
-            require(!json.isNullOrBlank()) { "Config JSON must not be blank" }
-            parse(json)
-        }
-
-        /**
-         * Safely parses a JSON string, returning a default config on failure.
-         *
-         * @param json The JSON string to parse
-         * @param onFailure Optional callback for surfacing parse failures to the caller
-         * @return Parsed JsonConfig or default on error
-         */
-        fun parseOrDefault(json: String?, onFailure: ((Throwable) -> Unit)? = null): JsonConfig {
-            return parseCatching(json).getOrElse { error ->
-                onFailure?.invoke(error)
-                createDefault()
-            }
-        }
-
         /** Creates a default configuration with no groups (fresh install). */
         fun createDefault(): JsonConfig {
             return JsonConfig() // Empty - user must create groups
         }
     }
 }
+
+private val prettyJsonSerializer = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+    prettyPrint = true
+}
+
+/** Gets all groups as a list. */
+fun JsonConfig.getAllGroups(): List<SpoofGroup> = groups.values.toList()
+
+/** Alias for [JsonConfig.withGroup] - adds or updates a group. */
+fun JsonConfig.addOrUpdateGroup(group: SpoofGroup): JsonConfig = withGroup(group)
+
+/** Alias for [JsonConfig.withAppConfig] - sets app configuration. */
+fun JsonConfig.setAppConfig(appConfig: AppConfig): JsonConfig = withAppConfig(appConfig)
+
+/** Serializes this config to a pretty-printed JSON string. */
+fun JsonConfig.toPrettyJsonString(): String = prettyJsonSerializer.encodeToString(this)
+
+/**
+ * Parses a JSON string into a [JsonConfig], preserving parse failures for callers that need to
+ * surface recovery or logging decisions.
+ */
+fun JsonConfig.Companion.parseCatching(json: String?): Result<JsonConfig> = runCatching {
+    require(!json.isNullOrBlank()) { "Config JSON must not be blank" }
+    parse(json)
+}
+
+/** Safely parses a JSON string, returning a default config on failure. */
+fun JsonConfig.Companion.parseOrDefault(
+    json: String?,
+    onFailure: ((Throwable) -> Unit)? = null,
+): JsonConfig =
+    parseCatching(json).getOrElse { error ->
+        onFailure?.invoke(error)
+        createDefault()
+    }

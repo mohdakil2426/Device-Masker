@@ -2,7 +2,7 @@ package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.models.DeviceHardwareConfig
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.secureRandom
 
 /**
  * Generates complete, correlated device hardware values.

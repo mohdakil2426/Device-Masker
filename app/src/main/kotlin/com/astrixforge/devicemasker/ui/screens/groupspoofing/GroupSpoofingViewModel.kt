@@ -1,13 +1,16 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.LocationConfig
+import com.astrixforge.devicemasker.common.withValue
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
-import com.astrixforge.devicemasker.data.repository.SpoofRepository
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,33 +22,40 @@ import kotlinx.coroutines.launch
  *
  * Manages group spoofing state and spoof value operations.
  *
- * @param repository The SpoofRepository for data access
+ * @param repository The [ISpoofRepository] for data access
  * @param groupId The ID of the group to display
  */
-class GroupSpoofingViewModel(private val repository: SpoofRepository, private val groupId: String) :
-    ViewModel() {
+class GroupSpoofingViewModel(
+    private val repository: ISpoofRepository,
+    private val groupId: String,
+    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : ViewModel() {
 
-    private val _state = MutableStateFlow(GroupSpoofingState())
+    private val _state =
+        MutableStateFlow(GroupSpoofingState(selectedTab = savedStateHandle[KEY_SELECTED_TAB] ?: 0))
     val state: StateFlow<GroupSpoofingState> = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
             repository.groups.collect { groups ->
                 val group = groups.find { it.id == groupId }
-                _state.update { it.copy(groups = groups, group = group, isLoading = false) }
+                _state.update {
+                    it.copy(groups = groups.toImmutableList(), group = group, isLoading = false)
+                }
             }
         }
 
-        viewModelScope.launch { repository.appScopeRepository.loadApps() }
+        viewModelScope.launch { runCatching { repository.appScopeRepository.loadApps() } }
 
         viewModelScope.launch {
             repository.appScopeRepository.installedApps.collect { apps ->
-                _state.update { it.copy(installedApps = apps) }
+                _state.update { it.copy(installedApps = apps.toImmutableList()) }
             }
         }
     }
 
     fun setSelectedTab(tab: Int) {
+        savedStateHandle[KEY_SELECTED_TAB] = tab
         _state.update { current ->
             if (current.selectedTab == tab) current else current.copy(selectedTab = tab)
         }
@@ -68,17 +78,15 @@ class GroupSpoofingViewModel(private val repository: SpoofRepository, private va
                 return@launch
             }
 
-            // For SIM values: use regenerateSIMValueOnly to keep same carrier
+            val correlationGroup = type.correlationGroup
             val newValue =
-                when (val correlationGroup = type.correlationGroup) {
-                    CorrelationGroup.SIM_CARD -> repository.regenerateSIMValueOnly(type)
-                    else -> {
-                        // For non-SIM correlated values, reset cache first
-                        if (correlationGroup != CorrelationGroup.NONE) {
-                            repository.resetCorrelationGroup(correlationGroup)
-                        }
-                        repository.generateValue(type)
+                if (correlationGroup == CorrelationGroup.SIM_CARD) {
+                    repository.regenerateSIMValueOnly(type)
+                } else {
+                    if (correlationGroup != CorrelationGroup.NONE) {
+                        repository.resetCorrelationGroup(correlationGroup)
                     }
+                    repository.generateValue(type)
                 }
 
             val updated = group.withValue(type, newValue)
@@ -154,5 +162,9 @@ class GroupSpoofingViewModel(private val repository: SpoofRepository, private va
 
     fun removeAppFromGroup(packageName: String) {
         viewModelScope.launch { repository.removeAppFromGroup(groupId, packageName) }
+    }
+
+    private companion object {
+        const val KEY_SELECTED_TAB = "selectedTab"
     }
 }

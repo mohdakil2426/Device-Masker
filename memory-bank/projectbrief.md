@@ -35,35 +35,59 @@ Device Masker does not attempt:
 
 ## Current Verified State
 
-Latest full gate:
+Latest full gate (post-Master Implementation Plan 2026-05-04 M3E follow-up):
 
 ```powershell
-.\gradlew.bat spotlessApply spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
+.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --no-daemon
 ```
 
 Result: `BUILD SUCCESSFUL`.
 
-Runtime smoke check:
+Latest Detekt strictness state as of 2026-05-08:
+- Detekt runs with `allRules=true`.
+- `:app`, `:common`, and `:xposed` baselines are empty.
+- `.\gradlew.bat detekt --no-daemon --stacktrace` passes after baseline regeneration.
+- Keep baselines at zero unless accepted existing debt is explicitly documented.
+
+Master Implementation Plan status on 2026-05-04:
+- Phase 0: Safety & Stability core fixes complete.
+- Phase 1: Testing Infrastructure complete for current unit-test scope.
+- Phase 2: M3E Theme Foundation core tokens complete.
+- Phase 3: Architecture & State (SavedStateHandle, @Immutable, UX fixes)
+- Phase 4: Motion & Components core tokens complete.
+- Phase 5: Dependency Upgrade complete for material3 `1.5.0-alpha18`; native `LoadingIndicator`, native `ButtonGroup`, `SplitButtonLayout`, `FloatingActionButtonMenu`, `HorizontalFloatingToolbar`, and `MaterialShapes` are adopted.
+- Phase 6: Navigation Modernization complete for type-safe routes.
+- Phase 7: Build Hardening complete for current gates and `ciRelease`.
+- Phase 8: Polish partially complete: previews, window size class adaptation, and compact Mobile MCP smoke done.
+- Phase 9: Final Validation partially complete: Gradle full gate and two target-app LSPosed smoke tests pass.
+
+Still open before stable release: full visual/accessibility matrix, reduced-motion manual validation, 10-minute ANR/jank test, reboot boot-capture validation, disabled/missing/malformed pass-through checks, exact spoof value assertions, and broader target-app validation.
+
+Latest release R8 runtime check:
 - Device/emulator: `emulator-5554`.
-- Installed rebuilt debug APK.
-- Scoped target: `com.mantle.verify`.
+- Installed signed release APK built with R8 minification/resource shrinking enabled.
+- Scoped targets: `com.mantle.verify` and `flar2.devcheck`.
 - LSPosed loaded `com.astrixforge.devicemasker.xposed.XposedEntry`.
 - Hooks registered successfully.
-- Spoof events appeared for Android ID, carrier MCC/MNC, network operator, IMEI, Wi-Fi MAC, Wi-Fi SSID, Advertising ID, Media DRM ID, and SIM operator name.
-- Previous crash signatures did not appear in the final launch log window:
+- Spoof events appeared in both targets.
+- Mobile MCP observed Mantle displaying spoofed model and fingerprint.
+- Previous release crash signatures did not appear in the final checked log windows:
+  - `AbstractMethodError` from `XposedInterface.Hooker.intercept(...)`
   - `androidx.work.WorkManagerInitializer`
   - WebView regex `PatternSyntaxException`
   - abstract WebView hook failure
   - target-app fatal crash
+- User reported the same R8 fix working on a real Android 16 device.
 
 ## Development Status
 
-Current status: working development base with one target-app smoke pass. The project is not stable until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
+Current status: working development base with release R8 enabled, emulator smoke coverage on Mantle and DevCheck, and user-reported success on a real Android 16 device. The project is not stable until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
 
 Known stability decisions:
-- Release shrinking/minification is disabled while libxposed hook lambdas are being live-validated.
+- Release shrinking/minification is enabled after replacing direct libxposed SAM/lambda callbacks with the `StableHooker` adapter path.
+- Hook registration must use `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations; do not reintroduce direct `.intercept { ... }` callbacks in runtime hookers.
 - Global `Class.forName` and `ClassLoader.loadClass` anti-detection hooks are implemented but not registered by default because they caused or contributed to target startup instability.
-- AIDL diagnostics is best-effort only; LSPosed logs are the authoritative runtime source for hook events.
+- No custom diagnostics Binder remains; LSPosed logs are the authoritative runtime source for hook events.
 
 ## Quality Bar
 

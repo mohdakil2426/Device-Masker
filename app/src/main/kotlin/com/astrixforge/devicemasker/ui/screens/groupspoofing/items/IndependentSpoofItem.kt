@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing.items
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,10 +27,8 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 /**
  * Independent spoof item with individual controls.
  *
- * Has its own switch and regenerate button since values don't need to sync. Long-press on value to
- * copy.
+ * Has its own switch and regenerate button since values don't need to sync.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun IndependentSpoofItem(
     type: SpoofType,
@@ -39,12 +36,10 @@ fun IndependentSpoofItem(
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit,
     onRegenerate: () -> Unit,
-    onCopy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ExpressiveCard(
         onClick = { /* Item click feedback */ },
-        onLongClick = { if (isEnabled && value.isNotEmpty()) onCopy() },
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -54,7 +49,6 @@ fun IndependentSpoofItem(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Header row with switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -69,14 +63,12 @@ fun IndependentSpoofItem(
                 ExpressiveSwitch(checked = isEnabled, onCheckedChange = { onToggle(it) })
             }
 
-            // Value and regenerate (only when enabled)
             if (isEnabled) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Value text
                     Text(
                         text =
                             value.ifEmpty { stringResource(id = R.string.group_spoofing_not_set) },
@@ -88,7 +80,6 @@ fun IndependentSpoofItem(
                         modifier = Modifier.weight(1f),
                     )
 
-                    // Regenerate button (with expressive feedback)
                     CompactExpressiveIconButton(
                         onClick = onRegenerate,
                         icon = Icons.Filled.Refresh,

@@ -4,10 +4,10 @@
 
 # Android Agent Skill
 
-![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue)
-![AGP](https://img.shields.io/badge/AGP-9.0.0-orange)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-blue)
+![AGP](https://img.shields.io/badge/AGP-9.2.0-orange)
 ![Min SDK](https://img.shields.io/badge/Min_SDK-24-green)
-![Target SDK](https://img.shields.io/badge/Target_SDK-36-green)
+![Target SDK](https://img.shields.io/badge/Target_SDK-37-green)
 
 This repository is an **Agent Skill** package for Android development with Kotlin and Jetpack Compose.  
 It provides a structured set of instructions, templates, and references that help agents build
@@ -27,6 +27,7 @@ Browse this skill on [SkillsMP](https://skillsmp.com/skills/drjacky-claude-andro
 - Accessibility support (TalkBack, semantic properties, label copy, live regions, Espresso accessibility checks, WCAG alignment)
 - Internationalization & localization (i18n/l10n, RTL support, plurals)
 - Notifications (channels, styles, actions, foreground services, progress-centric, media/audio focus, PiP, system sharesheet, Navigation3 state from taps)
+- Background media playback hardening at target SDK 37 (Media3 `MediaSessionService` for audio and video, `mediaPlayback` foreground service type, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` permission, standalone `MediaPlayer`/`AudioTrack` forbidden in background, `requestAudioFocus` enforcement)
 - Data synchronization & offline-first (sync strategies, conflict resolution, cache invalidation)
 - Material Symbols icons, adaptive launcher icon specs, graphics, custom drawing with Canvas, and Coil3 image loading patterns (AsyncImage, SubcomposeAsyncImage, Hilt ImageLoader)
 - Gradle/build conventions, product flavors and BuildConfig, version catalog usage, KSP migration, and build performance optimization (diagnostics, lazy tasks, configuration cache)
@@ -56,6 +57,7 @@ Browse this skill on [SkillsMP](https://skillsmp.com/skills/drjacky-claude-andro
 - [`references/android-accessibility.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/android-accessibility.md) - accessibility, TalkBack, label copy, semantic properties, WCAG
 - [`references/android-i18n.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/android-i18n.md) - internationalization, localization, RTL support, plurals
 - [`references/android-notifications.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/android-notifications.md) - notifications, channels, media/PiP/sharesheet, foreground services
+- [`references/android-media.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/android-media.md) - background media playback (audio/video) at API 37 (Media3 `MediaSessionService`, FGS type, audio focus rules)
 - [`references/android-data-sync.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/android-data-sync.md) - offline-first, sync strategies, conflict resolution
 - [`references/kotlin-patterns.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/kotlin-patterns.md) - Kotlin best practices and View lifecycle interop (must-read for Kotlin code)
 - [`references/coroutines-patterns.md`](https://github.com/Drjacky/claude-android-ninja/blob/master/references/coroutines-patterns.md) - coroutines best practices and patterns
@@ -141,3 +143,7 @@ If you need a best practice topic or pattern that's missing from this SKILL, ple
 Found a bug, outdated pattern, or incorrect guidance? Please report it so we can fix it.
 
 [Report a Bug](https://github.com/drjacky/claude-android-ninja/issues/new?template=bug_report.md)
+
+### Star History Chart
+
+[![Star History Chart](https://api.star-history.com/svg?repos=drjacky/claude-android-ninja&Date=&type=Date)](https://api.star-history.com/svg?repos=drjacky/claude-android-ninja&Date=&type=Date)

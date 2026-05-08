@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCorn
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.CorrelatedSpoofItem
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.IndependentSpoofItem
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.model.UIDisplayCategory
+import com.astrixforge.devicemasker.ui.screens.groupspoofing.model.themeColor
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 
 /** Category section for group spoof values - organized by correlation groups. */
@@ -56,10 +58,10 @@ fun CategorySection(
     onRegenerateLocation: () -> Unit,
     onToggle: (SpoofType, Boolean) -> Unit,
     onCarrierChange: (Carrier) -> Unit,
-    onTimezoneSelected: (String) -> Unit,
-    onCopy: (String) -> Unit,
+    timezoneSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val categoryColor = category.themeColor()
     val rotationAngle by
         animateFloatAsState(
             targetValue = if (isExpanded) 0f else 180f,
@@ -68,14 +70,7 @@ fun CategorySection(
         )
 
     val categoryShape = animatedRoundedCornerShape(targetRadius = if (isExpanded) 24.dp else 16.dp)
-
-    // For correlated categories, check if ANY type is enabled
-    val isCategoryEnabled =
-        if (category.isCorrelated) {
-            category.types.any { group?.isTypeEnabled(it) ?: false }
-        } else {
-            false // Not used for independent categories
-        }
+    val isCategoryEnabled = category.isEnabledFor(group)
 
     ExpressiveCard(
         onClick = { onToggleExpand() },
@@ -84,154 +79,260 @@ fun CategorySection(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Column {
-            // Header - simplified, only icon + title + expand arrow
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    IconCircle(
-                        icon = category.icon,
-                        containerColor = category.color.copy(alpha = 0.15f),
-                        iconColor = category.color,
-                        iconSize = 22.dp,
-                    )
-                    Text(
-                        text = stringResource(id = category.titleRes),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.Filled.ExpandLess,
-                    contentDescription =
-                        if (isExpanded) {
-                            stringResource(id = R.string.action_collapse)
-                        } else {
-                            stringResource(id = R.string.action_expand)
-                        },
-                    modifier = Modifier.rotate(rotationAngle),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // Content
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = spring()) + fadeIn(),
-                exit = shrinkVertically(animationSpec = spring()) + fadeOut(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // For correlated categories: show switch + regenerate at top of expanded area
-                    if (category.isCorrelated) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            ExpressiveSwitch(
-                                checked = isCategoryEnabled,
-                                onCheckedChange = { enabled ->
-                                    // Toggle ALL types in this category together
-                                    category.types.forEach { type -> onToggle(type, enabled) }
-                                },
-                            )
-
-                            if (isCategoryEnabled) {
-                                CompactExpressiveIconButton(
-                                    onClick = onRegenerateCategory,
-                                    icon = Icons.Filled.Refresh,
-                                    contentDescription =
-                                        stringResource(id = R.string.action_regenerate_all),
-                                    tint = category.color,
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
-                    // Handle special categories
-                    when (category) {
-                        UIDisplayCategory.SIM_CARD -> {
-                            SIMCardCategoryContent(
-                                group = group,
-                                onToggle = onToggle,
-                                onRegenerate = onRegenerate,
-                                onCarrierChange = onCarrierChange,
-                                onCopy = onCopy,
-                            )
-                        }
-
-                        UIDisplayCategory.LOCATION -> {
-                            LocationCategoryContent(
-                                group = group,
-                                onToggle = onToggle,
-                                onRegenerate = onRegenerate,
-                                onRegenerateLocation = onRegenerateLocation,
-                                onTimezoneSelected = onTimezoneSelected,
-                                onCopy = onCopy,
-                            )
-                        }
-
-                        UIDisplayCategory.DEVICE_HARDWARE -> {
-                            DeviceHardwareCategoryContent(
-                                group = group,
-                                onToggle = onToggle,
-                                onRegenerate = onRegenerate,
-                                onRegenerateCategory = onRegenerateCategory,
-                                onCopy = onCopy,
-                            )
-                        }
-
-                        else -> {
-                            // Standard handling for other categories (Network, Advertising)
-                            category.types.forEach { type ->
-                                val isGroupEnabled = group?.isTypeEnabled(type) ?: false
-                                val rawValue = group?.getValue(type) ?: ""
-
-                                // For DEVICE_PROFILE, show the preset name instead of ID
-                                val displayValue =
-                                    if (type == SpoofType.DEVICE_PROFILE) {
-                                        DeviceProfilePreset.findById(rawValue)?.name ?: rawValue
-                                    } else {
-                                        rawValue
-                                    }
-
-                                if (category.isCorrelated) {
-                                    // Correlated: display-only items (no individual controls)
-                                    CorrelatedSpoofItem(
-                                        type = type,
-                                        value = displayValue,
-                                        isEnabled = isCategoryEnabled,
-                                        onCopy = { onCopy(displayValue) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                } else {
-                                    // Independent: items with individual controls
-                                    IndependentSpoofItem(
-                                        type = type,
-                                        value = displayValue,
-                                        isEnabled = isGroupEnabled,
-                                        onToggle = { enabled -> onToggle(type, enabled) },
-                                        onRegenerate = { onRegenerate(type) },
-                                        onCopy = { onCopy(displayValue) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            CategoryHeader(
+                category = category,
+                categoryColor = categoryColor,
+                isExpanded = isExpanded,
+                rotationAngle = rotationAngle,
+            )
+            CategoryContent(
+                category = category,
+                group = group,
+                isExpanded = isExpanded,
+                isCategoryEnabled = isCategoryEnabled,
+                categoryColor = categoryColor,
+                onRegenerate = onRegenerate,
+                onRegenerateCategory = onRegenerateCategory,
+                onRegenerateLocation = onRegenerateLocation,
+                onToggle = onToggle,
+                onCarrierChange = onCarrierChange,
+                timezoneSelected = timezoneSelected,
+            )
         }
     }
 }
+
+@Composable
+private fun CategoryHeader(
+    category: UIDisplayCategory,
+    categoryColor: Color,
+    isExpanded: Boolean,
+    rotationAngle: Float,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f),
+        ) {
+            IconCircle(
+                icon = category.icon,
+                containerColor = categoryColor.copy(alpha = 0.15f),
+                iconColor = categoryColor,
+                iconSize = 22.dp,
+            )
+            Text(
+                text = stringResource(id = category.titleRes),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        Icon(
+            imageVector = Icons.Filled.ExpandLess,
+            contentDescription =
+                if (isExpanded) {
+                    stringResource(id = R.string.action_collapse)
+                } else {
+                    stringResource(id = R.string.action_expand)
+                },
+            modifier = Modifier.rotate(rotationAngle),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun CategoryContent(
+    category: UIDisplayCategory,
+    group: SpoofGroup?,
+    isExpanded: Boolean,
+    isCategoryEnabled: Boolean,
+    categoryColor: Color,
+    onRegenerate: (SpoofType) -> Unit,
+    onRegenerateCategory: () -> Unit,
+    onRegenerateLocation: () -> Unit,
+    onToggle: (SpoofType, Boolean) -> Unit,
+    onCarrierChange: (Carrier) -> Unit,
+    timezoneSelected: (String) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = isExpanded,
+        enter = expandVertically(animationSpec = spring()) + fadeIn(),
+        exit = shrinkVertically(animationSpec = spring()) + fadeOut(),
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CorrelatedCategoryActions(
+                category = category,
+                isCategoryEnabled = isCategoryEnabled,
+                categoryColor = categoryColor,
+                onRegenerateCategory = onRegenerateCategory,
+                onToggle = onToggle,
+            )
+            CategoryItems(
+                category = category,
+                group = group,
+                isCategoryEnabled = isCategoryEnabled,
+                onRegenerate = onRegenerate,
+                onRegenerateCategory = onRegenerateCategory,
+                onRegenerateLocation = onRegenerateLocation,
+                onToggle = onToggle,
+                onCarrierChange = onCarrierChange,
+                timezoneSelected = timezoneSelected,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CorrelatedCategoryActions(
+    category: UIDisplayCategory,
+    isCategoryEnabled: Boolean,
+    categoryColor: Color,
+    onRegenerateCategory: () -> Unit,
+    onToggle: (SpoofType, Boolean) -> Unit,
+) {
+    if (!category.isCorrelated) return
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ExpressiveSwitch(
+                checked = isCategoryEnabled,
+                onCheckedChange = { enabled ->
+                    category.types.forEach { type -> onToggle(type, enabled) }
+                },
+            )
+
+            if (isCategoryEnabled) {
+                CompactExpressiveIconButton(
+                    onClick = onRegenerateCategory,
+                    icon = Icons.Filled.Refresh,
+                    contentDescription = stringResource(id = R.string.action_regenerate_all),
+                    tint = categoryColor,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+}
+
+@Composable
+private fun CategoryItems(
+    category: UIDisplayCategory,
+    group: SpoofGroup?,
+    isCategoryEnabled: Boolean,
+    onRegenerate: (SpoofType) -> Unit,
+    onRegenerateCategory: () -> Unit,
+    onRegenerateLocation: () -> Unit,
+    onToggle: (SpoofType, Boolean) -> Unit,
+    onCarrierChange: (Carrier) -> Unit,
+    timezoneSelected: (String) -> Unit,
+) {
+    when (category) {
+        UIDisplayCategory.SIM_CARD ->
+            SIMCardCategoryContent(
+                group = group,
+                onToggle = onToggle,
+                onRegenerate = onRegenerate,
+                onCarrierChange = onCarrierChange,
+            )
+
+        UIDisplayCategory.LOCATION ->
+            LocationCategoryContent(
+                group = group,
+                onToggle = onToggle,
+                onRegenerate = onRegenerate,
+                onRegenerateLocation = onRegenerateLocation,
+                timezoneSelected = timezoneSelected,
+            )
+
+        UIDisplayCategory.DEVICE_HARDWARE ->
+            DeviceHardwareCategoryContent(
+                group = group,
+                onToggle = onToggle,
+                onRegenerate = onRegenerate,
+                onRegenerateCategory = onRegenerateCategory,
+            )
+
+        else ->
+            StandardCategoryItems(
+                category = category,
+                group = group,
+                isCategoryEnabled = isCategoryEnabled,
+                onToggle = onToggle,
+                onRegenerate = onRegenerate,
+            )
+    }
+}
+
+@Composable
+private fun StandardCategoryItems(
+    category: UIDisplayCategory,
+    group: SpoofGroup?,
+    isCategoryEnabled: Boolean,
+    onToggle: (SpoofType, Boolean) -> Unit,
+    onRegenerate: (SpoofType) -> Unit,
+) {
+    category.types.forEach { type ->
+        StandardCategoryItem(
+            category = category,
+            group = group,
+            type = type,
+            isCategoryEnabled = isCategoryEnabled,
+            onToggle = onToggle,
+            onRegenerate = onRegenerate,
+        )
+    }
+}
+
+@Composable
+private fun StandardCategoryItem(
+    category: UIDisplayCategory,
+    group: SpoofGroup?,
+    type: SpoofType,
+    isCategoryEnabled: Boolean,
+    onToggle: (SpoofType, Boolean) -> Unit,
+    onRegenerate: (SpoofType) -> Unit,
+) {
+    val isGroupEnabled = group?.isTypeEnabled(type) ?: false
+    val displayValue = type.displayValue(group?.getValue(type).orEmpty())
+
+    if (category.isCorrelated) {
+        CorrelatedSpoofItem(
+            type = type,
+            value = displayValue,
+            isEnabled = isCategoryEnabled,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else {
+        IndependentSpoofItem(
+            type = type,
+            value = displayValue,
+            isEnabled = isGroupEnabled,
+            onToggle = { enabled -> onToggle(type, enabled) },
+            onRegenerate = { onRegenerate(type) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+private fun UIDisplayCategory.isEnabledFor(group: SpoofGroup?): Boolean =
+    isCorrelated && types.any { group?.isTypeEnabled(it) ?: false }
+
+private fun SpoofType.displayValue(rawValue: String): String =
+    if (this == SpoofType.DEVICE_PROFILE) {
+        DeviceProfilePreset.findById(rawValue)?.name ?: rawValue
+    } else {
+        rawValue
+    }

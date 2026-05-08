@@ -3,8 +3,8 @@
 # libxposed API 101 edition — YukiHookAPI rules REMOVED.
 #
 # These rules are merged into :app's R8 run by AGP when :xposed is consumed
-# as a library. They protect classes that are loaded via libxposed reflection,
-# the AIDL binder mechanism, or Android's ContentProvider discovery.
+# as a library. They protect classes that are loaded via libxposed reflection
+# or Android's ContentProvider discovery.
 # =============================================================================
 
 # =============================================================================
@@ -21,10 +21,23 @@
     static *;
 }
 
-# Module-active sentinel — field set by libxposed at load time
-
 # XposedModule base class — kept for subclassing
 -keep class io.github.libxposed.api.XposedModule { *; }
+
+# Hooker callback ABI — libxposed calls XposedInterface.Hooker.intercept(Chain)
+# from target processes. Device Masker uses named StableHooker subclasses instead
+# of Kotlin SAM lambdas so R8 cannot strip or rewrite the runtime callback ABI.
+-keep interface io.github.libxposed.api.XposedInterface$Hooker { *; }
+-keep class * implements io.github.libxposed.api.XposedInterface$Hooker { *; }
+-keep class com.astrixforge.devicemasker.xposed.hooker.callback.** { *; }
+
+# Chain, HookBuilder, HookHandle — used inside lambda bodies and returned by API
+-keep interface io.github.libxposed.api.XposedInterface$Chain { *; }
+-keep interface io.github.libxposed.api.XposedInterface$HookBuilder { *; }
+-keep interface io.github.libxposed.api.XposedInterface$HookHandle { *; }
+
+# Preserve META-INF/xposed/ file contents — LSPosed reads java_init.list by class name
+-adaptresourcefilecontents META-INF/xposed/java_init.list
 
 # =============================================================================
 # HOOKERS — All hookers and their lambda interceptors
@@ -37,26 +50,9 @@
 }
 
 # =============================================================================
-# SERVICE LAYER — AIDL diagnostics service
-# DeviceMaskerService extends IDeviceMaskerService.Stub (inner Binder class).
+# UTILS — Logging, metrics, and prefs utils (xposed root package)
 # =============================================================================
--keep class com.astrixforge.devicemasker.xposed.service.DeviceMaskerService { *; }
--keepclassmembers class com.astrixforge.devicemasker.xposed.service.DeviceMaskerService {
-    *;
-}
-
-# SystemServiceHooker registers the AIDL service at boot via AMS hook
--keep class com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker { *; }
-
-# =============================================================================
-# HOOK INFRASTRUCTURE — BaseSpoofHooker, PrefsHelper
-# =============================================================================
--keep class com.astrixforge.devicemasker.xposed.hooker.BaseSpoofHooker { *; }
 -keep class com.astrixforge.devicemasker.xposed.PrefsHelper { *; }
-
-# =============================================================================
-# UTILS — Logging and metrics utils (xposed root package)
-# =============================================================================
 -keep class com.astrixforge.devicemasker.xposed.DualLog { *; }
 -keep class com.astrixforge.devicemasker.xposed.HookMetrics { *; }
 -keep class com.astrixforge.devicemasker.xposed.PrefsKeys { *; }
@@ -67,14 +63,6 @@
 -keep class io.github.libxposed.service.** { *; }
 -keep interface io.github.libxposed.service.** { *; }
 -dontwarn io.github.libxposed.**
-
-# =============================================================================
-# BINDER INFRASTRUCTURE — Required for AIDL stubs/proxies
-# =============================================================================
--keepclassmembers class * extends android.os.Binder {
-    public static ** asInterface(android.os.IBinder);
-    public android.os.IBinder asBinder();
-}
 
 # =============================================================================
 # SUPPRESS LEGACY XPOSED WARNINGS

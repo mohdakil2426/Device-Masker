@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -33,6 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.common.assignedAppCount
+import com.astrixforge.devicemasker.common.summary
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
@@ -92,127 +95,171 @@ fun GroupCard(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Column(modifier = Modifier.padding(16.dp).alpha(contentAlpha)) {
-            // Group Info Row with Switch
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    // Group Icon
-                    Box(
-                        modifier =
-                            Modifier.size(40.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    shape = CircleShape,
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Groups,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = group.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-
-                            if (group.isDefault) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                DefaultBadge()
-                            }
-                        }
-
-                        if (group.description.isNotBlank()) {
-                            Text(
-                                text = group.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-
-                // Enable/Disable Switch
-                ExpressiveSwitch(checked = isEnabled, onCheckedChange = onEnableChange)
-            }
-
+            GroupCardHeader(group = group, isEnabled = isEnabled, onEnableChange = onEnableChange)
             Spacer(modifier = Modifier.height(12.dp))
+            GroupCardFooter(
+                group = group,
+                appCount = appCount,
+                onSetDefault = onSetDefault,
+                onEdit = onEdit,
+                onDelete = onDelete,
+            )
+        }
+    }
+}
 
-            // Stats Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        text =
-                            pluralStringResource(
-                                id = R.plurals.group_card_apps_count,
-                                count = appCount,
-                                appCount,
-                            ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color =
-                            if (appCount > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text =
-                            stringResource(
-                                R.string.group_card_created,
-                                formatDate(group.createdAt),
-                            ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
-                }
+@Composable
+private fun GroupCardHeader(
+    group: SpoofGroup,
+    isEnabled: Boolean,
+    onEnableChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            GroupIcon()
+            Spacer(modifier = Modifier.width(12.dp))
+            GroupTitleBlock(group)
+        }
 
-                // Action Buttons with Expressive feedback
-                Row {
-                    if (!group.isDefault) {
-                        CompactExpressiveIconButton(
-                            onClick = onSetDefault,
-                            icon = Icons.Default.Star,
-                            contentDescription = stringResource(R.string.group_card_set_default),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+        ExpressiveSwitch(checked = isEnabled, onCheckedChange = onEnableChange)
+    }
+}
 
-                    CompactExpressiveIconButton(
-                        onClick = onEdit,
-                        icon = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.group_card_edit),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+@Composable
+private fun GroupIcon() {
+    Box(
+        modifier =
+            Modifier.size(40.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    shape = CircleShape,
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Groups,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
 
-                    if (!group.isDefault) {
-                        CompactExpressiveIconButton(
-                            onClick = onDelete,
-                            icon = Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.group_card_delete),
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
+@Composable
+private fun GroupTitleBlock(group: SpoofGroup) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = group.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            if (group.isDefault) {
+                Spacer(modifier = Modifier.width(8.dp))
+                DefaultBadge()
             }
+        }
+
+        if (group.description.isNotBlank()) {
+            Text(
+                text = group.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GroupCardFooter(
+    group: SpoofGroup,
+    appCount: Int,
+    onSetDefault: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        GroupStats(group = group, appCount = appCount)
+        GroupActions(
+            isDefault = group.isDefault,
+            onSetDefault = onSetDefault,
+            onEdit = onEdit,
+            onDelete = onDelete,
+        )
+    }
+}
+
+@Composable
+private fun GroupStats(group: SpoofGroup, appCount: Int) {
+    Column {
+        Text(
+            text =
+                pluralStringResource(
+                    id = R.plurals.group_card_apps_count,
+                    count = appCount,
+                    appCount,
+                ),
+            style = MaterialTheme.typography.bodySmall,
+            color =
+                if (appCount > 0) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+        )
+        val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
+        Text(
+            text =
+                stringResource(
+                    R.string.group_card_created,
+                    dateFormatter.format(Date(group.createdAt)),
+                ),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        )
+    }
+}
+
+@Composable
+private fun GroupActions(
+    isDefault: Boolean,
+    onSetDefault: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row {
+        if (!isDefault) {
+            CompactExpressiveIconButton(
+                onClick = onSetDefault,
+                icon = Icons.Default.Star,
+                contentDescription = stringResource(R.string.group_card_set_default),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        CompactExpressiveIconButton(
+            onClick = onEdit,
+            icon = Icons.Default.Edit,
+            contentDescription = stringResource(R.string.group_card_edit),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (!isDefault) {
+            CompactExpressiveIconButton(
+                onClick = onDelete,
+                icon = Icons.Default.Delete,
+                contentDescription = stringResource(R.string.group_card_delete),
+                tint = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }

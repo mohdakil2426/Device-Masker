@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
 /**
@@ -28,6 +29,10 @@ import io.github.libxposed.api.XposedInterface
  */
 object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
 
+    private const val MCC_LENGTH = 3
+    private const val MIN_MCC_MNC_LENGTH = 5
+    private const val MAX_MCC_MNC_LENGTH = 6
+
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         val siClass = cl.loadClassOrNull("android.telephony.SubscriptionInfo") ?: return
 
@@ -41,124 +46,86 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         prefs: SharedPreferences,
         pkg: String,
     ) {
-        safeHook("SubscriptionInfo.getIccId()") {
-            siClass.methodOrNull("getIccId")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.ICCID)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.ICCID)
-                    spoofed
-                }
+        hookSubscriptionStringGetter(siClass, xi, prefs, pkg, "getIccId", SpoofType.ICCID)
+        hookSubscriptionStringGetter(
+            siClass,
+            xi,
+            prefs,
+            pkg,
+            "getCountryIso",
+            SpoofType.SIM_COUNTRY_ISO,
+        )
+        hookSubscriptionStringGetter(
+            siClass,
+            xi,
+            prefs,
+            pkg,
+            "getCarrierName",
+            SpoofType.CARRIER_NAME,
+        )
+        hookSubscriptionStringGetter(
+            siClass,
+            xi,
+            prefs,
+            pkg,
+            "getDisplayName",
+            SpoofType.CARRIER_NAME,
+        )
+        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMcc") { it.first.toInt() }
+        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMnc") { it.second.toInt() }
+        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMccString") { it.first }
+        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMncString") { it.second }
+        hookSubscriptionStringGetter(siClass, xi, prefs, pkg, "getNumber", SpoofType.PHONE_NUMBER)
+    }
+
+    private fun hookSubscriptionStringGetter(
+        siClass: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+        methodName: String,
+        spoofType: SpoofType,
+    ) {
+        safeHook("SubscriptionInfo.$methodName()") {
+            siClass.methodOrNull(methodName)?.let { m ->
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val spoofed =
+                                getConfiguredSpoofValue(prefs, pkg, spoofType)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, spoofType)
+                            spoofed
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
-        safeHook("SubscriptionInfo.getCountryIso()") {
-            siClass.methodOrNull("getCountryIso")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.SIM_COUNTRY_ISO)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.SIM_COUNTRY_ISO)
-                    spoofed
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getCarrierName()") {
-            siClass.methodOrNull("getCarrierName")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
-                    spoofed
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getDisplayName()") {
-            siClass.methodOrNull("getDisplayName")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
-                    spoofed
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getMcc()") {
-            siClass.methodOrNull("getMcc")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val mccMnc =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    val carrier = parseCarrierMccMnc(mccMnc) ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    carrier.first.toInt()
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getMnc()") {
-            siClass.methodOrNull("getMnc")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val mccMnc =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    val carrier = parseCarrierMccMnc(mccMnc) ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    carrier.second.toInt()
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getMccString()") {
-            siClass.methodOrNull("getMccString")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val mccMnc =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    val carrier = parseCarrierMccMnc(mccMnc) ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    carrier.first
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getMncString()") {
-            siClass.methodOrNull("getMncString")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val mccMnc =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
-                            ?: return@intercept result
-                    val carrier = parseCarrierMccMnc(mccMnc) ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
-                    carrier.second
-                }
-                xi.deoptimize(m)
-            }
-        }
-        safeHook("SubscriptionInfo.getNumber()") {
-            siClass.methodOrNull("getNumber")?.let { m ->
-                xi.hook(m).intercept { chain ->
-                    val result = chain.proceed()
-                    val spoofed =
-                        getConfiguredSpoofValue(prefs, pkg, SpoofType.PHONE_NUMBER)
-                            ?: return@intercept result
-                    reportSpoofEvent(pkg, SpoofType.PHONE_NUMBER)
-                    spoofed
-                }
+    }
+
+    private fun hookCarrierCodeGetter(
+        siClass: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+        methodName: String,
+        codePart: (Pair<String, String>) -> Any,
+    ) {
+        safeHook("SubscriptionInfo.$methodName()") {
+            siClass.methodOrNull(methodName)?.let { m ->
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val mccMnc =
+                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                                    ?: return@stableHooker result
+                            val carrier = parseCarrierMccMnc(mccMnc) ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
+                            codePart(carrier)
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -169,7 +136,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         safeHook("SubscriptionManager.getActiveSubscriptionInfoList()") {
             // No params (API 22+)
             smClass.methodOrNull("getActiveSubscriptionInfoList")?.let { m ->
-                xi.hook(m).intercept { chain -> chain.proceed() }
+                xi.hook(m).intercept(stableHooker { chain -> chain.proceed() })
                 xi.deoptimize(m)
             }
         }
@@ -177,7 +144,10 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
 
     private fun parseCarrierMccMnc(value: String): Pair<String, String>? {
         val digits = value.trim()
-        if (digits.length !in 5..6 || digits.any { !it.isDigit() }) return null
-        return digits.take(3) to digits.drop(3)
+        if (
+            digits.length !in MIN_MCC_MNC_LENGTH..MAX_MCC_MNC_LENGTH || digits.any { !it.isDigit() }
+        )
+            return null
+        return digits.take(MCC_LENGTH) to digits.drop(MCC_LENGTH)
     }
 }

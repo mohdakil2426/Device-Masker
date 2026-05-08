@@ -18,7 +18,7 @@ class DiagnosticSnapshotBuilderTest {
                         androidRelease = "16",
                         device = "Google Pixel",
                         rootAvailable = true,
-                        xposedServiceConnected = true,
+                        xposedFrameworkConnected = true,
                         moduleEnabled = true,
                         targetPackage = "com.bank.example",
                         scopePackages = listOf("android", "system", "com.bank.example"),

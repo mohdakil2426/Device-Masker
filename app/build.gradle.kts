@@ -14,21 +14,25 @@ kotlin {
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
             "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+            "-opt-in=androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi",
             "-Xwarning-level=DEPRECATION:disabled",
         )
     }
 }
 
+val appVersionName = providers.gradleProperty("VERSION_NAME").get()
+val appVersionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
+
 android {
     namespace = "com.astrixforge.devicemasker"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.astrixforge.devicemasker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -53,11 +57,8 @@ android {
             isDebuggable = true
         }
         release {
-            // Keep release bytecode unshrunk while the libxposed API 101 hook layer is under
-            // live validation. R8 synthesized Hooker lambdas caused target-app
-            // AbstractMethodError crashes in LSPosed processes.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -69,6 +70,13 @@ android {
                 signingConfig = releaseSigningConfig
             }
         }
+        create("ciRelease") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            matchingFallbacks += listOf("release")
+        }
     }
 
     compileOptions {
@@ -79,10 +87,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-        // AIDL still enabled in :app for the diagnostics-only service (Option B architecture)
-        // The AIDL interface is reduced to 8 methods — hook event reporting and log aggregation
-        // only
-        aidl = true
+        aidl = false
     }
 
     // CRITICAL: Prevent synthetic lambda classes that cause ClassNotFoundException in Xposed
@@ -130,11 +135,23 @@ android {
     }
 }
 
+composeCompiler {
+    val enableReports = providers.gradleProperty("enableComposeCompilerReports").orNull.toBoolean()
+    val enableMetrics = providers.gradleProperty("enableComposeCompilerMetrics").orNull.toBoolean()
+
+    if (enableReports) {
+        reportsDestination = layout.buildDirectory.dir("compose_compiler/reports")
+    }
+    if (enableMetrics) {
+        metricsDestination = layout.buildDirectory.dir("compose_compiler/metrics")
+    }
+}
+
 dependencies {
     // ═══════════════════════════════════════════════════════════
     // HMA-OSS ARCHITECTURE MODULES
     // ═══════════════════════════════════════════════════════════
-    implementation(project(":common")) // Shared models and AIDL
+    implementation(project(":common")) // Shared models and contracts
     implementation(project(":xposed")) // Hook logic - bundled in APK
 
     // ═══════════════════════════════════════════════════════════
@@ -163,7 +180,10 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     // NAVIGATION
     // ═══════════════════════════════════════════════════════════
-    implementation(libs.navigation.compose)
+    implementation(libs.navigation3.runtime)
+    implementation(libs.navigation3.ui)
+    implementation(libs.lifecycle.viewmodel.navigation3)
+    implementation(libs.material3.adaptive.navigation3)
 
     // ═══════════════════════════════════════════════════════════
     // libxposed SERVICE — Write RemotePreferences from the UI
@@ -174,12 +194,14 @@ dependencies {
     implementation(libs.libxposed.iface)
     implementation(libs.libxposed.service)
     implementation(libs.hiddenapibypass)
+    implementation(libs.libsu.core)
 
     // ═══════════════════════════════════════════════════════════
     // DATA STORAGE
     // ═══════════════════════════════════════════════════════════
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.collections.immutable)
 
     // ═══════════════════════════════════════════════════════════
     // COROUTINES
@@ -198,6 +220,9 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.compose.bom))

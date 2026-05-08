@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.xposed
 
+import android.content.SharedPreferences
 import android.util.Log
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
@@ -12,9 +13,7 @@ import com.astrixforge.devicemasker.xposed.hooker.PackageManagerHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
-import com.astrixforge.devicemasker.xposed.hooker.SystemServiceHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
-import com.astrixforge.devicemasker.xposed.service.DeviceMaskerService
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
@@ -38,8 +37,8 @@ import java.util.concurrent.ConcurrentHashMap
  * Config delivery path (post-migration): UI → ConfigSync → RemotePreferences → LSPosed DB →
  * getRemotePreferences() (in hooks)
  *
- * Diagnostics path: Hooks → oneway AIDL → DeviceMaskerService (system_server) →
- * DiagnosticsViewModel reads
+ * Diagnostics path: hooks log to LSPosed/logcat. Root Maximum support bundles can collect that
+ * evidence through the app's root log capture path.
  */
 class XposedEntry : XposedModule() {
 
@@ -66,10 +65,7 @@ class XposedEntry : XposedModule() {
                 "com.google.android.gms", // GMS — integrity check interference risk
             )
 
-        /**
-         * Singleton reference to this module instance. Set once per process in the init block.
-         * Hooker companion objects access this to call log() and reportSpoofEvent().
-         */
+        /** Singleton reference to this module instance. Set once per process in the init block. */
         @Volatile
         lateinit var instance: XposedEntry
             private set
@@ -94,33 +90,8 @@ class XposedEntry : XposedModule() {
         )
     }
 
-    /**
-     * Called when the System Server (android process) loads. This is the ONLY place where the AIDL
-     * diagnostics service is initialized.
-     *
-     * CRITICAL SAFETY: Every single line here must be in its own try-catch. Any uncaught exception
-     * here causes a system_server crash = device bootloop.
-     */
     override fun onSystemServerStarting(param: SystemServerStartingParam) {
-        log(
-            Log.INFO,
-            TAG,
-            "System server loading — initializing diagnostics service hooks...",
-            null,
-        )
-        try {
-            SystemServiceHooker.hook(param.classLoader, this)
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            // Non-fatal — if service registration fails, hooks still work via RemotePreferences
-            log(
-                Log.WARN,
-                TAG,
-                "SystemServiceHooker registration failed (diagnostics unavailable): ${t.message}",
-                t,
-            )
-        }
+        log(Log.INFO, TAG, "System server loaded for Device Masker", null)
     }
 
     /**
@@ -132,43 +103,10 @@ class XposedEntry : XposedModule() {
      */
     override fun onPackageReady(param: PackageReadyParam) {
         val pkg = param.packageName
+        if (shouldSkipLoadedPackage(pkg)) return
 
-        // System server is handled by onSystemServerStarting — do not double-hook
-        if (pkg == "android") return
-
-        // Skip own app and critical system processes
-        if (pkg in SKIP_PACKAGES) return
-
-        // Obtain live RemotePreferences from LSPosed.
-        // These reflect the latest values written by the module app — no restart needed.
-        // getRemotePreferences() is fast (cached by LSPosed) and safe to call per-package load.
-        val prefs =
-            try {
-                getRemotePreferences(PREFS_GROUP)
-            } catch (e: XposedFrameworkError) {
-                throw e
-            } catch (t: Throwable) {
-                XposedDiagnosticEventSink.log(
-                    Log.WARN,
-                    TAG,
-                    "RemotePreferences unavailable for $pkg",
-                    t,
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
-                        .REMOTE_PREFS_UNAVAILABLE,
-                )
-                log(
-                    Log.WARN,
-                    TAG,
-                    "RemotePreferences unavailable for $pkg — skipping hooks: ${t.message}",
-                    t,
-                )
-                return
-            }
-
-        // Master kill-switch — if module is disabled globally, skip all hooks
-        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return
-
-        val hookPackage = selectHookPackage(pkg, prefs) ?: return
+        val prefs = remotePreferencesOrNull(pkg) ?: return
+        val hookPackage = enabledHookPackageOrNull(pkg, prefs) ?: return
         XposedDiagnosticEventSink.log(
             Log.INFO,
             TAG,
@@ -178,15 +116,7 @@ class XposedEntry : XposedModule() {
                     .TARGET_PACKAGE_SELECTED,
         )
 
-        // Per-app toggle — only hook apps that the user explicitly enabled
-        if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(hookPackage), false)) return
-
-        val cl = param.classLoader
-        val classLoaderKey = System.identityHashCode(cl)
-        if (!hookedClassLoaders.add(classLoaderKey)) {
-            log(Log.DEBUG, TAG, "Hooks already registered for classloader of $hookPackage", null)
-            return
-        }
+        val cl = classLoaderToHookOrNull(param.classLoader, hookPackage) ?: return
 
         // ═══════════════════════════════════════════════════════════
         // HOOK ORDER IS CRITICAL — do not reorder
@@ -197,9 +127,7 @@ class XposedEntry : XposedModule() {
         //    Apps cross-check TelephonyManager and SubscriptionManager results.
         // 3. Remaining hookers can run in any order.
         // ═══════════════════════════════════════════════════════════
-        hookSafely(hookPackage, "AntiDetectHooker") {
-            AntiDetectHooker.hook(cl, this, prefs, hookPackage)
-        }
+        hookSafely(hookPackage, "AntiDetectHooker") { AntiDetectHooker.hook(cl, this, hookPackage) }
         hookSafely(hookPackage, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, hookPackage) }
         hookSafely(hookPackage, "SubscriptionHooker") {
             SubscriptionHooker.hook(cl, this, prefs, hookPackage)
@@ -219,13 +147,52 @@ class XposedEntry : XposedModule() {
             WebViewHooker.hook(cl, this, prefs, hookPackage)
         }
         hookSafely(hookPackage, "PackageManagerHooker") {
-            PackageManagerHooker.hook(cl, this, prefs, hookPackage)
+            PackageManagerHooker.hook(cl, this, hookPackage)
         }
 
-        // Report to diagnostics service (fire-and-forget, oneway AIDL — does not block hooks)
-        reportPackageHooked(hookPackage)
-
+        log(Log.INFO, TAG, "Hooks registered for: $hookPackage", null)
         log(Log.INFO, TAG, "All hooks registered for: $hookPackage", null)
+    }
+
+    private fun shouldSkipLoadedPackage(pkg: String): Boolean =
+        pkg == "android" || pkg in SKIP_PACKAGES
+
+    private fun remotePreferencesOrNull(pkg: String): SharedPreferences? =
+        try {
+            getRemotePreferences(PREFS_GROUP)
+        } catch (e: XposedFrameworkError) {
+            throw e
+        } catch (t: Throwable) {
+            XposedDiagnosticEventSink.log(
+                Log.WARN,
+                TAG,
+                "RemotePreferences unavailable for $pkg",
+                t,
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                    .REMOTE_PREFS_UNAVAILABLE,
+            )
+            log(
+                Log.WARN,
+                TAG,
+                "RemotePreferences unavailable for $pkg — skipping hooks: ${t.message}",
+                t,
+            )
+            null
+        }
+
+    private fun enabledHookPackageOrNull(loadedPackage: String, prefs: SharedPreferences): String? {
+        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return null
+        return selectHookPackage(loadedPackage, prefs)?.takeIf {
+            prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(it), false)
+        }
+    }
+
+    private fun classLoaderToHookOrNull(cl: ClassLoader, hookPackage: String): ClassLoader? {
+        val classLoaderKey = System.identityHashCode(cl)
+        if (hookedClassLoaders.add(classLoaderKey)) return cl
+
+        log(Log.DEBUG, TAG, "Hooks already registered for classloader of $hookPackage", null)
+        return null
     }
 
     private fun selectHookPackage(
@@ -292,55 +259,14 @@ class XposedEntry : XposedModule() {
         }
     }
 
-    /** Cached reference to the diagnostics service binder. */
-    @Volatile
-    private var diagnosticService: com.astrixforge.devicemasker.IDeviceMaskerService? = null
-
-    /**
-     * Retrieves the diagnostics service binder when this module is running inside system_server.
-     *
-     * Target apps must not discover the custom diagnostics service through ServiceManager. Android
-     * user builds deny that lookup for untrusted app domains, and repeated denied lookups add
-     * startup noise to every scoped process. Hook-side diagnostics therefore fall back to the
-     * LSPosed log until a supported libxposed/app bridge exists.
-     */
-    private fun getService(): com.astrixforge.devicemasker.IDeviceMaskerService? {
-        // 1. Return cached binder if still alive
-        diagnosticService?.let { if (it.asBinder().isBinderAlive) return it }
-
-        // 2. If in system_server, use the local singleton instance
-        if (DeviceMaskerService.isInitialized()) {
-            diagnosticService = DeviceMaskerService.getInstance()
-            return diagnosticService
-        }
-
-        return null
-    }
-
-    /**
-     * Reports that this package was hooked to the diagnostics service. This is a fire-and-forget
-     * call — if the service is unavailable, it fails silently. The diagnostics service is
-     * initialized in system_server by SystemServiceHooker.
-     */
-    private fun reportPackageHooked(pkg: String) {
-        log(Log.INFO, TAG, "Hooks registered for: $pkg", null)
-        runCatching { getService()?.reportPackageHooked(pkg) }
-    }
-
-    /**
-     * Reports a spoof event to the diagnostics service after a hooker returns a spoofed value.
-     * Declared here so hookers can call XposedEntry.instance.reportSpoofEvent().
-     */
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {
         val result = XposedDiagnosticEventSink.hookHealth.recordSpoofEvent(pkg, spoofTypeName)
         if (result.shouldLog) {
             log(Log.DEBUG, TAG, "Spoof event: $pkg/$spoofTypeName", null)
-            runCatching { getService()?.reportSpoofEvent(pkg, spoofTypeName) }
         }
     }
 
     fun reportLog(tag: String, message: String, level: Int) {
         log(level, tag, message, null)
-        runCatching { getService()?.reportLog(tag, message, level) }
     }
 }

@@ -1,7 +1,5 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing.items
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,14 +14,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Read-only value row for locked/derived values. No switch, no regenerate - just label, value, and
- * long-press to copy.
+ * Read-only value row for locked/derived values. No switch, no regenerate - just label and value.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ReadOnlyValueRow(label: String, value: String, onCopy: () -> Unit) {
+fun ReadOnlyValueRow(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -31,20 +27,14 @@ fun ReadOnlyValueRow(label: String, value: String, onCopy: () -> Unit) {
             text = label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp), // Align with first line of monospace text
+            modifier = Modifier.padding(top = 2.dp),
         )
         Text(
             text = value.ifEmpty { "—" },
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
             color = MaterialTheme.colorScheme.primary,
-            modifier =
-                Modifier.weight(1f)
-                    .padding(start = 16.dp)
-                    .combinedClickable(
-                        onClick = {},
-                        onLongClick = { if (value.isNotEmpty()) onCopy() },
-                    ),
+            modifier = Modifier.weight(1f).padding(start = 16.dp),
             textAlign = TextAlign.End,
         )
     }

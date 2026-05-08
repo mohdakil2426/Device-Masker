@@ -30,8 +30,27 @@ object SharedPrefsKeys {
     private const val PREFIX_APP_ENABLED = "app_enabled_"
     private const val PREFIX_SPOOF_ENABLED = "spoof_enabled_"
     private const val PREFIX_SPOOF_VALUE = "spoof_"
+    private const val PREFIX_RISKY_HOOKS_ENABLED = "risky_hooks_enabled_"
+    private const val PREFIX_CLASS_LOOKUP_HIDING_ENABLED = "class_lookup_hiding_enabled_"
     private const val PREFIX_PERSONA_BLOB = "persona_blob_"
     private const val PREFIX_PERSONA_VERSION = "persona_version_"
+    private val VALID_KEY_REGEX =
+        Regex(
+            listOf(
+                    KEY_MODULE_ENABLED,
+                    KEY_DEBUG_ENABLED,
+                    KEY_CONFIG_VERSION,
+                    KEY_ENABLED_APPS,
+                    "${PREFIX_APP_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_SPOOF_ENABLED}[a-zA-Z0-9_]+_[A-Z_]+",
+                    "${PREFIX_SPOOF_VALUE}[a-zA-Z0-9_]+_[A-Z_]+",
+                    "${PREFIX_RISKY_HOOKS_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_CLASS_LOOKUP_HIDING_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_PERSONA_BLOB}[a-zA-Z0-9_]+",
+                    "${PREFIX_PERSONA_VERSION}[a-zA-Z0-9_]+",
+                )
+                .joinToString(separator = "|", prefix = "^(", postfix = ")$")
+        )
 
     // ═══════════════════════════════════════════════════════════
     // KEY GENERATORS
@@ -60,6 +79,16 @@ object SharedPrefsKeys {
         return "$PREFIX_SPOOF_VALUE${sanitize(packageName)}_${type.name}"
     }
 
+    /** Gets the key for per-app risky hook group opt-in. */
+    fun getRiskyHooksEnabledKey(packageName: String): String {
+        return "$PREFIX_RISKY_HOOKS_ENABLED${sanitize(packageName)}"
+    }
+
+    /** Gets the key for per-app class lookup hiding opt-in. */
+    fun getClassLookupHidingEnabledKey(packageName: String): String {
+        return "$PREFIX_CLASS_LOOKUP_HIDING_ENABLED${sanitize(packageName)}"
+    }
+
     /** Gets the device profile preset key for an app. */
     fun getDeviceProfileKey(packageName: String): String {
         return getSpoofValueKey(packageName, SpoofType.DEVICE_PROFILE)
@@ -75,12 +104,6 @@ object SharedPrefsKeys {
         return "$PREFIX_PERSONA_VERSION${sanitize(packageName)}"
     }
 
-    /** Checks whether [key] is a persona JSON blob key. */
-    fun isPersonaBlobKey(key: String): Boolean = key.startsWith(PREFIX_PERSONA_BLOB)
-
-    /** Checks whether [key] is a persona version key. */
-    fun isPersonaVersionKey(key: String): Boolean = key.startsWith(PREFIX_PERSONA_VERSION)
-
     // ═══════════════════════════════════════════════════════════
     // VALIDATION (for debugging sync issues)
     // ═══════════════════════════════════════════════════════════
@@ -90,10 +113,12 @@ object SharedPrefsKeys {
      * and xposed module.
      */
     fun isValidKey(key: String): Boolean {
-        return key.matches(
-            Regex(
-                "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
-            )
-        )
+        return VALID_KEY_REGEX.matches(key)
     }
 }
+
+/** Checks whether [key] is a persona JSON blob key. */
+fun isPersonaBlobKey(key: String): Boolean = key.startsWith("persona_blob_")
+
+/** Checks whether [key] is a persona version key. */
+fun isPersonaVersionKey(key: String): Boolean = key.startsWith("persona_version_")
