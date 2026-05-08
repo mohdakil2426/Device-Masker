@@ -131,19 +131,19 @@ jobs:
             exit 1
           fi
 
-          release_apk_name="DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-release-signed.apk"
-          debug_apk_name="DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-debug.apk"
+          release_apk_name="DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-release-signed.apk"
+          debug_apk_name="DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-debug.apk"
 
           cp "${release_apks[0]}" "dist/public/${release_apk_name}"
           cp "${release_apks[0]}" "dist/actions/${release_apk_name}"
           cp "${debug_apks[0]}" "dist/actions/${debug_apk_name}"
 
           if [ -d app/build/outputs/mapping/release ]; then
-            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/actions/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-mapping-release.zip" .)
+            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/actions/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-mapping-release.zip" .)
           fi
 
           git archive --format=zip \
-            --output "dist/actions/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
+            --output "dist/actions/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-source-${SHORT_SHA}.zip" \
             HEAD
 
           echo "Public GitHub Release assets:"

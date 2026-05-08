@@ -137,16 +137,16 @@ The manual release workflow will:
 Expected public GitHub Release asset:
 
 ```text
-DeviceMasker-v0.1.2+3-release-signed.apk
+DeviceMasker-v0.1.2-code3-release-signed.apk
 ```
 
 Expected Actions-only artifacts:
 
 ```text
-DeviceMasker-v0.1.2+3-debug.apk
-DeviceMasker-v0.1.2+3-release-signed.apk
-DeviceMasker-v0.1.2+3-mapping-release.zip
-DeviceMasker-v0.1.2-source-<shortSha>.zip
+DeviceMasker-v0.1.2-code3-debug.apk
+DeviceMasker-v0.1.2-code3-release-signed.apk
+DeviceMasker-v0.1.2-code3-mapping-release.zip
+DeviceMasker-v0.1.2-code3-source-<shortSha>.zip
 app/common/xposed build reports
 ```
 
@@ -211,7 +211,7 @@ quality report upload
 CI debug artifact name format:
 
 ```text
-DeviceMasker-v0.1.2+3-debug-<shortSha>.apk
+DeviceMasker-v0.1.2-code3-debug-<shortSha>.apk
 ```
 
 ## What Not To Do

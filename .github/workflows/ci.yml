@@ -136,6 +136,7 @@ jobs:
       - name: Prepare build artifacts
         run: |
           VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          VERSION_CODE=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
           SHORT_SHA="${GITHUB_SHA::7}"
           mkdir -p dist/debug dist/release dist/source
           debug_apks=(app/build/outputs/apk/debug/*.apk)
@@ -144,17 +145,17 @@ jobs:
             printf '%s\n' "${debug_apks[@]}"
             exit 1
           fi
-          cp "${debug_apks[0]}" "dist/debug/DeviceMasker-v${VERSION_NAME}-debug-${SHORT_SHA}.apk"
+          cp "${debug_apks[0]}" "dist/debug/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-debug-${SHORT_SHA}.apk"
 
           release_apks=(app/build/outputs/apk/release/*.apk)
           if [ "${#release_apks[@]}" -eq 1 ]; then
-            cp "${release_apks[0]}" "dist/release/DeviceMasker-v${VERSION_NAME}-release-signed-${SHORT_SHA}.apk"
+            cp "${release_apks[0]}" "dist/release/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-release-signed-${SHORT_SHA}.apk"
           else
             echo "Signed release APK not available for this run."
           fi
 
           git archive --format=zip \
-            --output "dist/source/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
+            --output "dist/source/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-source-${SHORT_SHA}.zip" \
             HEAD
 
           ls -la dist
