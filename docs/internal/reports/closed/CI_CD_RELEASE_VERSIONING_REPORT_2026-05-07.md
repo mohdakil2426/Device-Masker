@@ -179,25 +179,25 @@ SHORT_SHA="${GITHUB_SHA::7}"
 
 mkdir -p dist
 cp app/build/outputs/apk/debug/*.apk \
-  "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-debug-${SHORT_SHA}.apk"
+  "dist/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-debug-${SHORT_SHA}.apk"
 ```
 
 For release:
 
 ```bash
 cp app/build/outputs/apk/release/*.apk \
-  "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-release-signed.apk"
+  "dist/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-release-signed.apk"
 
 cd app/build/outputs/mapping/release
-zip -r "$GITHUB_WORKSPACE/dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-mapping-release.zip" .
+zip -r "$GITHUB_WORKSPACE/dist/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-mapping-release.zip" .
 ```
 
 Suggested final names:
 
-- `DeviceMasker-v0.1.1+2-debug-abcdef1.apk`
-- `DeviceMasker-v0.1.1+2-release-signed.apk`
-- `DeviceMasker-v0.1.1+2-mapping-release.zip`
-- `DeviceMasker-v0.1.1-source-abcdef1.zip`
+- `DeviceMasker-v0.1.1-code2-debug-abcdef1.apk`
+- `DeviceMasker-v0.1.1-code2-release-signed.apk`
+- `DeviceMasker-v0.1.1-code2-mapping-release.zip`
+- `DeviceMasker-v0.1.1-code2-source-abcdef1.zip`
 
 ## Source Upload Recommendation
 
@@ -213,7 +213,7 @@ For Actions artifacts:
 
 ```bash
 git archive --format=zip \
-  --output "dist/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
+  --output "dist/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-source-${SHORT_SHA}.zip" \
   HEAD
 ```
 

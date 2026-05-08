@@ -53,8 +53,8 @@ object ConfigManager : IConfigManager {
     private const val TAG = "ConfigManager"
     private const val CONFIG_FILE_NAME = "config.json"
 
-    private lateinit var configFile: AtomicFile
-    private lateinit var appContext: Context
+    private var configFile: AtomicFile? = null
+    private var appContext: Context? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // In-memory configuration
@@ -78,9 +78,11 @@ object ConfigManager : IConfigManager {
             return
         }
 
-        appContext = context.applicationContext
-        configFile = AtomicFile(File(context.filesDir, CONFIG_FILE_NAME))
-        Timber.tag(TAG).d("Config file: ${configFile.baseFile.absolutePath}")
+        val applicationContext = context.applicationContext
+        val localConfigFile = AtomicFile(File(applicationContext.filesDir, CONFIG_FILE_NAME))
+        appContext = applicationContext
+        configFile = localConfigFile
+        Timber.tag(TAG).d("Config file: ${localConfigFile.baseFile.absolutePath}")
 
         val generation = initGeneration.incrementAndGet()
         scope.launch {
@@ -99,12 +101,13 @@ object ConfigManager : IConfigManager {
         withContext(Dispatchers.IO) {
             try {
                 // Try loading from local file first
-                if (configFile.baseFile.exists()) {
-                    val json = String(configFile.readFully())
+                val localConfigFile = requireConfigFile()
+                if (localConfigFile.baseFile.exists()) {
+                    val json = String(localConfigFile.readFully())
                     val loadedConfig =
                         JsonConfig.parse(json).withDerivedAppConfigsFromAssignedApps()
                     _config.value = loadedConfig
-                    ConfigSync.syncFromConfig(appContext, loadedConfig)
+                    ConfigSync.syncFromConfig(requireAppContext(), loadedConfig)
                     Timber.tag(TAG).i("Config loaded from local file")
                     return@withContext
                 }
@@ -134,22 +137,29 @@ object ConfigManager : IConfigManager {
         saveConfigInternal(defaultConfig, generation)
     }
 
+    private fun requireConfigFile(): AtomicFile =
+        checkNotNull(configFile) { "ConfigManager not initialized. Call init() first." }
+
+    private fun requireAppContext(): Context =
+        checkNotNull(appContext) { "ConfigManager not initialized. Call init() first." }
+
     private inline fun writeConfigFile(config: JsonConfig, writeFailed: (Throwable) -> Nothing) {
-        val stream = configFile.startWrite()
+        val localConfigFile = requireConfigFile()
+        val stream = localConfigFile.startWrite()
         try {
             stream.write(config.toJsonString().toByteArray())
-            configFile.finishWrite(stream)
+            localConfigFile.finishWrite(stream)
         } catch (error: IOException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         } catch (error: SerializationException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         } catch (error: IllegalArgumentException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         } catch (error: IllegalStateException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         }
     }
@@ -165,7 +175,7 @@ object ConfigManager : IConfigManager {
             Timber.tag(TAG).d("Config saved to local file")
 
             // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
-            ConfigSync.syncFromConfig(appContext, config)
+            ConfigSync.syncFromConfig(requireAppContext(), config)
             Timber.tag(TAG).d("Config synced to RemotePreferences")
         } catch (e: IOException) {
             logSaveFailure(e)
@@ -179,16 +189,17 @@ object ConfigManager : IConfigManager {
     }
 
     private fun preserveCorruptedConfig() {
-        if (!configFile.baseFile.exists()) return
+        val localConfigFile = requireConfigFile()
+        if (!localConfigFile.baseFile.exists()) return
         val backup =
             File(
-                configFile.baseFile.parentFile,
+                localConfigFile.baseFile.parentFile,
                 "$CONFIG_FILE_NAME.corrupted.${System.currentTimeMillis()}",
             )
         val preserved =
             runCatching {
-                    configFile.baseFile.copyTo(backup, overwrite = true)
-                    configFile.baseFile.delete()
+                    localConfigFile.baseFile.copyTo(backup, overwrite = true)
+                    localConfigFile.baseFile.delete()
                 }
                 .isSuccess
         if (preserved) {
@@ -206,8 +217,8 @@ object ConfigManager : IConfigManager {
     }
 
     override fun syncCurrentConfig() {
-        if (!::appContext.isInitialized) return
-        scope.launch { ConfigSync.syncFromConfig(appContext, _config.value) }
+        val context = appContext ?: return
+        scope.launch { ConfigSync.syncFromConfig(context, _config.value) }
     }
 
     /**
