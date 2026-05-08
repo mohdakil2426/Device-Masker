@@ -1,6 +1,6 @@
 # Device Masker — Agent Guide
 
-Android LSPosed/libxposed module for per-app device identity spoofing. 3-module Gradle project: `:app` (Compose UI + config), `:common` (shared contracts + generators), `:xposed` (hooks running inside target app processes).
+Android LSPosed/libxposed module for per-app device identity spoofing. Gradle modules: `:app` (Compose UI + config), `:common` (shared contracts + generators), `:xposed` (hooks running inside target app processes), and `:verifier` (local validation target app).
 
 ## Permanent Rules
 
@@ -22,6 +22,7 @@ Android LSPosed/libxposed module for per-app device identity spoofing. 3-module 
 | `:app` | Compose UI, ViewModels, ConfigManager, ConfigSync, XposedPrefs, diagnostics, root capture | No hook logic. Timber OK here. |
 | `:common` | JsonConfig, SpoofType, SharedPrefsKeys, generators, DevicePersona | No Android UI deps. Generators run at config time only. |
 | `:xposed` | XposedEntry, all hookers, PrefsHelper, DualLog | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
+| `:verifier` | Local target app for emulator/device validation evidence | Not production app. Keep it simple and machine-readable. |
 
 ## Architecture Reference
 
@@ -55,6 +56,9 @@ devicemasker/
 │       │   ├── diagnostics/  Hook-side diagnostics and health tracking
 │       │   └── (root)        Module entry, preference reader, logging, deoptimization support
 │       └── resources/META-INF/xposed/   libxposed module metadata
+│
+├── verifier/             :verifier module — local validation target app
+│   └── src/main/kotlin/.../verifier/    Runtime evidence reader, writes latest.json
 │
 ├── gradle/               Gradle version catalog and build dependency metadata
 ├── docs/                 Public docs, internal audits/reports, implementation plans
@@ -94,7 +98,7 @@ Before writing or changing code, read `docs/public/AGENTS_CODING_RULES.md` and a
 .\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon
 .\gradlew.bat :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon
 .\gradlew.bat spotlessCheck detekt lint test assembleDebug --no-daemon
-.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleRelease :app:assembleCiRelease --no-daemon
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon
 .\gradlew.bat detektBaseline --no-daemon
 ```
 

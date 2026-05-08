@@ -28,6 +28,5 @@ internal const val BYTE_MASK = 0xFF
 internal const val BYTE_MASK_LONG = 0xFFL
 internal const val LOCAL_MAC_MASK = 0xFC
 internal const val DECIMAL_RADIX = 10
-internal const val LUHN_DOUBLE_THRESHOLD = 9
 internal const val DEFAULT_ANDROID_RELEASE = "16"
 internal const val DEFAULT_PHONE_LENGTH = 10

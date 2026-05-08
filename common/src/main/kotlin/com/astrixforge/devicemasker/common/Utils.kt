@@ -1,5 +1,7 @@
 package com.astrixforge.devicemasker.common
 
+import com.astrixforge.devicemasker.common.util.Luhn
+
 /** Utility functions shared between the app UI and xposed module. */
 @Suppress("unused") // Utility functions for cross-module use
 object Utils {
@@ -9,8 +11,6 @@ object Utils {
     private const val DEFAULT_MASK = "••••••••"
     private const val MAX_MASK_LENGTH = 8
     private const val IMEI_LENGTH = 15
-    private const val DECIMAL_RADIX = 10
-    private const val LUHN_DOUBLE_THRESHOLD = 9
 
     /** Log levels for service logging. */
     object LogLevel {
@@ -54,21 +54,7 @@ object Utils {
      */
     fun isValidImei(imei: String): Boolean {
         val hasValidFormat = imei.length == IMEI_LENGTH && imei.all { it.isDigit() }
-        return hasValidFormat && calculateLuhnChecksum(imei.dropLast(1)) == imei.last().digitToInt()
-    }
-
-    /** Calculates Luhn checksum for IMEI validation. */
-    private fun calculateLuhnChecksum(digits: String): Int {
-        var sum = 0
-        for ((index, char) in digits.reversed().withIndex()) {
-            var digit = char.digitToInt()
-            if (index % 2 == 0) {
-                digit *= 2
-                if (digit > LUHN_DOUBLE_THRESHOLD) digit -= LUHN_DOUBLE_THRESHOLD
-            }
-            sum += digit
-        }
-        return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
+        return hasValidFormat && Luhn.isValid(imei)
     }
 
     /**

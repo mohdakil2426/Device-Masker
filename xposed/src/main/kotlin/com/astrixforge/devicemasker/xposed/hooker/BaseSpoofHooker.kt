@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
 import com.astrixforge.devicemasker.xposed.PrefsHelper
@@ -129,6 +130,13 @@ abstract class BaseSpoofHooker(protected val tag: String) {
         pkg: String,
         type: SpoofType,
     ): String? = PrefsHelper.getStoredSpoofValue(prefs, pkg, type)
+
+    protected fun getConfiguredDeviceProfilePreset(
+        prefs: SharedPreferences,
+        pkg: String,
+    ): DeviceProfilePreset? =
+        getConfiguredSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE)
+            ?.let(DeviceProfilePreset::findById)
 
     /**
      * Checks if a spoof type is explicitly enabled for a package in RemotePreferences. Returns

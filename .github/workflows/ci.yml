@@ -50,7 +50,7 @@ jobs:
         run: ./gradlew detekt --build-cache --stacktrace
 
       - name: Compile debug Kotlin
-        run: ./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin --build-cache --stacktrace
+        run: ./gradlew :app:compileDebugKotlin :common:compileDebugKotlin :xposed:compileDebugKotlin :verifier:compileDebugKotlin --build-cache --stacktrace
 
       - name: Lint
         run: ./gradlew lint --build-cache --stacktrace
@@ -70,6 +70,7 @@ jobs:
             app/build/reports/**
             common/build/reports/**
             xposed/build/reports/**
+            verifier/build/reports/**
           if-no-files-found: warn
           retention-days: 7
 

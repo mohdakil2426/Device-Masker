@@ -88,9 +88,16 @@ class ConfigSyncTest {
         syncAppAsync(config, "com.example.target", prefs)
 
         assertTrue(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.target"), false))
+        assertNotNull(
+            prefs.getString(SharedPrefsKeys.getPersonaBlobKey("com.example.target"), null)
+        )
 
         clearAppAsync("com.example.target", prefs)
 
         assertFalse(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.target"), false))
+        assertEquals(
+            null,
+            prefs.getString(SharedPrefsKeys.getPersonaBlobKey("com.example.target"), null),
+        )
     }
 }

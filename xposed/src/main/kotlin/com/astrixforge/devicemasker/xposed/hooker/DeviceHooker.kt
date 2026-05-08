@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
@@ -32,6 +33,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private const val ANDROID_ID_KEY = "android_id"
 
     private val SERIAL_PROPERTY_KEYS = setOf("ro.serialno", "ro.boot.serialno", "ril.serialnumber")
+
+    private val SIM_COUNT_METHODS = listOf("getSimCount", "getPhoneCount", "getActiveModemCount")
 
     private val TELEPHONY_GETTERS =
         listOf(
@@ -92,6 +95,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             hookTelephonyGetter(tm, xi, prefs, pkg, getter)
             if (getter.hasSlotOverload) hookTelephonyGetter(tm, xi, prefs, pkg, getter, intClass)
         }
+        hookSimCountGetters(tm, xi, prefs, pkg)
     }
 
     private fun hookTelephonyGetter(
@@ -114,6 +118,42 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, getter.spoofType)
                             spoofed
+                        }
+                    )
+                xi.deoptimize(m)
+            }
+        }
+    }
+
+    private fun hookSimCountGetters(
+        tm: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
+        SIM_COUNT_METHODS.forEach { methodName ->
+            hookSimCountGetter(tm, xi, prefs, pkg, methodName)
+        }
+    }
+
+    private fun hookSimCountGetter(
+        tm: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+        methodName: String,
+    ) {
+        safeHook("TelephonyManager.$methodName()") {
+            tm.methodOrNull(methodName)?.let { m ->
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val preset =
+                                getConfiguredDeviceProfilePreset(prefs, pkg)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                            preset.safeSimCount()
                         }
                     )
                 xi.deoptimize(m)
@@ -269,4 +309,6 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
         val spoofType: SpoofType,
         val hasSlotOverload: Boolean,
     )
+
+    private fun DeviceProfilePreset.safeSimCount(): Int = simCount.coerceIn(1, 2)
 }

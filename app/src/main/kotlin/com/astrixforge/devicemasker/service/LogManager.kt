@@ -13,6 +13,7 @@ import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotMetada
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import com.astrixforge.devicemasker.service.diagnostics.RootCaptureStore
 import com.astrixforge.devicemasker.service.diagnostics.RootLogCollector
+import com.astrixforge.devicemasker.service.diagnostics.SecurityStateDiagnostics
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilder
 import java.io.File
 import java.io.IOException
@@ -136,6 +137,7 @@ object LogManager : ILogManager {
                     hookHealthJson = "{}",
                 )
                 .build(RedactionMode.REDACTED)
+                .plus(SecurityStateDiagnostics.snapshotFile(context))
 
         return SupportBundleBuilder(
                 appEvents =

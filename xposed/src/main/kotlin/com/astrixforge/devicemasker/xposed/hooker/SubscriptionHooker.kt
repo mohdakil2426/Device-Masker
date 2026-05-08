@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
@@ -20,8 +21,8 @@ import io.github.libxposed.api.XposedInterface
  * - SubscriptionInfo.getMnc() / getMncString() — Mobile Network Code
  * - SubscriptionInfo.getNumber() — phone number
  * - SubscriptionInfo.getSubscriberId() — IMSI (via SubscriptionInfo on newer APIs)
- * - SubscriptionManager.getActiveSubscriptionInfoList() — preserves list shape; individual
- *   SubscriptionInfo getters are spoofed when apps inspect each entry
+ * - SubscriptionManager.getActiveSubscriptionInfoCount() — profile-consistent active SIM count
+ * - SubscriptionManager.getActiveSubscriptionInfoCountMax() — profile-consistent maximum SIM count
  *
  * ## SIM count consistency
  * We do NOT hide SIM slots unless the device preset indicates a single-SIM device. Hiding slots
@@ -37,7 +38,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         val siClass = cl.loadClassOrNull("android.telephony.SubscriptionInfo") ?: return
 
         hookSubscriptionInfoGetters(siClass, xi, prefs, pkg)
-        hookSubscriptionManagerList(cl, xi)
+        hookSubscriptionManager(cl, xi, prefs, pkg)
     }
 
     private fun hookSubscriptionInfoGetters(
@@ -131,12 +132,37 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         }
     }
 
-    private fun hookSubscriptionManagerList(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookSubscriptionManager(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         val smClass = cl.loadClassOrNull("android.telephony.SubscriptionManager") ?: return
-        safeHook("SubscriptionManager.getActiveSubscriptionInfoList()") {
-            // No params (API 22+)
-            smClass.methodOrNull("getActiveSubscriptionInfoList")?.let { m ->
-                xi.hook(m).intercept(stableHooker { chain -> chain.proceed() })
+        hookSubscriptionManagerCount(smClass, xi, prefs, pkg, "getActiveSubscriptionInfoCount")
+        hookSubscriptionManagerCount(smClass, xi, prefs, pkg, "getActiveSubscriptionInfoCountMax")
+    }
+
+    private fun hookSubscriptionManagerCount(
+        smClass: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+        methodName: String,
+    ) {
+        safeHook("SubscriptionManager.$methodName()") {
+            smClass.methodOrNull(methodName)?.let { m ->
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val preset =
+                                getConfiguredDeviceProfilePreset(prefs, pkg)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                            preset.safeSimCount()
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -150,4 +176,6 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
             return null
         return digits.take(MCC_LENGTH) to digits.drop(MCC_LENGTH)
     }
+
+    private fun DeviceProfilePreset.safeSimCount(): Int = simCount.coerceIn(1, 2)
 }

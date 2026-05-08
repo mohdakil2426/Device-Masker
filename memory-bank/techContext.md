@@ -33,6 +33,7 @@
 | `:app` | UI, app state, local config, RemotePreferences writes, rootless logs, diagnostics views |
 | `:common` | Shared models, generators, key builders, config contracts |
 | `:xposed` | libxposed entry point, target-process hooks, anti-detection, LSPosed/logcat diagnostics |
+| `:verifier` | Local validation target app that reads framework identity surfaces and writes machine-readable evidence |
 
 ## Xposed Metadata
 
@@ -70,12 +71,15 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerDeepLinks.kt` | Navigation 3 deep-link URI parsing and synthetic stack definitions |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |
+| `common/src/main/kotlin/com/astrixforge/devicemasker/common/util/Luhn.kt` | Shared IMEI/ICCID check-digit implementation |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed module entry |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsHelper.kt` | Hook-side preference helper/reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemFeatureHooker.kt` | Device-profile PackageManager feature hooks |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/VerifierActivity.kt` | Local target app evidence reader |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/MainDispatcherRule.kt` | Test coroutine dispatcher rule |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/testing/*.kt` | Fake implementations for testing |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/ui/screens/*/*ViewModelTest.kt` | ViewModel unit tests |
@@ -108,6 +112,7 @@ Targeted gates:
 .\gradlew.bat detekt --no-daemon
 .\gradlew.bat detektBaseline --no-daemon
 .\gradlew.bat assembleDebug --no-daemon
+.\gradlew.bat :verifier:assembleDebug --no-daemon
 ```
 
 Detekt strictness notes:

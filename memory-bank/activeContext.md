@@ -4,6 +4,29 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-09 Release 0.1.5 Hardening Branch
+
+- Active branch: `release/0.1.5`.
+- Implemented shared Luhn validation in `:common`; IMEI, ICCID, deterministic persona IMEI/ICCID, and validation now use one helper.
+- `ConfigSync` now writes coherent per-package `DevicePersona` blob/version alongside flat RemotePreferences keys. `PrefsHelper` can use the persona as a fallback only when the spoof type is enabled.
+- Device-profile runtime coverage expanded:
+  - `SystemHooker` now covers `Build.ID`, `Build.TIME`, `Build.SUPPORTED_ABIS`, `Build.VERSION.INCREMENTAL`, `Build.VERSION.SECURITY_PATCH`, ABI system properties, and build date.
+  - `SystemFeatureHooker` hooks NFC and telephony `PackageManager.hasSystemFeature` results from the selected profile.
+  - `DeviceHooker` hooks SIM-count methods; `SubscriptionHooker` hooks active subscription count methods and no longer contains a no-op subscription-list hook.
+- Android Advanced Protection and Identity Check are diagnostics-only via `SecurityStateDiagnostics`; they are exported in `security_state_snapshot.json` and are not spoofed.
+- Added local `:verifier` target app (`com.astrixforge.devicemasker.verifier`) that writes `files/verifier/latest.json` for controlled framework-surface validation.
+- Full local gate passed:
+
+```powershell
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon
+```
+
+- Android 13 emulator validation:
+  - Installed rebuilt debug app and verifier on `emulator-5554`.
+  - Verifier launched and wrote `logs/device/2026-05-09-verifier-latest.json`; it was not LSPosed-scoped in that run, so it is baseline evidence.
+  - Mantle smoke launched with live PID and LSPosed/logcat evidence for `XposedEntry`, target selection, `SystemHooker`, `SystemFeatureHooker`, `All hooks registered`, and spoof events. No `FATAL EXCEPTION`, `AbstractMethodError`, abstract hook error, WebView regex crash, or WorkManager initializer crash appeared in the checked log window.
+- Advanced native `/proc/self/maps` and system_server package hiding are still not implemented. They remain high-risk tracks that require explicit opt-in, kill switches, boot/release proof, and separate validation before being enabled.
+
 ## 2026-05-08 Detekt Maximum Strictness Rollout
 
 - Detekt is now configured with `allRules=true` across Android modules.

@@ -13,6 +13,10 @@
 :xposed
   libxposed module entry, hookers, RemotePreferences reader, hook safety helpers,
   anti-detection, LSPosed logging.
+
+:verifier
+  Local validation target app. Reads Android framework identity surfaces and writes
+  machine-readable evidence to files/verifier/latest.json.
 ```
 
 ## Architecture
@@ -90,6 +94,7 @@ sequenceDiagram
 - Generators live in `:common`.
 - Hookers read stored values; hookers do not generate new identities at runtime.
 - `ConfigSync` must clear stale package keys on full sync.
+- `ConfigSync` publishes flat legacy keys plus per-package `DevicePersona` blob/version.
 - Config delivery is RemotePreferences-first.
 - Do not add custom AIDL/Binder config or hook-evidence paths.
 
@@ -177,6 +182,7 @@ Diagnostics facts:
 - `NetworkHooker`
 - `AdvertisingHooker`
 - `SystemHooker`
+- `SystemFeatureHooker`
 - `LocationHooker`
 - `SensorHooker`
 - `WebViewHooker`
@@ -236,6 +242,7 @@ WebView UA spoofing is defensive:
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.
 - Detekt runs for `:app`, `:common`, and `:xposed` using `config/detekt.yml`, module overrides, and per-module baselines.
 - Detekt runs with `allRules=true`; module baselines are currently empty and should stay empty.
+- `:verifier` is included in Spotless, Detekt, lint, and local build gates.
 - Compose compiler reports/metrics are opt-in through `enableComposeCompilerReports` and `enableComposeCompilerMetrics`.
 - Memory Bank must be updated after architecture or runtime behavior changes.
 

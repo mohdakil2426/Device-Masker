@@ -1,7 +1,9 @@
 package com.astrixforge.devicemasker.xposed
 
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.PersonaGenerator
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
+import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -51,6 +53,54 @@ class PrefsHelperTest {
             "490154203237518",
             PrefsHelper.getStoredSpoofValue(prefs, "com.example.app", SpoofType.IMEI),
         )
+    }
+
+    @Test
+    fun `storedSpoofValue falls back to matching persona when flat value is blank`() {
+        val packageName = "com.example.app"
+        val persona = PersonaGenerator.generate(SpoofGroup.createNew("Persona"), packageName)
+        val prefs =
+            MapSharedPreferences(
+                mapOf(
+                    SharedPrefsKeys.getSpoofEnabledKey(packageName, SpoofType.IMEI) to true,
+                    SharedPrefsKeys.getPersonaBlobKey(packageName) to persona.toJsonString(),
+                )
+            )
+
+        assertEquals(
+            persona.hardware.primaryImei,
+            PrefsHelper.getStoredSpoofValue(prefs, packageName, SpoofType.IMEI),
+        )
+    }
+
+    @Test
+    fun `storedSpoofValue ignores persona when type is disabled`() {
+        val packageName = "com.example.app"
+        val persona = PersonaGenerator.generate(SpoofGroup.createNew("Persona"), packageName)
+        val prefs =
+            MapSharedPreferences(
+                mapOf(
+                    SharedPrefsKeys.getSpoofEnabledKey(packageName, SpoofType.IMEI) to false,
+                    SharedPrefsKeys.getPersonaBlobKey(packageName) to persona.toJsonString(),
+                )
+            )
+
+        assertNull(PrefsHelper.getStoredSpoofValue(prefs, packageName, SpoofType.IMEI))
+    }
+
+    @Test
+    fun `storedSpoofValue ignores persona for different package`() {
+        val packageName = "com.example.app"
+        val persona = PersonaGenerator.generate(SpoofGroup.createNew("Persona"), "com.other.app")
+        val prefs =
+            MapSharedPreferences(
+                mapOf(
+                    SharedPrefsKeys.getSpoofEnabledKey(packageName, SpoofType.IMEI) to true,
+                    SharedPrefsKeys.getPersonaBlobKey(packageName) to persona.toJsonString(),
+                )
+            )
+
+        assertNull(PrefsHelper.getStoredSpoofValue(prefs, packageName, SpoofType.IMEI))
     }
 
     private class MapSharedPreferences(private val values: Map<String, Any?>) : SharedPreferences {

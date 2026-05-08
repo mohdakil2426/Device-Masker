@@ -160,6 +160,7 @@ jobs:
             app/build/reports/**
             common/build/reports/**
             xposed/build/reports/**
+            verifier/build/reports/**
           if-no-files-found: error
           retention-days: 14
 

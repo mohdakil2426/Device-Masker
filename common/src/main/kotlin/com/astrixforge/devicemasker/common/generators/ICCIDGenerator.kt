@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.models.Carrier
+import com.astrixforge.devicemasker.common.util.Luhn
 import java.security.SecureRandom
 import java.util.Locale
 
@@ -22,7 +23,6 @@ object ICCIDGenerator {
     private const val ACCOUNT_LENGTH = 12
     private const val BASE_ICCID_LENGTH = 18
     private const val DECIMAL_RADIX = 10
-    private const val LUHN_DOUBLE_THRESHOLD = 9
 
     /** Secure random instance for cryptographic-quality randomness. */
     private val secureRandom = SecureRandom()
@@ -51,10 +51,7 @@ object ICCIDGenerator {
         // Base ICCID without check digit (18 digits)
         val base = mii + countryCode + issuer + account
 
-        // Calculate and append Luhn check digit
-        val checkDigit = calculateLuhnCheckDigit(base)
-
-        return base + checkDigit
+        return Luhn.appendCheckDigit(base)
     }
 
     /**
@@ -110,36 +107,6 @@ object ICCIDGenerator {
         // Base ICCID without check digit
         val base = mii + countryCode + issuer + account
 
-        // Calculate and append Luhn check digit
-        val checkDigit = calculateLuhnCheckDigit(base)
-
-        return base + checkDigit
-    }
-
-    /**
-     * Calculates the Luhn check digit for an ICCID.
-     *
-     * @param partial The ICCID without check digit (18 digits)
-     * @return The single check digit (0-9)
-     */
-    private fun calculateLuhnCheckDigit(partial: String): Int {
-        var sum = 0
-
-        // Process digits from right to left
-        for (i in partial.indices) {
-            var digit = partial[i].digitToInt()
-
-            // Double every second digit from the right (odd positions from right)
-            if ((partial.length - i) % 2 == 0) {
-                digit *= 2
-                if (digit > LUHN_DOUBLE_THRESHOLD) {
-                    digit -= LUHN_DOUBLE_THRESHOLD
-                }
-            }
-
-            sum += digit
-        }
-
-        return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
+        return Luhn.appendCheckDigit(base)
     }
 }

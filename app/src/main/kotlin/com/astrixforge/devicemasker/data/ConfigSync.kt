@@ -138,13 +138,21 @@ object ConfigSync {
             removeKeys += keysForSyncedPackage(packageName)
         }
 
-        for ((packageName, appConfig) in config.appConfigs.toSortedMap()) {
+        for (packageName in config.appConfigs.keys.toSortedSet()) {
             val state = config.syncStateFor(packageName)
             booleans[SharedPrefsKeys.getAppEnabledKey(packageName)] = state?.appEnabled == true
             booleans[SharedPrefsKeys.getRiskyHooksEnabledKey(packageName)] =
                 state?.riskyHooksEnabled == true
             booleans[SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName)] =
                 state?.classLookupHidingEnabled == true
+            if (state?.persona != null) {
+                strings[SharedPrefsKeys.getPersonaBlobKey(packageName)] =
+                    state.persona.toJsonString()
+                longs[SharedPrefsKeys.getPersonaVersionKey(packageName)] = state.persona.version
+            } else {
+                removeKeys += SharedPrefsKeys.getPersonaBlobKey(packageName)
+                removeKeys += SharedPrefsKeys.getPersonaVersionKey(packageName)
+            }
             state?.spoofTypes.orEmpty().forEach { typeState ->
                 val valueKey = SharedPrefsKeys.getSpoofValueKey(packageName, typeState.type)
                 booleans[SharedPrefsKeys.getSpoofEnabledKey(packageName, typeState.type)] =
@@ -183,7 +191,13 @@ internal fun syncAppToPrefs(
     when {
         prefs == null -> Timber.tag(CONFIG_SYNC_TAG).d(notConnectedMessage("syncApp", packageName))
         state == null -> {
-            prefs.edit().putAppDisabled(packageName).commit()
+            prefs
+                .edit()
+                .apply {
+                    removePackageSyncKeys(packageName)
+                    putAppDisabled(packageName)
+                }
+                .commit()
             Timber.tag(CONFIG_SYNC_TAG).d("App $packageName removed from spoofing (no group)")
         }
         else -> commitAppSync(packageName, state, prefs)
@@ -213,6 +227,8 @@ private fun android.content.SharedPreferences.Editor.removePackageSyncKeys(packa
     remove(SharedPrefsKeys.getAppEnabledKey(packageName))
     remove(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
     remove(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
+    remove(SharedPrefsKeys.getPersonaBlobKey(packageName))
+    remove(SharedPrefsKeys.getPersonaVersionKey(packageName))
 
     for (type in SpoofType.entries) {
         remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))

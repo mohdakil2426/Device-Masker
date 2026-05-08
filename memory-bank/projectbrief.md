@@ -49,6 +49,14 @@ Latest Detekt strictness state as of 2026-05-08:
 - `.\gradlew.bat detekt --no-daemon --stacktrace` passes after baseline regeneration.
 - Keep baselines at zero unless accepted existing debt is explicitly documented.
 
+Release 0.1.5 hardening branch state as of 2026-05-09:
+- `:common` uses one shared Luhn helper for IMEI, ICCID, and persona check digits.
+- Config sync writes both flat RemotePreferences keys and a coherent per-package `DevicePersona` blob/version.
+- `:xposed` profile coverage now includes enriched Build fields, Build.VERSION fields, ABI properties, PackageManager feature checks, SIM count, and subscription count.
+- `:verifier` exists as a separate local target app for controlled runtime evidence.
+- Full local gate and Android 13 Mantle smoke passed for the implemented safe track.
+- Native maps redaction and system_server package hiding are still not implemented and must stay advanced, opt-in, separately validated work.
+
 Master Implementation Plan status on 2026-05-04:
 - Phase 0: Safety & Stability core fixes complete.
 - Phase 1: Testing Infrastructure complete for current unit-test scope.

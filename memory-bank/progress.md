@@ -15,11 +15,21 @@
 | Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; user confirmed real Android 16 device success |
 | M3E UI | Core and advanced implementation verified |
 | Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks |
+| Verifier | `:verifier` local target app builds, installs, launches, and writes `files/verifier/latest.json` |
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
 ## Latest Audit Remediation
 
+- Release 0.1.5 hardening branch work on 2026-05-09:
+  - Added shared Luhn helper and routed IMEI/ICCID/persona check digits through it.
+  - Config sync now publishes `DevicePersona` blob/version and flat keys; hook-side persona fallback respects per-type enablement.
+  - Added profile hooks for enriched Build fields, Build.VERSION fields, ABI properties, NFC/telephony features, SIM count, and subscription count.
+  - Added diagnostics-only Android Advanced Protection and Identity Check snapshot export.
+  - Added `:verifier` local target app and included it in CI/report paths.
+  - Full local gate passed with `:verifier:assembleDebug`.
+  - Android 13 emulator evidence captured under `logs/device/`; Mantle showed LSPosed module load, hook registration including `SystemFeatureHooker`, spoof events, and no checked fatal crash signatures.
+  - Native maps redaction and system_server package hiding remain unimplemented high-risk tracks, not default behavior.
 - Detekt maximum strictness rollout started on 2026-05-08:
   - `allRules=true` enabled in root Detekt configuration.
   - Shared Detekt config tightened for complexity, coroutine, potential-bugs, style, and Compose rules.

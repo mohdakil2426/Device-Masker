@@ -31,3 +31,5 @@ include(":app")
 include(":common")
 
 include(":xposed")
+
+include(":verifier")

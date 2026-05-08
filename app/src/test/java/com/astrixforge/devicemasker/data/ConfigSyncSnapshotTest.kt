@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.data
 
 import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.DeviceIdentifier
+import com.astrixforge.devicemasker.common.DevicePersona
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofGroup
@@ -47,21 +48,8 @@ class ConfigSyncSnapshotTest {
         val snapshot = ConfigSync.buildSnapshot(config, previousEnabledApps = emptySet())
 
         assertEquals(setOf("com.example.enabled", "com.example.disabled"), snapshot.currentApps)
-        assertTrue(
-            snapshot.booleans.getValue(SharedPrefsKeys.getAppEnabledKey("com.example.enabled"))
-        )
-        assertFalse(
-            snapshot.booleans.getValue(SharedPrefsKeys.getAppEnabledKey("com.example.disabled"))
-        )
-        assertEquals(
-            "490154203237518",
-            snapshot.strings[
-                    SharedPrefsKeys.getSpoofValueKey("com.example.enabled", SpoofType.IMEI)],
-        )
-        assertNull(
-            snapshot.strings[
-                    SharedPrefsKeys.getSpoofValueKey("com.example.disabled", SpoofType.IMEI)]
-        )
+        assertEnabledAppSnapshot(snapshot, group.id)
+        assertDisabledAppSnapshot(snapshot)
     }
 
     @Test
@@ -110,6 +98,14 @@ class ConfigSyncSnapshotTest {
                 SharedPrefsKeys.getSpoofValueKey("com.example.removed", SpoofType.IMEI)
             )
         )
+        assertTrue(
+            snapshot.removeKeys.contains(SharedPrefsKeys.getPersonaBlobKey("com.example.removed"))
+        )
+        assertTrue(
+            snapshot.removeKeys.contains(
+                SharedPrefsKeys.getPersonaVersionKey("com.example.removed")
+            )
+        )
     }
 
     @Test
@@ -131,5 +127,42 @@ class ConfigSyncSnapshotTest {
         return generateSequence(File("").absoluteFile) { it.parentFile }
             .map { File(it, normalized) }
             .first { it.exists() }
+    }
+
+    private fun assertEnabledAppSnapshot(snapshot: ConfigSync.Snapshot, groupId: String) {
+        assertTrue(
+            snapshot.booleans.getValue(SharedPrefsKeys.getAppEnabledKey("com.example.enabled"))
+        )
+        assertEquals(
+            "490154203237518",
+            snapshot.strings[
+                    SharedPrefsKeys.getSpoofValueKey("com.example.enabled", SpoofType.IMEI)],
+        )
+        val personaJson =
+            snapshot.strings.getValue(SharedPrefsKeys.getPersonaBlobKey("com.example.enabled"))
+        val persona = DevicePersona.parse(personaJson)
+        assertEquals("com.example.enabled", persona.packageName)
+        assertEquals(groupId, persona.groupId)
+        assertTrue(
+            snapshot.longs.containsKey(SharedPrefsKeys.getPersonaVersionKey("com.example.enabled"))
+        )
+    }
+
+    private fun assertDisabledAppSnapshot(snapshot: ConfigSync.Snapshot) {
+        assertFalse(
+            snapshot.booleans.getValue(SharedPrefsKeys.getAppEnabledKey("com.example.disabled"))
+        )
+        assertNull(
+            snapshot.strings[
+                    SharedPrefsKeys.getSpoofValueKey("com.example.disabled", SpoofType.IMEI)]
+        )
+        assertTrue(
+            snapshot.removeKeys.contains(SharedPrefsKeys.getPersonaBlobKey("com.example.disabled"))
+        )
+        assertTrue(
+            snapshot.removeKeys.contains(
+                SharedPrefsKeys.getPersonaVersionKey("com.example.disabled")
+            )
+        )
     }
 }

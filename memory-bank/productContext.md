@@ -35,6 +35,7 @@ Device Masker has three product-facing responsibilities:
    - Shows app-side framework/config/log state.
    - Uses LSPosed logs as the reliable proof that target-process hooks loaded and fired.
    - Uses optional root/logcat artifacts for deeper support bundles when root is available.
+   - Uses the separate `:verifier` target app for controlled framework-surface evidence on emulator/device tests.
 
 ## Expected User Flow
 

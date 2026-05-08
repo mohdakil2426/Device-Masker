@@ -1,7 +1,9 @@
 package com.astrixforge.devicemasker.data
 
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DevicePersona
 import com.astrixforge.devicemasker.common.JsonConfig
+import com.astrixforge.devicemasker.common.PersonaGenerator
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 
@@ -10,6 +12,7 @@ internal data class AppSyncState(
     val appEnabled: Boolean,
     val riskyHooksEnabled: Boolean,
     val classLookupHidingEnabled: Boolean,
+    val persona: DevicePersona?,
     val spoofTypes: List<SpoofTypeSyncState>,
 )
 
@@ -25,18 +28,20 @@ internal fun JsonConfig.syncStateFor(packageName: String): AppSyncState? {
     val appEnabled = isModuleEnabled && configApp?.isEnabled == true && group.isEnabled
     val riskyHooksEnabled = appEnabled && configApp.riskyHooksEnabled
     val classLookupHidingEnabled = riskyHooksEnabled && configApp.classLookupHidingEnabled
+    val persona = if (appEnabled) PersonaGenerator.generate(group, packageName) else null
 
     return AppSyncState(
         packageName = packageName,
         appEnabled = appEnabled,
         riskyHooksEnabled = riskyHooksEnabled,
         classLookupHidingEnabled = classLookupHidingEnabled,
+        persona = persona,
         spoofTypes =
             SpoofType.entries.map { type ->
                 val typeEnabled = appEnabled && group.isTypeEnabled(type)
                 val value =
                     if (typeEnabled) {
-                        group.getValue(type)?.takeIf { it.isNotBlank() }
+                        group.getValue(type)?.takeIf { it.isNotBlank() } ?: persona?.getValue(type)
                     } else {
                         null
                     }
@@ -56,6 +61,16 @@ internal fun SharedPreferences.Editor.putAppSyncState(state: AppSyncState) {
         SharedPrefsKeys.getClassLookupHidingEnabledKey(state.packageName),
         state.classLookupHidingEnabled,
     )
+    if (state.persona != null) {
+        putString(
+            SharedPrefsKeys.getPersonaBlobKey(state.packageName),
+            state.persona.toJsonString(),
+        )
+        putLong(SharedPrefsKeys.getPersonaVersionKey(state.packageName), state.persona.version)
+    } else {
+        remove(SharedPrefsKeys.getPersonaBlobKey(state.packageName))
+        remove(SharedPrefsKeys.getPersonaVersionKey(state.packageName))
+    }
     state.spoofTypes.forEach { putSpoofTypeState(state.packageName, it) }
 }
 

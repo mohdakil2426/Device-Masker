@@ -12,6 +12,7 @@ import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
 import com.astrixforge.devicemasker.xposed.hooker.PackageManagerHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
+import com.astrixforge.devicemasker.xposed.hooker.SystemFeatureHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
 import io.github.libxposed.api.XposedModule
@@ -136,6 +137,9 @@ class XposedEntry : XposedModule() {
             NetworkHooker.hook(cl, this, prefs, hookPackage)
         }
         hookSafely(hookPackage, "SystemHooker") { SystemHooker.hook(cl, this, prefs, hookPackage) }
+        hookSafely(hookPackage, "SystemFeatureHooker") {
+            SystemFeatureHooker.hook(cl, this, prefs, hookPackage)
+        }
         hookSafely(hookPackage, "LocationHooker") {
             LocationHooker.hook(cl, this, prefs, hookPackage)
         }

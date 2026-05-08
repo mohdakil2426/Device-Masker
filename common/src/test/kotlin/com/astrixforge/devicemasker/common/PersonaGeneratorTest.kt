@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common
 
 import com.astrixforge.devicemasker.common.models.Country
+import com.astrixforge.devicemasker.common.util.Luhn
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -22,6 +23,8 @@ class PersonaGeneratorTest {
 
         assertEquals(first, second)
         assertTrue(PersonaGenerator.validate(first).isValid)
+        assertTrue(Luhn.isValid(first.hardware.primaryImei))
+        assertTrue(Luhn.isValid(first.subscriptions.first().iccid))
     }
 
     @Test
