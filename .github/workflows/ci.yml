@@ -73,8 +73,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  assemble-debug:
-    name: Assemble Debug
+  assemble-build-artifacts:
+    name: Assemble Build Artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs:
@@ -98,28 +98,73 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
+      - name: Check release signing secrets
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASS" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASS" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decode release keystore
+        if: steps.signing.outputs.available == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
+
       - name: Assemble debug
         run: ./gradlew assembleDebug --build-cache --stacktrace
 
-      - name: Prepare debug artifact
+      - name: Assemble signed release
+        if: steps.signing.outputs.available == 'true'
+        run: ./gradlew assembleRelease --build-cache --stacktrace
+
+      - name: Prepare build artifacts
         run: |
           VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
           VERSION_CODE=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
           SHORT_SHA="${GITHUB_SHA::7}"
           mkdir -p dist
-          apk_files=(app/build/outputs/apk/debug/*.apk)
-          if [ "${#apk_files[@]}" -ne 1 ]; then
-            echo "Expected exactly one debug APK, found ${#apk_files[@]}"
-            printf '%s\n' "${apk_files[@]}"
+          debug_apks=(app/build/outputs/apk/debug/*.apk)
+          if [ "${#debug_apks[@]}" -ne 1 ]; then
+            echo "Expected exactly one debug APK, found ${#debug_apks[@]}"
+            printf '%s\n' "${debug_apks[@]}"
             exit 1
           fi
-          cp "${apk_files[0]}" "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-debug-${SHORT_SHA}.apk"
+          cp "${debug_apks[0]}" "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-debug-${SHORT_SHA}.apk"
 
-      - name: Upload debug APKs
+          release_apks=(app/build/outputs/apk/release/*.apk)
+          if [ "${#release_apks[@]}" -eq 1 ]; then
+            cp "${release_apks[0]}" "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-release-signed-${SHORT_SHA}.apk"
+          else
+            echo "Signed release APK not available for this run."
+          fi
+
+          git archive --format=zip \
+            --output "dist/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
+            HEAD
+
+          ls -la dist
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: DeviceMasker-debug-${{ github.run_id }}
+          name: DeviceMasker-build-${{ github.run_id }}
           path: |
-            dist/*.apk
+            dist/**
           if-no-files-found: error
           retention-days: 14
