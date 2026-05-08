@@ -53,10 +53,14 @@ class DiagnosticRedactor(private val mode: RedactionMode) {
 
     private fun sha256Prefix(value: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
-        return bytes.take(4).joinToString(separator = "") { byte -> "%02x".format(byte) }
+        return bytes.take(HASH_PREFIX_BYTES).joinToString(separator = "") { byte ->
+            "%02x".format(byte)
+        }
     }
 
     private companion object {
+        private const val HASH_PREFIX_BYTES = 4
+
         private val ICCID_REGEX = Regex("""89\d{17,20}""")
         private val IMSI_REGEX = Regex("""31\d{13}""")
         private val IMEI_REGEX = Regex("""\d{15}""")

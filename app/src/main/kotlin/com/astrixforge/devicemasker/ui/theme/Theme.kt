@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.ui.theme
 import android.app.UiModeManager
 import android.content.Context
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -154,85 +155,7 @@ private fun DeviceMaskerThemeInternal(
 ) {
     val context = LocalContext.current
     val contrast = rememberSystemContrast(context)
-    val baseColorScheme =
-        when {
-            // Dynamic colors on Android 12+
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                if (darkTheme) {
-                    if (amoledBlack) {
-                        // Use dynamic dark colors but override with AMOLED black
-                        dynamicDarkColorScheme(context)
-                            .copy(
-                                background = AmoledBlack,
-                                surface = AmoledBlack,
-                                surfaceContainer = AmoledSurfaceContainer,
-                                surfaceContainerLow = AmoledSurface,
-                                surfaceContainerLowest = AmoledBlack,
-                            )
-                    } else {
-                        // Regular dynamic dark colors
-                        dynamicDarkColorScheme(context)
-                    }
-                } else {
-                    dynamicLightColorScheme(context)
-                }
-            }
-
-            // Custom dark themes
-            darkTheme -> {
-                if (amoledBlack) {
-                    AmoledDarkColorScheme
-                } else {
-                    // Regular dark theme (not pure black) - using Material 3 default dark with
-                    // our primaries
-                    darkColorScheme(
-                        // Primary
-                        primary = PrimaryDark,
-                        onPrimary = Color.Black,
-                        primaryContainer = PrimaryContainer,
-                        onPrimaryContainer = OnPrimaryContainer,
-                        // Secondary
-                        secondary = SecondaryDark,
-                        onSecondary = Color.Black,
-                        secondaryContainer = SecondaryContainer,
-                        onSecondaryContainer = OnSecondaryContainer,
-                        // Tertiary
-                        tertiary = TertiaryDark,
-                        onTertiary = Color.Black,
-                        tertiaryContainer = TertiaryContainer,
-                        onTertiaryContainer = OnTertiaryContainer,
-                        // Error
-                        error = ErrorDark,
-                        onError = Color.Black,
-                        errorContainer = ErrorContainer,
-                        onErrorContainer = OnErrorContainer,
-                        // Background & Surface (dark gray, not pure black)
-                        background = DarkSurface,
-                        onBackground = OnSurfaceDark,
-                        surface = DarkSurface,
-                        onSurface = OnSurfaceDark,
-                        surfaceVariant = DarkSurfaceVariant,
-                        onSurfaceVariant = OnSurfaceVariantDark,
-                        // Surface containers
-                        surfaceContainer = DarkSurfaceContainer,
-                        surfaceContainerHigh = DarkSurfaceContainerHigh,
-                        surfaceContainerHighest = DarkSurfaceContainerHighest,
-                        surfaceContainerLow = DarkSurfaceContainerLow,
-                        surfaceContainerLowest = DarkSurfaceContainerLowest,
-                        // Other
-                        outline = OutlineDark,
-                        outlineVariant = OutlineVariantDark,
-                        inverseSurface = OnSurfaceDark,
-                        inverseOnSurface = DarkSurfaceContainer,
-                        inversePrimary = PrimaryLight,
-                        scrim = Color.Black,
-                    )
-                }
-            }
-
-            // Custom light theme
-            else -> LightColorScheme
-        }
+    val baseColorScheme = baseColorScheme(context, darkTheme, amoledBlack, dynamicColor)
     val colorScheme = baseColorScheme.withContrastPreference(contrast, darkTheme)
 
     CompositionLocalProvider(
@@ -248,6 +171,93 @@ private fun DeviceMaskerThemeInternal(
         )
     }
 }
+
+private fun baseColorScheme(
+    context: Context,
+    darkTheme: Boolean,
+    amoledBlack: Boolean,
+    dynamicColor: Boolean,
+): ColorScheme =
+    when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            dynamicColorScheme(context, darkTheme, amoledBlack)
+        darkTheme -> customDarkColorScheme(amoledBlack)
+        else -> LightColorScheme
+    }
+
+@RequiresApi(Build.VERSION_CODES.S)
+private fun dynamicColorScheme(
+    context: Context,
+    darkTheme: Boolean,
+    amoledBlack: Boolean,
+): ColorScheme =
+    when {
+        darkTheme && amoledBlack -> dynamicAmoledColorScheme(context)
+        darkTheme -> dynamicDarkColorScheme(context)
+        else -> dynamicLightColorScheme(context)
+    }
+
+@RequiresApi(Build.VERSION_CODES.S)
+private fun dynamicAmoledColorScheme(context: Context): ColorScheme =
+    dynamicDarkColorScheme(context)
+        .copy(
+            background = AmoledBlack,
+            surface = AmoledBlack,
+            surfaceContainer = AmoledSurfaceContainer,
+            surfaceContainerLow = AmoledSurface,
+            surfaceContainerLowest = AmoledBlack,
+        )
+
+private fun customDarkColorScheme(amoledBlack: Boolean): ColorScheme =
+    if (amoledBlack) {
+        AmoledDarkColorScheme
+    } else {
+        RegularDarkColorScheme
+    }
+
+private val RegularDarkColorScheme =
+    darkColorScheme(
+        // Primary
+        primary = PrimaryDark,
+        onPrimary = Color.Black,
+        primaryContainer = PrimaryContainer,
+        onPrimaryContainer = OnPrimaryContainer,
+        // Secondary
+        secondary = SecondaryDark,
+        onSecondary = Color.Black,
+        secondaryContainer = SecondaryContainer,
+        onSecondaryContainer = OnSecondaryContainer,
+        // Tertiary
+        tertiary = TertiaryDark,
+        onTertiary = Color.Black,
+        tertiaryContainer = TertiaryContainer,
+        onTertiaryContainer = OnTertiaryContainer,
+        // Error
+        error = ErrorDark,
+        onError = Color.Black,
+        errorContainer = ErrorContainer,
+        onErrorContainer = OnErrorContainer,
+        // Background & Surface
+        background = DarkSurface,
+        onBackground = OnSurfaceDark,
+        surface = DarkSurface,
+        onSurface = OnSurfaceDark,
+        surfaceVariant = DarkSurfaceVariant,
+        onSurfaceVariant = OnSurfaceVariantDark,
+        // Surface containers
+        surfaceContainer = DarkSurfaceContainer,
+        surfaceContainerHigh = DarkSurfaceContainerHigh,
+        surfaceContainerHighest = DarkSurfaceContainerHighest,
+        surfaceContainerLow = DarkSurfaceContainerLow,
+        surfaceContainerLowest = DarkSurfaceContainerLowest,
+        // Other
+        outline = OutlineDark,
+        outlineVariant = OutlineVariantDark,
+        inverseSurface = OnSurfaceDark,
+        inverseOnSurface = DarkSurfaceContainer,
+        inversePrimary = PrimaryLight,
+        scrim = Color.Black,
+    )
 
 @Composable
 private fun rememberSystemContrast(context: Context): Float {
@@ -269,7 +279,7 @@ private fun rememberSystemContrast(context: Context): Float {
 }
 
 private fun ColorScheme.withContrastPreference(contrast: Float, darkTheme: Boolean): ColorScheme {
-    if (contrast < 0.33f) return this
+    if (contrast < HIGH_CONTRAST_THRESHOLD) return this
 
     return if (darkTheme) {
         copy(
@@ -287,3 +297,5 @@ private fun ColorScheme.withContrastPreference(contrast: Float, darkTheme: Boole
         )
     }
 }
+
+private const val HIGH_CONTRAST_THRESHOLD = 0.33f

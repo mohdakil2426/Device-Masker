@@ -12,12 +12,8 @@ object DeviceMaskerDeepLinks {
     const val HOST = "open"
 
     fun parse(uriString: String?): DeviceMaskerDeepLink? {
-        if (uriString.isNullOrBlank()) return null
-        val uri = runCatching { URI(uriString) }.getOrNull() ?: return null
-        if (!uri.scheme.equals(SCHEME, ignoreCase = true)) return null
-        if (!uri.host.equals(HOST, ignoreCase = true)) return null
-
-        val segments = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
+        val uri = parseValidUri(uriString) ?: return null
+        val segments = uri.pathSegments()
 
         return when (segments.firstOrNull()) {
             null,
@@ -40,6 +36,16 @@ object DeviceMaskerDeepLinks {
             else -> null
         }
     }
+
+    private fun parseValidUri(uriString: String?): URI? =
+        uriString
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { URI(it) }.getOrNull() }
+            ?.takeIf { it.scheme.equals(SCHEME, ignoreCase = true) }
+            ?.takeIf { it.host.equals(HOST, ignoreCase = true) }
+
+    private fun URI.pathSegments(): List<String> =
+        path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: emptyList()
 
     private fun groupsDeepLink(segments: List<String>): DeviceMaskerDeepLink? =
         when (segments.size) {

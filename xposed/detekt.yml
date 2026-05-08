@@ -13,5 +13,3 @@ complexity:
 style:
   ReturnCount:
     max: 6
-  MagicNumber:
-    active: false

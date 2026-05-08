@@ -115,7 +115,9 @@ class ConfigSyncSnapshotTest {
     @Test
     fun `sync app path honors canonical app enabled flag`() {
         val syncFile =
-            projectFile("app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt")
+            projectFile(
+                    "app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSyncHelpers.kt"
+                )
                 .readText()
 
         assertTrue(

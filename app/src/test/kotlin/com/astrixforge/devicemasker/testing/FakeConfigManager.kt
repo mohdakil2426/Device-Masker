@@ -5,6 +5,12 @@ import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.common.addOrUpdateGroup
+import com.astrixforge.devicemasker.common.getAllGroups
+import com.astrixforge.devicemasker.common.regenerateAll
+import com.astrixforge.devicemasker.common.setAppConfig
+import com.astrixforge.devicemasker.common.setIdentifier
+import com.astrixforge.devicemasker.common.withPersona
 import com.astrixforge.devicemasker.service.IConfigManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

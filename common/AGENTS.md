@@ -1,6 +1,6 @@
 # :common Module Guide
 
-Shared contracts, data models, identity generators, preference key builder, and diagnostics schema. No Android UI dependencies. No framework-specific code (constants like `NETWORK_TYPE_LTE=13` are hardcoded).
+Shared contracts, data models, identity generators, preference key builder, and diagnostics schema. No Android UI or Xposed runtime dependencies. Mirrored Android framework constants are allowed only as named constants.
 
 ## Module Structure
 
@@ -11,8 +11,8 @@ common/src/main/
 │   ├── generators/         Config-time identity generators
 │   ├── diagnostics/        Shared diagnostics schema and redaction
 │   └── (root)              JsonConfig, AppConfig, SpoofGroup, SpoofType, DeviceIdentifier,
-│                             DeviceProfilePreset, DevicePersona, PersonaGenerator, SharedPrefsKeys,
-│                             Constants, Utils, NetworkTypeMapper, SecureRandomUtils
+│                             DeviceProfilePreset, DevicePersona, PersonaGenerator and helpers,
+│                             SharedPrefsKeys, Constants, Utils, NetworkTypeMapper, SecureRandomUtils
 ```
 
 ## Source Of Truth Rules
@@ -21,6 +21,7 @@ common/src/main/
 - `SharedPrefsKeys` is the ONLY place to build RemotePreferences key strings.
 - Generators live here and run at config time, never at runtime in `:xposed`.
 - All generators use `SecureRandom` for cryptographic-quality randomness.
+- Detekt baselines are currently empty; keep common logic small enough to avoid new baseline debt.
 
 ## Data Model Hierarchy
 
@@ -80,6 +81,13 @@ Values that MUST be generated together to avoid detection:
 ## PersonaGenerator — Deterministic Coherent Identity
 
 `PersonaGenerator.generate(group, packageName)` builds a complete `DevicePersona` using SHA-256 seeded derivation from `rootSeed`. Priority: explicit override > stored value > deterministic derivation.
+
+Persona generation is intentionally split across focused helpers:
+- `PersonaGenerationConstants.kt` — seed/version/constants
+- `PersonaDeterministic.kt` — deterministic seeded primitives
+- `PersonaIdentityValues.kt` — identity/tracking/browser values
+- `PersonaNetworkValues.kt` — SIM/network/location values
+- `SpoofGroupExtensions.kt` and `SpoofGroupDisplayExtensions.kt` — group operations and display helpers
 
 `DevicePersona` contains: `HardwarePersona`, `List<SubscriptionPersona>`, `LocationPersona`, `NetworkEnvironmentPersona`, `TrackingPersona`, `BrowserPersona`.
 

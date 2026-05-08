@@ -91,64 +91,90 @@ fun AnimatedSection(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
     ) {
         Column {
-            // Header row
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // Optional leading icon
-                    if (icon != null) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+            AnimatedSectionHeader(
+                title = title,
+                icon = icon,
+                count = count,
+                countColor = countColor,
+                isExpanded = isExpanded,
+                iconRotation = iconRotation,
+                expandDescription = expandDescription,
+                collapseDescription = collapseDescription,
+            )
+            AnimatedSectionBody(isExpanded = isExpanded, content = content)
+        }
+    }
+}
 
-                    Column {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+@Composable
+private fun AnimatedSectionHeader(
+    title: String,
+    icon: ImageVector?,
+    count: String?,
+    countColor: androidx.compose.ui.graphics.Color,
+    isExpanded: Boolean,
+    iconRotation: Float,
+    expandDescription: String,
+    collapseDescription: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AnimatedSectionTitle(title = title, icon = icon, count = count, countColor = countColor)
+        Icon(
+            imageVector = Icons.Default.ExpandMore,
+            contentDescription = if (isExpanded) collapseDescription else expandDescription,
+            modifier = Modifier.padding(12.dp).rotate(iconRotation),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
-                        // Optional count badge
-                        if (count != null) {
-                            Text(
-                                text = count,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = countColor,
-                            )
-                        }
-                    }
-                }
+@Composable
+private fun AnimatedSectionTitle(
+    title: String,
+    icon: ImageVector?,
+    count: String?,
+    countColor: androidx.compose.ui.graphics.Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
 
-                // Expand/collapse indicator with animated icon
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) collapseDescription else expandDescription,
-                    modifier = Modifier.padding(12.dp).rotate(iconRotation),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // Animated content with spring physics
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = AppMotion.ReducedIntSize),
-                exit = shrinkVertically(animationSpec = AppMotion.ReducedIntSize),
-            ) {
-                Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    content = content,
-                )
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (count != null) {
+                Text(text = count, style = MaterialTheme.typography.bodySmall, color = countColor)
             }
         }
+    }
+}
+
+@Composable
+private fun AnimatedSectionBody(isExpanded: Boolean, content: @Composable ColumnScope.() -> Unit) {
+    AnimatedVisibility(
+        visible = isExpanded,
+        enter = expandVertically(animationSpec = AppMotion.ReducedIntSize),
+        exit = shrinkVertically(animationSpec = AppMotion.ReducedIntSize),
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            content = content,
+        )
     }
 }
 

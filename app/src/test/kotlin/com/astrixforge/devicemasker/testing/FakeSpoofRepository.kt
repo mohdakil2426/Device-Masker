@@ -4,7 +4,12 @@ import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.common.addApp
+import com.astrixforge.devicemasker.common.assignedAppCount
 import com.astrixforge.devicemasker.common.models.Carrier
+import com.astrixforge.devicemasker.common.removeApp
+import com.astrixforge.devicemasker.common.withEnabled
+import com.astrixforge.devicemasker.common.withValue
 import com.astrixforge.devicemasker.data.repository.IAppScopeRepository
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.data.repository.SpoofRepository

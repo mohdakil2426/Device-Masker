@@ -36,7 +36,20 @@ object SharedPrefsKeys {
     private const val PREFIX_PERSONA_VERSION = "persona_version_"
     private val VALID_KEY_REGEX =
         Regex(
-            "^(module_enabled|debug_enabled|config_version|enabled_apps|app_enabled_[a-zA-Z0-9_]+|spoof_enabled_[a-zA-Z0-9_]+_[A-Z_]+|spoof_[a-zA-Z0-9_]+_[A-Z_]+|risky_hooks_enabled_[a-zA-Z0-9_]+|class_lookup_hiding_enabled_[a-zA-Z0-9_]+|persona_blob_[a-zA-Z0-9_]+|persona_version_[a-zA-Z0-9_]+)$"
+            listOf(
+                    KEY_MODULE_ENABLED,
+                    KEY_DEBUG_ENABLED,
+                    KEY_CONFIG_VERSION,
+                    KEY_ENABLED_APPS,
+                    "${PREFIX_APP_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_SPOOF_ENABLED}[a-zA-Z0-9_]+_[A-Z_]+",
+                    "${PREFIX_SPOOF_VALUE}[a-zA-Z0-9_]+_[A-Z_]+",
+                    "${PREFIX_RISKY_HOOKS_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_CLASS_LOOKUP_HIDING_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_PERSONA_BLOB}[a-zA-Z0-9_]+",
+                    "${PREFIX_PERSONA_VERSION}[a-zA-Z0-9_]+",
+                )
+                .joinToString(separator = "|", prefix = "^(", postfix = ")$")
         )
 
     // ═══════════════════════════════════════════════════════════
@@ -91,12 +104,6 @@ object SharedPrefsKeys {
         return "$PREFIX_PERSONA_VERSION${sanitize(packageName)}"
     }
 
-    /** Checks whether [key] is a persona JSON blob key. */
-    fun isPersonaBlobKey(key: String): Boolean = key.startsWith(PREFIX_PERSONA_BLOB)
-
-    /** Checks whether [key] is a persona version key. */
-    fun isPersonaVersionKey(key: String): Boolean = key.startsWith(PREFIX_PERSONA_VERSION)
-
     // ═══════════════════════════════════════════════════════════
     // VALIDATION (for debugging sync issues)
     // ═══════════════════════════════════════════════════════════
@@ -109,3 +116,9 @@ object SharedPrefsKeys {
         return VALID_KEY_REGEX.matches(key)
     }
 }
+
+/** Checks whether [key] is a persona JSON blob key. */
+fun isPersonaBlobKey(key: String): Boolean = key.startsWith("persona_blob_")
+
+/** Checks whether [key] is a persona version key. */
+fun isPersonaVersionKey(key: String): Boolean = key.startsWith("persona_version_")

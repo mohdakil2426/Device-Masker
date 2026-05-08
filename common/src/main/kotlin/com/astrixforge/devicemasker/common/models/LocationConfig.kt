@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common.models
 
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.secureRandom as secureRandomSource
+import com.astrixforge.devicemasker.common.util.secureRandom
 import kotlinx.serialization.Serializable
 
 /**
@@ -239,15 +240,15 @@ data class LocationConfig(
                 if (gpsBounds != null) {
                     val latitude =
                         gpsBounds.minLat +
-                            (gpsBounds.maxLat - gpsBounds.minLat) * secureRandom.nextDouble()
+                            (gpsBounds.maxLat - gpsBounds.minLat) * secureRandomSource.nextDouble()
                     val longitude =
                         gpsBounds.minLon +
-                            (gpsBounds.maxLon - gpsBounds.minLon) * secureRandom.nextDouble()
+                            (gpsBounds.maxLon - gpsBounds.minLon) * secureRandomSource.nextDouble()
                     latitude to longitude
                 } else {
                     // Fallback to random worldwide
-                    (-90.0 + 180.0 * secureRandom.nextDouble()) to
-                        (-180.0 + 360.0 * secureRandom.nextDouble())
+                    (-MAX_LATITUDE + LATITUDE_SPAN * secureRandomSource.nextDouble()) to
+                        (-MAX_LONGITUDE + LONGITUDE_SPAN * secureRandomSource.nextDouble())
                 }
 
             return LocationConfig(
@@ -288,10 +289,14 @@ data class LocationConfig(
          * @return Locale string (e.g., "en_US") or null if timezone not mapped
          */
         fun getLocaleForTimezone(timezoneId: String): String? {
-            val country = getCountryForTimezone(timezoneId) ?: return null
-            val locales = COUNTRY_LOCALES[country] ?: return null
-            return locales.firstOrNull()
+            val country = getCountryForTimezone(timezoneId)
+            return country?.let(COUNTRY_LOCALES::get)?.firstOrNull()
         }
+
+        private const val MAX_LATITUDE = 90.0
+        private const val LATITUDE_SPAN = 180.0
+        private const val MAX_LONGITUDE = 180.0
+        private const val LONGITUDE_SPAN = 360.0
     }
 }
 

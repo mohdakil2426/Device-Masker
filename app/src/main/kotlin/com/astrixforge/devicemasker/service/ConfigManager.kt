@@ -7,8 +7,14 @@ import com.astrixforge.devicemasker.common.DeviceIdentifier
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.common.addOrUpdateGroup
+import com.astrixforge.devicemasker.common.regenerateAll
+import com.astrixforge.devicemasker.common.setAppConfig
+import com.astrixforge.devicemasker.common.setIdentifier
+import com.astrixforge.devicemasker.common.withPersona
 import com.astrixforge.devicemasker.data.ConfigSync
 import java.io.File
+import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import timber.log.Timber
 
 /**
@@ -39,6 +46,8 @@ import timber.log.Timber
  *
  * No AIDL service calls: config delivery uses [XposedPrefs]/RemotePreferences exclusively.
  */
+// Compatibility facade: callers still depend on the unified config API while the contract is split.
+@Suppress("TooManyFunctions")
 object ConfigManager : IConfigManager {
 
     private const val TAG = "ConfigManager"
@@ -105,13 +114,67 @@ object ConfigManager : IConfigManager {
                 _config.value = defaultConfig
                 saveConfigInternal(defaultConfig, generation)
                 Timber.tag(TAG).i("Created default config")
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to load config")
-                val defaultConfig = JsonConfig.createDefault()
-                preserveCorruptedConfig()
-                _config.value = defaultConfig
-                saveConfigInternal(defaultConfig, generation)
+            } catch (e: IOException) {
+                recoverFromLoadFailure(e, generation)
+            } catch (e: SerializationException) {
+                recoverFromLoadFailure(e, generation)
+            } catch (e: IllegalArgumentException) {
+                recoverFromLoadFailure(e, generation)
+            } catch (e: IllegalStateException) {
+                recoverFromLoadFailure(e, generation)
             }
+        }
+    }
+
+    private suspend fun recoverFromLoadFailure(error: Throwable, generation: Int) {
+        Timber.tag(TAG).e(error, "Failed to load config")
+        val defaultConfig = JsonConfig.createDefault()
+        preserveCorruptedConfig()
+        _config.value = defaultConfig
+        saveConfigInternal(defaultConfig, generation)
+    }
+
+    private inline fun writeConfigFile(config: JsonConfig, writeFailed: (Throwable) -> Nothing) {
+        val stream = configFile.startWrite()
+        try {
+            stream.write(config.toJsonString().toByteArray())
+            configFile.finishWrite(stream)
+        } catch (error: IOException) {
+            configFile.failWrite(stream)
+            writeFailed(error)
+        } catch (error: SerializationException) {
+            configFile.failWrite(stream)
+            writeFailed(error)
+        } catch (error: IllegalArgumentException) {
+            configFile.failWrite(stream)
+            writeFailed(error)
+        } catch (error: IllegalStateException) {
+            configFile.failWrite(stream)
+            writeFailed(error)
+        }
+    }
+
+    private fun logSaveFailure(error: Throwable) {
+        Timber.tag(TAG).e(error, "Failed to save config")
+    }
+
+    private suspend fun persistAndSyncConfig(config: JsonConfig) {
+        try {
+            // 1. Persist raw JSON locally as a backup and for UI reload on next launch
+            writeConfigFile(config) { throw it }
+            Timber.tag(TAG).d("Config saved to local file")
+
+            // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
+            ConfigSync.syncFromConfig(appContext, config)
+            Timber.tag(TAG).d("Config synced to RemotePreferences")
+        } catch (e: IOException) {
+            logSaveFailure(e)
+        } catch (e: SerializationException) {
+            logSaveFailure(e)
+        } catch (e: IllegalArgumentException) {
+            logSaveFailure(e)
+        } catch (e: IllegalStateException) {
+            logSaveFailure(e)
         }
     }
 
@@ -161,24 +224,7 @@ object ConfigManager : IConfigManager {
         withContext(Dispatchers.IO) {
             saveMutex.withLock {
                 if (initGeneration.get() != generation) return@withLock
-                try {
-                    // 1. Persist raw JSON locally as a backup and for UI reload on next launch
-                    val stream = configFile.startWrite()
-                    try {
-                        stream.write(config.toJsonString().toByteArray())
-                        configFile.finishWrite(stream)
-                    } catch (writeError: Exception) {
-                        configFile.failWrite(stream)
-                        throw writeError
-                    }
-                    Timber.tag(TAG).d("Config saved to local file")
-
-                    // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
-                    ConfigSync.syncFromConfig(appContext, config)
-                    Timber.tag(TAG).d("Config synced to RemotePreferences")
-                } catch (e: Exception) {
-                    Timber.tag(TAG).e(e, "Failed to save config")
-                }
+                persistAndSyncConfig(config)
             }
         }
     }

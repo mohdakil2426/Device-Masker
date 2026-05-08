@@ -93,7 +93,8 @@ class ReleaseBuildSafetyTest {
                 .readText()
 
         assertTrue(
-            "Class lookup hooks must guard reentry; otherwise target startup can ANR while hook registration loads classes.",
+            "Class lookup hooks must guard reentry; otherwise target startup can ANR " +
+                "while hook registration loads classes.",
             hookerFile.contains("classLookupHookActive"),
         )
         assertTrue(
@@ -106,7 +107,8 @@ class ReleaseBuildSafetyTest {
                 !hookerFile.contains("hookClassLoaderLoadClass(cl, xi)"),
         )
         assertTrue(
-            "Bootstrap classes should be resolved directly instead of through the target ClassLoader after class-loading hooks are active.",
+            "Bootstrap classes should be resolved directly instead of through the target " +
+                "ClassLoader after class-loading hooks are active.",
             hookerFile.contains("ClassLoader::class.java") &&
                 hookerFile.contains("Class::class.java"),
         )

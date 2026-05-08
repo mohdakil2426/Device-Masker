@@ -3,7 +3,11 @@ package com.astrixforge.devicemasker.service
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofGroup
+import com.astrixforge.devicemasker.common.addOrUpdateGroup
+import com.astrixforge.devicemasker.common.setAppConfig
 import com.astrixforge.devicemasker.data.ConfigSync
+import com.astrixforge.devicemasker.data.clearAppAsync
+import com.astrixforge.devicemasker.data.syncAppAsync
 import com.astrixforge.devicemasker.testing.FakeSharedPreferences
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -81,11 +85,11 @@ class ConfigSyncTest {
                     )
                 )
 
-        ConfigSync.syncAppAsync(config, "com.example.target", prefs)
+        syncAppAsync(config, "com.example.target", prefs)
 
         assertTrue(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.target"), false))
 
-        ConfigSync.clearAppAsync("com.example.target", prefs)
+        clearAppAsync("com.example.target", prefs)
 
         assertFalse(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.target"), false))
     }

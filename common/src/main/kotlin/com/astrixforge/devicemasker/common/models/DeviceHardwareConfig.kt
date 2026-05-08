@@ -27,7 +27,7 @@ data class DeviceHardwareConfig(
     init {
         // Validate IMEI is present and properly formatted
         require(imei.isNotBlank()) { "Device must have a valid IMEI" }
-        require(imei.length == 15 && imei.all { it.isDigit() }) {
+        require(imei.length == IMEI_LENGTH && imei.all { it.isDigit() }) {
             "IMEI must be 15 digits, got: $imei"
         }
     }
@@ -48,4 +48,8 @@ data class DeviceHardwareConfig(
      */
     val isDualSIM: Boolean
         get() = deviceProfile.simCount > 1
+
+    private companion object {
+        private const val IMEI_LENGTH = 15
+    }
 }

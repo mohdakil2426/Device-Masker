@@ -4,6 +4,45 @@
 
 Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
 
+## 2026-05-08 Detekt Maximum Strictness Rollout
+
+- Detekt is now configured with `allRules=true` across Android modules.
+- Shared `config/detekt.yml` enables stricter complexity, coroutine, potential-bugs, style, and Compose rules.
+- `xposed/detekt.yml` no longer disables `MagicNumber`; Xposed still keeps defensive hook-specific relaxations for generic exception handling, long methods, cyclomatic complexity, and return count.
+- Initial strict baseline generation found 214 existing baseline entries. Safe cleanup has reduced this to 0 entries while keeping Detekt green.
+- Safe cleanup already completed:
+  - Common wildcard imports replaced with explicit imports.
+  - Many generator/UI magic numbers extracted to named constants.
+  - Simple binary `when` expressions replaced with `if`.
+  - Compose modifier and callback parameter-order issues fixed in the first group-spoofing UI batch.
+  - Restartable-effect callback captures now use `rememberUpdatedState` in touched screens.
+  - Callback parameter names now avoid `on*` naming violations in touched Compose APIs.
+  - Simple UI list parameters now use immutable collection types where state already provides immutable lists.
+  - Small common return-count/cyclomatic issues were removed in config, location, IMSI, network type, and persona value lookup code.
+  - Latest cleanup reduced more debt by splitting `AppListItem` and `SpoofValueCard`, removing navigation return-count findings, narrowing `LogManager`/`ConfigManager` exception handling, and simplifying `PersonaGenerator.resolveSubscriptions`.
+  - `:common` baseline is now zero. The last four common `TooManyFunctions` findings were removed by moving JsonConfig aliases/parsing helpers, SpoofGroup helper operations, persona key predicates, and PersonaGenerator deterministic/network/identity helpers into focused extension/helper files.
+  - `:xposed` baseline is now zero. Xposed cleanup removed magic numbers, unused parameters, PrefsHelper file-name mismatch, XposedEntry return count, and hook complexity by splitting hook registration into focused helpers while preserving `stableHooker` usage.
+  - App cleanup removed ViewModelInjection findings by replacing inline Navigation entry `viewModel { ... }` lambdas with factory-backed composable defaults, moved root/edge-to-edge effects out of `MainActivity`, split `AnimatedSection`, and split `CategorySection`, `GroupCard`, Home status/group selector UI, and Diagnostics module status UI.
+  - Latest app cleanup split ConfigSync state/key writing, SectionHeader, ExpressiveSwitch state/dimensions, picker dialog list state, SIM card controls, device hardware sections, location sections, apps tab search/list rendering, Groups file/dialog/screen helpers, and Settings sections/frame/effects.
+  - Latest remaining cleanup split MainActivity navigation chrome/entries/deep-link handling, split theme color-scheme selection, moved AppLogStore/RootLogCollector pure helpers out of broad classes, moved ConfigSync internal prefs helpers out of the object, and removed unused XposedPrefs convenience API.
+  - Final baseline cleanup split `IConfigManager` and `ISpoofRepository` into smaller workflow contracts while keeping unified compatibility facades for existing callers. `ConfigManager` and `SpoofRepository` now carry targeted facade-only `TooManyFunctions` suppressions instead of baseline debt.
+- Remaining baseline debt is zero across `:app`, `:common`, and `:xposed`. Xposed hook refactors still require R8 ABI guard plus runtime evidence before hook safety claims.
+- The implementation plan `docs/superpowers/plans/2026-05-08-detekt-maximum-strictness.md` is marked complete. Commit/tag/push steps are treated as plan milestones only; no commit was made during this documentation update.
+- Current verification passed:
+
+```powershell
+.\gradlew.bat spotlessApply --no-daemon
+.\gradlew.bat :common:compileDebugKotlin :app:compileDebugKotlin --no-daemon --stacktrace
+.\gradlew.bat detektBaseline --no-daemon --stacktrace
+.\gradlew.bat detekt --no-daemon --stacktrace
+.\gradlew.bat :common:testDebugUnitTest --no-daemon
+```
+
+- Latest continuation pass also verified `.\gradlew.bat spotlessApply :common:compileDebugKotlin :app:compileDebugKotlin --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :xposed:compileDebugKotlin --no-daemon --stacktrace`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, and `graphify update .`.
+- Latest focused cleanup verification also passed `.\gradlew.bat spotlessApply :app:compileDebugKotlin detekt --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest detekt --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :common:compileDebugKotlin :common:testDebugUnitTest detekt --no-daemon --stacktrace`, `.\gradlew.bat detektBaseline --no-daemon --stacktrace`, and `graphify update .`.
+- Latest app-only cleanup also passed `.\gradlew.bat spotlessApply :app:compileDebugKotlin :app:testDebugUnitTest --no-daemon --stacktrace`, `.\gradlew.bat detektBaseline --no-daemon --stacktrace`, and `.\gradlew.bat detekt --no-daemon --stacktrace`; current app baseline count is 0.
+- Important: Detekt passes with empty baselines in `:app`, `:common`, and `:xposed`.
+
 ## 2026-05-08 CI/CD And 0.1.1 Release Workflow
 
 - App release version moved to `gradle.properties` as `VERSION_NAME=0.1.1` and `VERSION_CODE=2`.

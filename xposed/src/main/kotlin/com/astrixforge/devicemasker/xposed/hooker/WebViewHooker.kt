@@ -44,6 +44,16 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         pkg: String,
     ) {
         val wsClass = cl.loadClassOrNull("android.webkit.WebSettings") ?: return
+        hookWebSettingsGetter(wsClass, xi, preset, pkg)
+        hookWebSettingsSetter(wsClass, xi, preset, pkg)
+    }
+
+    private fun hookWebSettingsGetter(
+        wsClass: Class<*>,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+        pkg: String,
+    ) {
         safeHook("WebSettings.getUserAgentString()") {
             wsClass.methodOrNull("getUserAgentString")?.let { m ->
                 if (Modifier.isAbstract(m.modifiers)) return@safeHook
@@ -61,6 +71,14 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun hookWebSettingsSetter(
+        wsClass: Class<*>,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+        pkg: String,
+    ) {
         safeHook("WebSettings.setUserAgentString(String)") {
             wsClass.methodOrNull("setUserAgentString", String::class.java)?.let { m ->
                 if (Modifier.isAbstract(m.modifiers)) return@safeHook
@@ -137,7 +155,7 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
         var best = -1
         for (index in indexes) {
             if (index < 0) continue
-            if (best < 0 || index < best) best = index
+            if (best !in 0..index) best = index
         }
         return best
     }

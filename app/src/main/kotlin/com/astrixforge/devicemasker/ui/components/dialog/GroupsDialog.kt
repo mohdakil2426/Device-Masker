@@ -27,12 +27,14 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /** Dialog for creating a new group. */
 @Composable
 fun CreateGroupDialog(
     onDismiss: () -> Unit,
-    existingNames: List<String> = emptyList(),
+    existingNames: ImmutableList<String> = persistentListOf(),
     onCreate: (name: String, description: String) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }

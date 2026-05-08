@@ -9,7 +9,7 @@ import java.util.concurrent.TimeoutException
 data class RootCommand(
     val command: String,
     val timeoutMillis: Long = 5_000,
-    val maxOutputBytes: Int = 256 * 1024,
+    val maxOutputBytes: Int = DEFAULT_MAX_OUTPUT_BYTES,
 )
 
 enum class RootCommandStatus {
@@ -79,7 +79,7 @@ class RootShell(private val executor: RootCommandExecutor = LibsuCommandExecutor
                 exitCode = execution.exitCode,
                 stdoutPath = stdoutFile,
                 stderrPath = stderrFile,
-                stderrSummary = execution.stderr.take(500),
+                stderrSummary = execution.stderr.take(STDERR_SUMMARY_LENGTH),
                 timedOut = execution.timedOut,
                 durationMillis = execution.durationMillis,
                 rootAvailable = true,
@@ -133,8 +133,17 @@ class LibsuCommandExecutor : RootCommandExecutor {
     }
 }
 
-private fun RootCommandResult.toManifestJson(stderr: String): String =
-    """{"command":"${command.jsonEscape()}","status":"$status","exitCode":${exitCode ?: "null"},"timedOut":$timedOut,"durationMillis":$durationMillis,"rootAvailable":$rootAvailable,"stderrSummary":"${stderr.take(500).jsonEscape()}"}"""
+private fun RootCommandResult.toManifestJson(stderr: String): String = buildString {
+    append("""{"command":"${command.jsonEscape()}","status":"$status","exitCode":""")
+    append(exitCode ?: "null")
+    append(""","timedOut":$timedOut,"durationMillis":$durationMillis""")
+    append(""","rootAvailable":$rootAvailable,"stderrSummary":""")
+    append(""""${stderr.take(STDERR_SUMMARY_LENGTH).jsonEscape()}"}""")
+}
+
+private const val KIB_BYTES = 1024
+private const val DEFAULT_MAX_OUTPUT_BYTES = 256 * KIB_BYTES
+private const val STDERR_SUMMARY_LENGTH = 500
 
 private fun String.jsonEscape(): String = buildString {
     this@jsonEscape.forEach { ch ->

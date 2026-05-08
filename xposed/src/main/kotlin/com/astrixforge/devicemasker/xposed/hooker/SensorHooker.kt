@@ -21,6 +21,11 @@ import io.github.libxposed.api.XposedInterface
  */
 object SensorHooker : BaseSpoofHooker("SensorHooker") {
 
+    private const val TYPE_ALL = -1
+    private const val SENSOR_LIST_FINGERPRINT_THRESHOLD = 10
+    private const val MAX_NORMALIZED_SENSOR_VERSION = 3
+    private const val NORMALIZED_SENSOR_VERSION = 1
+
     // Sensor types that should always be present on modern Android devices
     private val ESSENTIAL_SENSOR_TYPES =
         setOf(
@@ -52,22 +57,7 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                             val result = chain.proceed()
                             val type =
                                 chain.args.firstOrNull() as? Int ?: return@stableHooker result
-                            // Only filter TYPE_ALL to avoid breaking individual-type queries
-                            if (type != -1) return@stableHooker result
-                            @Suppress("UNCHECKED_CAST")
-                            val sensors = result as? List<Any> ?: return@stableHooker result
-                            if (sensors.size <= 10)
-                                return@stableHooker result // Small list — no suspicious fingerprint
-                            // risk
-                            val filtered =
-                                sensors.filter { sensor ->
-                                    sensor !is Sensor || sensor.type in ESSENTIAL_SENSOR_TYPES
-                                }
-
-                            if (sensors.size != filtered.size) {
-                                reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
-                            }
-                            filtered
+                            filteredSensorListOrOriginal(type, result, pkg)
                         }
                     )
                 xi.deoptimize(m)
@@ -81,6 +71,16 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
         preset: DeviceProfilePreset?,
     ) {
         val sensorClass = cl.loadClassOrNull("android.hardware.Sensor") ?: return
+        hookSensorVendor(sensorClass, xi, preset)
+        hookSensorVersion(sensorClass, xi)
+        hookSensorName(sensorClass, xi)
+    }
+
+    private fun hookSensorVendor(
+        sensorClass: Class<*>,
+        xi: XposedInterface,
+        preset: DeviceProfilePreset?,
+    ) {
         safeHook("Sensor.getVendor()") {
             sensorClass.methodOrNull("getVendor")?.let { m ->
                 xi.hook(m)
@@ -95,6 +95,9 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun hookSensorVersion(sensorClass: Class<*>, xi: XposedInterface) {
         safeHook("Sensor.getVersion()") {
             sensorClass.methodOrNull("getVersion")?.let { m ->
                 xi.hook(m)
@@ -102,12 +105,16 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val version = result as? Int ?: return@stableHooker result
-                            if (version > 3) 1 else result
+                            if (version > MAX_NORMALIZED_SENSOR_VERSION) NORMALIZED_SENSOR_VERSION
+                            else result
                         }
                     )
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun hookSensorName(sensorClass: Class<*>, xi: XposedInterface) {
         safeHook("Sensor.getName()") {
             sensorClass.methodOrNull("getName")?.let { m ->
                 xi.hook(m)
@@ -125,5 +132,17 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun filteredSensorListOrOriginal(type: Int, result: Any?, pkg: String): Any? {
+        if (type != TYPE_ALL) return result
+
+        @Suppress("UNCHECKED_CAST") val sensors = result as? List<Any> ?: return result
+        if (sensors.size <= SENSOR_LIST_FINGERPRINT_THRESHOLD) return result
+
+        val filtered =
+            sensors.filter { sensor -> sensor !is Sensor || sensor.type in ESSENTIAL_SENSOR_TYPES }
+        if (sensors.size != filtered.size) reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+        return filtered
     }
 }

@@ -100,81 +100,11 @@ object ConfigSync {
         config: JsonConfig,
         packageName: String,
     ) {
-        syncApp(config, packageName, XposedPrefs.getPrefs())
+        syncAppToPrefs(config, packageName, XposedPrefs.getPrefs())
     }
 
     suspend fun syncAppAsync(context: Context, config: JsonConfig, packageName: String) {
         withContext(Dispatchers.IO) { syncApp(context, config, packageName) }
-    }
-
-    internal suspend fun syncAppAsync(
-        config: JsonConfig,
-        packageName: String,
-        prefs: android.content.SharedPreferences?,
-    ) {
-        withContext(Dispatchers.IO) { syncApp(config, packageName, prefs) }
-    }
-
-    internal fun syncApp(
-        config: JsonConfig,
-        packageName: String,
-        prefs: android.content.SharedPreferences?,
-    ) {
-        if (prefs == null) {
-            Timber.tag(TAG).d("XposedService not connected — skipping syncApp for $packageName")
-            return
-        }
-
-        val group = config.getGroupForApp(packageName)
-        if (group == null) {
-            prefs.edit().putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false).commit()
-            Timber.tag(TAG).d("App $packageName removed from spoofing (no group)")
-            return
-        }
-
-        val configApp = config.getAppConfig(packageName)
-        val appEnabled = config.isModuleEnabled && configApp?.isEnabled == true && group.isEnabled
-        val riskyHooksEnabled = configApp?.let { appEnabled && it.riskyHooksEnabled } == true
-        val classLookupHidingEnabled =
-            configApp?.let { riskyHooksEnabled && it.classLookupHidingEnabled } == true
-        val committed =
-            prefs
-                .edit()
-                .apply {
-                    putBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), appEnabled)
-                    putBoolean(
-                        SharedPrefsKeys.getRiskyHooksEnabledKey(packageName),
-                        riskyHooksEnabled,
-                    )
-                    putBoolean(
-                        SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName),
-                        classLookupHidingEnabled,
-                    )
-
-                    for (type in SpoofType.entries) {
-                        val typeEnabled = appEnabled && group.isTypeEnabled(type)
-                        val value =
-                            if (typeEnabled) group.getValue(type)?.takeIf { it.isNotBlank() }
-                            else null
-
-                        putBoolean(
-                            SharedPrefsKeys.getSpoofEnabledKey(packageName, type),
-                            typeEnabled && value != null,
-                        )
-
-                        if (value != null) {
-                            putString(SharedPrefsKeys.getSpoofValueKey(packageName, type), value)
-                        } else {
-                            remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
-                        }
-                    }
-                }
-                .commit()
-        if (!committed) {
-            Timber.tag(TAG).w("RemotePreferences commit failed during syncApp for $packageName")
-            return
-        }
-        Timber.tag(TAG).d("App $packageName synced to RemotePreferences")
     }
 
     /**
@@ -184,45 +114,11 @@ object ConfigSync {
      * @param packageName The package to clear
      */
     fun clearApp(@Suppress("UNUSED_PARAMETER") context: Context, packageName: String) {
-        clearApp(packageName, XposedPrefs.getPrefs())
+        clearAppFromPrefs(packageName, XposedPrefs.getPrefs())
     }
 
     suspend fun clearAppAsync(context: Context, packageName: String) {
         withContext(Dispatchers.IO) { clearApp(context, packageName) }
-    }
-
-    internal suspend fun clearAppAsync(
-        packageName: String,
-        prefs: android.content.SharedPreferences?,
-    ) {
-        withContext(Dispatchers.IO) { clearApp(packageName, prefs) }
-    }
-
-    internal fun clearApp(packageName: String, prefs: android.content.SharedPreferences?) {
-        if (prefs == null) {
-            Timber.tag(TAG).d("XposedService not connected — skipping clearApp for $packageName")
-            return
-        }
-
-        val committed =
-            prefs
-                .edit()
-                .apply {
-                    remove(SharedPrefsKeys.getAppEnabledKey(packageName))
-                    remove(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
-                    remove(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
-
-                    for (type in SpoofType.entries) {
-                        remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
-                        remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
-                    }
-                }
-                .commit()
-        if (!committed) {
-            Timber.tag(TAG).w("RemotePreferences commit failed during clearApp for $packageName")
-            return
-        }
-        Timber.tag(TAG).d("App $packageName cleared from RemotePreferences")
     }
 
     fun buildSnapshot(config: JsonConfig, previousEnabledApps: Set<String>): Snapshot {
@@ -239,32 +135,22 @@ object ConfigSync {
         longs[SharedPrefsKeys.KEY_CONFIG_VERSION] = System.currentTimeMillis()
 
         for (packageName in removedApps) {
-            removeKeys += keysForPackage(packageName)
+            removeKeys += keysForSyncedPackage(packageName)
         }
 
         for ((packageName, appConfig) in config.appConfigs.toSortedMap()) {
-            val group = appConfig.groupId?.let(config::getGroup) ?: config.getDefaultGroup()
-            val appEnabled =
-                config.isModuleEnabled && appConfig.isEnabled && group?.isEnabled == true
-            booleans[SharedPrefsKeys.getAppEnabledKey(packageName)] = appEnabled
+            val state = config.syncStateFor(packageName)
+            booleans[SharedPrefsKeys.getAppEnabledKey(packageName)] = state?.appEnabled == true
             booleans[SharedPrefsKeys.getRiskyHooksEnabledKey(packageName)] =
-                appEnabled && appConfig.riskyHooksEnabled
+                state?.riskyHooksEnabled == true
             booleans[SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName)] =
-                appEnabled && appConfig.riskyHooksEnabled && appConfig.classLookupHidingEnabled
-
-            for (type in SpoofType.entries) {
-                val typeEnabled = appEnabled && group.isTypeEnabled(type)
-                val value =
-                    if (typeEnabled) group.getValue(type)?.takeIf { it.isNotBlank() } else null
-                booleans[SharedPrefsKeys.getSpoofEnabledKey(packageName, type)] =
-                    typeEnabled && value != null
-
-                val valueKey = SharedPrefsKeys.getSpoofValueKey(packageName, type)
-                if (value != null) {
-                    strings[valueKey] = value
-                } else {
-                    removeKeys += valueKey
-                }
+                state?.classLookupHidingEnabled == true
+            state?.spoofTypes.orEmpty().forEach { typeState ->
+                val valueKey = SharedPrefsKeys.getSpoofValueKey(packageName, typeState.type)
+                booleans[SharedPrefsKeys.getSpoofEnabledKey(packageName, typeState.type)] =
+                    typeState.enabled
+                if (typeState.value != null) strings[valueKey] = typeState.value
+                else removeKeys += valueKey
             }
         }
 
@@ -278,18 +164,77 @@ object ConfigSync {
             removedApps = removedApps,
         )
     }
+}
 
-    private fun keysForPackage(packageName: String): Set<String> {
-        return buildSet {
-            add(SharedPrefsKeys.getAppEnabledKey(packageName))
-            for (type in SpoofType.entries) {
-                add(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
-                add(SharedPrefsKeys.getSpoofValueKey(packageName, type))
-            }
-            add(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
-            add(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
-            add(SharedPrefsKeys.getPersonaBlobKey(packageName))
-            add(SharedPrefsKeys.getPersonaVersionKey(packageName))
+internal suspend fun syncAppAsync(
+    config: JsonConfig,
+    packageName: String,
+    prefs: android.content.SharedPreferences?,
+) {
+    withContext(Dispatchers.IO) { syncAppToPrefs(config, packageName, prefs) }
+}
+
+internal fun syncAppToPrefs(
+    config: JsonConfig,
+    packageName: String,
+    prefs: android.content.SharedPreferences?,
+) {
+    val state = config.syncStateFor(packageName)
+    when {
+        prefs == null -> Timber.tag(CONFIG_SYNC_TAG).d(notConnectedMessage("syncApp", packageName))
+        state == null -> {
+            prefs.edit().putAppDisabled(packageName).commit()
+            Timber.tag(CONFIG_SYNC_TAG).d("App $packageName removed from spoofing (no group)")
         }
+        else -> commitAppSync(packageName, state, prefs)
     }
 }
+
+internal suspend fun clearAppAsync(packageName: String, prefs: android.content.SharedPreferences?) {
+    withContext(Dispatchers.IO) { clearAppFromPrefs(packageName, prefs) }
+}
+
+internal fun clearAppFromPrefs(packageName: String, prefs: android.content.SharedPreferences?) {
+    if (prefs == null) {
+        Timber.tag(CONFIG_SYNC_TAG).d(notConnectedMessage("clearApp", packageName))
+        return
+    }
+
+    val committed = prefs.edit().apply { removePackageSyncKeys(packageName) }.commit()
+    if (!committed) {
+        Timber.tag(CONFIG_SYNC_TAG)
+            .w("RemotePreferences commit failed during clearApp for $packageName")
+        return
+    }
+    Timber.tag(CONFIG_SYNC_TAG).d("App $packageName cleared from RemotePreferences")
+}
+
+private fun android.content.SharedPreferences.Editor.removePackageSyncKeys(packageName: String) {
+    remove(SharedPrefsKeys.getAppEnabledKey(packageName))
+    remove(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
+    remove(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
+
+    for (type in SpoofType.entries) {
+        remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
+        remove(SharedPrefsKeys.getSpoofValueKey(packageName, type))
+    }
+}
+
+private fun commitAppSync(
+    packageName: String,
+    state: AppSyncState,
+    prefs: android.content.SharedPreferences,
+) {
+    val committed = prefs.edit().apply { putAppSyncState(state) }.commit()
+    if (committed) {
+        Timber.tag(CONFIG_SYNC_TAG).d("App $packageName synced to RemotePreferences")
+    } else {
+        Timber.tag(CONFIG_SYNC_TAG)
+            .w("RemotePreferences commit failed during syncApp for $packageName")
+    }
+}
+
+private fun notConnectedMessage(operation: String, packageName: String): String =
+    "XposedService not connected — skipping $operation for $packageName"
+
+private const val CONFIG_SYNC_TAG = "ConfigSync"

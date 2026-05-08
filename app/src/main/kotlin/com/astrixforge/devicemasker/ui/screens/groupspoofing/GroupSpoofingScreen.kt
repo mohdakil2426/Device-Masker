@@ -24,7 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,11 +35,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.InstalledApp
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
+import com.astrixforge.devicemasker.ui.navigation.groupSpoofingViewModelFactory
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.tabs.AppsTabContent
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.tabs.SpoofTabContent
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -58,9 +64,15 @@ import kotlinx.coroutines.launch
 @Composable
 @Suppress("FunctionNaming", "ViewModelForwarding")
 fun GroupSpoofingScreenContent(
-    viewModel: GroupSpoofingViewModel,
+    repository: ISpoofRepository,
+    groupId: String,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: GroupSpoofingViewModel =
+        viewModel(
+            factory =
+                remember(repository, groupId) { groupSpoofingViewModelFactory(repository, groupId) }
+        ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val group = state.group
@@ -70,10 +82,11 @@ fun GroupSpoofingScreenContent(
     val selectedTab = state.selectedTab
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
+    val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
 
     LaunchedEffect(group) {
         if (group == null) {
-            onNavigateBack()
+            currentOnNavigateBack()
         }
     }
 
@@ -158,8 +171,8 @@ private fun GroupSpoofingTabs(
 private fun GroupSpoofingPager(
     pagerState: androidx.compose.foundation.pager.PagerState,
     group: com.astrixforge.devicemasker.common.SpoofGroup,
-    groups: List<com.astrixforge.devicemasker.common.SpoofGroup>,
-    installedApps: List<InstalledApp>,
+    groups: ImmutableList<com.astrixforge.devicemasker.common.SpoofGroup>,
+    installedApps: ImmutableList<InstalledApp>,
     viewModel: GroupSpoofingViewModel,
 ) {
     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -174,7 +187,7 @@ private fun GroupSpoofingPager(
                     onToggle = { type, enabled -> viewModel.toggleSpoofType(type, enabled) },
                     onRegenerateLocation = { viewModel.regenerateLocation() },
                     onCarrierChange = { carrier -> viewModel.updateCarrier(carrier) },
-                    onTimezoneSelected = { timezone -> viewModel.updateTimezone(timezone) },
+                    timezoneSelected = { timezone -> viewModel.updateTimezone(timezone) },
                 )
 
             1 ->

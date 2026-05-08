@@ -235,8 +235,15 @@ WebView UA spoofing is defensive:
 - Lint is fail-fast.
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.
 - Detekt runs for `:app`, `:common`, and `:xposed` using `config/detekt.yml`, module overrides, and per-module baselines.
+- Detekt runs with `allRules=true`; module baselines are currently empty and should stay empty.
 - Compose compiler reports/metrics are opt-in through `enableComposeCompilerReports` and `enableComposeCompilerMetrics`.
 - Memory Bank must be updated after architecture or runtime behavior changes.
+
+## App Contract Pattern
+
+- `IConfigManager` and `ISpoofRepository` are compatibility facades over smaller workflow-focused interfaces.
+- Prefer narrow interfaces for new call sites when practical.
+- `ConfigManager` and `SpoofRepository` carry targeted `TooManyFunctions` suppressions only because they are compatibility facades; do not treat those suppressions as permission to grow random APIs.
 
 ## Testing Pattern
 

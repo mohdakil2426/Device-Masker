@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.ui.screens.diagnostics
 
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,16 +42,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofType
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.expressive.AnimatedSection
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
+import com.astrixforge.devicemasker.ui.navigation.diagnosticsViewModelFactory
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
 import com.astrixforge.devicemasker.ui.theme.StatusWarning
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 /**
  * Screen for diagnosing spoofing effectiveness.
@@ -69,9 +76,17 @@ import com.astrixforge.devicemasker.ui.theme.StatusWarning
  */
 @Composable
 fun DiagnosticsScreen(
-    viewModel: DiagnosticsViewModel,
+    application: Application,
+    repository: ISpoofRepository,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: DiagnosticsViewModel =
+        viewModel(
+            factory =
+                remember(application, repository) {
+                    diagnosticsViewModelFactory(application, repository)
+                }
+        ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -90,8 +105,8 @@ fun DiagnosticsScreen(
 @Composable
 fun DiagnosticsContent(
     isXposedActive: Boolean,
-    diagnosticResults: List<DiagnosticResult>,
-    antiDetectionResults: List<AntiDetectionTest>,
+    diagnosticResults: ImmutableList<DiagnosticResult>,
+    antiDetectionResults: ImmutableList<AntiDetectionTest>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onNavigateBack: () -> Unit,
@@ -154,7 +169,8 @@ fun DiagnosticsContent(
 
             // Spoofing Results by Category
             SpoofCategory.entries.forEach { category ->
-                val categoryResults = diagnosticResults.filter { it.type.category == category }
+                val categoryResults =
+                    diagnosticResults.filter { it.type.category == category }.toImmutableList()
                 if (categoryResults.isNotEmpty()) {
                     item(key = "category_${category.name}", contentType = "category") {
                         CategoryDiagnosticSection(category = category, results = categoryResults)
@@ -206,70 +222,12 @@ private fun ConfigSyncInfoCard() {
     }
 }
 
-/** Card showing module activation status. */
-@Composable
-private fun ModuleStatusCard(isXposedActive: Boolean) {
-    ExpressiveCard(
-        onClick = { /* Status card click */ },
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier =
-                    Modifier.size(48.dp)
-                        .background(
-                            color = if (isXposedActive) StatusActive else StatusInactive,
-                            shape = CircleShape,
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text =
-                        if (isXposedActive) stringResource(id = R.string.module_active)
-                        else stringResource(id = R.string.module_inactive),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isXposedActive) StatusActive else StatusInactive,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text =
-                        if (isXposedActive) {
-                            stringResource(id = R.string.diagnostics_module_active_desc)
-                        } else {
-                            stringResource(id = R.string.diagnostics_module_inactive_desc)
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
 /**
  * Section showing anti-detection test results. Uses AnimatedSection for spring-based
  * expand/collapse animation.
  */
 @Composable
-private fun AntiDetectionSection(tests: List<AntiDetectionTest>) {
+private fun AntiDetectionSection(tests: ImmutableList<AntiDetectionTest>) {
     var isExpanded by rememberSaveable { mutableStateOf(true) }
     val passedCount = tests.count { it.isPassed }
 
@@ -339,7 +297,10 @@ private fun AntiDetectionTestItem(test: AntiDetectionTest) {
  * expand/collapse animation.
  */
 @Composable
-private fun CategoryDiagnosticSection(category: SpoofCategory, results: List<DiagnosticResult>) {
+private fun CategoryDiagnosticSection(
+    category: SpoofCategory,
+    results: ImmutableList<DiagnosticResult>,
+) {
     var isExpanded by rememberSaveable(category.displayName) { mutableStateOf(true) }
 
     AnimatedSection(
@@ -462,7 +423,7 @@ private fun DiagnosticsContentPreview() {
         DiagnosticsContent(
             isXposedActive = true,
             diagnosticResults =
-                listOf(
+                persistentListOf(
                     DiagnosticResult(
                         type = SpoofType.ANDROID_ID,
                         realValue = "a1b2c3d4e5f6g7h8",
@@ -479,7 +440,7 @@ private fun DiagnosticsContentPreview() {
                     ),
                 ),
             antiDetectionResults =
-                listOf(
+                persistentListOf(
                     AntiDetectionTest(
                         R.string.diagnostics_test_stack_trace,
                         R.string.diagnostics_test_stack_trace_desc,

@@ -7,12 +7,7 @@ import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Interface for configuration management to enable testability.
- *
- * Extracted from [ConfigManager] so that repositories and ViewModels can accept fakes in tests.
- */
-interface IConfigManager {
+interface ConfigLifecycle {
     val config: StateFlow<JsonConfig>
     val isInitialized: StateFlow<Boolean>
 
@@ -21,11 +16,15 @@ interface IConfigManager {
     fun saveConfig()
 
     fun syncCurrentConfig()
+}
 
+interface ConfigModuleSettings {
     fun isModuleEnabled(): Boolean
 
     fun setModuleEnabled(enabled: Boolean)
+}
 
+interface ConfigGroupStore {
     fun getAllGroups(): List<SpoofGroup>
 
     fun getGroup(groupId: String): SpoofGroup?
@@ -37,7 +36,9 @@ interface IConfigManager {
     fun deleteGroup(groupId: String)
 
     fun getGroupForApp(packageName: String): SpoofGroup?
+}
 
+interface ConfigIdentifierStore {
     fun setIdentifierValue(groupId: String, type: SpoofType, value: String?)
 
     fun setTypeEnabled(groupId: String, type: SpoofType, enabled: Boolean)
@@ -49,7 +50,9 @@ interface IConfigManager {
     fun getPersonaVersion(group: SpoofGroup): Long
 
     fun refreshPersonaLifecycle(group: SpoofGroup): SpoofGroup
+}
 
+interface ConfigAppStore {
     fun getAppConfig(packageName: String): AppConfig?
 
     fun assignAppToGroup(packageName: String, groupId: String)
@@ -62,3 +65,6 @@ interface IConfigManager {
 
     fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean)
 }
+
+interface IConfigManager :
+    ConfigLifecycle, ConfigModuleSettings, ConfigGroupStore, ConfigIdentifierStore, ConfigAppStore

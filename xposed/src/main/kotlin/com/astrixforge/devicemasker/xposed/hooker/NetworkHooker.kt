@@ -22,6 +22,8 @@ import java.net.NetworkInterface
  */
 object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
 
+    private const val MAC_HEX_RADIX = 16
+
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         hookWifiInfo(cl, xi, prefs, pkg)
         hookNetworkInterface(cl, xi, prefs, pkg)
@@ -114,7 +116,9 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                             runCatching {
-                                    mac.split(":").map { it.toInt(16).toByte() }.toByteArray()
+                                    mac.split(":")
+                                        .map { it.toInt(MAC_HEX_RADIX).toByte() }
+                                        .toByteArray()
                                 }
                                 .getOrElse { result }
                         }

@@ -1,9 +1,5 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageInfo
-import android.content.pm.ResolveInfo
 import android.util.Log
 import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
 import com.astrixforge.devicemasker.xposed.DualLog
@@ -95,7 +91,7 @@ object AntiDetectHooker {
 
     private val classLookupHookActive = ThreadLocal<Boolean>()
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String) {
         DualLog.debug(TAG, "Loading anti-detection hooks for: $pkg")
 
         hookStackTraces(cl, xi)
@@ -107,7 +103,7 @@ object AntiDetectHooker {
             eventType = DiagnosticEventType.HOOK_SKIPPED,
         )
         hookProcMaps(cl, xi)
-        hookPackageManager(cl, xi)
+        AntiDetectPackageManagerHooks.hook(cl, xi, HIDDEN_PACKAGES)
 
         DualLog.debug(TAG, "Anti-detection hooks registered for: $pkg")
     }
@@ -173,7 +169,7 @@ object AntiDetectHooker {
     // ClassLoader.loadClass() hook — prevents xposed class enumeration
     // ─────────────────────────────────────────────────────────────
 
-    private fun hookClassLoaderLoadClass(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookClassLoaderLoadClass(xi: XposedInterface) {
         try {
             val classLoaderClass = ClassLoader::class.java
             classLoaderClass.declaredMethods
@@ -213,7 +209,7 @@ object AntiDetectHooker {
         }
     }
 
-    private fun hookClassForName(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookClassForName(xi: XposedInterface) {
         try {
             val classClass = Class::class.java
             classClass.declaredMethods
@@ -291,169 +287,6 @@ object AntiDetectHooker {
             throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "BufferedReader.readLine() hook failed", t)
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // PackageManager hooks — hide Xposed/root manager packages
-    // ─────────────────────────────────────────────────────────────
-
-    private fun hookPackageManager(cl: ClassLoader, xi: XposedInterface) {
-        val pmClass = cl.loadClass("android.app.ApplicationPackageManager")
-
-        // getPackageInfo(String, int) + getPackageInfo(String, PackageInfoFlags)
-        listOf(arrayOf<Class<*>>(String::class.java, Int::class.javaPrimitiveType!!)).forEach {
-            params ->
-            try {
-                pmClass
-                    .getDeclaredMethod("getPackageInfo", *params)
-                    .also { it.isAccessible = true }
-                    .let { m ->
-                        xi.hook(m)
-                            .setExceptionMode(ExceptionMode.PASSTHROUGH)
-                            .intercept(
-                                stableHooker { chain ->
-                                    val pkgName = chain.args.firstOrNull() as? String
-                                    if (
-                                        pkgName != null &&
-                                            HIDDEN_PACKAGES.any {
-                                                pkgName.equals(it, ignoreCase = true)
-                                            }
-                                    ) {
-                                        throw android.content.pm.PackageManager
-                                            .NameNotFoundException(pkgName)
-                                    }
-                                    chain.proceed()
-                                }
-                            )
-                        xi.deoptimize(m)
-                    }
-            } catch (_: NoSuchMethodException) {}
-        }
-
-        // getApplicationInfo(String, int)
-        try {
-            pmClass
-                .getDeclaredMethod(
-                    "getApplicationInfo",
-                    String::class.java,
-                    Int::class.javaPrimitiveType!!,
-                )
-                .also { it.isAccessible = true }
-                .let { m ->
-                    xi.hook(m)
-                        .setExceptionMode(ExceptionMode.PASSTHROUGH)
-                        .intercept(
-                            stableHooker { chain ->
-                                val pkgName = chain.args.firstOrNull() as? String
-                                if (
-                                    pkgName != null &&
-                                        HIDDEN_PACKAGES.any {
-                                            pkgName.equals(it, ignoreCase = true)
-                                        }
-                                ) {
-                                    throw android.content.pm.PackageManager.NameNotFoundException(
-                                        pkgName
-                                    )
-                                }
-                                chain.proceed()
-                            }
-                        )
-                    xi.deoptimize(m)
-                }
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            DualLog.warn(TAG, "getApplicationInfo hook failed", t)
-        }
-
-        // getInstalledPackages(int)
-        try {
-            pmClass
-                .getDeclaredMethod("getInstalledPackages", Int::class.javaPrimitiveType!!)
-                .also { it.isAccessible = true }
-                .let { m ->
-                    xi.hook(m)
-                        .intercept(
-                            stableHooker { chain ->
-                                val result = chain.proceed()
-                                @Suppress("UNCHECKED_CAST")
-                                val packages =
-                                    result as? List<PackageInfo> ?: return@stableHooker result
-                                packages.filterNot { info ->
-                                    HIDDEN_PACKAGES.any {
-                                        info.packageName.equals(it, ignoreCase = true)
-                                    }
-                                }
-                            }
-                        )
-                    xi.deoptimize(m)
-                }
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            DualLog.warn(TAG, "getInstalledPackages hook failed", t)
-        }
-
-        // getInstalledApplications(int)
-        try {
-            pmClass
-                .getDeclaredMethod("getInstalledApplications", Int::class.javaPrimitiveType!!)
-                .also { it.isAccessible = true }
-                .let { m ->
-                    xi.hook(m)
-                        .intercept(
-                            stableHooker { chain ->
-                                val result = chain.proceed()
-                                @Suppress("UNCHECKED_CAST")
-                                val apps =
-                                    result as? List<ApplicationInfo> ?: return@stableHooker result
-                                apps.filterNot { info ->
-                                    HIDDEN_PACKAGES.any {
-                                        info.packageName.equals(it, ignoreCase = true)
-                                    }
-                                }
-                            }
-                        )
-                    xi.deoptimize(m)
-                }
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            DualLog.warn(TAG, "getInstalledApplications hook failed", t)
-        }
-
-        try {
-            pmClass
-                .getDeclaredMethod(
-                    "queryIntentActivities",
-                    android.content.Intent::class.java,
-                    Int::class.javaPrimitiveType!!,
-                )
-                .also { it.isAccessible = true }
-                .let { m ->
-                    xi.hook(m)
-                        .intercept(
-                            stableHooker { chain ->
-                                val result = chain.proceed()
-                                @Suppress("UNCHECKED_CAST")
-                                val infos =
-                                    result as? List<ResolveInfo> ?: return@stableHooker result
-                                infos.filterNot { info ->
-                                    val packageName =
-                                        info.activityInfo?.packageName ?: return@filterNot false
-                                    HIDDEN_PACKAGES.any {
-                                        packageName.equals(it, ignoreCase = true)
-                                    }
-                                }
-                            }
-                        )
-                    xi.deoptimize(m)
-                }
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            DualLog.warn(TAG, "queryIntentActivities hook failed", t)
         }
     }
 

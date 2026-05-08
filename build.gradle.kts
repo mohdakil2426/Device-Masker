@@ -38,7 +38,7 @@ fun Project.configureDeviceMaskerDetekt() {
 
     extensions.configure<DetektExtension> {
         buildUponDefaultConfig.set(true)
-        allRules.set(false)
+        allRules.set(true)
         parallel.set(true)
         ignoreFailures.set(false)
         failOnSeverity.set(FailOnSeverity.Error)

@@ -17,6 +17,12 @@ import java.util.Locale
  * Standard format: 89 (telecom) + CC + Issuer + Account + Luhn
  */
 object ICCIDGenerator {
+    private const val TELECOM_MII = "89"
+    private const val TWO_DIGIT_BOUND = 100
+    private const val ACCOUNT_LENGTH = 12
+    private const val BASE_ICCID_LENGTH = 18
+    private const val DECIMAL_RADIX = 10
+    private const val LUHN_DOUBLE_THRESHOLD = 9
 
     /** Secure random instance for cryptographic-quality randomness. */
     private val secureRandom = SecureRandom()
@@ -29,16 +35,18 @@ object ICCIDGenerator {
      */
     fun generate(): String {
         // Major Industry Identifier for telecom
-        val mii = "89"
+        val mii = TELECOM_MII
 
         // Country code (2 digits) - using common values
-        val countryCode = String.format(Locale.US, "%02d", secureRandom.nextInt(100))
+        val countryCode = String.format(Locale.US, "%02d", secureRandom.nextInt(TWO_DIGIT_BOUND))
 
         // Issuer identifier (2 digits)
-        val issuer = String.format(Locale.US, "%02d", secureRandom.nextInt(100))
+        val issuer = String.format(Locale.US, "%02d", secureRandom.nextInt(TWO_DIGIT_BOUND))
 
         // Account identification (12 digits)
-        val account = buildString { repeat(12) { append(secureRandom.nextInt(10)) } }
+        val account = buildString {
+            repeat(ACCOUNT_LENGTH) { append(secureRandom.nextInt(DECIMAL_RADIX)) }
+        }
 
         // Base ICCID without check digit (18 digits)
         val base = mii + countryCode + issuer + account
@@ -80,7 +88,7 @@ object ICCIDGenerator {
      */
     fun generate(carrier: Carrier): String {
         // Major Industry Identifier for telecom (always 89)
-        val mii = "89"
+        val mii = TELECOM_MII
 
         // Country code matching carrier's country (e.g., "91" for India)
         val countryCode =
@@ -92,10 +100,12 @@ object ICCIDGenerator {
 
         // Calculate remaining digits needed for 18 total (before check digit)
         // ICCID = MII(2) + CC(2-3) + Issuer(2-4) + Serial(variable) + Check(1) = 19-20 digits
-        val accountLength = 18 - mii.length - countryCode.length - issuer.length
+        val accountLength = BASE_ICCID_LENGTH - mii.length - countryCode.length - issuer.length
         require(accountLength > 0) { "Invalid ICCID component lengths" }
 
-        val account = buildString { repeat(accountLength) { append(secureRandom.nextInt(10)) } }
+        val account = buildString {
+            repeat(accountLength) { append(secureRandom.nextInt(DECIMAL_RADIX)) }
+        }
 
         // Base ICCID without check digit
         val base = mii + countryCode + issuer + account
@@ -122,14 +132,14 @@ object ICCIDGenerator {
             // Double every second digit from the right (odd positions from right)
             if ((partial.length - i) % 2 == 0) {
                 digit *= 2
-                if (digit > 9) {
-                    digit -= 9
+                if (digit > LUHN_DOUBLE_THRESHOLD) {
+                    digit -= LUHN_DOUBLE_THRESHOLD
                 }
             }
 
             sum += digit
         }
 
-        return (10 - (sum % 10)) % 10
+        return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
     }
 }

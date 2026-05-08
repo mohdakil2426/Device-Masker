@@ -1,6 +1,6 @@
 # Device Masker Architecture And Runtime Guide
 
-Date: 2026-05-02
+Date: 2026-05-08
 
 ## Summary
 
@@ -16,6 +16,7 @@ Device Masker is an Android LSPosed/libxposed module that lets a user configure 
 - Keep UI, local JSON, and config sync in `:app`.
 - Use LSPosed logs as the reliable proof of runtime hook behavior.
 - Do not use a custom diagnostics Binder.
+- Keep release R8 enabled; runtime hook callbacks must use the `StableHooker` path.
 
 ## High-Level Architecture
 
@@ -177,7 +178,7 @@ Important facts:
 - The bundle includes app JSONL events, redacted diagnostic snapshots, latest boot/startup root capture, and a fresh export-time root/logcat snapshot when root is granted.
 - If root is unavailable, export still creates a ZIP with app logs, snapshots, and a root-unavailable manifest.
 - There is no custom Device Masker Binder service in system_server.
-- App export should stay minimal and structured.
+- App export should stay structured, bounded, redacted, and useful for support.
 
 ## Forbidden Patterns
 
@@ -191,6 +192,7 @@ Do not:
 - Hook abstract methods.
 - Mutate framework-returned lists in place.
 - Add static regex or parsing initializers that can throw in hooker objects.
+- Use direct Kotlin SAM intercept callbacks in runtime hookers; use `StableHooker` instead.
 - Re-enable global class lookup anti-detection without a per-app kill switch and runtime validation.
 - Claim a target is hooked because the app-side Xposed service is connected.
 

@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
@@ -36,7 +35,7 @@ object PackageManagerHooker : BaseSpoofHooker("PackageManagerHooker") {
 
     private const val SELF_PACKAGE = "com.astrixforge.devicemasker"
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String) {
         // Don't hook PackageManager for our own UI app — we need PM access
         if (pkg == SELF_PACKAGE) return
 

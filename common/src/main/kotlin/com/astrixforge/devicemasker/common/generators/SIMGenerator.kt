@@ -2,7 +2,7 @@ package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.SIMConfig
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.secureRandom
 
 /**
  * Generates complete, correlated SIM card values.

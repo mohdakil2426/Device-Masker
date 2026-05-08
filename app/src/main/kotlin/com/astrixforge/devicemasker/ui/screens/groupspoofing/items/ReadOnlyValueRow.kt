@@ -17,9 +17,9 @@ import androidx.compose.ui.unit.dp
  * Read-only value row for locked/derived values. No switch, no regenerate - just label and value.
  */
 @Composable
-fun ReadOnlyValueRow(label: String, value: String) {
+fun ReadOnlyValueRow(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {

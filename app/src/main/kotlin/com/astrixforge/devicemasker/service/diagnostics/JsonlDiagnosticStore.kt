@@ -86,7 +86,7 @@ class JsonlDiagnosticStore(
             .sortedBy { it.name }
 
     private fun fileName(index: Int): String =
-        "${filePrefix}_${index.toString().padStart(3, '0')}.jsonl"
+        "${filePrefix}_${index.toString().padStart(FILE_INDEX_WIDTH, '0')}.jsonl"
 
     private fun decodeLine(line: String): Result<DiagnosticEvent> =
         runCatching { DiagnosticJson.decodeFromString(DiagnosticEvent.serializer(), line) }
@@ -105,6 +105,7 @@ class JsonlDiagnosticStore(
 
     private companion object {
         private const val DEFAULT_MAX_FILE_BYTES = 2L * 1024L * 1024L
+        private const val FILE_INDEX_WIDTH = 3
         private val EVENT_FILE_REGEX = Regex("""app_events_\d{3}\.jsonl""")
     }
 }

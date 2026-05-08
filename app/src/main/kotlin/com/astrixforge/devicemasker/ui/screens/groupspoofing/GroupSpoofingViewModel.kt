@@ -7,6 +7,7 @@ import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.LocationConfig
+import com.astrixforge.devicemasker.common.withValue
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList
@@ -77,17 +78,15 @@ class GroupSpoofingViewModel(
                 return@launch
             }
 
-            // For SIM values: use regenerateSIMValueOnly to keep same carrier
+            val correlationGroup = type.correlationGroup
             val newValue =
-                when (val correlationGroup = type.correlationGroup) {
-                    CorrelationGroup.SIM_CARD -> repository.regenerateSIMValueOnly(type)
-                    else -> {
-                        // For non-SIM correlated values, reset cache first
-                        if (correlationGroup != CorrelationGroup.NONE) {
-                            repository.resetCorrelationGroup(correlationGroup)
-                        }
-                        repository.generateValue(type)
+                if (correlationGroup == CorrelationGroup.SIM_CARD) {
+                    repository.regenerateSIMValueOnly(type)
+                } else {
+                    if (correlationGroup != CorrelationGroup.NONE) {
+                        repository.resetCorrelationGroup(correlationGroup)
                     }
+                    repository.generateValue(type)
                 }
 
             val updated = group.withValue(type, newValue)

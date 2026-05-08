@@ -39,9 +39,24 @@ object RootCaptureStore {
         dir.mkdirs()
         dir.resolve("root_capture_manifest.json")
             .writeText(
-                """{"trigger":"${trigger.jsonEscape()}","status":"${status.jsonEscape()}","message":"${message.jsonEscape()}","timestampMillis":${System.currentTimeMillis()}}""",
+                buildManifestJson(
+                    trigger = trigger,
+                    status = status,
+                    message = message,
+                    timestampMillis = System.currentTimeMillis(),
+                ),
                 Charsets.UTF_8,
             )
+    }
+
+    private fun buildManifestJson(
+        trigger: String,
+        status: String,
+        message: String,
+        timestampMillis: Long,
+    ): String = buildString {
+        append("""{"trigger":"${trigger.jsonEscape()}","status":"${status.jsonEscape()}"""")
+        append(""","message":"${message.jsonEscape()}","timestampMillis":$timestampMillis}""")
     }
 
     private fun String.jsonEscape(): String =

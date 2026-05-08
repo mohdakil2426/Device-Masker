@@ -23,6 +23,7 @@ object SerialGenerator {
 
     /** Hex characters for Pixel-style serials. */
     private const val HEX_CHARS = "0123456789ABCDEF"
+    private const val PIXEL_SERIAL_LENGTH = 16
 
     /**
      * Generates a realistic device serial number using a random manufacturer pattern.
@@ -85,7 +86,9 @@ object SerialGenerator {
      */
     private fun generatePixelSerial(): String {
         return buildString {
-            repeat(16) { append(HEX_CHARS[secureRandom.nextInt(HEX_CHARS.length)]) }
+            repeat(PIXEL_SERIAL_LENGTH) {
+                append(HEX_CHARS[secureRandom.nextInt(HEX_CHARS.length)])
+            }
         }
     }
 

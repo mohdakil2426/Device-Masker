@@ -7,7 +7,7 @@ import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.models.Carrier
 import kotlinx.coroutines.flow.Flow
 
-interface ISpoofRepository {
+interface SpoofStateRepository {
     val appScopeRepository: IAppScopeRepository
     val moduleEnabled: Flow<Boolean>
     val groups: Flow<List<SpoofGroup>>
@@ -19,7 +19,9 @@ interface ISpoofRepository {
     suspend fun setModuleEnabled(enabled: Boolean)
 
     suspend fun setActiveGroup(groupId: String)
+}
 
+interface SpoofValueRepository {
     fun generateValue(type: SpoofType): String
 
     fun regenerateSIMValueOnly(type: SpoofType): String
@@ -35,7 +37,9 @@ interface ISpoofRepository {
     suspend fun updateGroupWithDeviceProfile(groupId: String, presetId: String)
 
     suspend fun regenerateAllValues(groupId: String)
+}
 
+interface SpoofGroupRepository {
     fun getAllGroups(): Flow<List<SpoofGroup>>
 
     suspend fun createGroup(name: String, description: String = "")
@@ -47,7 +51,9 @@ interface ISpoofRepository {
     suspend fun setDefaultGroup(groupId: String)
 
     suspend fun setGroupEnabled(groupId: String, enabled: Boolean)
+}
 
+interface SpoofAppAssignmentRepository {
     suspend fun addAppToGroup(groupId: String, packageName: String)
 
     suspend fun removeAppFromGroup(groupId: String, packageName: String)
@@ -55,8 +61,17 @@ interface ISpoofRepository {
     suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean)
 
     suspend fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean)
+}
 
+interface SpoofImportExportRepository {
     suspend fun exportGroups(): String
 
     suspend fun importGroups(jsonString: String): Boolean
 }
+
+interface ISpoofRepository :
+    SpoofStateRepository,
+    SpoofValueRepository,
+    SpoofGroupRepository,
+    SpoofAppAssignmentRepository,
+    SpoofImportExportRepository

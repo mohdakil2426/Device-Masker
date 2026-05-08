@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.xposed
 
+import android.content.SharedPreferences
 import android.util.Log
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
@@ -102,43 +103,10 @@ class XposedEntry : XposedModule() {
      */
     override fun onPackageReady(param: PackageReadyParam) {
         val pkg = param.packageName
+        if (shouldSkipLoadedPackage(pkg)) return
 
-        // System server is handled by onSystemServerStarting — do not double-hook
-        if (pkg == "android") return
-
-        // Skip own app and critical system processes
-        if (pkg in SKIP_PACKAGES) return
-
-        // Obtain live RemotePreferences from LSPosed.
-        // These reflect the latest values written by the module app — no restart needed.
-        // getRemotePreferences() is fast (cached by LSPosed) and safe to call per-package load.
-        val prefs =
-            try {
-                getRemotePreferences(PREFS_GROUP)
-            } catch (e: XposedFrameworkError) {
-                throw e
-            } catch (t: Throwable) {
-                XposedDiagnosticEventSink.log(
-                    Log.WARN,
-                    TAG,
-                    "RemotePreferences unavailable for $pkg",
-                    t,
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
-                        .REMOTE_PREFS_UNAVAILABLE,
-                )
-                log(
-                    Log.WARN,
-                    TAG,
-                    "RemotePreferences unavailable for $pkg — skipping hooks: ${t.message}",
-                    t,
-                )
-                return
-            }
-
-        // Master kill-switch — if module is disabled globally, skip all hooks
-        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return
-
-        val hookPackage = selectHookPackage(pkg, prefs) ?: return
+        val prefs = remotePreferencesOrNull(pkg) ?: return
+        val hookPackage = enabledHookPackageOrNull(pkg, prefs) ?: return
         XposedDiagnosticEventSink.log(
             Log.INFO,
             TAG,
@@ -148,15 +116,7 @@ class XposedEntry : XposedModule() {
                     .TARGET_PACKAGE_SELECTED,
         )
 
-        // Per-app toggle — only hook apps that the user explicitly enabled
-        if (!prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(hookPackage), false)) return
-
-        val cl = param.classLoader
-        val classLoaderKey = System.identityHashCode(cl)
-        if (!hookedClassLoaders.add(classLoaderKey)) {
-            log(Log.DEBUG, TAG, "Hooks already registered for classloader of $hookPackage", null)
-            return
-        }
+        val cl = classLoaderToHookOrNull(param.classLoader, hookPackage) ?: return
 
         // ═══════════════════════════════════════════════════════════
         // HOOK ORDER IS CRITICAL — do not reorder
@@ -167,9 +127,7 @@ class XposedEntry : XposedModule() {
         //    Apps cross-check TelephonyManager and SubscriptionManager results.
         // 3. Remaining hookers can run in any order.
         // ═══════════════════════════════════════════════════════════
-        hookSafely(hookPackage, "AntiDetectHooker") {
-            AntiDetectHooker.hook(cl, this, prefs, hookPackage)
-        }
+        hookSafely(hookPackage, "AntiDetectHooker") { AntiDetectHooker.hook(cl, this, hookPackage) }
         hookSafely(hookPackage, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, hookPackage) }
         hookSafely(hookPackage, "SubscriptionHooker") {
             SubscriptionHooker.hook(cl, this, prefs, hookPackage)
@@ -189,12 +147,52 @@ class XposedEntry : XposedModule() {
             WebViewHooker.hook(cl, this, prefs, hookPackage)
         }
         hookSafely(hookPackage, "PackageManagerHooker") {
-            PackageManagerHooker.hook(cl, this, prefs, hookPackage)
+            PackageManagerHooker.hook(cl, this, hookPackage)
         }
 
-        reportPackageHooked(hookPackage)
-
+        log(Log.INFO, TAG, "Hooks registered for: $hookPackage", null)
         log(Log.INFO, TAG, "All hooks registered for: $hookPackage", null)
+    }
+
+    private fun shouldSkipLoadedPackage(pkg: String): Boolean =
+        pkg == "android" || pkg in SKIP_PACKAGES
+
+    private fun remotePreferencesOrNull(pkg: String): SharedPreferences? =
+        try {
+            getRemotePreferences(PREFS_GROUP)
+        } catch (e: XposedFrameworkError) {
+            throw e
+        } catch (t: Throwable) {
+            XposedDiagnosticEventSink.log(
+                Log.WARN,
+                TAG,
+                "RemotePreferences unavailable for $pkg",
+                t,
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
+                    .REMOTE_PREFS_UNAVAILABLE,
+            )
+            log(
+                Log.WARN,
+                TAG,
+                "RemotePreferences unavailable for $pkg — skipping hooks: ${t.message}",
+                t,
+            )
+            null
+        }
+
+    private fun enabledHookPackageOrNull(loadedPackage: String, prefs: SharedPreferences): String? {
+        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return null
+        return selectHookPackage(loadedPackage, prefs)?.takeIf {
+            prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(it), false)
+        }
+    }
+
+    private fun classLoaderToHookOrNull(cl: ClassLoader, hookPackage: String): ClassLoader? {
+        val classLoaderKey = System.identityHashCode(cl)
+        if (hookedClassLoaders.add(classLoaderKey)) return cl
+
+        log(Log.DEBUG, TAG, "Hooks already registered for classloader of $hookPackage", null)
+        return null
     }
 
     private fun selectHookPackage(
@@ -259,10 +257,6 @@ class XposedEntry : XposedModule() {
                 t,
             )
         }
-    }
-
-    private fun reportPackageHooked(pkg: String) {
-        log(Log.INFO, TAG, "Hooks registered for: $pkg", null)
     }
 
     fun reportSpoofEvent(pkg: String, spoofTypeName: String) {

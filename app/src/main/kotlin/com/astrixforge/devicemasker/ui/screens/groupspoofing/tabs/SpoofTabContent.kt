@@ -45,7 +45,7 @@ fun SpoofTabContent(
     onRegenerateLocation: () -> Unit,
     onToggle: (SpoofType, Boolean) -> Unit,
     onCarrierChange: (Carrier) -> Unit,
-    onTimezoneSelected: (String) -> Unit,
+    timezoneSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expandedCategories by rememberSaveable(group?.id) { mutableStateOf(emptyList<String>()) }
@@ -102,7 +102,7 @@ fun SpoofTabContent(
                     onRegenerateLocation = onRegenerateLocation,
                     onToggle = onToggle,
                     onCarrierChange = onCarrierChange,
-                    onTimezoneSelected = onTimezoneSelected,
+                    timezoneSelected = timezoneSelected,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -127,7 +127,7 @@ private fun SpoofTabContentEmptyPreview() {
             onRegenerateLocation = {},
             onToggle = { _, _ -> },
             onCarrierChange = {},
-            onTimezoneSelected = {},
+            timezoneSelected = {},
         )
     }
 }
@@ -143,7 +143,7 @@ private fun SpoofTabContentPopulatedPreview() {
             onRegenerateLocation = {},
             onToggle = { _, _ -> },
             onCarrierChange = {},
-            onTimezoneSelected = {},
+            timezoneSelected = {},
         )
     }
 }

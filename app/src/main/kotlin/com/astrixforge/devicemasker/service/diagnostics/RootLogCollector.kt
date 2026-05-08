@@ -5,27 +5,12 @@ import java.io.File
 class RootLogCollector(private val rootShell: RootShell = RootShell()) {
     fun collect(outputDir: File, targetPackage: String?): List<RootCommandResult> {
         outputDir.mkdirs()
-        val target = targetPackage?.takeIf(::isValidPackageName)
-        val evidencePattern = buildEvidencePattern(target)
+        val target = targetPackage?.takeIf(::isValidRootLogPackageName)
+        val evidencePattern = buildRootEvidencePattern(target)
         val results = collectAllFiles(outputDir, target, evidencePattern)
         writeManifest(outputDir, results)
         return results
     }
-
-    private fun buildEvidencePattern(target: String?): String =
-        buildList {
-                add("DeviceMasker")
-                add("LSPosed")
-                add("lspd")
-                add("XposedEntry")
-                add("All hooks registered")
-                add("Spoof event")
-                add("AndroidRuntime")
-                add("FATAL EXCEPTION")
-                add("ANR")
-                target?.let(::add)
-            }
-            .joinToString("|")
 
     private fun collectAllFiles(
         outputDir: File,
@@ -90,12 +75,27 @@ class RootLogCollector(private val rootShell: RootShell = RootShell()) {
         destination.writeText(result.stdoutPath?.readText().orEmpty(), Charsets.UTF_8)
         return result
     }
-
-    private fun isValidPackageName(value: String): Boolean =
-        value.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+"))
-
-    private fun RootCommandResult.toJsonLine(): String =
-        """{"command":"${command.jsonEscape()}","status":"$status","exitCode":${exitCode ?: "null"},"timedOut":$timedOut,"durationMillis":$durationMillis,"rootAvailable":$rootAvailable,"stderrSummary":"${stderrSummary.jsonEscape()}"}"""
-
-    private fun String.jsonEscape(): String = replace("\\", "\\\\").replace("\"", "\\\"")
 }
+
+private fun buildRootEvidencePattern(target: String?): String =
+    buildList {
+            add("DeviceMasker")
+            add("LSPosed")
+            add("lspd")
+            add("XposedEntry")
+            add("All hooks registered")
+            add("Spoof event")
+            add("AndroidRuntime")
+            add("FATAL EXCEPTION")
+            add("ANR")
+            target?.let(::add)
+        }
+        .joinToString("|")
+
+private fun isValidRootLogPackageName(value: String): Boolean =
+    value.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+"))
+
+private fun RootCommandResult.toJsonLine(): String =
+    """{"command":"${command.jsonEscape()}","status":"$status","exitCode":${exitCode ?: "null"},"timedOut":$timedOut,"durationMillis":$durationMillis,"rootAvailable":$rootAvailable,"stderrSummary":"${stderrSummary.jsonEscape()}"}"""
+
+private fun String.jsonEscape(): String = replace("\\", "\\\\").replace("\"", "\\\"")

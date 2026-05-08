@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common.generators
 
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.nextInt
+import com.astrixforge.devicemasker.common.util.secureRandom
 
 /**
  * Build Fingerprint Generator for system property spoofing.
@@ -21,6 +22,8 @@ import com.astrixforge.devicemasker.common.util.*
  */
 @Suppress("unused") // Used for device profile spoofing
 object FingerprintGenerator {
+    private const val MIN_INCREMENTAL = 1_000_000
+    private const val INCREMENTAL_BOUND = 9_000_000
 
     /**
      * Database of realistic device configurations. Each entry contains brand, product, device, and
@@ -209,7 +212,12 @@ object FingerprintGenerator {
         val buildId = generateBuildId(buildIdPrefix)
         val incremental = generateIncremental()
 
-        return "${device.brand}/${device.product}/${device.device}:$androidVersion/$buildId/$incremental:user/release-keys"
+        return listOf(
+                "${device.brand}/${device.product}/${device.device}:$androidVersion",
+                buildId,
+                "$incremental:user/release-keys",
+            )
+            .joinToString(separator = "/")
     }
 
     /**
@@ -228,7 +236,7 @@ object FingerprintGenerator {
 
     /** Generates a realistic incremental build number. */
     private fun generateIncremental(): String {
-        return (nextInt(9000000) + 1000000).toString()
+        return (nextInt(INCREMENTAL_BOUND) + MIN_INCREMENTAL).toString()
     }
 
     /**

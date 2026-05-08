@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.ui.screens.home
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.common.SpoofGroup
+import com.astrixforge.devicemasker.common.addApp
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle

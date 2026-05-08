@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,71 +38,23 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
-import java.util.Locale
-import java.util.TimeZone
 
-/** Data class representing a timezone entry for the picker. */
-data class TimezoneEntry(
-    val id: String,
-    val displayName: String,
-    val offset: String,
-    val region: String,
-) {
-    companion object {
-        /** All available timezones grouped and sorted. */
-        val ALL: List<TimezoneEntry> by lazy {
-            TimeZone.getAvailableIDs()
-                .filter { it.contains("/") } // Only region-based timezones
-                .map { id ->
-                    val tz = TimeZone.getTimeZone(id)
-                    val offsetMinutes = tz.rawOffset / 60000
-                    val hours = offsetMinutes / 60
-                    val minutes = kotlin.math.abs(offsetMinutes % 60)
-                    val offsetStr =
-                        String.format(
-                            Locale.US,
-                            "GMT%s%02d:%02d",
-                            if (hours >= 0) "+" else "",
-                            hours,
-                            minutes,
-                        )
-                    val region = id.substringBefore("/")
-                    val city = id.substringAfter("/").replace("_", " ")
-                    TimezoneEntry(id = id, displayName = city, offset = offsetStr, region = region)
-                }
-                .sortedWith(compareBy({ it.region }, { it.displayName }))
-        }
-
-        /** Search timezones by query (matches id, display name, or offset). */
-        fun search(query: String): List<TimezoneEntry> {
-            if (query.isBlank()) return ALL
-            val lowerQuery = query.lowercase()
-            return ALL.filter { tz ->
-                tz.id.lowercase().contains(lowerQuery) ||
-                    tz.displayName.lowercase().contains(lowerQuery) ||
-                    tz.offset.lowercase().contains(lowerQuery) ||
-                    tz.region.lowercase().contains(lowerQuery)
-            }
-        }
-    }
-}
+@Immutable private data class TimezoneOptions(val items: List<TimezoneEntry>)
 
 /**
  * Searchable dialog for selecting a timezone.
  *
  * @param selectedTimezone Currently selected timezone ID (e.g., "America/New_York")
- * @param onTimezoneSelected Called when a timezone is selected
+ * @param timezoneSelected Called when a timezone is selected
  * @param onDismiss Called when dialog is dismissed
  */
 @Composable
 fun TimezonePickerDialog(
     selectedTimezone: String?,
-    onTimezoneSelected: (String) -> Unit,
+    timezoneSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val filteredTimezones = remember(searchQuery) { TimezoneEntry.search(searchQuery) }
-
     val selectedState = stringResource(R.string.picker_selected_state)
     val notSelectedState = stringResource(R.string.picker_not_selected_state)
 
@@ -114,96 +67,14 @@ fun TimezonePickerDialog(
             )
         },
         text = {
-            Column {
-                // Search field
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(stringResource(R.string.picker_search_timezone_hint)) },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.Search, contentDescription = null)
-                    },
-                    singleLine = true,
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Timezone list
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    items(filteredTimezones, key = { it.id }) { timezone ->
-                        val isSelected = timezone.id == selectedTimezone
-
-                        Row(
-                            modifier =
-                                Modifier.fillMaxWidth()
-                                    .semantics {
-                                        role = Role.Button
-                                        stateDescription =
-                                            if (isSelected) selectedState else notSelectedState
-                                    }
-                                    .clickable { onTimezoneSelected(timezone.id) }
-                                    .padding(vertical = 12.dp, horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = timezone.displayName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight =
-                                            if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    )
-                                }
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = timezone.offset,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                    Text(
-                                        text = "•",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.clearAndSetSemantics {},
-                                    )
-                                    Text(
-                                        text = timezone.region,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.clearAndSetSemantics {},
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
-
-                        if (timezone != filteredTimezones.lastOrNull()) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            )
-                        }
-                    }
-                }
-            }
+            TimezonePickerContent(
+                searchQuery = searchQuery,
+                queryChanged = { searchQuery = it },
+                selectedTimezone = selectedTimezone,
+                selectedState = selectedState,
+                notSelectedState = notSelectedState,
+                timezoneSelected = timezoneSelected,
+            )
         },
         confirmButton = {},
         dismissButton = {
@@ -211,5 +82,157 @@ fun TimezonePickerDialog(
                 Text(text = stringResource(id = R.string.action_cancel))
             }
         },
+    )
+}
+
+@Composable
+private fun TimezonePickerContent(
+    searchQuery: String,
+    queryChanged: (String) -> Unit,
+    selectedTimezone: String?,
+    selectedState: String,
+    notSelectedState: String,
+    timezoneSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val timezones = remember(searchQuery) { TimezoneOptions(TimezoneEntry.search(searchQuery)) }
+
+    Column(modifier = modifier) {
+        TimezoneSearchField(searchQuery = searchQuery, queryChanged = queryChanged)
+        Spacer(modifier = Modifier.height(12.dp))
+        TimezoneList(
+            timezones = timezones,
+            selectedTimezone = selectedTimezone,
+            selectedState = selectedState,
+            notSelectedState = notSelectedState,
+            timezoneSelected = timezoneSelected,
+        )
+    }
+}
+
+@Composable
+private fun TimezoneSearchField(
+    searchQuery: String,
+    queryChanged: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = queryChanged,
+        modifier = modifier.fillMaxWidth(),
+        placeholder = { Text(stringResource(R.string.picker_search_timezone_hint)) },
+        leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+        singleLine = true,
+    )
+}
+
+@Composable
+private fun TimezoneList(
+    timezones: TimezoneOptions,
+    selectedTimezone: String?,
+    selectedState: String,
+    notSelectedState: String,
+    timezoneSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxWidth().heightIn(max = 350.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(timezones.items, key = { it.id }) { timezone ->
+            val isSelected = timezone.id == selectedTimezone
+            TimezoneRow(
+                timezone = timezone,
+                isSelected = isSelected,
+                stateDescription = if (isSelected) selectedState else notSelectedState,
+                timezoneSelected = timezoneSelected,
+            )
+
+            if (timezone != timezones.items.lastOrNull()) {
+                TimezoneDivider()
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimezoneRow(
+    timezone: TimezoneEntry,
+    isSelected: Boolean,
+    stateDescription: String,
+    timezoneSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .semantics {
+                    role = Role.Button
+                    this.stateDescription = stateDescription
+                }
+                .clickable { timezoneSelected(timezone.id) }
+                .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TimezoneLabel(timezone = timezone, isSelected = isSelected, modifier = Modifier.weight(1f))
+        SelectedIcon(isSelected = isSelected)
+    }
+}
+
+@Composable
+private fun TimezoneLabel(
+    timezone: TimezoneEntry,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = timezone.displayName,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = timezone.offset,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "•",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Text(
+                text = timezone.region,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelectedIcon(isSelected: Boolean, modifier: Modifier = Modifier) {
+    if (isSelected) {
+        Icon(
+            imageVector = Icons.Filled.Check,
+            contentDescription = null,
+            modifier = modifier.clearAndSetSemantics {},
+            tint = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+private fun TimezoneDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(
+        modifier = modifier.padding(horizontal = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
     )
 }

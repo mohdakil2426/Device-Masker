@@ -10,4 +10,4 @@ Add an atomic commit message with an appropriate message
 
 add a tag such as "feat", "fix", "docs", etc. that reflects our work
 
-Commit messsage should be hihgly detailed full informations
+Commit messsage should be highly detailed info.

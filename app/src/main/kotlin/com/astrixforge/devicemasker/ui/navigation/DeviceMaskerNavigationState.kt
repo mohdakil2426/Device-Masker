@@ -160,12 +160,13 @@ class DeviceMaskerNavigator(private val state: DeviceMaskerNavigationState) {
     }
 
     /** @return true when the Activity should handle the back press by exiting. */
-    fun goBack(): Boolean {
-        if (state.popCurrentStack()) return false
-        if (state.topLevelDestination != NavDestination.Home) {
-            state.switchTopLevel(NavDestination.Home)
-            return false
+    fun goBack(): Boolean =
+        when {
+            state.popCurrentStack() -> false
+            state.topLevelDestination != NavDestination.Home -> {
+                state.switchTopLevel(NavDestination.Home)
+                false
+            }
+            else -> true
         }
-        return true
-    }
 }

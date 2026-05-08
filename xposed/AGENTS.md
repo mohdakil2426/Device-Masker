@@ -66,7 +66,7 @@ safeHook("methodName") {
 }
 ```
 
-Direct `xi.hook(m).intercept { ... }` Kotlin SAM callbacks are forbidden in runtime hookers unless release R8/runtime validation explicitly proves them safe.
+Direct Kotlin SAM intercept callbacks are forbidden in runtime hookers unless release R8/runtime validation explicitly proves them safe.
 
 ## BaseSpoofHooker — Shared Helpers
 
@@ -91,7 +91,7 @@ Direct `xi.hook(m).intercept { ... }` Kotlin SAM callbacks are forbidden in runt
 
 | Hooker | APIs Hooked | SpoofType |
 |--------|-------------|-----------|
-| **DeviceHooker** (451 lines) | TelephonyManager (getDeviceId, getImei, getSubscriberId, getSimSerialNumber, getSimCountryIso, getNetworkCountryIso, getSimOperatorName, getSimOperator, getNetworkOperator, getLine1Number — no-arg + int-slot variants), Build.getSerial(), Settings.Secure.getString (android_id), SystemProperties.get (ro.serialno, ro.boot.serialno, ril.serialnumber) | IMEI, IMSI, ICCID, SIM_COUNTRY_ISO, NETWORK_COUNTRY_ISO, SIM_OPERATOR_NAME, CARRIER_MCC_MNC, NETWORK_OPERATOR, PHONE_NUMBER, SERIAL, ANDROID_ID |
+| **DeviceHooker** | TelephonyManager getter tables, Build.getSerial(), Settings.Secure.getString(android_id), SystemProperties serial reads | IMEI, IMSI, ICCID, SIM_COUNTRY_ISO, NETWORK_COUNTRY_ISO, SIM_OPERATOR_NAME, CARRIER_MCC_MNC, NETWORK_OPERATOR, PHONE_NUMBER, SERIAL, ANDROID_ID |
 | **SubscriptionHooker** | SubscriptionInfo (getIccId, getCountryIso, getCarrierName, getDisplayName, getMcc, getMnc, getMccString, getMncString, getNumber), SubscriptionManager.getActiveSubscriptionInfoList (pass-through) | ICCID, SIM_COUNTRY_ISO, CARRIER_NAME, CARRIER_MCC_MNC, PHONE_NUMBER |
 | **NetworkHooker** | WifiInfo (getMacAddress, getSSID, getBSSID), NetworkInterface.getHardwareAddress (wlan/wifi/p2p only), BluetoothAdapter.getAddress, TelephonyManager (getNetworkOperatorName, getNetworkOperator) | WIFI_MAC, WIFI_SSID, WIFI_BSSID, BLUETOOTH_MAC, CARRIER_NAME, CARRIER_MCC_MNC |
 | **SystemHooker** | Build static fields (direct mutation: FINGERPRINT, MODEL, MANUFACTURER, BRAND, DEVICE, PRODUCT, BOARD, HARDWARE, TAGS, TYPE), SystemProperties.get (16 ro.* keys) | DEVICE_PROFILE |
@@ -105,7 +105,7 @@ Direct `xi.hook(m).intercept { ... }` Kotlin SAM callbacks are forbidden in runt
 
 | Vector | Status | Method |
 |--------|--------|--------|
-| Stack trace filtering | **ACTIVE** | Hooks `Thread.getStackTrace()`, `Throwable.getStackTrace()`. Filters 16 patterns (XposedBridge, LSPosed, YukiHookAPI, EdXposed, libxposed, etc.). ThreadLocal reentrant guard. |
+| Stack trace filtering | **ACTIVE** | Hooks `Thread.getStackTrace()`, `Throwable.getStackTrace()`. Filters legacy and modern hook-framework patterns, including XposedBridge, LSPosed, EdXposed, and libxposed. ThreadLocal reentrant guard. |
 | `/proc/self/maps` | **ACTIVE** | Hooks `BufferedReader.readLine()`. Returns empty for 8 patterns (libxposed, liblspd, libriru, etc.). |
 | Package hiding | **ACTIVE** | Hides 6 packages (LSPosed Manager 3 variants, Magisk, VirtualXposed, EdXposed) via PM hooks. `ExceptionMode.PASSTHROUGH` for throws. |
 | `Class.forName` | **DISABLED** | Defined but not called. Caused startup instability. |

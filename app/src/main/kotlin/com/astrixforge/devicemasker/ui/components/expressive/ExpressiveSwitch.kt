@@ -1,8 +1,5 @@
 package com.astrixforge.devicemasker.ui.components.expressive
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,38 +26,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// M3 Switch Dimensions (from Material Design 3 spec)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-private object SwitchDimensions {
-    // Track dimensions
-    val TrackWidth = 52.dp
-    val TrackHeight = 32.dp
-    val TrackCornerRadius = 16.dp
-
-    // Thumb dimensions
-    val ThumbSizeUnchecked = 16.dp
-    val ThumbSizeChecked = 24.dp
-    val ThumbSizePressed = 28.dp
-    val ThumbPadding = 4.dp
-
-    // Icon dimensions
-    val IconSize = 16.dp
-
-    // Border
-    val BorderWidth = 2.dp
-}
 
 /**
  * Material 3 Expressive Switch with spring-animated thumb transitions.
@@ -100,169 +72,90 @@ fun ExpressiveSwitch(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-
-    // Theme-aware colors
-    val activeColor = MaterialTheme.colorScheme.primary
-    val inactiveColor = MaterialTheme.colorScheme.surfaceContainerHighest
-    val checkedIconColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val uncheckedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SPRING ANIMATIONS
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    // Thumb position - bouncy spring for expressive movement
-    val thumbOffset by
-        animateDpAsState(
-            targetValue =
-                if (checked) {
-                    SwitchDimensions.TrackWidth -
-                        SwitchDimensions.ThumbSizeChecked -
-                        SwitchDimensions.ThumbPadding
-                } else {
-                    SwitchDimensions.ThumbPadding
-                },
-            animationSpec = AppMotion.Spatial.SnappyDp,
-            label = "thumbOffset",
-        )
-
-    // Thumb size - M3 spec: grows when checked, shrinks when unchecked
-    val targetThumbSize =
-        when {
-            isPressed -> SwitchDimensions.ThumbSizePressed
-            checked -> SwitchDimensions.ThumbSizeChecked
-            else -> SwitchDimensions.ThumbSizeUnchecked
-        }
-    val thumbSize by
-        animateDpAsState(
-            targetValue = targetThumbSize,
-            animationSpec = AppMotion.Spatial.SnappyDp,
-            label = "thumbSize",
-        )
-
-    // Track color - smooth transition using theme colors
-    val trackColor by
-        animateColorAsState(
-            targetValue =
-                if (enabled) {
-                    if (checked) activeColor else inactiveColor
-                } else {
-                    if (checked) activeColor.copy(alpha = 0.38f)
-                    else inactiveColor.copy(alpha = 0.12f)
-                },
-            animationSpec = AppMotion.Effect.Color,
-            label = "trackColor",
-        )
-
-    // Thumb color - white when checked, outline when unchecked
-    val thumbColor by
-        animateColorAsState(
-            targetValue =
-                if (enabled) {
-                    if (checked) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.outline
-                } else {
-                    if (checked) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
-                },
-            animationSpec = AppMotion.Effect.Color,
-            label = "thumbColor",
-        )
-
-    // Border color (only visible when unchecked)
-    val borderColor by
-        animateColorAsState(
-            targetValue =
-                if (enabled) {
-                    if (checked) Color.Transparent else MaterialTheme.colorScheme.outline
-                } else {
-                    if (checked) Color.Transparent
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-                },
-            animationSpec = AppMotion.Effect.Color,
-            label = "borderColor",
-        )
-
-    // Icon color - theme-aware
-    val iconColor by
-        animateColorAsState(
-            targetValue =
-                if (enabled) {
-                    if (checked) checkedIconColor else uncheckedIconColor
-                } else {
-                    if (checked) checkedIconColor.copy(alpha = 0.38f)
-                    else uncheckedIconColor.copy(alpha = 0.38f)
-                },
-            animationSpec = AppMotion.Effect.Color,
-            label = "iconColor",
-        )
-
-    // Icon scale - subtle grow/shrink on toggle
-    val iconScale by
-        animateFloatAsState(
-            targetValue = if (checked) 1f else 0.85f,
-            animationSpec = AppMotion.Spatial.Snappy,
-            label = "iconScale",
-        )
-
-    // Overall switch scale - micro-interaction on press
-    val switchScale by
-        animateFloatAsState(
-            targetValue = if (isPressed) 0.95f else 1f,
-            animationSpec = AppMotion.Spatial.Snappy,
-            label = "switchScale",
-        )
+    val switchState =
+        rememberExpressiveSwitchState(checked = checked, enabled = enabled, isPressed = isPressed)
     val density = LocalDensity.current
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // COMPOSABLE LAYOUT
-    // ═══════════════════════════════════════════════════════════════════════════
+    SwitchTrack(
+        state = switchState,
+        interactionSource = interactionSource,
+        enabled = enabled && onCheckedChange != null,
+        onClick = { onCheckedChange?.invoke(!checked) },
+        modifier = modifier,
+    ) {
+        SwitchThumb(
+            state = switchState,
+            checked = checked,
+            showThumbIcon = showThumbIcon,
+            thumbOffset = with(density) { switchState.thumbOffset.roundToPx() },
+        )
+    }
+}
 
+@Composable
+private fun SwitchTrack(
+    state: ExpressiveSwitchState,
+    interactionSource: MutableInteractionSource,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
     Box(
         modifier =
             modifier
                 .graphicsLayer {
-                    scaleX = switchScale
-                    scaleY = switchScale
+                    scaleX = state.switchScale
+                    scaleY = state.switchScale
                 }
                 .size(width = SwitchDimensions.TrackWidth, height = SwitchDimensions.TrackHeight)
                 .clip(RoundedCornerShape(SwitchDimensions.TrackCornerRadius))
-                .background(trackColor)
+                .background(state.trackColor)
                 .border(
                     width = SwitchDimensions.BorderWidth,
-                    color = borderColor,
+                    color = state.borderColor,
                     shape = RoundedCornerShape(SwitchDimensions.TrackCornerRadius),
                 )
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    enabled = enabled && onCheckedChange != null,
+                    enabled = enabled,
                     role = Role.Switch,
-                    onClick = { onCheckedChange?.invoke(!checked) },
+                    onClick = onClick,
                 ),
         contentAlignment = Alignment.CenterStart,
     ) {
-        // Thumb
-        Box(
-            modifier =
-                Modifier.offset { IntOffset(x = with(density) { thumbOffset.roundToPx() }, y = 0) }
-                    .size(thumbSize)
-                    .background(color = thumbColor, shape = CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Icon inside thumb
-            if (showThumbIcon && thumbSize >= SwitchDimensions.ThumbSizeChecked) {
-                Icon(
-                    imageVector = if (checked) Icons.Filled.Check else Icons.Filled.Close,
-                    contentDescription = null,
-                    modifier =
-                        Modifier.size(SwitchDimensions.IconSize).graphicsLayer {
-                            scaleX = iconScale
-                            scaleY = iconScale
-                        },
-                    tint = iconColor,
-                )
-            }
+        content()
+    }
+}
+
+@Composable
+private fun SwitchThumb(
+    state: ExpressiveSwitchState,
+    checked: Boolean,
+    showThumbIcon: Boolean,
+    thumbOffset: Int,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .offset { IntOffset(x = thumbOffset, y = 0) }
+                .size(state.thumbSize)
+                .background(color = state.thumbColor, shape = CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (showThumbIcon && state.thumbSize >= SwitchDimensions.ThumbSizeChecked) {
+            Icon(
+                imageVector = if (checked) Icons.Filled.Check else Icons.Filled.Close,
+                contentDescription = null,
+                modifier =
+                    Modifier.size(SwitchDimensions.IconSize).graphicsLayer {
+                        scaleX = state.iconScale
+                        scaleY = state.iconScale
+                    },
+                tint = state.iconColor,
+            )
         }
     }
 }

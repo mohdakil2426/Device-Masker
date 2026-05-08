@@ -36,11 +36,16 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofGroup
+import com.astrixforge.devicemasker.common.assignedAppCount
+import com.astrixforge.devicemasker.common.isAppAssigned
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 
@@ -48,8 +53,8 @@ import kotlinx.coroutines.flow.debounce
 @Composable
 fun AppsTabContent(
     group: SpoofGroup?,
-    allGroups: List<SpoofGroup>,
-    installedApps: List<InstalledApp>,
+    allGroups: ImmutableList<SpoofGroup>,
+    installedApps: ImmutableList<InstalledApp>,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -57,22 +62,50 @@ fun AppsTabContent(
     var debouncedQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        snapshotFlow { searchQuery }.debounce(300).collect { debouncedQuery = it }
+        snapshotFlow { searchQuery }
+            .debounce(SEARCH_DEBOUNCE_MILLIS)
+            .collect { debouncedQuery = it }
     }
 
+    val filteredApps =
+        rememberFilteredApps(
+            installedApps = installedApps,
+            group = group,
+            debouncedQuery = debouncedQuery,
+        )
+
+    Column(modifier = modifier.fillMaxSize()) {
+        AppsSearchHeader(
+            searchQuery = searchQuery,
+            queryChanged = { searchQuery = it },
+            filteredCount = filteredApps.size,
+            assignedCount = group?.assignedAppCount() ?: 0,
+        )
+        AppsTabBody(
+            group = group,
+            allGroups = allGroups,
+            installedApps = installedApps,
+            filteredApps = filteredApps,
+            onAppToggle = onAppToggle,
+        )
+    }
+}
+
+private const val SEARCH_DEBOUNCE_MILLIS = 300L
+
+@Composable
+private fun rememberFilteredApps(
+    installedApps: ImmutableList<InstalledApp>,
+    group: SpoofGroup?,
+    debouncedQuery: String,
+): ImmutableList<InstalledApp> {
     val filteredApps by
         remember(installedApps, group, debouncedQuery) {
             derivedStateOf {
                 val query = debouncedQuery.lowercase()
                 installedApps
                     .asSequence()
-                    .filter { app ->
-                        if (app.packageName == BuildConfig.APPLICATION_ID) return@filter false
-                        if (app.isSystemApp) return@filter false
-                        query.isEmpty() ||
-                            app.label.lowercase().contains(query) ||
-                            app.packageName.lowercase().contains(query)
-                    }
+                    .filter { app -> app.matchesAppSearch(query) }
                     .sortedWith(
                         compareByDescending<InstalledApp> {
                                 group?.isAppAssigned(it.packageName) == true
@@ -80,85 +113,129 @@ fun AppsTabContent(
                             .thenBy { it.label.lowercase() }
                     )
                     .toList()
+                    .toImmutableList()
             }
         }
+    return filteredApps
+}
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text(stringResource(id = R.string.group_spoofing_search_hint)) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+private fun InstalledApp.matchesAppSearch(query: String): Boolean =
+    packageName != BuildConfig.APPLICATION_ID &&
+        !isSystemApp &&
+        (query.isEmpty() ||
+            label.lowercase().contains(query) ||
+            packageName.lowercase().contains(query))
+
+@Composable
+private fun AppsSearchHeader(
+    searchQuery: String,
+    queryChanged: (String) -> Unit,
+    filteredCount: Int,
+    assignedCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = queryChanged,
+            placeholder = { Text(stringResource(id = R.string.group_spoofing_search_hint)) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+        )
+        Text(
+            text =
+                pluralStringResource(
+                    id = R.plurals.group_spoofing_apps_assigned_stats,
+                    count = filteredCount,
+                    filteredCount,
+                    assignedCount,
+                ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun AppsTabBody(
+    group: SpoofGroup?,
+    allGroups: ImmutableList<SpoofGroup>,
+    installedApps: ImmutableList<InstalledApp>,
+    filteredApps: ImmutableList<InstalledApp>,
+    onAppToggle: (InstalledApp, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        installedApps.isEmpty() -> LoadingAppsState(modifier = modifier)
+        filteredApps.isEmpty() -> EmptyAppsSearchState(modifier = modifier)
+        else ->
+            AppsList(
+                group = group,
+                allGroups = allGroups,
+                apps = filteredApps,
+                onAppToggle = onAppToggle,
+                modifier = modifier,
             )
+    }
+}
 
-            Text(
-                text =
-                    pluralStringResource(
-                        id = R.plurals.group_spoofing_apps_assigned_stats,
-                        count = filteredApps.size,
-                        filteredApps.size,
-                        group?.assignedAppCount() ?: 0,
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+@Composable
+private fun LoadingAppsState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        ExpressiveLoadingIndicatorWithLabel(
+            label = stringResource(id = R.string.group_spoofing_loading_apps)
+        )
+    }
+}
+
+@Composable
+private fun EmptyAppsSearchState(modifier: Modifier = Modifier) {
+    EmptyState(
+        icon = Icons.Filled.Search,
+        title = stringResource(id = R.string.group_spoofing_no_apps_found),
+        subtitle = stringResource(id = R.string.group_spoofing_adjust_search),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun AppsList(
+    group: SpoofGroup?,
+    allGroups: ImmutableList<SpoofGroup>,
+    apps: ImmutableList<InstalledApp>,
+    onAppToggle: (InstalledApp, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(items = apps, key = { it.packageName }, contentType = { "app_item" }) { app ->
+            AppListItem(
+                app = app,
+                isAssigned = group?.isAppAssigned(app.packageName) == true,
+                assignedToOtherGroupName = app.assignedGroupName(group, allGroups),
+                onToggle = { checked -> onAppToggle(app, checked) },
+                modifier = Modifier.fillMaxWidth().animateItem(),
             )
         }
-
-        when {
-            installedApps.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ExpressiveLoadingIndicatorWithLabel(
-                        label = stringResource(id = R.string.group_spoofing_loading_apps)
-                    )
-                }
-            }
-            filteredApps.isEmpty() -> {
-                EmptyState(
-                    icon = Icons.Filled.Search,
-                    title = stringResource(id = R.string.group_spoofing_no_apps_found),
-                    subtitle = stringResource(id = R.string.group_spoofing_adjust_search),
-                )
-            }
-            else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    items(
-                        items = filteredApps,
-                        key = { it.packageName },
-                        contentType = { "app_item" },
-                    ) { app ->
-                        val isAssignedToThisGroup = group?.isAppAssigned(app.packageName) == true
-                        val assignedToOtherGroup =
-                            allGroups.firstOrNull {
-                                it.id != group?.id && it.isAppAssigned(app.packageName)
-                            }
-
-                        AppListItem(
-                            app = app,
-                            isAssigned = isAssignedToThisGroup,
-                            assignedToOtherGroupName = assignedToOtherGroup?.name,
-                            onToggle = { checked -> onAppToggle(app, checked) },
-                            modifier = Modifier.fillMaxWidth().animateItem(),
-                        )
-                    }
-
-                    item(key = "bottom_spacer", contentType = "spacer") {
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
-                }
-            }
+        item(key = "bottom_spacer", contentType = "spacer") {
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
+
+private fun InstalledApp.assignedGroupName(
+    currentGroup: SpoofGroup?,
+    allGroups: ImmutableList<SpoofGroup>,
+): String? =
+    allGroups.firstOrNull { it.id != currentGroup?.id && it.isAppAssigned(packageName) }?.name
 
 // ═══════════════════════════════════════════════════════════
 // Previews
@@ -170,8 +247,8 @@ private fun AppsTabContentLoadingPreview() {
     DeviceMaskerTheme {
         AppsTabContent(
             group = null,
-            allGroups = emptyList(),
-            installedApps = emptyList(),
+            allGroups = persistentListOf(),
+            installedApps = persistentListOf(),
             onAppToggle = { _, _ -> },
         )
     }
@@ -183,9 +260,9 @@ private fun AppsTabContentPopulatedPreview() {
     DeviceMaskerTheme {
         AppsTabContent(
             group = SpoofGroup.createNew("Preview Group"),
-            allGroups = emptyList(),
+            allGroups = persistentListOf(),
             installedApps =
-                listOf(
+                persistentListOf(
                     InstalledApp(
                         "com.example.app1",
                         "Example App",

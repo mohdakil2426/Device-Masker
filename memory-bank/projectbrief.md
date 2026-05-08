@@ -43,6 +43,12 @@ Latest full gate (post-Master Implementation Plan 2026-05-04 M3E follow-up):
 
 Result: `BUILD SUCCESSFUL`.
 
+Latest Detekt strictness state as of 2026-05-08:
+- Detekt runs with `allRules=true`.
+- `:app`, `:common`, and `:xposed` baselines are empty.
+- `.\gradlew.bat detekt --no-daemon --stacktrace` passes after baseline regeneration.
+- Keep baselines at zero unless accepted existing debt is explicitly documented.
+
 Master Implementation Plan status on 2026-05-04:
 - Phase 0: Safety & Stability core fixes complete.
 - Phase 1: Testing Infrastructure complete for current unit-test scope.

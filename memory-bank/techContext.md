@@ -71,7 +71,7 @@ Current expectations:
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed module entry |
-| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsReader.kt` | Hook-side preference reader |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsHelper.kt` | Hook-side preference helper/reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
@@ -106,8 +106,16 @@ Targeted gates:
 .\gradlew.bat :app:testDebugUnitTest --no-daemon
 .\gradlew.bat :common:testDebugUnitTest --no-daemon
 .\gradlew.bat detekt --no-daemon
+.\gradlew.bat detektBaseline --no-daemon
 .\gradlew.bat assembleDebug --no-daemon
 ```
+
+Detekt strictness notes:
+- Detekt currently runs with `allRules=true`.
+- Per-module baselines are still present: `app/detekt-baseline.xml`, `common/detekt-baseline.xml`, and `xposed/detekt-baseline.xml`.
+- Latest known baseline count after safe cleanup: 0 entries across `:app`, `:common`, and `:xposed`.
+- Current empty-baseline verification passed with separate `detektBaseline` and `detekt` runs on 2026-05-08.
+- Do not run `detektBaseline` and `detekt` in the same Gradle invocation; Gradle 9.5 can report implicit baseline file input/output ordering problems. Run them as separate commands.
 
 Navigation 3 targeted gate:
 

@@ -35,7 +35,7 @@ app/src/main/kotlin/com/astrixforge/devicemasker/
 
 ## Manual DI — No Hilt
 
-All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActivity` creates repositories via `remember`. ViewModels use `viewModel { }` factory in `entryProvider`. All service classes expose interfaces (`IConfigManager`, `ISpoofRepository`, etc.) for test fakes.
+All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActivity` creates repositories via `remember`. Navigation entries pass dependencies to screen routes, and screens use explicit `viewModelFactory` helpers from `DeviceMaskerViewModelFactories.kt` as default ViewModel parameters. Service/repository contracts are split into narrow workflow interfaces with compatibility facades (`IConfigManager`, `ISpoofRepository`) for existing callers and test fakes.
 
 **Singletons (objects):** `ConfigManager`, `XposedPrefs`, `ConfigSync`, `LogManager`, `RootAccessManager`, `RootCaptureStore`
 
@@ -48,8 +48,10 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 | `DeviceMaskerApp.kt` | Application entry — plants Timber trees, inits ConfigManager/XposedPrefs/RootAccessManager, registers config sync on LSPosed bind |
 | `data/XposedPrefs.kt` | Writes to RemotePreferences via `XposedService.getRemotePreferences()`. All keys delegate to `SharedPrefsKeys` in `:common`. Uses `commit()` not `apply()`. |
 | `data/ConfigSync.kt` | Flattens `JsonConfig` → flat per-app SharedPreferences keys. `syncFromConfig()` for full sync, `syncApp()` for single app. Clears stale keys. |
+| `data/ConfigSyncHelpers.kt` | App sync state and SharedPreferences editor helpers used by `ConfigSync`. |
 | `service/ConfigManager.kt` | JSON config CRUD. Backs `AtomicFile` at `filesDir/config.json`. Exposes `config: StateFlow<JsonConfig>`. Uses `Mutex` for thread-safe saves. |
 | `data/repository/SpoofRepository.kt` | Main repo for ViewModels. Correlation-aware value generation with `AtomicReference` caches for SIM/Location/DeviceHardware configs. Singleton via `getInstance()`. |
+| `ui/navigation/DeviceMaskerViewModelFactories.kt` | Manual ViewModel factories used by screen default parameters. |
 
 ## Screen → ViewModel → Repository Mapping
 
@@ -84,7 +86,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 ## Diagnostics & Root
 
 - `AppLogStore`: JSONL events in `filesDir/logs/sessions/`
-- `LogManager`: ZIP export with Basic / Full Debug / Root Maximum modes
+- `LogManager`: single `Export Logs` ZIP path that always builds the maximum available support bundle
 - `StrictModeGuard`: debug-only app-process StrictMode policy. Never install StrictMode from `:xposed`.
 - `RootAccessManager`: libsu root grant state, startup request
 - `RootLogCaptureService`: foreground service for bounded root capture

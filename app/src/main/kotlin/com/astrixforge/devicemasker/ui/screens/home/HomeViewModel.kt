@@ -3,6 +3,8 @@ package com.astrixforge.devicemasker.ui.screens.home
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.astrixforge.devicemasker.common.assignedAppCount
+import com.astrixforge.devicemasker.common.enabledCount
 import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList

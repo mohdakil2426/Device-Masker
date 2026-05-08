@@ -26,35 +26,7 @@ data class DevicePersona(
     val tracking: TrackingPersona,
     val browser: BrowserPersona,
 ) {
-    fun getValue(type: SpoofType): String? {
-        val primarySubscription = subscriptions.firstOrNull()
-        return when (type) {
-            SpoofType.IMEI -> hardware.primaryImei
-            SpoofType.IMSI -> primarySubscription?.imsi
-            SpoofType.SERIAL -> hardware.serial
-            SpoofType.ICCID -> primarySubscription?.iccid
-            SpoofType.PHONE_NUMBER -> primarySubscription?.phoneNumber
-            SpoofType.SIM_COUNTRY_ISO -> primarySubscription?.simCountryIso
-            SpoofType.NETWORK_COUNTRY_ISO -> primarySubscription?.networkCountryIso
-            SpoofType.SIM_OPERATOR_NAME -> primarySubscription?.simOperatorName
-            SpoofType.NETWORK_OPERATOR -> primarySubscription?.networkOperator
-            SpoofType.WIFI_MAC -> hardware.wifiMac
-            SpoofType.BLUETOOTH_MAC -> hardware.bluetoothMac
-            SpoofType.WIFI_SSID -> networkEnvironment.ssid
-            SpoofType.WIFI_BSSID -> networkEnvironment.bssid
-            SpoofType.CARRIER_NAME -> primarySubscription?.carrierName
-            SpoofType.CARRIER_MCC_MNC -> primarySubscription?.carrierMccMnc
-            SpoofType.ANDROID_ID -> tracking.androidId
-            SpoofType.GSF_ID -> tracking.gsfId
-            SpoofType.ADVERTISING_ID -> tracking.advertisingId
-            SpoofType.MEDIA_DRM_ID -> tracking.mediaDrmId
-            SpoofType.DEVICE_PROFILE -> deviceProfileId
-            SpoofType.LOCATION_LATITUDE -> formatCoordinate(location.latitude)
-            SpoofType.LOCATION_LONGITUDE -> formatCoordinate(location.longitude)
-            SpoofType.TIMEZONE -> location.timezone
-            SpoofType.LOCALE -> location.locale
-        }
-    }
+    fun getValue(type: SpoofType): String? = PERSONA_VALUE_READERS[type]?.invoke(this)
 
     fun toJsonString(): String = jsonSerializer.encodeToString(this)
 
@@ -75,11 +47,39 @@ data class DevicePersona(
                     }
                 }
                 .getOrNull()
-
-        private fun formatCoordinate(value: Double): String =
-            String.format(java.util.Locale.US, "%.6f", value)
     }
 }
+
+private val PERSONA_VALUE_READERS: Map<SpoofType, DevicePersona.() -> String?> =
+    mapOf(
+        SpoofType.IMEI to { hardware.primaryImei },
+        SpoofType.IMSI to { subscriptions.firstOrNull()?.imsi },
+        SpoofType.SERIAL to { hardware.serial },
+        SpoofType.ICCID to { subscriptions.firstOrNull()?.iccid },
+        SpoofType.PHONE_NUMBER to { subscriptions.firstOrNull()?.phoneNumber },
+        SpoofType.SIM_COUNTRY_ISO to { subscriptions.firstOrNull()?.simCountryIso },
+        SpoofType.NETWORK_COUNTRY_ISO to { subscriptions.firstOrNull()?.networkCountryIso },
+        SpoofType.SIM_OPERATOR_NAME to { subscriptions.firstOrNull()?.simOperatorName },
+        SpoofType.NETWORK_OPERATOR to { subscriptions.firstOrNull()?.networkOperator },
+        SpoofType.WIFI_MAC to { hardware.wifiMac },
+        SpoofType.BLUETOOTH_MAC to { hardware.bluetoothMac },
+        SpoofType.WIFI_SSID to { networkEnvironment.ssid },
+        SpoofType.WIFI_BSSID to { networkEnvironment.bssid },
+        SpoofType.CARRIER_NAME to { subscriptions.firstOrNull()?.carrierName },
+        SpoofType.CARRIER_MCC_MNC to { subscriptions.firstOrNull()?.carrierMccMnc },
+        SpoofType.ANDROID_ID to { tracking.androidId },
+        SpoofType.GSF_ID to { tracking.gsfId },
+        SpoofType.ADVERTISING_ID to { tracking.advertisingId },
+        SpoofType.MEDIA_DRM_ID to { tracking.mediaDrmId },
+        SpoofType.DEVICE_PROFILE to { deviceProfileId },
+        SpoofType.LOCATION_LATITUDE to { formatCoordinate(location.latitude) },
+        SpoofType.LOCATION_LONGITUDE to { formatCoordinate(location.longitude) },
+        SpoofType.TIMEZONE to { location.timezone },
+        SpoofType.LOCALE to { location.locale },
+    )
+
+private fun formatCoordinate(value: Double): String =
+    String.format(java.util.Locale.US, "%.6f", value)
 
 @Serializable
 data class HardwarePersona(

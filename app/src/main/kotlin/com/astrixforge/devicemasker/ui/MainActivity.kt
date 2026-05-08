@@ -1,47 +1,21 @@
 package com.astrixforge.devicemasker.ui
 
-import android.app.Activity
 import android.content.ClipData
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
-import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,15 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.scene.SceneStrategy
-import androidx.navigation3.ui.NavDisplay
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.SettingsDataStore
@@ -67,21 +37,10 @@ import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
-import com.astrixforge.devicemasker.service.diagnostics.RootLogCaptureService
-import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
-import com.astrixforge.devicemasker.ui.navigation.DeviceMaskerDeepLinks
 import com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigator
 import com.astrixforge.devicemasker.ui.navigation.NavDestination
-import com.astrixforge.devicemasker.ui.navigation.bottomNavItems
 import com.astrixforge.devicemasker.ui.navigation.rememberDeviceMaskerNavigationState
-import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsScreen
-import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModel
-import com.astrixforge.devicemasker.ui.screens.groups.GroupsScreen
-import com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModel
-import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingScreenContent
-import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModel
-import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
-import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
+import com.astrixforge.devicemasker.ui.navigation.settingsViewModelFactory
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsScreen
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 import com.astrixforge.devicemasker.ui.theme.AppMotion
@@ -89,6 +48,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.LocalMotionPolicy
 import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import com.astrixforge.devicemasker.ui.theme.rememberMotionPolicy
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -108,124 +68,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         pendingDeepLinkIntent = intent
 
-        // Initial edge-to-edge setup
         enableEdgeToEdge()
-
         Timber.d("MainActivity created, module active: ${DeviceMaskerApp.isXposedModuleActive}")
 
         setContent {
-            val windowSizeClass = calculateWindowSizeClass(activity = this)
-            val settingsStore = remember { SettingsDataStore(applicationContext) }
-            val repository = remember { SpoofRepository.getInstance(applicationContext) }
-
-            // Collect theme settings from SettingsDataStore
-            val themeMode by
-                settingsStore.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
-            val amoledMode by
-                settingsStore.amoledMode.collectAsStateWithLifecycle(initialValue = true)
-            val dynamicColors by
-                settingsStore.dynamicColors.collectAsStateWithLifecycle(initialValue = true)
-            val rootAccessState by RootAccessManager.state.collectAsStateWithLifecycle()
-            val motionPolicy = rememberMotionPolicy()
-            var showRootWarning by rememberSaveable { mutableStateOf(false) }
-            val coroutineScope = rememberCoroutineScope()
-
-            LaunchedEffect(Unit) {
-                val result = RootAccessManager.requestRootAccess(applicationContext)
-                if (result == RootAccessState.GRANTED) {
-                    RootLogCaptureService.start(
-                        applicationContext,
-                        RootLogCaptureService.TRIGGER_STARTUP,
-                    )
-                }
-            }
-
-            LaunchedEffect(rootAccessState) {
-                if (
-                    rootAccessState == RootAccessState.DENIED ||
-                        rootAccessState == RootAccessState.UNAVAILABLE
-                ) {
-                    showRootWarning = true
-                }
-            }
-
-            CompositionLocalProvider(LocalMotionPolicy provides motionPolicy) {
-                // Determine actual dark state for edge-to-edge styling
-                val isSystemDark = isSystemInDarkTheme()
-                val isDarkModeActive =
-                    when (themeMode) {
-                        ThemeMode.SYSTEM -> isSystemDark
-                        ThemeMode.LIGHT -> false
-                        ThemeMode.DARK -> true
-                    }
-
-                val activity = this@MainActivity
-                DisposableEffect(isDarkModeActive) {
-                    activity.enableEdgeToEdge(
-                        statusBarStyle =
-                            if (isDarkModeActive) {
-                                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                            } else {
-                                SystemBarStyle.light(
-                                    android.graphics.Color.TRANSPARENT,
-                                    android.graphics.Color.TRANSPARENT,
-                                )
-                            },
-                        navigationBarStyle =
-                            if (isDarkModeActive) {
-                                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                            } else {
-                                SystemBarStyle.light(
-                                    android.graphics.Color.TRANSPARENT,
-                                    android.graphics.Color.TRANSPARENT,
-                                )
-                            },
-                    )
-                    onDispose {}
-                }
-
-                DeviceMaskerTheme(
-                    themeMode = themeMode,
-                    amoledBlack = amoledMode,
-                    dynamicColor = dynamicColors,
-                ) {
-                    DeviceMaskerMainApp(
-                        repository = repository,
-                        settingsStore = settingsStore,
-                        themeMode = themeMode,
-                        amoledMode = amoledMode,
-                        dynamicColors = dynamicColors,
-                        rootAccessState = rootAccessState,
-                        windowSizeClass = windowSizeClass,
-                        deepLinkIntent = pendingDeepLinkIntent,
-                        onDeepLinkIntentHandled = { pendingDeepLinkIntent = null },
-                        onExitApp = { finish() },
-                    )
-
-                    if (showRootWarning) {
-                        RootAccessWarningDialog(
-                            rootAccessState = rootAccessState,
-                            onRetry = {
-                                coroutineScope.launch {
-                                    val result =
-                                        RootAccessManager.requestRootAccess(
-                                            applicationContext,
-                                            force = true,
-                                        )
-                                    if (result == RootAccessState.GRANTED) {
-                                        showRootWarning = false
-                                        RootLogCaptureService.start(
-                                            applicationContext,
-                                            RootLogCaptureService.TRIGGER_STARTUP,
-                                        )
-                                    }
-                                }
-                            },
-                            onDismiss = { showRootWarning = false },
-                        )
-                    }
-                }
-            }
+            MainActivityContent(
+                activity = this,
+                appContext = applicationContext,
+                deepLinkIntent = pendingDeepLinkIntent,
+                deepLinkIntentHandled = { pendingDeepLinkIntent = null },
+                onExitApp = { finish() },
+            )
         }
     }
 
@@ -233,6 +86,68 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingDeepLinkIntent = intent
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+private fun MainActivityContent(
+    activity: ComponentActivity,
+    appContext: Context,
+    deepLinkIntent: Intent?,
+    deepLinkIntentHandled: () -> Unit,
+    onExitApp: () -> Unit,
+) {
+    val windowSizeClass = calculateWindowSizeClass(activity = activity)
+    val settingsStore = remember { SettingsDataStore(appContext) }
+    val repository = remember { SpoofRepository.getInstance(appContext) }
+    val themeMode by
+        settingsStore.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+    val amoledMode by settingsStore.amoledMode.collectAsStateWithLifecycle(initialValue = true)
+    val dynamicColors by
+        settingsStore.dynamicColors.collectAsStateWithLifecycle(initialValue = true)
+    val rootAccessState by RootAccessManager.state.collectAsStateWithLifecycle()
+    val motionPolicy = rememberMotionPolicy()
+    var showRootWarning by rememberSaveable { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    RequestStartupRootCapture(appContext)
+    ShowRootWarningWhenUnavailable(rootAccessState) { showRootWarning = true }
+
+    CompositionLocalProvider(LocalMotionPolicy provides motionPolicy) {
+        ApplyEdgeToEdgeStyle(activity = activity, themeMode = themeMode)
+        DeviceMaskerTheme(
+            themeMode = themeMode,
+            amoledBlack = amoledMode,
+            dynamicColor = dynamicColors,
+        ) {
+            DeviceMaskerMainApp(
+                repository = repository,
+                settingsStore = settingsStore,
+                themeMode = themeMode,
+                amoledMode = amoledMode,
+                dynamicColors = dynamicColors,
+                rootAccessState = rootAccessState,
+                windowSizeClass = windowSizeClass,
+                deepLinkIntent = deepLinkIntent,
+                deepLinkIntentHandled = deepLinkIntentHandled,
+                onExitApp = onExitApp,
+            )
+
+            if (showRootWarning) {
+                RootAccessWarningDialog(
+                    rootAccessState = rootAccessState,
+                    onRetry = {
+                        coroutineScope.launch {
+                            if (requestRootAndCaptureStartup(appContext, force = true)) {
+                                showRootWarning = false
+                            }
+                        }
+                    },
+                    onDismiss = { showRootWarning = false },
+                )
+            }
+        }
     }
 }
 
@@ -246,24 +161,18 @@ fun DeviceMaskerMainApp(
     dynamicColors: Boolean,
     rootAccessState: RootAccessState,
     windowSizeClass: WindowSizeClass,
+    modifier: Modifier = Modifier,
     deepLinkIntent: Intent? = null,
-    onDeepLinkIntentHandled: () -> Unit = {},
-    onExitApp: () -> Unit,
+    deepLinkIntentHandled: () -> Unit = {},
+    onExitApp: () -> Unit = {},
 ) {
     val navigationState = rememberDeviceMaskerNavigationState()
     val navigator = remember(navigationState) { DeviceMaskerNavigator(navigationState) }
     val context = LocalContext.current
-    val activity = context as? Activity
     val reduceMotion = AppMotion.shouldReduceMotion()
-    val listDetailSceneStrategy: SceneStrategy<NavDestination>? =
-        if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
-            null
-        } else {
-            rememberListDetailSceneStrategy<NavDestination>()
-        }
-    val sceneStrategies = listDetailSceneStrategy?.let { listOf(it) } ?: emptyList()
+    val sceneStrategies = rememberMainSceneStrategies(windowSizeClass)
     val entryDecorators =
-        listOf(
+        persistentListOf(
             rememberSaveableStateHolderNavEntryDecorator<NavDestination>(),
             rememberViewModelStoreNavEntryDecorator<NavDestination>(),
         )
@@ -276,189 +185,112 @@ fun DeviceMaskerMainApp(
             !navigationState.isFocusScreen
     val navigationBackHandler = {
         if (navigator.goBack()) {
-            activity?.finish() ?: onExitApp()
+            onExitApp()
         }
     }
 
-    LaunchedEffect(deepLinkIntent) {
-        val intent = deepLinkIntent ?: return@LaunchedEffect
-        if (intent.action == Intent.ACTION_VIEW) {
-            DeviceMaskerDeepLinks.parse(intent.dataString)?.let(navigator::navigateDeepLink)
-        }
-        onDeepLinkIntentHandled()
-    }
+    HandleMainDeepLinkIntent(deepLinkIntent, navigator, deepLinkIntentHandled)
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            if (showBottomBar) {
-                BottomNavBar(
-                    currentDestination = navigationState.topLevelDestination,
-                    onNavigate = { destination -> navigator.navigateTopLevel(destination) },
-                )
+    MainNavigationScaffold(
+        navigationState = navigationState,
+        navigator = navigator,
+        showBottomBar = showBottomBar,
+        showNavRail = showNavRail,
+        modifier = modifier,
+    ) { innerModifier ->
+        DeviceMaskerNavDisplay(
+            navigationState = navigationState,
+            navigator = navigator,
+            repository = repository,
+            settingsStore = settingsStore,
+            themeMode = themeMode,
+            amoledMode = amoledMode,
+            dynamicColors = dynamicColors,
+            rootAccessState = rootAccessState,
+            context = context,
+            modifier = innerModifier,
+            navigationBackHandler = navigationBackHandler,
+            entryDecorators = entryDecorators,
+            sceneStrategies = sceneStrategies,
+            reduceMotion = reduceMotion,
+        )
+    }
+}
+
+@Composable
+internal fun SettingsEntry(
+    application: android.app.Application,
+    settingsStore: SettingsDataStore,
+    themeMode: ThemeMode,
+    amoledMode: Boolean,
+    dynamicColors: Boolean,
+    rootAccessState: RootAccessState,
+    navigator: DeviceMaskerNavigator,
+    viewModel: SettingsViewModel =
+        viewModel(
+            factory =
+                remember(application, settingsStore) {
+                    settingsViewModelFactory(application, settingsStore)
+                }
+        ),
+) {
+    val settingsState by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val shareLogsChooserTitle = stringResource(R.string.settings_export_logs_share_chooser)
+
+    SettingsScreen(
+        themeMode = themeMode,
+        amoledDarkMode = amoledMode,
+        dynamicColors = dynamicColors,
+        isExportingLogs = settingsState.isExportingLogs,
+        rootAccessState = rootAccessState,
+        exportResult = settingsState.exportResult,
+        onThemeModeChange = { mode ->
+            Timber.d("Theme mode changed: $mode")
+            viewModel.setThemeMode(mode)
+        },
+        onAmoledDarkModeChange = { enabled ->
+            Timber.d("AMOLED mode changed: $enabled")
+            viewModel.setAmoledMode(enabled)
+        },
+        onDynamicColorChange = { enabled ->
+            Timber.d("Dynamic colors changed: $enabled")
+            viewModel.setDynamicColors(enabled)
+        },
+        onExportLogsToUri = { uri ->
+            Timber.d("Exporting logs to: $uri")
+            viewModel.exportLogsToUri(uri)
+        },
+        onShareLogs = {
+            Timber.d("Sharing logs...")
+            viewModel.createShareableLogs { result ->
+                handleShareLogsResult(context, shareLogsChooserTitle, result)
             }
         },
-    ) { innerPadding ->
-        Row(modifier = Modifier.fillMaxSize()) {
-            if (showNavRail) {
-                NavRail(
-                    currentDestination = navigationState.topLevelDestination,
-                    onNavigate = { destination -> navigator.navigateTopLevel(destination) },
-                )
-            }
-            NavDisplay(
-                backStack = navigationState.visibleBackStack,
-                modifier =
-                    if (showNavRail) {
-                        Modifier.padding(innerPadding).weight(1f)
-                    } else {
-                        Modifier.padding(innerPadding)
-                    },
-                onBack = navigationBackHandler,
-                entryDecorators = entryDecorators,
-                sceneStrategies = sceneStrategies,
-                transitionSpec = { navForwardTransform(reduceMotion) },
-                popTransitionSpec = { navBackTransform(reduceMotion) },
-                predictivePopTransitionSpec = { navBackTransform(reduceMotion) },
-                entryProvider =
-                    entryProvider {
-                        entry<NavDestination.Home> {
-                            val homeViewModel = viewModel { HomeViewModel(repository) }
-                            HomeScreen(
-                                viewModel = homeViewModel,
-                                onNavigateToSpoof = {
-                                    navigator.navigateTopLevel(NavDestination.Groups)
-                                },
-                                onRegenerateAll = {},
-                                onNavigateToGroup = navigator::navigateToGroup,
-                            )
-                        }
+        onClearExportResult = { viewModel.clearExportResult() },
+        onNavigateToDiagnostics = dropUnlessResumed(block = navigator::navigateToDiagnostics),
+        generateLogFileName = { viewModel.generateLogFileName() },
+    )
+}
 
-                        entry<NavDestination.Settings> {
-                            val application =
-                                (context.applicationContext as android.app.Application)
-                            val settingsViewModel = viewModel {
-                                SettingsViewModel(application, settingsStore)
-                            }
-                            val settingsState by
-                                settingsViewModel.state.collectAsStateWithLifecycle()
-                            val shareLogsChooserTitle =
-                                stringResource(R.string.settings_export_logs_share_chooser)
-
-                            SettingsScreen(
-                                themeMode = themeMode,
-                                amoledDarkMode = amoledMode,
-                                dynamicColors = dynamicColors,
-                                isExportingLogs = settingsState.isExportingLogs,
-                                rootAccessState = rootAccessState,
-                                exportResult = settingsState.exportResult,
-                                onThemeModeChange = { mode ->
-                                    Timber.d("Theme mode changed: $mode")
-                                    settingsViewModel.setThemeMode(mode)
-                                },
-                                onAmoledDarkModeChange = { enabled ->
-                                    Timber.d("AMOLED mode changed: $enabled")
-                                    settingsViewModel.setAmoledMode(enabled)
-                                },
-                                onDynamicColorChange = { enabled ->
-                                    Timber.d("Dynamic colors changed: $enabled")
-                                    settingsViewModel.setDynamicColors(enabled)
-                                },
-                                onExportLogsToUri = { uri ->
-                                    Timber.d("Exporting logs to: $uri")
-                                    settingsViewModel.exportLogsToUri(uri)
-                                },
-                                onShareLogs = {
-                                    Timber.d("Sharing logs...")
-                                    settingsViewModel.createShareableLogs { result ->
-                                        when (result) {
-                                            is ShareableLogResult.Success -> {
-                                                val shareIntent =
-                                                    Intent(Intent.ACTION_SEND).apply {
-                                                        type = "application/zip"
-                                                        putExtra(Intent.EXTRA_STREAM, result.uri)
-                                                        putExtra(
-                                                            Intent.EXTRA_SUBJECT,
-                                                            shareLogsChooserTitle,
-                                                        )
-                                                        clipData =
-                                                            ClipData.newUri(
-                                                                context.contentResolver,
-                                                                result.fileName,
-                                                                result.uri,
-                                                            )
-                                                        addFlags(
-                                                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                                        )
-                                                    }
-                                                context.startActivity(
-                                                    Intent.createChooser(
-                                                        shareIntent,
-                                                        shareLogsChooserTitle,
-                                                    )
-                                                )
-                                            }
-                                            is ShareableLogResult.Error -> {
-                                                Timber.e("Failed to share logs: ${result.message}")
-                                            }
-                                        }
-                                    }
-                                },
-                                onClearExportResult = { settingsViewModel.clearExportResult() },
-                                onNavigateToDiagnostics =
-                                    dropUnlessResumed(block = navigator::navigateToDiagnostics),
-                                generateLogFileName = { settingsViewModel.generateLogFileName() },
-                            )
-                        }
-
-                        // Group Spoofing Screen - Per-group spoof values and app assignment
-                        entry<NavDestination.GroupSpoofing>(
-                            metadata = ListDetailSceneStrategy.detailPane()
-                        ) { destination ->
-                            val groupSpoofingViewModel = viewModel {
-                                GroupSpoofingViewModel(repository, destination.groupId)
-                            }
-                            GroupSpoofingScreenContent(
-                                viewModel = groupSpoofingViewModel,
-                                onNavigateBack = navigationBackHandler,
-                            )
-                        }
-
-                        entry<NavDestination.Groups>(
-                            metadata =
-                                ListDetailSceneStrategy.listPane(
-                                    detailPlaceholder = {
-                                        Box(modifier = Modifier.fillMaxSize().wrapContentSize()) {
-                                            Text(
-                                                text = stringResource(R.string.group_empty_title),
-                                                style = MaterialTheme.typography.titleMedium,
-                                            )
-                                        }
-                                    }
-                                )
-                        ) {
-                            val groupsViewModel = viewModel { GroupsViewModel(repository) }
-                            GroupsScreen(
-                                viewModel = groupsViewModel,
-                                onGroupClick = { group -> navigator.navigateToGroup(group.id) },
-                            )
-                        }
-
-                        entry<NavDestination.Diagnostics> {
-                            val application =
-                                (context.applicationContext as android.app.Application)
-                            val diagnosticsViewModel = viewModel {
-                                DiagnosticsViewModel(application, repository)
-                            }
-                            DiagnosticsScreen(
-                                viewModel = diagnosticsViewModel,
-                                onNavigateBack = navigationBackHandler,
-                            )
-                        }
-                    },
-            )
+private fun handleShareLogsResult(
+    context: android.content.Context,
+    shareLogsChooserTitle: String,
+    result: ShareableLogResult,
+) {
+    when (result) {
+        is ShareableLogResult.Success -> {
+            val shareIntent =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, result.uri)
+                    putExtra(Intent.EXTRA_SUBJECT, shareLogsChooserTitle)
+                    clipData = ClipData.newUri(context.contentResolver, result.fileName, result.uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            context.startActivity(Intent.createChooser(shareIntent, shareLogsChooserTitle))
         }
+        is ShareableLogResult.Error -> Timber.e("Failed to share logs: ${result.message}")
     }
 }
 
@@ -474,10 +306,10 @@ private fun RootAccessWarningDialog(
         text = {
             Text(
                 text =
-                    when (rootAccessState) {
-                        RootAccessState.UNAVAILABLE ->
-                            stringResource(R.string.root_access_unavailable_message)
-                        else -> stringResource(R.string.root_access_denied_message)
+                    if (rootAccessState == RootAccessState.UNAVAILABLE) {
+                        stringResource(R.string.root_access_unavailable_message)
+                    } else {
+                        stringResource(R.string.root_access_denied_message)
                     }
             )
         },
@@ -489,78 +321,3 @@ private fun RootAccessWarningDialog(
         },
     )
 }
-
-@Composable
-private fun NavRail(
-    currentDestination: NavDestination,
-    onNavigate: (NavDestination) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    NavigationRail(
-        modifier = modifier.fillMaxHeight(),
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-    ) {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentDestination == item.destination
-            val navigateToItem = dropUnlessResumed { onNavigate(item.destination) }
-            NavigationRailItem(
-                selected = isSelected,
-                onClick = navigateToItem,
-                icon = {
-                    Icon(
-                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = stringResource(item.labelRes),
-                        modifier = Modifier.size(24.dp),
-                    )
-                },
-                label = {
-                    Text(
-                        text = stringResource(item.labelRes),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                },
-                colors =
-                    NavigationRailItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        selectedTextColor = MaterialTheme.colorScheme.secondary,
-                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-            )
-        }
-    }
-}
-
-private fun navForwardTransform(reduceMotion: Boolean): ContentTransform =
-    if (reduceMotion) {
-        fadeIn(animationSpec = spring()) togetherWith fadeOut(animationSpec = spring())
-    } else {
-        fadeIn(animationSpec = spring()) +
-            slideInHorizontally(
-                initialOffsetX = { it / 5 },
-                animationSpec = AppMotion.ReducedOffset,
-            ) togetherWith
-            fadeOut(animationSpec = spring()) +
-                slideOutHorizontally(
-                    targetOffsetX = { -it / 5 },
-                    animationSpec = AppMotion.ReducedOffset,
-                )
-    }
-
-private fun navBackTransform(reduceMotion: Boolean): ContentTransform =
-    if (reduceMotion) {
-        fadeIn(animationSpec = spring()) togetherWith fadeOut(animationSpec = spring())
-    } else {
-        fadeIn(animationSpec = spring()) +
-            slideInHorizontally(
-                initialOffsetX = { -it / 5 },
-                animationSpec = AppMotion.ReducedOffset,
-            ) togetherWith
-            fadeOut(animationSpec = spring()) +
-                slideOutHorizontally(
-                    targetOffsetX = { it / 5 },
-                    animationSpec = AppMotion.ReducedOffset,
-                )
-    }

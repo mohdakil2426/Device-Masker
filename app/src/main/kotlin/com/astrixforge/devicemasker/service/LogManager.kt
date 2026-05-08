@@ -15,6 +15,7 @@ import com.astrixforge.devicemasker.service.diagnostics.RootCaptureStore
 import com.astrixforge.devicemasker.service.diagnostics.RootLogCollector
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilder
 import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,7 +51,11 @@ object LogManager : ILogManager {
                         bundle.length().toInt(),
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                LogExportResult.Error("Export failed: ${e.message}")
+            } catch (e: SecurityException) {
+                LogExportResult.Error("Export failed: ${e.message}")
+            } catch (e: IllegalStateException) {
                 LogExportResult.Error("Export failed: ${e.message}")
             }
         }
@@ -78,7 +83,11 @@ object LogManager : ILogManager {
                     )
 
                 ShareableLogResult.Success(uri, fileName, logFile.length().toInt())
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
+            } catch (e: SecurityException) {
+                ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
+            } catch (e: IllegalStateException) {
                 ShareableLogResult.Error("Failed to create shareable log: ${e.message}")
             }
         }
@@ -144,7 +153,9 @@ object LogManager : ILogManager {
         withContext(Dispatchers.IO) {
             try {
                 AppLogStore.from(DeviceMaskerApp.getInstance()).readEntries().size
-            } catch (_: Exception) {
+            } catch (_: IOException) {
+                0
+            } catch (_: IllegalStateException) {
                 0
             }
         }

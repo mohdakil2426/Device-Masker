@@ -22,25 +22,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-
-/**
- * Quick Action Button data class.
- *
- * @param label Button label text
- * @param icon Optional leading icon
- * @param onClick Click handler
- * @param enabled Whether the button is enabled
- */
-data class QuickAction(
-    val label: String,
-    val icon: ImageVector? = null,
-    val onClick: () -> Unit,
-    val enabled: Boolean = true,
-)
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 /**
  * Material 3 Expressive ButtonGroup for quick actions.
@@ -49,7 +35,7 @@ data class QuickAction(
  * @param modifier Modifier for the button group
  */
 @Composable
-fun QuickActionGroup(actions: List<QuickAction>, modifier: Modifier = Modifier) {
+fun QuickActionGroup(actions: ImmutableList<QuickAction>, modifier: Modifier = Modifier) {
     ButtonGroup(
         overflowIndicator = { state -> ButtonGroupDefaults.OverflowIndicator(state) },
         modifier = modifier.fillMaxWidth(),
@@ -116,7 +102,7 @@ fun QuickActionRow(
  */
 @Composable
 fun SelectionButtonGroup(
-    options: List<String>,
+    options: ImmutableList<String>,
     selectedIndex: Int,
     onSelectionChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -159,7 +145,7 @@ private fun QuickActionGroupPreview() {
         Box(modifier = Modifier.padding(16.dp)) {
             QuickActionGroup(
                 actions =
-                    listOf(
+                    persistentListOf(
                         QuickAction(
                             label = "Configure",
                             icon = Icons.Outlined.Fingerprint,
@@ -198,7 +184,7 @@ private fun SelectionButtonGroupPreview() {
         var selectedIndex by remember { mutableIntStateOf(0) }
         Box(modifier = Modifier.padding(16.dp)) {
             SelectionButtonGroup(
-                options = listOf("Day", "Week", "Month"),
+                options = persistentListOf("Day", "Week", "Month"),
                 selectedIndex = selectedIndex,
                 onSelectionChange = { selectedIndex = it },
             )

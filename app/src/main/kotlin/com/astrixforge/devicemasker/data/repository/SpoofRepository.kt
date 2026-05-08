@@ -13,11 +13,15 @@ import com.astrixforge.devicemasker.common.generators.MACGenerator
 import com.astrixforge.devicemasker.common.generators.PhoneNumberGenerator
 import com.astrixforge.devicemasker.common.generators.SIMGenerator
 import com.astrixforge.devicemasker.common.generators.UUIDGenerator
+import com.astrixforge.devicemasker.common.getAllGroups
+import com.astrixforge.devicemasker.common.isAppAssigned
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.DeviceHardwareConfig
 import com.astrixforge.devicemasker.common.models.LocationConfig
 import com.astrixforge.devicemasker.common.models.SIMConfig
 import com.astrixforge.devicemasker.common.util.secureRandom
+import com.astrixforge.devicemasker.common.withEnabled
+import com.astrixforge.devicemasker.common.withValue
 import com.astrixforge.devicemasker.service.ConfigManager
 import com.astrixforge.devicemasker.service.IConfigManager
 import java.util.concurrent.atomic.AtomicReference
@@ -25,6 +29,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerializationException
+import timber.log.Timber
 
 /**
  * Main repository combining all spoof-related data operations.
@@ -38,7 +44,9 @@ import kotlinx.coroutines.flow.map
  */
 // Suppress: suspend modifiers are kept for API consistency and future-proofing.
 // configManager may become async in the future (database, network sync).
-@Suppress("RedundantSuspendModifier")
+// TooManyFunctions is suppressed on this compatibility facade only; contracts are split by
+// workflow.
+@Suppress("RedundantSuspendModifier", "TooManyFunctions")
 class SpoofRepository
 @JvmOverloads
 constructor(
@@ -261,10 +269,18 @@ constructor(
 
             // Location (independent coordinates)
             SpoofType.LOCATION_LATITUDE ->
-                String.format(java.util.Locale.US, "%.6f", (-90.0..90.0).secureRandom())
+                String.format(
+                    java.util.Locale.US,
+                    COORDINATE_FORMAT,
+                    (-MAX_LATITUDE..MAX_LATITUDE).secureRandom(),
+                )
 
             SpoofType.LOCATION_LONGITUDE ->
-                String.format(java.util.Locale.US, "%.6f", (-180.0..180.0).secureRandom())
+                String.format(
+                    java.util.Locale.US,
+                    COORDINATE_FORMAT,
+                    (-MAX_LONGITUDE..MAX_LONGITUDE).secureRandom(),
+                )
 
             else -> throw IllegalArgumentException("Unknown independent type: $type")
         }
@@ -502,7 +518,7 @@ constructor(
     }
 
     private fun randomDigits(length: Int) = buildString {
-        repeat(length) { append((0..9).secureRandom()) }
+        repeat(length) { append((MIN_DIGIT..MAX_DIGIT).secureRandom()) }
     }
 
     private fun randomFamilyName(): String {
@@ -617,12 +633,18 @@ constructor(
             val config = com.astrixforge.devicemasker.common.JsonConfig.parse(jsonString)
             config.getAllGroups().forEach { group -> configManager.updateGroup(group) }
             true
-        } catch (e: Exception) {
+        } catch (e: SerializationException) {
+            Timber.tag(TAG).w(e, "Failed to import spoof groups")
+            false
+        } catch (e: IllegalArgumentException) {
+            Timber.tag(TAG).w(e, "Failed to import spoof groups")
             false
         }
     }
 
     companion object {
+        private const val TAG = "SpoofRepository"
+
         @Volatile private var INSTANCE: SpoofRepository? = null
 
         /** Gets the singleton instance. */
@@ -634,3 +656,9 @@ constructor(
         }
     }
 }
+
+private const val COORDINATE_FORMAT = "%.6f"
+private const val MAX_LATITUDE = 90.0
+private const val MAX_LONGITUDE = 180.0
+private const val MIN_DIGIT = 0
+private const val MAX_DIGIT = 9

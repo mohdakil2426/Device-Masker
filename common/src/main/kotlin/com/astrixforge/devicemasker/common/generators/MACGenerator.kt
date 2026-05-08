@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.common.generators
 
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.secureRandom
 import java.security.SecureRandom
 
 /**
@@ -19,6 +19,8 @@ import java.security.SecureRandom
  * - Locally administered (bit 1 = 1) OR use real OUIs
  */
 object MACGenerator {
+    private const val UNICAST_LOCAL_ADMIN_MASK = 0xFC
+    private const val LOCAL_ADMIN_BIT = 0x02
 
     /**
      * Real OUI prefixes from major device manufacturers. These are 24-bit identifiers assigned by
@@ -81,7 +83,7 @@ object MACGenerator {
         val octets = ByteArray(6).apply { secureRandom.nextBytes(this) }
 
         // Ensure unicast (clear bit 0) and locally administered (set bit 1)
-        octets[0] = (octets[0].toInt() and 0xFC or 0x02).toByte()
+        octets[0] = (octets[0].toInt() and UNICAST_LOCAL_ADMIN_MASK or LOCAL_ADMIN_BIT).toByte()
 
         return octets.joinToString(":") { "%02X".format(it) }
     }

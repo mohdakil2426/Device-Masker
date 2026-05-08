@@ -6,6 +6,11 @@ object Utils {
     private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
     private val UUID_REGEX =
         Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+    private const val DEFAULT_MASK = "••••••••"
+    private const val MAX_MASK_LENGTH = 8
+    private const val IMEI_LENGTH = 15
+    private const val DECIMAL_RADIX = 10
+    private const val LUHN_DOUBLE_THRESHOLD = 9
 
     /** Log levels for service logging. */
     object LogLevel {
@@ -25,15 +30,20 @@ object Utils {
      * @return Masked string or original if too short
      */
     fun maskValue(value: String?, visibleChars: Int = 2): String {
-        if (value.isNullOrBlank()) return "••••••••"
-        if (value.length <= visibleChars * 2) return value
-
-        val start = value.take(visibleChars)
-        val end = value.takeLast(visibleChars)
-        val maskLength = value.length - (visibleChars * 2)
-        val mask = "•".repeat(maskLength.coerceAtMost(8))
-
-        return "$start$mask$end"
+        return if (value.isNullOrBlank()) {
+            DEFAULT_MASK
+        } else {
+            val visibleEdgeLength = visibleChars * 2
+            if (value.length <= visibleEdgeLength) {
+                value
+            } else {
+                val start = value.take(visibleChars)
+                val end = value.takeLast(visibleChars)
+                val maskLength = value.length - visibleEdgeLength
+                val mask = "•".repeat(maskLength.coerceAtMost(MAX_MASK_LENGTH))
+                "$start$mask$end"
+            }
+        }
     }
 
     /**
@@ -43,10 +53,8 @@ object Utils {
      * @return True if valid
      */
     fun isValidImei(imei: String): Boolean {
-        if (imei.length != 15) return false
-        if (!imei.all { it.isDigit() }) return false
-
-        return calculateLuhnChecksum(imei.dropLast(1)) == imei.last().digitToInt()
+        val hasValidFormat = imei.length == IMEI_LENGTH && imei.all { it.isDigit() }
+        return hasValidFormat && calculateLuhnChecksum(imei.dropLast(1)) == imei.last().digitToInt()
     }
 
     /** Calculates Luhn checksum for IMEI validation. */
@@ -56,11 +64,11 @@ object Utils {
             var digit = char.digitToInt()
             if (index % 2 == 0) {
                 digit *= 2
-                if (digit > 9) digit -= 9
+                if (digit > LUHN_DOUBLE_THRESHOLD) digit -= LUHN_DOUBLE_THRESHOLD
             }
             sum += digit
         }
-        return (10 - (sum % 10)) % 10
+        return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
     }
 
     /**

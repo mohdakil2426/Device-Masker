@@ -47,23 +47,64 @@ fun DeviceHardwareCategoryContent(
     group: SpoofGroup?,
     onToggle: (SpoofType, Boolean) -> Unit,
     onRegenerate: (SpoofType) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onRegenerateCategory: () -> Unit,
+    modifier: Modifier = Modifier,
+    @Suppress("UNUSED_PARAMETER") onRegenerateCategory: () -> Unit = {},
 ) {
-    val deviceProfileEnabled = group?.isTypeEnabled(SpoofType.DEVICE_PROFILE) ?: false
-    val deviceProfileRawValue = group?.getValue(SpoofType.DEVICE_PROFILE) ?: ""
-    val deviceProfileDisplayValue =
-        DeviceProfilePreset.findById(deviceProfileRawValue)?.name ?: deviceProfileRawValue
-    val imeiEnabled = group?.isTypeEnabled(SpoofType.IMEI) ?: false
-    val imeiValue = group?.getValue(SpoofType.IMEI) ?: ""
-    val serialEnabled = group?.isTypeEnabled(SpoofType.SERIAL) ?: false
-    val serialValue = group?.getValue(SpoofType.SERIAL) ?: ""
+    val uiState = group.toDeviceHardwareUiState()
 
-    // 1. Device Profile + Device Info (combined in one card)
-    val currentPreset = DeviceProfilePreset.findById(deviceProfileRawValue)
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        DeviceProfileCard(uiState = uiState, onToggle = onToggle, onRegenerate = onRegenerate)
+        HardwareSpoofItem(
+            type = SpoofType.IMEI,
+            value = uiState.imeiValue,
+            isEnabled = uiState.imeiEnabled,
+            onToggle = onToggle,
+            onRegenerate = onRegenerate,
+        )
+        HardwareSpoofItem(
+            type = SpoofType.SERIAL,
+            value = uiState.serialValue,
+            isEnabled = uiState.serialEnabled,
+            onToggle = onToggle,
+            onRegenerate = onRegenerate,
+        )
+    }
+}
 
+private data class DeviceHardwareUiState(
+    val deviceProfileEnabled: Boolean,
+    val deviceProfileDisplayValue: String,
+    val currentPreset: DeviceProfilePreset?,
+    val imeiEnabled: Boolean,
+    val imeiValue: String,
+    val serialEnabled: Boolean,
+    val serialValue: String,
+)
+
+private fun SpoofGroup?.toDeviceHardwareUiState(): DeviceHardwareUiState {
+    val rawProfile = this?.getValue(SpoofType.DEVICE_PROFILE).orEmpty()
+    val preset = DeviceProfilePreset.findById(rawProfile)
+    return DeviceHardwareUiState(
+        deviceProfileEnabled = this?.isTypeEnabled(SpoofType.DEVICE_PROFILE) ?: false,
+        deviceProfileDisplayValue = preset?.name ?: rawProfile,
+        currentPreset = preset,
+        imeiEnabled = this?.isTypeEnabled(SpoofType.IMEI) ?: false,
+        imeiValue = this?.getValue(SpoofType.IMEI).orEmpty(),
+        serialEnabled = this?.isTypeEnabled(SpoofType.SERIAL) ?: false,
+        serialValue = this?.getValue(SpoofType.SERIAL).orEmpty(),
+    )
+}
+
+@Composable
+private fun DeviceProfileCard(
+    uiState: DeviceHardwareUiState,
+    onToggle: (SpoofType, Boolean) -> Unit,
+    onRegenerate: (SpoofType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     ExpressiveCard(
         onClick = { /* Card click feedback */ },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         containerColor = MaterialTheme.colorScheme.surface,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
@@ -72,119 +113,131 @@ fun DeviceHardwareCategoryContent(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Header row with switch
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = SpoofType.DEVICE_PROFILE.displayName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f),
+            DeviceProfileHeader(
+                checked = uiState.deviceProfileEnabled,
+                onToggle = { onToggle(SpoofType.DEVICE_PROFILE, it) },
+            )
+            if (uiState.deviceProfileEnabled) {
+                DeviceProfileValueRow(
+                    value = uiState.deviceProfileDisplayValue,
+                    onRegenerate = { onRegenerate(SpoofType.DEVICE_PROFILE) },
                 )
-                ExpressiveSwitch(
-                    checked = deviceProfileEnabled,
-                    onCheckedChange = { onToggle(SpoofType.DEVICE_PROFILE, it) },
-                )
-            }
-
-            // Value and regenerate (only when enabled)
-            if (deviceProfileEnabled) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = deviceProfileDisplayValue.ifEmpty { "Not set" },
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    CompactExpressiveIconButton(
-                        onClick = { onRegenerate(SpoofType.DEVICE_PROFILE) },
-                        icon = Icons.Filled.Refresh,
-                        contentDescription = stringResource(id = R.string.action_regenerate),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                // Device Info details (within same card)
-                AnimatedVisibility(
-                    visible = currentPreset != null,
-                    enter = expandVertically(animationSpec = spring()) + fadeIn(),
-                    exit = shrinkVertically(animationSpec = spring()) + fadeOut(),
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        currentPreset?.let { preset ->
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_manufacturer),
-                                value = preset.manufacturer,
-                            )
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_brand),
-                                value = preset.brand,
-                            )
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_model),
-                                value = preset.model,
-                            )
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_device),
-                                value = preset.device,
-                            )
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_product),
-                                value = preset.product,
-                            )
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_board),
-                                value = preset.board,
-                            )
-                            ReadOnlyValueRow(
-                                label = stringResource(id = R.string.group_spoofing_fingerprint),
-                                value = preset.fingerprint,
-                            )
-                            if (preset.securityPatch.isNotBlank()) {
-                                ReadOnlyValueRow(
-                                    label =
-                                        stringResource(id = R.string.group_spoofing_security_patch),
-                                    value = preset.securityPatch,
-                                )
-                            }
-                        }
-                    }
-                }
+                DeviceProfileDetails(preset = uiState.currentPreset)
             }
         }
     }
+}
 
-    // 2. IMEI - independent
-    IndependentSpoofItem(
-        type = SpoofType.IMEI,
-        value = imeiValue,
-        isEnabled = imeiEnabled,
-        onToggle = { enabled -> onToggle(SpoofType.IMEI, enabled) },
-        onRegenerate = { onRegenerate(SpoofType.IMEI) },
+@Composable
+private fun DeviceProfileHeader(checked: Boolean, onToggle: (Boolean) -> Unit) {
+    Row(
         modifier = Modifier.fillMaxWidth(),
-    )
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = SpoofType.DEVICE_PROFILE.displayName,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f),
+        )
+        ExpressiveSwitch(checked = checked, onCheckedChange = onToggle)
+    }
+}
 
-    // 3. Serial - independent
+@Composable
+private fun DeviceProfileValueRow(value: String, onRegenerate: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = value.ifEmpty { "Not set" },
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        CompactExpressiveIconButton(
+            onClick = onRegenerate,
+            icon = Icons.Filled.Refresh,
+            contentDescription = stringResource(id = R.string.action_regenerate),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+private fun DeviceProfileDetails(preset: DeviceProfilePreset?) {
+    AnimatedVisibility(
+        visible = preset != null,
+        enter = expandVertically(animationSpec = spring()) + fadeIn(),
+        exit = shrinkVertically(animationSpec = spring()) + fadeOut(),
+    ) {
+        preset?.let { DeviceProfileDetailsRows(preset = it) }
+    }
+}
+
+@Composable
+private fun DeviceProfileDetailsRows(preset: DeviceProfilePreset) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_manufacturer),
+            value = preset.manufacturer,
+        )
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_brand),
+            value = preset.brand,
+        )
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_model),
+            value = preset.model,
+        )
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_device),
+            value = preset.device,
+        )
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_product),
+            value = preset.product,
+        )
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_board),
+            value = preset.board,
+        )
+        ReadOnlyValueRow(
+            label = stringResource(id = R.string.group_spoofing_fingerprint),
+            value = preset.fingerprint,
+        )
+        if (preset.securityPatch.isNotBlank()) {
+            ReadOnlyValueRow(
+                label = stringResource(id = R.string.group_spoofing_security_patch),
+                value = preset.securityPatch,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HardwareSpoofItem(
+    type: SpoofType,
+    value: String,
+    isEnabled: Boolean,
+    onToggle: (SpoofType, Boolean) -> Unit,
+    onRegenerate: (SpoofType) -> Unit,
+) {
     IndependentSpoofItem(
-        type = SpoofType.SERIAL,
-        value = serialValue,
-        isEnabled = serialEnabled,
-        onToggle = { enabled -> onToggle(SpoofType.SERIAL, enabled) },
-        onRegenerate = { onRegenerate(SpoofType.SERIAL) },
+        type = type,
+        value = value,
+        isEnabled = isEnabled,
+        onToggle = { enabled -> onToggle(type, enabled) },
+        onRegenerate = { onRegenerate(type) },
         modifier = Modifier.fillMaxWidth(),
     )
 }

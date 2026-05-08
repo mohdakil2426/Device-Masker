@@ -60,7 +60,7 @@ fun AppListItem(
     ExpressiveCard(
         onClick = { onToggle(!isAssigned) },
         modifier =
-            modifier.alpha(if (isDisabled) 0.6f else 1f).semantics {
+            modifier.alpha(if (isDisabled) DISABLED_ALPHA else 1f).semantics {
                 role = Role.Checkbox
                 stateDescription = if (isAssigned) assignedState else unassignedState
             },
@@ -71,58 +71,99 @@ fun AppListItem(
         selectionColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AppIcon(app = app)
+        AppListItemContent(
+            app = app,
+            isAssigned = isAssigned,
+            assignedToOtherGroupName = assignedToOtherGroupName,
+            toggleRequested = onToggle,
+        )
+    }
+}
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text =
-                        if (isDisabled) {
-                            stringResource(
-                                id = R.string.group_spoofing_assigned_to,
-                                assignedToOtherGroupName,
-                            )
-                        } else {
-                            app.packageName
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                    color =
-                        if (isDisabled) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+@Composable
+private fun AppListItemContent(
+    app: InstalledApp,
+    isAssigned: Boolean,
+    assignedToOtherGroupName: String?,
+    toggleRequested: (Boolean) -> Unit,
+) {
+    val isDisabled = assignedToOtherGroupName != null
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcon(app = app)
+        AppDetails(
+            app = app,
+            assignedToOtherGroupName = assignedToOtherGroupName,
+            modifier = Modifier.weight(1f),
+        )
+        AppAssignmentControl(
+            isAssigned = isAssigned,
+            isDisabled = isDisabled,
+            toggleRequested = toggleRequested,
+        )
+    }
+}
 
-            if (isDisabled) {
-                Icon(
-                    imageVector = Icons.Filled.Lock,
-                    contentDescription = stringResource(id = R.string.group_spoofing_locked),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
-                )
-            } else {
-                Checkbox(
-                    checked = isAssigned,
-                    onCheckedChange = onToggle,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-            }
-        }
+@Composable
+private fun AppDetails(
+    app: InstalledApp,
+    assignedToOtherGroupName: String?,
+    modifier: Modifier = Modifier,
+) {
+    val isDisabled = assignedToOtherGroupName != null
+    Column(modifier = modifier) {
+        Text(
+            text = app.label,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = appSubtitle(app.packageName, assignedToOtherGroupName),
+            style = MaterialTheme.typography.bodySmall,
+            color =
+                if (isDisabled) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun appSubtitle(packageName: String, assignedToOtherGroupName: String?): String =
+    if (assignedToOtherGroupName != null) {
+        stringResource(id = R.string.group_spoofing_assigned_to, assignedToOtherGroupName)
+    } else {
+        packageName
+    }
+
+@Composable
+private fun AppAssignmentControl(
+    isAssigned: Boolean,
+    isDisabled: Boolean,
+    toggleRequested: (Boolean) -> Unit,
+) {
+    if (isDisabled) {
+        Icon(
+            imageVector = Icons.Filled.Lock,
+            contentDescription = stringResource(id = R.string.group_spoofing_locked),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp),
+        )
+    } else {
+        Checkbox(
+            checked = isAssigned,
+            onCheckedChange = toggleRequested,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
     }
 }
 
@@ -158,6 +199,7 @@ private fun AppIcon(app: InstalledApp, modifier: Modifier = Modifier) {
 }
 
 private const val APP_ICON_SIZE_PX = 80
+private const val DISABLED_ALPHA = 0.6f
 
 @Composable
 fun AppIconFallback(modifier: Modifier = Modifier) {

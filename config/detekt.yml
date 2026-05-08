@@ -75,13 +75,13 @@ comments:
 complexity:
   active: true
   CognitiveComplexMethod:
-    active: false
+    active: true
     allowedComplexity: 15
   ComplexCondition:
     active: true
     allowedConditions: 4
   ComplexInterface:
-    active: false
+    active: true
     allowedDefinitions: 10
     includeStaticDeclarations: false
     includePrivateDeclarations: false
@@ -131,7 +131,7 @@ complexity:
     active: true
     allowedDepth: 4
   NestedScopeFunctions:
-    active: false
+    active: true
     allowedDepth: 1
     functions:
       - 'kotlin.apply'
@@ -149,7 +149,7 @@ complexity:
     allowedWithLengthLessThan: 5
     ignoreStringsRegex: '$^'
   TooManyFunctions:
-    active: false
+    active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
     allowedFunctionsPerFile: 11
     allowedFunctionsPerClass: 11
@@ -160,14 +160,15 @@ complexity:
     ignorePrivate: false
     ignoreInternal: false
     ignoreOverridden: false
-    ignoreAnnotatedFunctions: []
+    ignoreAnnotatedFunctions:
+      - 'Preview'
 
 coroutines:
   active: true
   CoroutineLaunchedInTestWithoutRunTest:
     active: false
   GlobalCoroutineUsage:
-    active: false
+    active: true
   InjectDispatcher:
     active: true
     dispatcherNames:
@@ -179,11 +180,11 @@ coroutines:
   SleepInsteadOfDelay:
     active: true
   SuspendFunInFinallySection:
-    active: false
+    active: true
   SuspendFunSwallowedCancellation:
-    active: false
+    active: true
   SuspendFunWithCoroutineScopeReceiver:
-    active: false
+    active: true
     aliases: ['SuspendFunctionOnCoroutineScope']
   SuspendFunWithFlowReturnType:
     active: true
@@ -331,6 +332,8 @@ naming:
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
     functionPattern: '[a-z][a-zA-Z0-9]*'
     excludeClassPattern: '$^'
+    ignoreAnnotated:
+      - 'Composable'
   FunctionParameterNaming:
     active: true
     parameterPattern: '[a-z][A-Za-z0-9]*'
@@ -421,18 +424,18 @@ potential-bugs:
     forbiddenTypePatterns:
       - 'kotlin.String'
   CastNullableToNonNullableType:
-    active: false
+    active: true
     ignorePlatformTypes: true
   CastToNullableType:
-    active: false
+    active: true
   CharArrayToStringCall:
-    active: false
+    active: true
   Deprecation:
     active: false
     aliases: ['DEPRECATION']
     excludeImportStatements: false
   DontDowncastCollectionTypes:
-    active: false
+    active: true
   DoubleMutabilityForCollection:
     active: true
     aliases: ['DoubleMutability']
@@ -446,7 +449,7 @@ potential-bugs:
       - 'java.util.LinkedHashMap'
       - 'java.util.HashMap'
   ElseCaseInsteadOfExhaustiveWhen:
-    active: false
+    active: true
     ignoredSubjectTypes: []
   EqualsAlwaysReturnsTrueOrFalse:
     active: true
@@ -497,12 +500,12 @@ potential-bugs:
     active: false
     excludes: ['**/*.kts']
   MissingSuperCall:
-    active: false
+    active: true
     mustInvokeSuperAnnotations:
       - 'androidx.annotation.CallSuper'
       - 'javax.annotation.OverridingMethodsMustInvokeSuper'
   MissingUseCall:
-    active: false
+    active: true
     ignoreClass:
       - 'java.io.ByteArrayInputStream'
       - 'java.io.ByteArrayOutputStream'
@@ -521,7 +524,7 @@ potential-bugs:
     ignoreArgumentsMatchingNames: true
     ignoreFunctionCall: []
   UnnecessaryNotNullCheck:
-    active: false
+    active: true
   UnnecessaryNotNullOperator:
     active: true
   UnnecessarySafeCall:
@@ -635,17 +638,17 @@ style:
       - 'androidx.lifecycle.MutableLiveData'
     allowedImports: []
   ForbiddenMethodCall:
-    active: false
+    active: true
     methods:
-      - reason: 'print does not allow you to configure the output stream. Use a logger instead.'
+      - reason: 'Use Timber in :app or DualLog in :xposed instead.'
         value: 'kotlin.io.print'
-      - reason: 'println does not allow you to configure the output stream. Use a logger instead.'
+      - reason: 'Use Timber in :app or DualLog in :xposed instead.'
         value: 'kotlin.io.println'
-      - reason: 'using `BigDecimal(Double)` can result in unexpected floating point precision behavior. Use `BigDecimal.valueOf(Double)` or `String.toBigDecimalOrNull()` instead.'
+      - reason: 'Use BigDecimal.valueOf(Double) or String.toBigDecimalOrNull().'
         value: 'java.math.BigDecimal.<init>(kotlin.Double)'
-      - reason: 'using `BigDecimal(String)` can result in a `NumberFormatException`. Use `String.toBigDecimalOrNull()`'
+      - reason: 'Use String.toBigDecimalOrNull().'
         value: 'java.math.BigDecimal.<init>(kotlin.String)'
-      - reason: 'It is marked as obsolete. Use `kotlin.time.measureTime` instead.'
+      - reason: 'Use kotlin.time.measureTime instead.'
         value: 'kotlin.system.measureTimeMillis'
   ForbiddenNamedParam:
     active: false
@@ -735,7 +738,7 @@ style:
   RedundantHigherOrderMapUsage:
     active: true
   RedundantVisibilityModifier:
-    active: false
+    active: true
   ReturnCount:
     active: true
     max: 2
@@ -803,11 +806,11 @@ style:
     active: true
     aliases: ['unused']
   UnusedPrivateFunction:
-    active: false
+    active: true
     aliases: ['unused']
     allowedNames: ''
   UnusedPrivateProperty:
-    active: false
+    active: true
     aliases: ['unused']
     allowedNames: 'ignored|expected|serialVersionUID'
   UnusedVariable:
@@ -823,14 +826,14 @@ style:
   UseCheckOrError:
     active: true
   UseDataClass:
-    active: false
+    active: true
     allowVars: false
   UseEmptyCounterpart:
     active: false
   UseIfEmptyOrIfBlank:
-    active: false
+    active: true
   UseIfInsteadOfWhen:
-    active: false
+    active: true
     ignoreWhenContainingVariableDeclaration: false
   UseIsNullOrEmpty:
     active: true
@@ -866,6 +869,9 @@ Compose:
     active: true
   CompositionLocalAllowlist:
     active: true
+    allowedCompositionLocals:
+      - LocalMotionPolicy
+      - LocalEmphasizedTypography
   CompositionLocalNaming:
     active: true
   ContentEmitterReturningValues:
@@ -888,6 +894,7 @@ Compose:
     active: false
   ModifierMissing:
     active: true
+    checkModifiersForVisibility: public_and_internal
   ModifierNaming:
     active: true
   ModifierNotUsedAtRoot:
@@ -909,7 +916,8 @@ Compose:
   PreviewAnnotationNaming:
     active: true
   PreviewNaming:
-    active: false
+    active: true
+    previewNamingStrategy: suffix
   PreviewPublic:
     active: true
   RememberContentMissing:
@@ -919,7 +927,7 @@ Compose:
   StateParam:
     active: true
   UnstableCollections:
-    active: false
+    active: true
   ViewModelForwarding:
     active: true
   ViewModelInjection:

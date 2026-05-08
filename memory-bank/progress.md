@@ -7,7 +7,7 @@
 | Project phase | Development, R8 enabled in release |
 | Build | Focused R8 release gate passing: `spotlessApply spotlessCheck :xposed:testDebugUnitTest :app:assembleRelease` |
 | Unit tests | Passing |
-| Lint/format/static analysis | Passing with Spotless, lint, and Detekt baselines |
+| Lint/format/static analysis | Passing with Spotless, lint, and Detekt `allRules=true`; baselines are empty |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
@@ -20,6 +20,21 @@
 
 ## Latest Audit Remediation
 
+- Detekt maximum strictness rollout started on 2026-05-08:
+  - `allRules=true` enabled in root Detekt configuration.
+  - Shared Detekt config tightened for complexity, coroutine, potential-bugs, style, and Compose rules.
+  - Xposed override no longer disables `MagicNumber`; defensive hook-specific relaxations remain.
+  - Baseline debt reduced from 214 entries to zero after safe mechanical/code-quality cleanup.
+  - Current strict Detekt passes with empty baselines.
+  - Latest cleanup removed additional app/common baseline entries by splitting `AppListItem` and `SpoofValueCard`, simplifying navigation back/deep-link control flow, narrowing app-side export/config exception handling, and simplifying persona subscription value resolution.
+  - `:common` baseline is now zero after splitting broad JsonConfig, SpoofGroup, SharedPrefsKeys, and PersonaGenerator helper surfaces into focused extension/helper files.
+  - `:xposed` baseline is now zero after splitting repeated hook registrations in Device, AntiDetect, Sensor, WebView, Advertising, and Subscription hookers while preserving `stableHooker` callbacks.
+  - Latest app cleanup removed all `ViewModelInjection` entries, split MainActivity root/edge-to-edge effects, split AnimatedSection header/body rendering, and split CategorySection, GroupCard, Home status/group selector UI, and Diagnostics module status UI.
+  - Latest app cleanup split ConfigSync helpers, ExpressiveSwitch state/dimensions, picker dialog stable list state, SIM card controls, device hardware sections, location sections, Apps tab helpers, Groups helpers, and Settings helpers.
+  - Current remaining baseline rule counts: zero across `:app`, `:common`, and `:xposed`.
+  - Final app baseline cleanup split `IConfigManager` and `ISpoofRepository` into smaller workflow contracts while keeping `ConfigManager` and `SpoofRepository` as unified compatibility facades.
+  - Verification passed: `spotlessApply`, `:common:compileDebugKotlin :app:compileDebugKotlin`, `:xposed:compileDebugKotlin`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, `:xposed:testDebugUnitTest`, the Xposed R8 ABI guard, and `graphify update .`.
+  - Latest app-only verification passed: `.\gradlew.bat :app:testDebugUnitTest --no-daemon --stacktrace` and `.\gradlew.bat detekt --no-daemon --stacktrace`.
 - CI/CD and manual release workflow setup was implemented for version `0.1.1`:
   - `VERSION_NAME=0.1.1` and `VERSION_CODE=2` now live in `gradle.properties`.
   - `app/build.gradle.kts` reads version properties through Gradle providers.
@@ -46,7 +61,7 @@
 - Three-module Gradle structure: `:app`, `:common`, `:xposed`.
 - Compose app launches.
 - Full Gradle gate passes, including the `ciRelease` minified variant.
-- Detekt runs across `:app`, `:common`, and `:xposed` with central config, Xposed-safe overrides, and initial per-module baselines.
+- Detekt runs across `:app`, `:common`, and `:xposed` with central config and per-module baselines. All module baselines are empty.
 - Local config persists to app `filesDir/config.json`.
 - App-side libxposed service binding exposes connection state.
 - Config sync writes flattened per-app RemotePreferences keys.

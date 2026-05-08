@@ -21,7 +21,7 @@ Android LSPosed/libxposed module for per-app device identity spoofing. 3-module 
 |--------|----------------|----------------|
 | `:app` | Compose UI, ViewModels, ConfigManager, ConfigSync, XposedPrefs, diagnostics, root capture | No hook logic. Timber OK here. |
 | `:common` | JsonConfig, SpoofType, SharedPrefsKeys, generators, DevicePersona | No Android UI deps. Generators run at config time only. |
-| `:xposed` | XposedEntry, all hookers, PrefsReader, DualLog | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
+| `:xposed` | XposedEntry, all hookers, PrefsHelper, DualLog | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
 
 ## Architecture Reference
 
@@ -72,7 +72,7 @@ devicemasker/
 | User-facing docs | `docs/public/` | `docs/internal/` |
 | Active internal reports/audits | `docs/internal/reports/active/` | project root or `docs/internal/reports/` root |
 | Closed internal reports/audits | `docs/internal/reports/closed/` | project root or `docs/internal/reports/` root |
-| Implementation plans | `docs/superpowers/plans/` | `docs/reports/` or project root |
+| Implementation plans | `docs/superpowers/plans/` | reports folders or project root |
 | Build logs and command output | `logs/build/` | project root, docs, module dirs |
 | Device testing logs, logcat, screenshots, captures, exported evidence | `logs/device/` | project root or docs |
 | Agent/user temporary check artifacts | `logs/tmp/` | project root or source folders |
@@ -88,21 +88,24 @@ Report lifecycle:
 
 Use Windows Gradle wrapper commands from repo root.
 
+Before writing or changing code, read `docs/public/AGENTS_CODING_RULES.md` and apply those rules.
+
 ```powershell
-.\gradlew.bat spotlessApply --no-daemon
-.\gradlew.bat spotlessCheck --no-daemon
-.\gradlew.bat detekt --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon
 .\gradlew.bat :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon
-.\gradlew.bat lint test assembleDebug --no-daemon
-.\gradlew.bat assembleRelease :app:assembleCiRelease --no-daemon
+.\gradlew.bat spotlessCheck detekt lint test assembleDebug --no-daemon
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleRelease :app:assembleCiRelease --no-daemon
+.\gradlew.bat detektBaseline --no-daemon
 ```
 
 Rules:
 - Format with Spotless; do not hand-format unrelated code.
-- Always Run Detekt after Kotlin/Compose changes; update baselines only for accepted existing debt.
-- Run module tests for touched modules; run the full gate before release/R8 claims.
+- Run Spotless and Detekt together after Kotlin/Compose changes.
+- Run module tests for touched modules.
+- Run the release/R8 gate before release or hook-safety claims.
+- Run `detektBaseline` separately from `detekt`; update baselines only for accepted, documented existing debt.
 - Do not claim hook success without LSPosed/logcat evidence and target-app value checks where possible.
-- When getting any errors and build failed, examine it and find root couse,and must use mcp Google-developer-knowledge mcp and web search and also chek-out available skills to find best possible solutions.
+- On build failures, find the root cause first; use relevant skills, official docs, Google-developer-knowledge MCP for Android/Google APIs, and web search when current docs are needed.
 
 ## Xposed Safety
 
@@ -119,7 +122,7 @@ Rules:
 - Read app-private JSON files
 - Hardcode RemotePreferences key strings
 - Mutate `chain.args` in place — it's immutable. Copy and call `chain.proceed(Object[])`
-- Use direct Kotlin SAM callbacks like `xi.hook(m).intercept { ... }`; release R8 caused `AbstractMethodError` from that callback shape
+- Use direct Kotlin SAM intercept callbacks; release R8 caused `AbstractMethodError` from that callback shape
 - Re-enable global `Class.forName` / `ClassLoader.loadClass` hooks without per-app kill switch
 
 **libxposed API 101 specifics:**
@@ -153,6 +156,12 @@ Critical rule: Load the `libxposed` skill before any Xposed work: `.agents/skill
 
 Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expressive`, `navigation-3`, `r8-analyzer`.
 
+## MCP Usage
+
+- Use `Google-developer-knowledge` MCP for Android, Google, Material 3 Expressive, Firebase, Play, Web, or Google Cloud and all the google documentations. this is best for that things, dont use context7 for these.
+- Use `mobile_mcp` for emulator/device to controll the emulator and manual app tests.
+- Use `context7` for current library/framework/API documentation before changing code that depends on external APIs.
+
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.
@@ -163,9 +172,3 @@ Rules:
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
 - For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost).
-
-## MCP Usage
-
-- Use `Google-developer-knowledge` MCP for Android, Google, Material 3 Expressive, Firebase, Play, Web, or Google Cloud and all the google documentations. this is best for that things, dont use context7 for these.
-- Use `mobile_mcp` for emulator/device to controll the emulator and manual app tests.
-- Use `context7` for current library/framework/API documentation before changing code that depends on external APIs.

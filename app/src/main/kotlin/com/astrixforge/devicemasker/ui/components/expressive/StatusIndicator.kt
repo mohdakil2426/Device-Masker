@@ -91,11 +91,13 @@ fun StatusIndicator(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier.size(size * 0.6f),
+                modifier = Modifier.size(size * ICON_SIZE_FRACTION),
             )
         }
     }
 }
+
+private const val ICON_SIZE_FRACTION = 0.6f
 
 /** Status indicator that automatically shows check/close icons based on state. */
 @Composable

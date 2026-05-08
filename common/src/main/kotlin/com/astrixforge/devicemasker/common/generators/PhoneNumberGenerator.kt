@@ -1,7 +1,7 @@
 package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.models.Carrier
-import com.astrixforge.devicemasker.common.util.*
+import com.astrixforge.devicemasker.common.util.secureRandom
 import java.security.SecureRandom
 
 /**
@@ -216,14 +216,15 @@ object PhoneNumberGenerator {
      * @return Phone number with matching country code
      */
     fun generate(carrier: Carrier): String {
-        return when (val countryCode = carrier.countryCode) {
-            "1" ->
-                when (carrier.countryIso) {
-                    "US" -> generateUSPhoneNumber() // USA: Use realistic area code
-                    "CA" -> generateCanadianPhoneNumber() // Canada: Use Canadian area codes
-                    else -> generateGenericNumber(countryCode) // Other NANP regions
-                }
-            else -> generateGenericNumber(countryCode)
+        val countryCode = carrier.countryCode
+        return if (countryCode == "1") {
+            when (carrier.countryIso) {
+                "US" -> generateUSPhoneNumber() // USA: Use realistic area code
+                "CA" -> generateCanadianPhoneNumber() // Canada: Use Canadian area codes
+                else -> generateGenericNumber(countryCode) // Other NANP regions
+            }
+        } else {
+            generateGenericNumber(countryCode)
         }
     }
 

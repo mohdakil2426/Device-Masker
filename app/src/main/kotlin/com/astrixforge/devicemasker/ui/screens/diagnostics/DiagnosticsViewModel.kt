@@ -50,7 +50,7 @@ class DiagnosticsViewModel(
     fun refresh() {
         _state.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
-            delay(400) // Minimum visible refresh duration
+            delay(MIN_REFRESH_DURATION_MILLIS)
             runDiagnostics()
             _state.update { it.copy(isRefreshing = false) }
         }
@@ -142,5 +142,9 @@ class DiagnosticsViewModel(
                 isPassed = true,
             ),
         )
+    }
+
+    private companion object {
+        private const val MIN_REFRESH_DURATION_MILLIS = 400L
     }
 }

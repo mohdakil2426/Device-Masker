@@ -43,10 +43,8 @@ class PersonaGeneratorTest {
     fun `shared pref keys include persona keys`() {
         val packageName = "com.example.target"
 
-        assertTrue(SharedPrefsKeys.isPersonaBlobKey(SharedPrefsKeys.getPersonaBlobKey(packageName)))
-        assertTrue(
-            SharedPrefsKeys.isPersonaVersionKey(SharedPrefsKeys.getPersonaVersionKey(packageName))
-        )
+        assertTrue(isPersonaBlobKey(SharedPrefsKeys.getPersonaBlobKey(packageName)))
+        assertTrue(isPersonaVersionKey(SharedPrefsKeys.getPersonaVersionKey(packageName)))
     }
 
     @Test

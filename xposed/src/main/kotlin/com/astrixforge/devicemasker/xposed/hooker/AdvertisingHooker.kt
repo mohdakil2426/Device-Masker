@@ -15,6 +15,10 @@ import io.github.libxposed.api.XposedInterface
  */
 object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
 
+    private const val GSERVICES_ANDROID_ID_KEY = "android_id"
+    private const val GSERVICES_GETTER_PARAMETER_COUNT = 3
+    private const val HEX_RADIX = 16
+
     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
         hookAdvertisingIdClient(cl, xi, prefs, pkg)
         hookGservices(cl, xi, prefs, pkg)
@@ -56,11 +60,22 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
         pkg: String,
     ) {
         val gservicesClass = cl.loadClassOrNull("com.google.android.gsf.Gservices") ?: return
+        hookGservicesString(gservicesClass, xi, prefs, pkg)
+        hookGservicesLong(gservicesClass, xi, prefs, pkg)
+    }
+
+    private fun hookGservicesString(
+        gservicesClass: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         safeHook("Gservices.getString(ContentResolver, String)") {
-            // Method with ContentResolver + String key + default (3 params)
             gservicesClass
                 .getDeclaredMethods()
-                .filter { it.name == "getString" && it.parameterCount == 3 }
+                .filter {
+                    it.name == "getString" && it.parameterCount == GSERVICES_GETTER_PARAMETER_COUNT
+                }
                 .forEach { m ->
                     m.isAccessible = true
                     xi.hook(m)
@@ -69,7 +84,7 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                                 val result = chain.proceed()
                                 val key =
                                     chain.args.getOrNull(1) as? String ?: return@stableHooker result
-                                if (key != "android_id") return@stableHooker result
+                                if (key != GSERVICES_ANDROID_ID_KEY) return@stableHooker result
                                 val spoofed =
                                     getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
                                         ?: return@stableHooker result
@@ -80,10 +95,20 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                     xi.deoptimize(m)
                 }
         }
+    }
+
+    private fun hookGservicesLong(
+        gservicesClass: Class<*>,
+        xi: XposedInterface,
+        prefs: SharedPreferences,
+        pkg: String,
+    ) {
         safeHook("Gservices.getLong(ContentResolver, String, long)") {
             gservicesClass
                 .getDeclaredMethods()
-                .filter { it.name == "getLong" && it.parameterCount == 3 }
+                .filter {
+                    it.name == "getLong" && it.parameterCount == GSERVICES_GETTER_PARAMETER_COUNT
+                }
                 .forEach { m ->
                     m.isAccessible = true
                     xi.hook(m)
@@ -92,12 +117,13 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
                                 val result = chain.proceed()
                                 val key =
                                     chain.args.getOrNull(1) as? String ?: return@stableHooker result
-                                if (key != "android_id") return@stableHooker result
+                                if (key != GSERVICES_ANDROID_ID_KEY) return@stableHooker result
                                 val spoofed =
                                     getConfiguredSpoofValue(prefs, pkg, SpoofType.GSF_ID)
                                         ?: return@stableHooker result
                                 val finalVal =
-                                    runCatching { spoofed.toLong(16) }.getOrElse { result as Long }
+                                    runCatching { spoofed.toLong(HEX_RADIX) }
+                                        .getOrElse { result as Long }
                                 reportSpoofEvent(pkg, SpoofType.GSF_ID)
                                 finalVal
                             }
@@ -139,7 +165,9 @@ object AdvertisingHooker : BaseSpoofHooker("AdvertisingHooker") {
     private fun hexToBytes(hex: String): ByteArray? {
         val cleanHex = hex.trim()
         if (cleanHex.length < 2 || cleanHex.length % 2 != 0) return null
-        return runCatching { cleanHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray() }
+        return runCatching {
+                cleanHex.chunked(2).map { it.toInt(HEX_RADIX).toByte() }.toByteArray()
+            }
             .getOrNull()
     }
 }

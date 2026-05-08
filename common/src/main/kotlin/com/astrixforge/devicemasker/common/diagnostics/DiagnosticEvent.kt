@@ -104,9 +104,10 @@ data class DiagnosticEvent(
                 nextSequence.updateAndGet { current ->
                     if (current >= MAX_SEQUENCE) 1 else current + 1
                 }
-            return "evt_${timestampWallMillis}_${sequence.toString().padStart(6, '0')}"
+            return "evt_${timestampWallMillis}_${sequence.toString().padStart(SEQUENCE_WIDTH, '0')}"
         }
 
         private const val MAX_SEQUENCE = 999_999
+        private const val SEQUENCE_WIDTH = 6
     }
 }

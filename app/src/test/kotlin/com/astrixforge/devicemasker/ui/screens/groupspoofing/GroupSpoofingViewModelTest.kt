@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.common.assignedAppCount
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
 import kotlinx.coroutines.test.runTest
