@@ -110,38 +110,53 @@ jobs:
       - name: Unit tests
         run: ./gradlew test --build-cache --stacktrace
 
-      - name: Assemble signed release
-        run: ./gradlew assembleRelease :app:assembleCiRelease --build-cache --stacktrace
+      - name: Assemble release builds
+        run: ./gradlew assembleDebug assembleRelease :app:assembleCiRelease --build-cache --stacktrace
 
       - name: Prepare release artifacts
         run: |
-          mkdir -p dist
+          mkdir -p dist/public dist/actions
 
-          apk_files=(app/build/outputs/apk/release/*.apk)
-          if [ "${#apk_files[@]}" -ne 1 ]; then
-            echo "Expected exactly one release APK, found ${#apk_files[@]}"
-            printf '%s\n' "${apk_files[@]}"
+          release_apks=(app/build/outputs/apk/release/*.apk)
+          if [ "${#release_apks[@]}" -ne 1 ]; then
+            echo "Expected exactly one release APK, found ${#release_apks[@]}"
+            printf '%s\n' "${release_apks[@]}"
             exit 1
           fi
 
-          cp "${apk_files[0]}" "dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-release-signed.apk"
+          debug_apks=(app/build/outputs/apk/debug/*.apk)
+          if [ "${#debug_apks[@]}" -ne 1 ]; then
+            echo "Expected exactly one debug APK, found ${#debug_apks[@]}"
+            printf '%s\n' "${debug_apks[@]}"
+            exit 1
+          fi
+
+          release_apk_name="DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-release-signed.apk"
+          debug_apk_name="DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-debug.apk"
+
+          cp "${release_apks[0]}" "dist/public/${release_apk_name}"
+          cp "${release_apks[0]}" "dist/actions/${release_apk_name}"
+          cp "${debug_apks[0]}" "dist/actions/${debug_apk_name}"
 
           if [ -d app/build/outputs/mapping/release ]; then
-            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-mapping-release.zip" .)
+            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/actions/DeviceMasker-v${VERSION_NAME}+${VERSION_CODE}-mapping-release.zip" .)
           fi
 
           git archive --format=zip \
-            --output "dist/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
+            --output "dist/actions/DeviceMasker-v${VERSION_NAME}-source-${SHORT_SHA}.zip" \
             HEAD
 
-          ls -la dist
+          echo "Public GitHub Release assets:"
+          ls -la dist/public
+          echo "Actions-only artifacts:"
+          ls -la dist/actions
 
       - name: Upload release workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: DeviceMasker-release-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
-            dist/**
+            dist/actions/**
             app/build/reports/**
             common/build/reports/**
             xposed/build/reports/**
@@ -159,8 +174,8 @@ jobs:
             draft_arg="--draft"
           fi
 
-          gh release create "$TAG_NAME" dist/* \
-            --title "DeviceMasker $TAG_NAME" \
+          gh release create "$TAG_NAME" dist/public/* \
+            --title "Device Masker $TAG_NAME" \
             --generate-notes \
             --verify-tag \
             $draft_arg

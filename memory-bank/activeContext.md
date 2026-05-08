@@ -49,7 +49,7 @@ Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed 
 - `app/build.gradle.kts` now reads version values through Gradle providers instead of hardcoded literals.
 - CI keeps quality/debug responsibilities only: it runs the existing checks plus `:app:assembleCiRelease` for R8 validation and uploads a renamed debug APK from `dist/`.
 - Signed release assembly was removed from CI.
-- `release.yml` is manual-only with `workflow_dispatch`; it checks that `tag_name` matches `v${VERSION_NAME}`, requires signing secrets, builds signed release plus `ciRelease`, prepares versioned APK/mapping/source artifacts under `dist/`, uploads Actions artifacts, and creates a draft-capable GitHub Release with generated notes.
+- `release.yml` is manual-only with `workflow_dispatch`; it checks that `tag_name` matches `v${VERSION_NAME}`, requires signing secrets, builds debug, signed release, and `ciRelease`, uploads debug APK, signed release APK, mapping zip, source zip, and reports to Actions artifacts, and publishes only the signed release APK to the draft-capable GitHub Release.
 - Local verification passed: `.\gradlew.bat :app:assembleDebug --no-daemon` and `.\gradlew.bat spotlessCheck detekt :app:assembleCiRelease --no-daemon`; debug and `ciRelease` output metadata both showed `versionName=0.1.1`, `versionCode=2`.
 
 ## 2026-05-07 Dependency Candidate Updates

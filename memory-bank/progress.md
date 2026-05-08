@@ -39,7 +39,7 @@
   - `VERSION_NAME=0.1.1` and `VERSION_CODE=2` now live in `gradle.properties`.
   - `app/build.gradle.kts` reads version properties through Gradle providers.
   - CI uploads renamed debug APK artifacts and no longer builds signed releases on main pushes.
-  - Release workflow is manual-only, verifies tag/version consistency, builds signed release plus `ciRelease`, uploads versioned `dist/` artifacts, and creates a GitHub Release with generated notes.
+  - Release workflow is manual-only, verifies tag/version consistency, builds debug, signed release, and `ciRelease`, keeps only the signed APK in public GitHub Release assets, and uploads debug APK, signed release APK, mapping zip, source zip, and reports to Actions artifacts.
   - Local verification passed for `.\gradlew.bat :app:assembleDebug --no-daemon` and `.\gradlew.bat spotlessCheck detekt :app:assembleCiRelease --no-daemon`; APK metadata showed `versionName=0.1.1`, `versionCode=2`.
 - Dependency candidate update completed after checking Google Developer Knowledge, web search, and Maven metadata: Gradle wrapper `9.5.0`, Spotless `8.4.0`, Compose BOM `2026.05.00`, Material3 `1.5.0-alpha19`, and `adaptive-navigation3` `1.3.0-beta01`.
 - Verification passed with `spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon` and `assembleRelease :app:assembleCiRelease --no-daemon`.

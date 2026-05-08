@@ -125,23 +125,36 @@ The manual release workflow will:
 2. Check tag_name matches VERSION_NAME
 3. Check signing secrets exist
 4. Run Spotless, Detekt, lint, and tests
-5. Build signed release APK
-6. Build ciRelease for R8 validation
-7. Rename artifacts into dist/
-8. Upload Actions artifacts
-9. Create a GitHub Release draft
-10. Generate changelog automatically
+5. Build debug APK
+6. Build signed release APK
+7. Build ciRelease for R8 validation
+8. Split public release assets from Actions-only artifacts
+9. Upload Actions artifacts
+10. Create a GitHub Release draft
+11. Generate changelog automatically
 ```
 
-Expected artifact names:
+Expected public GitHub Release asset:
 
 ```text
 DeviceMasker-v0.1.2+3-release-signed.apk
+```
+
+Expected Actions-only artifacts:
+
+```text
+DeviceMasker-v0.1.2+3-debug.apk
+DeviceMasker-v0.1.2+3-release-signed.apk
 DeviceMasker-v0.1.2+3-mapping-release.zip
 DeviceMasker-v0.1.2-source-<shortSha>.zip
+app/common/xposed build reports
 ```
 
 GitHub Release also automatically shows source ZIP/TAR for the tag.
+
+Public release should stay simple: keep only the signed release APK in the GitHub Release assets.
+Mapping, custom source zip, debug APK, and reports are for developer/debugging use and should stay in
+Actions artifacts.
 
 ## After Workflow Finishes
 
@@ -152,7 +165,7 @@ Check:
 ```text
 1. APK name has correct version
 2. Changelog looks okay
-3. Assets are attached
+3. Public assets contain only the signed release APK
 4. Version/tag is correct
 ```
 
