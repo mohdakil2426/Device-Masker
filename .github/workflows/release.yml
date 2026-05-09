@@ -175,14 +175,6 @@ jobs:
           echo "Actions-only artifacts:"
           find dist/actions -maxdepth 2 -type f -print
 
-      - name: Verify APK 16 KB page-size alignment
-        shell: pwsh
-        run: |
-          $releaseApk = (Get-ChildItem -Path dist/public -Filter *.apk | Select-Object -First 1).FullName
-          $debugApk = (Get-ChildItem -Path dist/actions/debug -Filter *.apk | Select-Object -First 1).FullName
-          ./scripts/verify-16kb-page-support.ps1 $releaseApk
-          ./scripts/verify-16kb-page-support.ps1 $debugApk
-
       - name: Upload signed release APK artifact
         uses: actions/upload-artifact@v4
         with:

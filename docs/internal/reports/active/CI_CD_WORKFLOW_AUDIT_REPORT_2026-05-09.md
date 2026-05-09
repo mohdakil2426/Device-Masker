@@ -8,7 +8,7 @@ Status: active
 
 Applied after this audit:
 
-- Added 16 KB APK verification to branch CI and manual release workflows.
+- Kept 16 KB APK verification as a local developer check only after CI showed hosted runners do not expose `zipalign` through the script's expected Android SDK paths.
 - Added `build-metadata.json` generation and upload.
 - Split manual release Actions artifacts into signed release APK, debug APK, source archive, mapping archive, build metadata, and quality reports.
 - Kept public GitHub Release assets limited to the signed release APK only.
@@ -24,7 +24,7 @@ The current CI/CD setup is good for a solo Android/Xposed project: it runs quali
 
 The biggest gaps are not complexity gaps. They are evidence and supply-chain gaps:
 
-1. CI builds artifacts but does not yet run the project's 16 KB APK verifier.
+1. CI builds artifacts but intentionally does not run the project's 16 KB APK verifier; this remains local/dev-only.
 2. CI does not generate artifact attestations for APK/source artifacts.
 3. Release workflow does not upload mapping/source/debug artifacts separately; it uploads one combined Actions artifact.
 4. There is no workflow-level YAML validation/static CI lint.
@@ -78,9 +78,9 @@ Latest run timing:
 
 ## Issues And Improvements
 
-### 1. Add 16 KB APK Verification To CI
+### 1. Keep 16 KB APK Verification Local-Only
 
-Severity: High
+Severity: Medium
 
 The repo now has `scripts/verify-16kb-page-support.ps1`, and local debug/release/ciRelease APKs passed. CI does not run this script yet.
 
@@ -90,23 +90,9 @@ Why it matters:
 - This project ships transitive `.so` files.
 - Android 16 compatibility is an active project goal.
 
-Recommended simple implementation:
+Decision:
 
-```yaml
-- name: Verify 16 KB page-size support
-  shell: pwsh
-  run: |
-    ./gradlew assembleDebug :app:assembleCiRelease --build-cache --stacktrace
-    ./scripts/verify-16kb-page-support.ps1 app/build/outputs/apk/debug/app-debug.apk
-    ./scripts/verify-16kb-page-support.ps1 app/build/outputs/apk/ciRelease/app-ciRelease-unsigned.apk
-```
-
-Better placement:
-
-- Put it in `quality` after `R8 validation build`, or
-- Put it in `assemble-build-artifacts` after APK assembly.
-
-Solo-dev recommendation: put it in `assemble-build-artifacts`, because that job already owns APK outputs.
+Keep this check local-only for now. A CI attempt failed because the hosted runner did not expose `zipalign` through the script's expected Android SDK paths. Do not block branch artifacts on this check until the script has a Linux runner path that is proven stable.
 
 ### 2. Add Artifact Attestations For Release/Branch APKs
 
@@ -330,7 +316,7 @@ Recommendation: defer until after Android 16 release stabilization.
 
 ### Add Soon
 
-1. 16 KB APK verification in CI. Applied.
+1. 16 KB APK verification in CI. Reverted; local-only by decision.
 2. Build metadata JSON uploaded with artifacts. Applied.
 3. Separate release workflow artifacts. Applied.
 4. Artifact attestation for signed release APK. Applied.
@@ -345,7 +331,7 @@ Recommendation: defer until after Android 16 release stabilization.
 ## Suggested Minimal Patch Plan
 
 ```text
-1. Add 16 KB verification to ci.yml -> verify: branch CI passes and logs show 16 KB pass. Applied.
+1. Add 16 KB verification to ci.yml -> verify: branch CI passes and logs show 16 KB pass. Reverted; local-only by decision.
 2. Add build-metadata.json in ci.yml and release.yml -> verify: artifact zip includes metadata. Applied.
 3. Split release workflow artifact upload steps -> verify: Actions page shows separate debug/release/source/mapping/report artifacts. Applied.
 4. Add artifact attestation only for release signed APK -> verify: gh attestation verify works for the release APK. Applied.
