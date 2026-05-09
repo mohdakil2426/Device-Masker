@@ -36,7 +36,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-read-only: false
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
@@ -78,6 +78,10 @@ jobs:
     timeout-minutes: 20
     needs:
       - quality
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -92,7 +96,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
-          cache-read-only: true
+          cache-read-only: false
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
@@ -132,12 +136,23 @@ jobs:
         if: steps.signing.outputs.available == 'true'
         run: ./gradlew assembleRelease --build-cache --stacktrace
 
+      - name: Verify APK 16 KB page-size alignment
+        shell: pwsh
+        run: |
+          ./scripts/verify-16kb-page-support.ps1 app/build/outputs/apk/debug/app-debug.apk
+          $releaseApks = Get-ChildItem -Path app/build/outputs/apk/release -Filter *.apk -ErrorAction SilentlyContinue
+          foreach ($apk in $releaseApks) {
+            ./scripts/verify-16kb-page-support.ps1 $apk.FullName
+          }
+
       - name: Prepare build artifacts
+        env:
+          SIGNED_RELEASE_AVAILABLE: ${{ steps.signing.outputs.available }}
         run: |
           VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
           VERSION_CODE=$(grep '^VERSION_CODE=' gradle.properties | cut -d= -f2)
           SHORT_SHA="${GITHUB_SHA::7}"
-          mkdir -p dist/debug dist/release dist/source
+          mkdir -p dist/debug dist/release dist/source dist/metadata
           debug_apks=(app/build/outputs/apk/debug/*.apk)
           if [ "${#debug_apks[@]}" -ne 1 ]; then
             echo "Expected exactly one debug APK, found ${#debug_apks[@]}"
@@ -157,10 +172,27 @@ jobs:
             --output "dist/source/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-source-${SHORT_SHA}.zip" \
             HEAD
 
+          cat > dist/metadata/build-metadata.json <<EOF
+          {
+            "project": "DeviceMasker",
+            "versionName": "${VERSION_NAME}",
+            "versionCode": ${VERSION_CODE},
+            "gitSha": "${GITHUB_SHA}",
+            "shortSha": "${SHORT_SHA}",
+            "branch": "${GITHUB_REF_NAME}",
+            "ref": "${GITHUB_REF}",
+            "workflow": "${GITHUB_WORKFLOW}",
+            "workflowRunId": "${GITHUB_RUN_ID}",
+            "workflowRunNumber": "${GITHUB_RUN_NUMBER}",
+            "signedReleaseAvailable": ${SIGNED_RELEASE_AVAILABLE}
+          }
+          EOF
+
           ls -la dist
           ls -la dist/debug
           ls -la dist/release
           ls -la dist/source
+          ls -la dist/metadata
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -189,3 +221,24 @@ jobs:
             dist/source/**
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeviceMasker-build-metadata-${{ github.run_id }}
+          path: |
+            dist/metadata/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attest signed release APK
+        if: steps.signing.outputs.available == 'true' && github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/release/*.apk
+
+      - name: Attest debug APK
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/debug/*.apk
