@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/brand/devicemasker-icon.png" alt="Device Masker app icon" width="200" height="200">
+</p>
+
 # Device Masker
 
 **Android LSPosed module for per-app device identity spoofing with anti-detection.**
