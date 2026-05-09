@@ -187,6 +187,12 @@ Important facts:
 - There is no custom Device Masker Binder service in system_server.
 - App export should stay structured, bounded, redacted, and useful for support.
 
+## Android 16 Compatibility
+
+Android 16 support is validated separately from Android 13 emulator smoke. Hook families can be isolated per target through RemotePreferences keys when a crash needs triage.
+
+Java `/proc/self/maps` hardening is path-aware and owned by `ProcMapsHooker`. It covers tracked Java reader paths and keeps byte/NIO redaction behind explicit per-app policy keys. Native scanner coverage is not claimed unless a later native probe and target-app evidence prove it.
+
 ## Forbidden Patterns
 
 Do not:

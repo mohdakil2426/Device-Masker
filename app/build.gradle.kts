@@ -193,7 +193,6 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     implementation(libs.libxposed.iface)
     implementation(libs.libxposed.service)
-    implementation(libs.hiddenapibypass)
     implementation(libs.libsu.core)
 
     // ═══════════════════════════════════════════════════════════

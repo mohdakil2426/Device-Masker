@@ -77,6 +77,9 @@ private object VerifierEvidenceCollector {
             .put("telephony", telephonyEvidence(context))
             .put("subscription", subscriptionEvidence(context))
             .put("features", featureEvidence(context.packageManager))
+            .put("procMaps", ProcMapsProbe.capture())
+            .put("packageVisibility", PackageVisibilityProbe.capture(context))
+            .put("runtime", CrashProbe.capture())
             .put("wifi", wifiEvidence(context))
             .put("bluetooth", bluetoothEvidence())
 

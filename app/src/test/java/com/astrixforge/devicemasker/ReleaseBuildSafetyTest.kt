@@ -118,6 +118,19 @@ class ReleaseBuildSafetyTest {
         )
     }
 
+    @Test
+    fun `android 16 compatibility safety scripts and dependencies stay conservative`() {
+        val appBuild = projectFile("app/build.gradle.kts").readText()
+        val xposedBuild = projectFile("xposed/build.gradle.kts").readText()
+        val catalog = projectFile("gradle/libs.versions.toml").readText()
+
+        assertTrue(projectFile("scripts/verify-16kb-page-support.ps1").isFile)
+        assertTrue(projectFile("scripts/collect-a16-crash-evidence.ps1").isFile)
+        assertTrue(!catalog.contains("hiddenapibypass", ignoreCase = true))
+        assertTrue(!appBuild.contains("hiddenapibypass", ignoreCase = true))
+        assertTrue(!xposedBuild.contains("hiddenapibypass", ignoreCase = true))
+    }
+
     private fun projectFile(path: String): File {
         val normalized = path.replace("/", File.separator)
         return generateSequence(File("").absoluteFile) { it.parentFile }

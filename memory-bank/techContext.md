@@ -77,9 +77,17 @@ Current expectations:
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/HookFamilyPolicy.kt` | Per-app hook-family isolation from RemotePreferences |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/ProcMapsHooker.kt` | Path-aware Java maps/smaps filtering |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/ProcMapsPolicy.kt` | Per-app proc-maps byte/NIO policy reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemFeatureHooker.kt` | Device-profile PackageManager feature hooks |
 | `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/VerifierActivity.kt` | Local target app evidence reader |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/ProcMapsProbe.kt` | Verifier proc-maps Java reader/byte/RAF probe |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/PackageVisibilityProbe.kt` | Verifier PackageManager API 33+ visibility probe |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/CrashProbe.kt` | Verifier runtime/build facts for crash comparison |
+| `scripts/collect-a16-crash-evidence.ps1` | ADB evidence capture for Android 16 target app crashes |
+| `scripts/verify-16kb-page-support.ps1` | APK zipalign and packaged `.so` 16 KB page-size check |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/MainDispatcherRule.kt` | Test coroutine dispatcher rule |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/testing/*.kt` | Fake implementations for testing |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/ui/screens/*/*ViewModelTest.kt` | ViewModel unit tests |
@@ -134,6 +142,14 @@ adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/diag
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\debug\app-debug.apk
+powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\release\app-release-unsigned.apk
+powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\ciRelease\app-ciRelease-unsigned.apk
+```
+
+Android 16 crash evidence capture:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\collect-a16-crash-evidence.ps1 -TargetPackage flar2.devcheck -OutputDir logs/device
 ```
 
 Install debug APK:
@@ -165,6 +181,8 @@ Get-ChildItem -Path common/src,xposed/src -Recurse -Filter '*.kt' | Select-Strin
 Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-String 'IMEIGenerator|IMSIGenerator|ICCIDGenerator|MACGenerator|UUIDGenerator|PhoneNumberGenerator|SerialGenerator|\{ "(us|Carrier|310260|HomeNetwork)" \}|ByteArray\(32\)|\?: 310|\?: 260'
 Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-String '\(\?<=|UA_DEVICE_REGEX|hookClassForName\(cl, xi\)|hookClassLoaderLoadClass\(cl, xi\)'
 Get-ChildItem -Path xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker -Filter '*.kt' | Where-Object { $_.Name -ne 'BaseSpoofHooker.kt' } | Select-String '\.intercept\s*\{'
+rg -n "HiddenApiBypass|org\.lsposed\.hiddenapibypass|Timber\.|Random\(" xposed/src/main/kotlin app/build.gradle.kts xposed/build.gradle.kts gradle/libs.versions.toml
+rg -n "DexKit|frida|bytehook|shadowhook|xhook|Dobby" app/src/main common/src/main xposed/src/main gradle
 ```
 
 ## Runtime Requirements
@@ -181,4 +199,6 @@ Runtime validation needs:
 - `material3-adaptive-navigation3` is on `1.3.0-alpha10`, which required moving the project to compile SDK 37.
 - Release shrinking is enabled and was validated on emulator targets plus user-reported real
   Android 16 hardware. Do not bypass `StableHooker` for libxposed runtime callbacks.
+- HiddenApiBypass is intentionally not a dependency. Android 16 compatibility work must not add it as a shortcut.
+- Java proc-maps redaction is not native scanner coverage. Native hook engines require a separate evidence-backed plan.
 - In-app diagnostics Binder can be unavailable under SELinux; LSPosed logs remain the practical runtime source.

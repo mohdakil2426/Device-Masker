@@ -61,6 +61,14 @@ internal fun SharedPreferences.Editor.putAppSyncState(state: AppSyncState) {
         SharedPrefsKeys.getClassLookupHidingEnabledKey(state.packageName),
         state.classLookupHidingEnabled,
     )
+    hookFamilyNames.forEach { family ->
+        putBoolean(
+            SharedPrefsKeys.getHookFamilyEnabledKey(state.packageName, family),
+            state.appEnabled,
+        )
+    }
+    putBoolean(SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(state.packageName), false)
+    putBoolean(SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(state.packageName), false)
     if (state.persona != null) {
         putString(
             SharedPrefsKeys.getPersonaBlobKey(state.packageName),
@@ -99,6 +107,26 @@ internal fun keysForSyncedPackage(packageName: String): Set<String> = buildSet {
     }
     add(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
     add(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
+    hookFamilyNames.forEach { family ->
+        add(SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family))
+    }
+    add(SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(packageName))
+    add(SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(packageName))
     add(SharedPrefsKeys.getPersonaBlobKey(packageName))
     add(SharedPrefsKeys.getPersonaVersionKey(packageName))
 }
+
+internal val hookFamilyNames =
+    listOf(
+        "anti_detect",
+        "device",
+        "subscription",
+        "network",
+        "system",
+        "system_feature",
+        "location",
+        "sensor",
+        "advertising",
+        "webview",
+        "package_manager",
+    )

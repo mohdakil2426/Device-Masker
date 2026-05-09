@@ -36,4 +36,7 @@ object PrefsKeys {
 
     fun getDeviceProfileKey(packageName: String): String =
         SharedPrefsKeys.getDeviceProfileKey(packageName)
+
+    fun getHookFamilyEnabledKey(packageName: String, family: String): String =
+        SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family)
 }

@@ -18,10 +18,9 @@ import java.lang.reflect.Method
  * Each hooker is a stateless Kotlin `object` that extends this class. The lifecycle is:
  * 1. XposedEntry.onPackageLoaded() calls `Hooker.hook(cl, xi, prefs, pkg)`
  * 2. `hook()` calls [safeHook] for each method it wants to intercept
- * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook().intercept {}`, then
- *    `xi.deoptimize()`
- * 4. The lambda passed to `intercept` handles the actual callback via `chain.proceed()` + return
- *    value.
+ * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook().intercept(stableHooker {
+ *    ... })`, then `xi.deoptimize()`
+ * 4. The stable hooker callback handles the actual callback via `chain.proceed()` + return value.
  *
  * ## Why no instance state
  *
@@ -42,10 +41,12 @@ import java.lang.reflect.Method
  *         // Each method in its own safeHook — one failure cannot cascade
  *         safeHook("getImei()") {
  *             tmClass.methodOrNull("getImei")?.let { m ->
- *                 xi.hook(m).intercept { chain ->
+ *                 xi.hook(m).intercept(
+ *                     stableHooker { chain ->
  *                     val original = chain.proceed()
  *                     getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI) ?: original
- *                 }
+ *                     },
+ *                 )
  *                 xi.deoptimize(m)  // bypass ART inlining — CRITICAL for guaranteed delivery
  *             }
  *         }

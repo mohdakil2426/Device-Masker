@@ -13,6 +13,8 @@
 | Config architecture | RemotePreferences primary, local JSON persistence |
 | Diagnostics | Structured JSONL app logs, Diagnostics UI without custom Binder status, support bundle export with optional root/logcat artifacts |
 | Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; user confirmed real Android 16 device success |
+| Android 16 DevCheck crash track | Evidence tooling and hook isolation implemented; real-device DevCheck matrix still pending |
+| Proc maps hardening | Path-aware Java line filtering implemented; byte/NIO redaction implemented as per-app opt-in; native maps redaction not implemented |
 | M3E UI | Core and advanced implementation verified |
 | Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks |
 | Verifier | `:verifier` local target app builds, installs, launches, and writes `files/verifier/latest.json` |
@@ -30,6 +32,16 @@
   - Full local gate passed with `:verifier:assembleDebug`.
   - Android 13 emulator evidence captured under `logs/device/`; Mantle showed LSPosed module load, hook registration including `SystemFeatureHooker`, spoof events, and no checked fatal crash signatures.
   - Native maps redaction and system_server package hiding remain unimplemented high-risk tracks, not default behavior.
+- Android 16 compatibility/proc-maps implementation on 2026-05-09:
+  - Added `HookFamilyPolicy` and per-app hook-family RemotePreferences keys for crash isolation.
+  - Removed HiddenApiBypass dependency from app/xposed build files and catalog.
+  - Added `ProcMapsHooker` and `ProcMapsPolicy`; maps/smaps Java line filtering is path-aware, while byte/NIO redaction is explicit opt-in.
+  - Added verifier probes for proc maps, package visibility, and runtime facts.
+  - Added A16 crash evidence and 16 KB APK verification scripts.
+  - Full gate passed in `logs/build/2026-05-09-a16-proc-maps-final-gate.txt`.
+  - Android 13 verifier launched through ADB and Mobile MCP; `logs/device/2026-05-09-verifier-a13-final.json` contains `procMaps`, `packageVisibility`, and `runtime`.
+  - 16 KB verification passed for debug, release, and ciRelease APKs.
+  - Real Android 16 DevCheck remains pending because no A16 device was available in this tool session.
 - Detekt maximum strictness rollout started on 2026-05-08:
   - `allRules=true` enabled in root Detekt configuration.
   - Shared Detekt config tightened for complexity, coroutine, potential-bugs, style, and Compose rules.
@@ -78,9 +90,12 @@
 - Full config sync clears stale package keys.
 - `AppConfig` is the canonical app/group assignment model.
 - Per-app risky-hook and class lookup hiding opt-ins are persisted through local config and RemotePreferences.
+- Per-app hook-family isolation keys are persisted through RemotePreferences.
+- Proc-maps byte and NIO redaction policy keys are persisted default-off through RemotePreferences.
 - Hook-side pref reads distinguish missing/disabled values from configured values.
 - High-risk hooks pass through when config is unsafe.
 - Class lookup anti-detection remains disabled by default and only registers when both per-app opt-ins are enabled.
+- `/proc/self/maps` filtering is path-aware through `ProcMapsHooker`; broad global `BufferedReader.readLine()` maps filtering has been removed.
 - Hook-side registration and spoof events are mirrored to LSPosed logs.
 - Rootless app log export works from app-owned storage.
 - Single support export works through `Export Logs` and builds the maximum root/logcat bundle.

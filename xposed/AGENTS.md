@@ -100,13 +100,14 @@ Direct Kotlin SAM intercept callbacks are forbidden in runtime hookers unless re
 | **AdvertisingHooker** | AdvertisingIdClient.Info.getId, Gservices (getString, getLong for android_id), MediaDrm.getPropertyByteArray (deviceUniqueId) | ADVERTISING_ID, GSF_ID, MEDIA_DRM_ID |
 | **WebViewHooker** | WebSettings (getUserAgentString, setUserAgentString), WebView.getDefaultUserAgent | DEVICE_PROFILE |
 | **PackageManagerHooker** | ApplicationPackageManager (getPackageInfo, getApplicationInfo, getInstalledPackages, getInstalledApplications, queryIntentActivities) — throws NameNotFoundException for self | Self-hiding |
+| **ProcMapsHooker** | Path-aware Java `/proc/self/maps`, `/proc/<pid>/maps`, `/proc/self/smaps`, `/proc/<pid>/smaps` reader filtering; byte/NIO redaction only when explicit per-app policy enables it | Anti-detection |
 
 ## AntiDetectHooker — Detection Vectors
 
 | Vector | Status | Method |
 |--------|--------|--------|
 | Stack trace filtering | **ACTIVE** | Hooks `Thread.getStackTrace()`, `Throwable.getStackTrace()`. Filters legacy and modern hook-framework patterns, including XposedBridge, LSPosed, EdXposed, and libxposed. ThreadLocal reentrant guard. |
-| `/proc/self/maps` | **ACTIVE** | Hooks `BufferedReader.readLine()`. Returns empty for 8 patterns (libxposed, liblspd, libriru, etc.). |
+| `/proc/self/maps` | **DELEGATED** | `ProcMapsHooker` handles path-aware maps/smaps filtering. Hidden lines are skipped, not replaced with blank strings. |
 | Package hiding | **ACTIVE** | Hides 6 packages (LSPosed Manager 3 variants, Magisk, VirtualXposed, EdXposed) via PM hooks. `ExceptionMode.PASSTHROUGH` for throws. |
 | `Class.forName` | **DISABLED** | Defined but not called. Caused startup instability. |
 | `ClassLoader.loadClass` | **DISABLED** | Defined but not called. Caused startup instability. |
@@ -140,7 +141,8 @@ Prevents ART JIT/AOT from inlining hooked methods. Short methods (<20 bytecodes)
 - `android.library`, `kotlin.serialization`, JVM 17
 - `buildConfig = false`, `aidl = false`
 - `compileOnly(libs.libxposed.api)` — LSPosed provides runtime
-- `implementation(libs.hiddenapibypass)`, `libs.kotlinx.coroutines.core`, `libs.kotlinx.serialization.json`
+- `implementation(libs.kotlinx.coroutines.core)`, `implementation(libs.kotlinx.serialization.json)`
+- Do not add HiddenApiBypass, Frida, DexKit, ByteHook, ShadowHook, xHook, or Dobby as production dependencies without a separate evidence-backed plan.
 - `testImplementation(libs.libxposed.api)` — for unit tests that reference API classes
 
 ## ProGuard (consumer-rules.pro)

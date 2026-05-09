@@ -20,7 +20,6 @@ graphicsShapes = "1.1.0"
 # libxposed API 101
 libxposed-api = "101.0.1"
 libxposed-service = "101.0.0"
-hiddenapibypass = "6.1"
 libsu = "6.0.0"
 
 # Data
@@ -82,7 +81,6 @@ material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive"
 libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed-api" }
 libxposed-iface = { group = "io.github.libxposed", name = "interface", version.ref = "libxposed-service" }
 libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed-service" }
-hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version.ref = "hiddenapibypass" }
 libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
 
 # Data Storage

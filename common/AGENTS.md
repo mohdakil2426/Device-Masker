@@ -112,6 +112,9 @@ Persona generation is intentionally split across focused helpers:
 | `app_enabled_{sanitizedPkg}` | `app_enabled_com_example_app` |
 | `spoof_enabled_{sanitizedPkg}_{TYPE}` | `spoof_enabled_com_example_app_IMEI` |
 | `spoof_{sanitizedPkg}_{TYPE}` | `spoof_com_example_app_ANDROID_ID` |
+| `hook_family_enabled_{sanitizedPkg}_{family}` | `hook_family_enabled_com_example_app_anti_detect` |
+| `java_proc_maps_byte_redaction_enabled_{sanitizedPkg}` | opt-in Java byte maps redaction |
+| `java_proc_maps_nio_redaction_enabled_{sanitizedPkg}` | opt-in Java NIO maps redaction |
 | `persona_blob_{sanitizedPkg}` | persona JSON blob |
 | `persona_version_{sanitizedPkg}` | persona version counter |
 

@@ -95,6 +95,7 @@ sequenceDiagram
 - Hookers read stored values; hookers do not generate new identities at runtime.
 - `ConfigSync` must clear stale package keys on full sync.
 - `ConfigSync` publishes flat legacy keys plus per-package `DevicePersona` blob/version.
+- `ConfigSync` also publishes per-package hook-family policy keys and default-off proc-maps byte/NIO policy keys.
 - Config delivery is RemotePreferences-first.
 - Do not add custom AIDL/Binder config or hook-evidence paths.
 
@@ -137,9 +138,16 @@ Forbidden in target-process hook callbacks:
 
 Current safer anti-detection surfaces:
 - Stack trace filtering.
-- `/proc/self/maps` line filtering.
+- Path-aware Java `/proc/self/maps` and `/proc/*/smaps` filtering through `ProcMapsHooker`.
 - Package visibility hiding through PackageManager hooks.
 - Package list filtering with copied lists.
+
+Proc maps rules:
+- `AntiDetectHooker` must not own broad global `BufferedReader.readLine()` maps filtering.
+- `ProcMapsHooker` tracks only maps/smaps readers and streams created from sensitive proc paths.
+- Hidden maps lines are skipped, not replaced with blank strings.
+- Java byte-stream and Java NIO maps redaction stay opt-in per package until target evidence proves they are safe.
+- Native maps reads are not claimed covered unless a separate native hook track is implemented and verified.
 
 Global class lookup hiding is currently disabled by default:
 - `Class.forName` and `ClassLoader.loadClass` hooks are too invasive for target startup.
@@ -188,6 +196,7 @@ Diagnostics facts:
 - `WebViewHooker`
 - `SubscriptionHooker`
 - `PackageManagerHooker`
+- `ProcMapsHooker`
 
 ## Value Correlation
 

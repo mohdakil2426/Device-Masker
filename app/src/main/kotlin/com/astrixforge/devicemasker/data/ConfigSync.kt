@@ -145,6 +145,12 @@ object ConfigSync {
                 state?.riskyHooksEnabled == true
             booleans[SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName)] =
                 state?.classLookupHidingEnabled == true
+            hookFamilyNames.forEach { family ->
+                booleans[SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family)] =
+                    state?.appEnabled == true
+            }
+            booleans[SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(packageName)] = false
+            booleans[SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(packageName)] = false
             if (state?.persona != null) {
                 strings[SharedPrefsKeys.getPersonaBlobKey(packageName)] =
                     state.persona.toJsonString()
@@ -227,6 +233,11 @@ private fun android.content.SharedPreferences.Editor.removePackageSyncKeys(packa
     remove(SharedPrefsKeys.getAppEnabledKey(packageName))
     remove(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
     remove(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
+    hookFamilyNames.forEach { family ->
+        remove(SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family))
+    }
+    remove(SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(packageName))
+    remove(SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(packageName))
     remove(SharedPrefsKeys.getPersonaBlobKey(packageName))
     remove(SharedPrefsKeys.getPersonaVersionKey(packageName))
 

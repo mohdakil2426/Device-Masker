@@ -55,7 +55,9 @@ Release 0.1.5 hardening branch state as of 2026-05-09:
 - `:xposed` profile coverage now includes enriched Build fields, Build.VERSION fields, ABI properties, PackageManager feature checks, SIM count, and subscription count.
 - `:verifier` exists as a separate local target app for controlled runtime evidence.
 - Full local gate and Android 13 Mantle smoke passed for the implemented safe track.
+- Java-first proc-maps hardening is implemented through path-aware `ProcMapsHooker`; byte/NIO redaction is per-app opt-in.
 - Native maps redaction and system_server package hiding are still not implemented and must stay advanced, opt-in, separately validated work.
+- Android 16 DevCheck crash is still pending real-device evidence; Android 13 emulator verifier/runtime gates are green.
 
 Master Implementation Plan status on 2026-05-04:
 - Phase 0: Safety & Stability core fixes complete.

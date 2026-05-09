@@ -10,6 +10,7 @@ import com.astrixforge.devicemasker.xposed.hooker.DeviceHooker
 import com.astrixforge.devicemasker.xposed.hooker.LocationHooker
 import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
 import com.astrixforge.devicemasker.xposed.hooker.PackageManagerHooker
+import com.astrixforge.devicemasker.xposed.hooker.ProcMapsHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemFeatureHooker
@@ -128,29 +129,39 @@ class XposedEntry : XposedModule() {
         //    Apps cross-check TelephonyManager and SubscriptionManager results.
         // 3. Remaining hookers can run in any order.
         // ═══════════════════════════════════════════════════════════
-        hookSafely(hookPackage, "AntiDetectHooker") { AntiDetectHooker.hook(cl, this, hookPackage) }
-        hookSafely(hookPackage, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, hookPackage) }
-        hookSafely(hookPackage, "SubscriptionHooker") {
+        val policy = HookFamilyPolicy.fromPrefs(prefs, hookPackage)
+        hookSafely(hookPackage, "AntiDetectHooker", policy.antiDetectEnabled) {
+            AntiDetectHooker.hook(cl, this, hookPackage)
+            ProcMapsHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "DeviceHooker", policy.deviceEnabled) {
+            DeviceHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "SubscriptionHooker", policy.subscriptionEnabled) {
             SubscriptionHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "NetworkHooker") {
+        hookSafely(hookPackage, "NetworkHooker", policy.networkEnabled) {
             NetworkHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "SystemHooker") { SystemHooker.hook(cl, this, prefs, hookPackage) }
-        hookSafely(hookPackage, "SystemFeatureHooker") {
+        hookSafely(hookPackage, "SystemHooker", policy.systemEnabled) {
+            SystemHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "SystemFeatureHooker", policy.systemFeatureEnabled) {
             SystemFeatureHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "LocationHooker") {
+        hookSafely(hookPackage, "LocationHooker", policy.locationEnabled) {
             LocationHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "SensorHooker") { SensorHooker.hook(cl, this, prefs, hookPackage) }
-        hookSafely(hookPackage, "AdvertisingHooker") {
+        hookSafely(hookPackage, "SensorHooker", policy.sensorEnabled) {
+            SensorHooker.hook(cl, this, prefs, hookPackage)
+        }
+        hookSafely(hookPackage, "AdvertisingHooker", policy.advertisingEnabled) {
             AdvertisingHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "WebViewHooker") {
+        hookSafely(hookPackage, "WebViewHooker", policy.webViewEnabled) {
             WebViewHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "PackageManagerHooker") {
+        hookSafely(hookPackage, "PackageManagerHooker", policy.packageManagerEnabled) {
             PackageManagerHooker.hook(cl, this, hookPackage)
         }
 
@@ -218,7 +229,18 @@ class XposedEntry : XposedModule() {
      * If the block throws (e.g., class not found, method signature mismatch on this OEM), the error
      * is logged and execution continues with the next hooker.
      */
-    private fun hookSafely(pkg: String, name: String, block: () -> Unit) {
+    private fun hookSafely(pkg: String, name: String, enabled: Boolean = true, block: () -> Unit) {
+        if (!enabled) {
+            log(Log.INFO, TAG, "$name disabled by hook-family policy for: $pkg", null)
+            XposedDiagnosticEventSink.log(
+                Log.INFO,
+                TAG,
+                "$name disabled by hook-family policy for: $pkg",
+                eventType =
+                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_SKIPPED,
+            )
+            return
+        }
         try {
             XposedDiagnosticEventSink.hookHealth.recordRegistrationAttempt(name, "hook")
             XposedDiagnosticEventSink.log(

@@ -58,9 +58,6 @@ dependencies {
     // ═══════════════════════════════════════════════════════════
     compileOnly(libs.libxposed.api)
 
-    // Hidden API Bypass (replaces FreeReflection, still needed for system field access)
-    implementation(libs.hiddenapibypass)
-
     // Coroutines for shared helpers/tests
     implementation(libs.kotlinx.coroutines.core)
 
