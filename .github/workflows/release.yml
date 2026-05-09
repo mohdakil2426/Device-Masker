@@ -66,9 +66,11 @@ jobs:
           fi
 
           git rev-parse "$TAG_NAME" >/dev/null
-          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          {
+            echo "VERSION_NAME=$VERSION_NAME"
+            echo "VERSION_CODE=$VERSION_CODE"
+            echo "SHORT_SHA=${GITHUB_SHA::7}"
+          } >> "$GITHUB_ENV"
 
       - name: Check release signing secrets
         env:
@@ -97,10 +99,12 @@ jobs:
           KEY_PASS: ${{ secrets.KEY_PASS }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
-          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
-          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
-          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
+          {
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore"
+            echo "KEYSTORE_PASS=$KEYSTORE_PASS"
+            echo "KEY_ALIAS=$KEY_ALIAS"
+            echo "KEY_PASS=$KEY_PASS"
+          } >> "$GITHUB_ENV"
 
       - name: Spotless check
         run: ./gradlew spotlessCheck --build-cache --stacktrace
