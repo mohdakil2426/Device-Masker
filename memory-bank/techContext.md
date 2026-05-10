@@ -93,6 +93,21 @@ Current expectations:
 | `app/src/test/kotlin/com/astrixforge/devicemasker/ui/screens/*/*ViewModelTest.kt` | ViewModel unit tests |
 | `docs/reports/IMPLEMENTATION_COMPLETION_SUMMARY_2026-05-04.md` | Plan completion summary |
 
+Latest Android 16 verifier evidence:
+- `logs/device/2026-05-10-config-after-latlong-enabled.json`
+- `logs/device/2026-05-10-verifier-matrix-latlong-enabled-latest.json`
+- `logs/device/2026-05-10-verifier-matrix-latlong-enabled-logcat.txt`
+- `docs/internal/reports/closed/validation/2026-05-10/2026-05-10-verifier-android-16-full-summary.md`
+- `logs/device/2026-05-11-final-all-emulator-latest.json`
+- `logs/device/2026-05-11-final-all-emulator-logcat.txt`
+- `logs/build/2026-05-11-final-emulator-stability-gate.txt`
+- `docs/internal/reports/closed/validation/2026-05-11/2026-05-11-android-16-emulator-stability-summary.md`
+- `docs/public/validation/DEVICE_MASKER_VALIDATION_STATUS.md`
+- `docs/public/validation/evidence/emulator/android-16/latest.json`
+- `docs/public/validation/evidence/emulator/android-16/logcat.txt`
+- `docs/public/validation/evidence/emulator/android-16/build-gate.txt`
+- `docs/public/validation/evidence/emulator/android-16/config.json`
+
 ## Build Commands
 
 Release prep:
@@ -152,6 +167,14 @@ Android 16 crash evidence capture:
 powershell -ExecutionPolicy Bypass -File scripts\collect-a16-crash-evidence.ps1 -TargetPackage flar2.devcheck -OutputDir logs/device
 ```
 
+Current Android 16 emulator evidence capture used:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\collect-a16-crash-evidence.ps1 -Device emulator-5554 -TargetPackage flar2.devcheck -OutputDir logs/device
+```
+
+For local R8 smoke when production signing is unavailable, the unsigned `ciRelease` APK may be signed to `logs/tmp/app-ciRelease-debugkey-signed.apk` with the Android debug key and installed only as emulator evidence. Do not treat that artifact as production release signing evidence.
+
 Install debug APK:
 
 ```powershell
@@ -201,4 +224,5 @@ Runtime validation needs:
   Android 16 hardware. Do not bypass `StableHooker` for libxposed runtime callbacks.
 - HiddenApiBypass is intentionally not a dependency. Android 16 compatibility work must not add it as a shortcut.
 - Java proc-maps redaction is not native scanner coverage. Native hook engines require a separate evidence-backed plan.
+- Android 16 emulator evidence from `emulator-5554` / Pixel 10 Pro XL API 36.1 proves that emulator path only. Physical-device Android 16 claims still require separate evidence.
 - In-app diagnostics Binder can be unavailable under SELinux; LSPosed logs remain the practical runtime source.

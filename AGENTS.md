@@ -74,8 +74,8 @@ devicemasker/
 | Type | Correct Location | Wrong |
 | --- | --- | --- |
 | User-facing docs | `docs/public/` | `docs/internal/` |
-| Active internal reports/audits | `docs/internal/reports/active/` | project root or `docs/internal/reports/` root |
-| Closed internal reports/audits | `docs/internal/reports/closed/` | project root or `docs/internal/reports/` root |
+| Active internal reports/audits | `docs/internal/reports/active/<category>/YYYY-MM-DD/` | project root or `docs/internal/reports/` root |
+| Closed internal reports/audits | `docs/internal/reports/closed/<category>/YYYY-MM-DD/` | project root or `docs/internal/reports/` root |
 | Implementation plans | `docs/superpowers/plans/` | reports folders or project root |
 | Build logs and command output | `logs/build/` | project root, docs, module dirs |
 | Device testing logs, logcat, screenshots, captures, exported evidence | `logs/device/` | project root or docs |
@@ -84,15 +84,17 @@ devicemasker/
 All agent-created and user-created build logs, device logs, temporary captures, smoke-test exports, and scratch evidence must stay under `logs/` using the closest matching subfolder. Do not scatter temporary evidence files in the project root.
 
 Report lifecycle:
-- Put reports with pending decisions, open remediation, or active analysis in `docs/internal/reports/active/`.
-- Move reports to `docs/internal/reports/closed/` only after the decision is recorded or the remediation is complete.
+- Put reports with pending decisions, open remediation, or active analysis in `docs/internal/reports/active/<category>/YYYY-MM-DD/`.
+- Move reports to `docs/internal/reports/closed/<category>/YYYY-MM-DD/` only after the decision is recorded or the remediation is complete.
+- Follow `docs/AGENTS_PROJECT_RULES.md` for the non-negotiable report category and file naming rules.
+- Public docs should be curated summaries, not raw internal report moves. Keep raw evidence in `docs/internal/reports/` and link/summarize it from `docs/public/` when useful.
 - Do not leave report files directly under `docs/internal/reports/`.
 
 ## Commands And Rules
 
 Use Windows Gradle wrapper commands from repo root.
 
-Before writing or changing code, read `docs/public/AGENTS_CODING_RULES.md` and apply those rules.
+Before any project work, read `docs/AGENTS_PROJECT_RULES.md` and apply those non-negotiable project rules.
 
 ```powershell
 .\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon
@@ -153,6 +155,7 @@ Detailed per-module guides with folder structures, APIs, and constraints:
 - `app/AGENTS.md` — Compose UI, ViewModels, navigation, diagnostics, build config
 - `common/AGENTS.md` — data models, generators, SharedPrefsKeys, config contracts
 - `xposed/AGENTS.md` — hookers, hook patterns, anti-detection, ProGuard, metadata
+- `verifier/AGENTS.md` — local Android target-app value checks and evidence capture
 
 ## Skills
 
@@ -164,6 +167,7 @@ Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expr
 
 - Use `Google-developer-knowledge` MCP for Android, Google, Material 3 Expressive, Firebase, Play, Web, or Google Cloud and all the google documentations. this is best for that things, dont use context7 for these.
 - Use `mobile_mcp` for emulator/device to controll the emulator and manual app tests.
+- Use Mobile MCP for manual device UI work: LSPosed scope changes, Device Masker UI configuration, target selection, permission dialogs, and visual ui/ux testing and checks. Use shell/ADB for builds, installs, logcat, package checks, and file evidence. Prefer UI flows over direct LSPosed DB or config-file edits unless explicitly requested. The canonical detailed rules live in `docs/AGENTS_PROJECT_RULES.md`.
 - Use `context7` for current library/framework/API documentation before changing code that depends on external APIs.
 
 ## graphify

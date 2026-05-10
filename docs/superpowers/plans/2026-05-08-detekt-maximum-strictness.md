@@ -1007,8 +1007,7 @@ Expected: commit succeeds only if workflow files were actually modified.
 ### Task 9: Final Quality Gate And Report Lifecycle Update
 
 **Files:**
-- Modify: `docs/internal/reports/active/detekt-analysis-report.md`
-- Optional move after implementation complete: `docs/internal/reports/active/detekt-analysis-report.md` -> `docs/internal/reports/closed/detekt-analysis-report.md`
+- Modify: `docs/internal/reports/closed/audits/2026-05-08/2026-05-08-detekt-analysis-report.md`
 
 - [x] **Step 1: Run full quality gate**
 
@@ -1032,7 +1031,7 @@ Expected: `BUILD SUCCESSFUL`.
 
 - [x] **Step 3: Update active report with implementation status**
 
-Append this section to `docs/internal/reports/active/detekt-analysis-report.md`:
+Append this section to `docs/internal/reports/closed/audits/2026-05-08/2026-05-08-detekt-analysis-report.md`:
 
 ````markdown
 ## Implementation Status
@@ -1051,10 +1050,10 @@ Result: BUILD SUCCESSFUL.
 
 - [x] **Step 4: Move report to closed only if all checks pass**
 
-If Step 1 and Step 2 pass, run:
+If Step 1 and Step 2 pass, keep the report in the closed reports structure:
 
 ```powershell
-git mv docs/internal/reports/active/detekt-analysis-report.md docs/internal/reports/closed/detekt-analysis-report.md
+git add docs/internal/reports/closed/audits/2026-05-08/2026-05-08-detekt-analysis-report.md
 ```
 
 If either verification command fails, keep the report in `active/`.
@@ -1064,14 +1063,14 @@ If either verification command fails, keep the report in `active/`.
 If the report was moved to closed, run:
 
 ```powershell
-git add docs/internal/reports/closed/detekt-analysis-report.md
+git add docs/internal/reports/closed/audits/2026-05-08/2026-05-08-detekt-analysis-report.md
 git commit -m "docs: close detekt strictness rollout report"
 ```
 
 If the report remains active, run:
 
 ```powershell
-git add docs/internal/reports/active/detekt-analysis-report.md
+git add docs/internal/reports/closed/audits/2026-05-08/2026-05-08-detekt-analysis-report.md
 git commit -m "docs: record detekt strictness rollout status"
 ```
 

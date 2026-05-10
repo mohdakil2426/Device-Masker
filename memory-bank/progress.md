@@ -12,8 +12,8 @@
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
 | Diagnostics | Structured JSONL app logs, Diagnostics UI without custom Binder status, support bundle export with optional root/logcat artifacts |
-| Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; user confirmed real Android 16 device success |
-| Android 16 DevCheck crash track | Evidence tooling and hook isolation implemented; real-device DevCheck matrix still pending |
+| Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; Android 16 emulator DevCheck debug and ciRelease/R8 smokes passed |
+| Android 16 DevCheck crash track | Evidence tooling and hook isolation implemented; Android 16 emulator all-safe-hooks smoke passed; physical-device and isolated matrix rows still pending |
 | Proc maps hardening | Path-aware Java line filtering implemented; byte/NIO redaction implemented as per-app opt-in; native maps redaction not implemented |
 | M3E UI | Core and advanced implementation verified |
 | Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks |
@@ -41,7 +41,7 @@
   - Full gate passed in `logs/build/2026-05-09-a16-proc-maps-final-gate.txt`.
   - Android 13 verifier launched through ADB and Mobile MCP; `logs/device/2026-05-09-verifier-a13-final.json` contains `procMaps`, `packageVisibility`, and `runtime`.
   - 16 KB verification passed for debug, release, and ciRelease APKs.
-  - Real Android 16 DevCheck remains pending because no A16 device was available in this tool session.
+  - 2026-05-10 Android 16 emulator evidence was captured on `emulator-5554` / Pixel 10 Pro XL API 36.1 / SDK 36 / 16 KB pages. DevCheck stayed alive under debug and debug-key-signed ciRelease/R8 builds with LSPosed `XposedEntry`, target selection, `All hooks registered`, spoof events, and no checked fatal/ABI signatures. Physical-device evidence and the explicit module-disabled/load-only/hook-family matrix remain pending.
 - Detekt maximum strictness rollout started on 2026-05-08:
   - `allRules=true` enabled in root Detekt configuration.
   - Shared Detekt config tightened for complexity, coroutine, potential-bugs, style, and Compose rules.
@@ -111,6 +111,9 @@
   LSPosed/logcat-owned rather than service-owned.
 - `com.mantle.verify` launched after latest remediation and emitted spoof events.
 - `flar2.devcheck` launched after latest remediation and emitted spoof events.
+- On Android 16 emulator (`emulator-5554`, Pixel 10 Pro XL API 36.1, SDK 36, 16 KB pages), `flar2.devcheck` launched under debug and debug-key-signed `ciRelease` builds, stayed alive, registered hooks, emitted spoof events, and showed no checked fatal/ABI crash signatures.
+- On Android 16 emulator, `com.astrixforge.devicemasker.verifier` is installed with the canonical package, assigned to the `TestingA16` group through Device Masker UI, scoped in LSPosed, and validated with LSPosed/logcat hook registration plus spoofed verifier JSON for key enabled values.
+- The upgraded verifier value matrix now passes configured emulator surfaces on Android 16 after the 2026-05-11 fix: restricted telephony/serial values return spoofed values, direct location coordinate getters match the configured values exactly, WebView default UA and instance UA are spoofed, and sensor name normalization works. `LOCATION_LAST_KNOWN` can be unsupported when Android has no last-known provider object after reboot.
 - Diagnostics UI reports `Module Active`, anti-detection `4/4 tests passed`, real/spoofed Android ID, and real/spoofed Device Profile.
 - Basic support export through DocumentsUI works and saved `/sdcard/devicemasker_support_20260504_150228.zip`.
 - M3E core UI now uses `MaterialExpressiveTheme`, `MotionScheme.expressive()`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, 10-step shape tokens, asymmetric shape tokens, 15 emphasized typography styles, `LocalEmphasizedTypography`, and a `MaterialShapes.SoftBurst` Home hero moment.
@@ -126,6 +129,11 @@
 Latest verification caveat:
 - On 2026-05-04 later in the emulator session, module injection was active again. `com.mantle.verify` and `flar2.devcheck` both showed `XposedEntry`, target selection, `All hooks registered`, and spoof events in logcat.
 - Runtime gaps remain for disabled/missing/malformed pass-through, exact value-by-value assertions for all spoof types, real reboot boot-capture validation, and broader app-category validation.
+
+Immediate next work:
+- Add automated expected-vs-actual report generation so future verifier runs do not require ad hoc PowerShell matrix construction.
+- Keep emulator validation current after hook changes, including debug and `ciRelease`/R8 installs.
+- Keep public docs curated; raw active/closed reports stay internal.
 
 ## Completed Milestones
 
@@ -457,7 +465,7 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 
 ### 2026-05-07 Navigation 3 Audit Cleanup
 
-- Reviewed `docs/internal/reports/NAVIGATION3_AUDIT_REPORT.md` against current code, local
+- Reviewed `docs/internal/reports/closed/audits/2026-05-07/2026-05-07-navigation-3-audit-report.md` against current code, local
   `$navigation-3` recipes, and Google developer docs.
 - Added `dropUnlessResumed` to navigation click paths that mutate Navigation 3 state.
 - Fixed corrupted local Navigation 3 result recipe snippets and clarified deep-link guide wording.

@@ -98,7 +98,7 @@ Direct Kotlin SAM intercept callbacks are forbidden in runtime hookers unless re
 | **LocationHooker** | Location (getLatitude, getLongitude), LocationManager.getLastKnownLocation, TimeZone.getDefault, Locale.getDefault | LOCATION_LATITUDE, LOCATION_LONGITUDE, TIMEZONE, LOCALE |
 | **SensorHooker** | SensorManager.getSensorList (TYPE_ALL only, filters when >10), Sensor (getVendor, getVersion, getName) | DEVICE_PROFILE |
 | **AdvertisingHooker** | AdvertisingIdClient.Info.getId, Gservices (getString, getLong for android_id), MediaDrm.getPropertyByteArray (deviceUniqueId) | ADVERTISING_ID, GSF_ID, MEDIA_DRM_ID |
-| **WebViewHooker** | WebSettings (getUserAgentString, setUserAgentString), WebView.getDefaultUserAgent | DEVICE_PROFILE |
+| **WebViewHooker** | WebSettings.getDefaultUserAgent(Context), WebView.getSettings() concrete settings discovery, WebSettings set/user-agent surfaces where safely hookable | DEVICE_PROFILE |
 | **PackageManagerHooker** | ApplicationPackageManager (getPackageInfo, getApplicationInfo, getInstalledPackages, getInstalledApplications, queryIntentActivities) — throws NameNotFoundException for self | Self-hiding |
 | **ProcMapsHooker** | Path-aware Java `/proc/self/maps`, `/proc/<pid>/maps`, `/proc/self/smaps`, `/proc/<pid>/smaps` reader filtering; byte/NIO redaction only when explicit per-app policy enables it | Anti-detection |
 
@@ -156,3 +156,8 @@ Coverage should include:
 - `HookSafetyTest` — WebView UA parsing, AntiDetect safe-prefix pass-through, all hookers use safeHook, PM overload discovery, Location copy safety
 - `HookHealthRegistryTest` — registration counters, spoof aggregation, rate-limiting
 - `R8HookerAbiTest` — forbids direct runtime `.intercept { ... }` callbacks and checks R8 callback keep coverage
+
+## Runtime Validation Caveats
+
+- WebView UA has two separate evidence paths. Static `WebSettings.getDefaultUserAgent(Context)` and instance `WebSettings.getUserAgentString()` both need target-app evidence. Instance coverage depends on safe concrete settings discovery through `WebView.getSettings()`; do not replace it with broad classloader hooks.
+- Do not add broad classloader hooks to fix WebView instance UA without a separate safety plan and Android 16 runtime evidence.

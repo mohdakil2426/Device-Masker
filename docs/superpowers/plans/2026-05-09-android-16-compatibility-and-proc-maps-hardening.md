@@ -24,9 +24,9 @@ Use these references while executing:
 - libxposed Chain/Hooker API: `.agents/skills/libxposed/references/javadoc/api-javadoc/02-Chain-HookBuilder-HookHandle-Hooker.md`
 - libxposed error hierarchy: `.agents/skills/libxposed/references/javadoc/api-javadoc/04-error-package.md`
 - Native hook reference: `.agents/skills/libxposed/references/github/LSPosed-wiki/Native-Hook.md`
-- Current Java-first maps report: `docs/internal/reports/active/NATIVE_PROC_SELF_MAPS_JAVA_FIRST_RESEARCH_REPORT_2026-05-09.md`
-- Combined audit: `docs/internal/reports/active/DEVICE_MASKER_COMBINED_RESEARCH_AUDIT_2026-05-09.md`
-- Hooking tools and Android 16 research: `docs/internal/reports/active/XPOSED_HOOKING_TOOLS_AND_ANDROID16_RESEARCH_REPORT_2026-05-09.md`
+- Current Java-first maps report: `docs/internal/reports/active/research/2026-05-09/2026-05-09-native-proc-self-maps-java-first-research-report.md`
+- Combined audit: `docs/internal/reports/closed/research/2026-05-09/2026-05-09-device-masker-combined-research-audit.md`
+- Hooking tools and Android 16 research: `docs/internal/reports/closed/research/2026-05-09/2026-05-09-xposed-hooking-tools-android-16-research-report.md`
 
 Android 16 findings that matter for this project:
 
@@ -84,11 +84,11 @@ Primary suspects for Android 16 DevCheck crashes:
   - Restores/adds the missing 16 KB APK verification script referenced by Memory Bank if it is still absent during execution.
 - `tools/frida/devcheck-proc-maps-trace.js`
   - Lab-only script for tracing DevCheck file-open/read behavior if normal logcat/tombstone evidence is inconclusive. Never package this into the APK.
-- `docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`
+- `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`
   - Living evidence report for Android 16 test runs and crash isolation results.
-- `docs/internal/reports/active/LIBXPOSED_HELPER_EVALUATION_REPORT.md`
+- `docs/internal/reports/closed/research/2026-05-09/2026-05-09-libxposed-helper-evaluation-report.md`
   - Records whether `libxposed/helper` is worth adopting for discovery-only matching in one hooker.
-- `docs/internal/reports/active/NATIVE_HOOK_ENGINE_DECISION_RECORD.md`
+- `docs/internal/reports/active/research/2026-05-09/2026-05-09-native-hook-engine-decision-record.md`
   - Records the Java-vs-native maps evidence and whether ByteHook evaluation is justified.
 
 ### Modified Files
@@ -144,19 +144,19 @@ Run:
 
 ```powershell
 Get-Content -Raw AGENTS.md
-Get-Content -Raw docs/public/AGENTS_CODING_RULES.md
+Get-Content -Raw docs/AGENTS_PROJECT_RULES.md
 Get-Content -Raw xposed/AGENTS.md
 Get-Content -Raw common/AGENTS.md
 Get-Content -Raw .agents/skills/libxposed/SKILL.md
 Get-Content -Raw .agents/skills/libxposed/references/javadoc/INDEX.md
-Get-Content -Raw docs/internal/reports/active/XPOSED_HOOKING_TOOLS_AND_ANDROID16_RESEARCH_REPORT_2026-05-09.md
+Get-Content -Raw docs/internal/reports/closed/research/2026-05-09/2026-05-09-xposed-hooking-tools-android-16-research-report.md
 ```
 
 Verify:
 
 ```powershell
 Select-String -Path xposed/AGENTS.md -Pattern "stableHooker|XposedFrameworkError|/proc/self/maps"
-Select-String -Path docs/internal/reports/active/XPOSED_HOOKING_TOOLS_AND_ANDROID16_RESEARCH_REPORT_2026-05-09.md -Pattern "helper|ByteHook|Frida|DexKit"
+Select-String -Path docs/internal/reports/closed/research/2026-05-09/2026-05-09-xposed-hooking-tools-android-16-research-report.md -Pattern "helper|ByteHook|Frida|DexKit"
 ```
 
 Expected: all required guardrail and research terms are present.
@@ -203,7 +203,7 @@ No commit in this phase.
 **Files:**
 
 - Create: `scripts/collect-a16-crash-evidence.ps1`
-- Create: `docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`
+- Create: `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`
 
 - [x] **Step 1.1: Add A16 evidence collection script**
 
@@ -247,7 +247,7 @@ Expected: script writes files; if no A16 device is attached, the script may fail
 
 - [x] **Step 1.2: Add Android 16 crash report shell**
 
-Create `docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`:
+Create `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`:
 
 ```markdown
 # Android 16 Compatibility And DevCheck Crash Report
@@ -289,7 +289,7 @@ Track real Android 16 behavior separately from Android 13 emulator behavior. And
 Verify:
 
 ```powershell
-Select-String docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md -Pattern "No conclusion until"
+Select-String docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md -Pattern "No conclusion until"
 ```
 
 Expected: the safety rule is present.
@@ -1070,7 +1070,7 @@ Expected: hidden API signature extraction exists.
 
 **Files:**
 
-- Create: `docs/internal/reports/active/LIBXPOSED_HELPER_EVALUATION_REPORT.md`
+- Create: `docs/internal/reports/closed/research/2026-05-09/2026-05-09-libxposed-helper-evaluation-report.md`
 - Modify only if dependency resolution and tests pass: `gradle/libs.versions.toml`
 - Modify only if dependency resolution and tests pass: `xposed/build.gradle.kts`
 - Modify only for the experiment: `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemFeatureHooker.kt`
@@ -1250,7 +1250,7 @@ Verify:
 
 **Files:**
 
-- Create: `docs/internal/reports/active/NATIVE_HOOK_ENGINE_DECISION_RECORD.md`
+- Create: `docs/internal/reports/active/research/2026-05-09/2026-05-09-native-hook-engine-decision-record.md`
 - No production code changes in this phase unless verifier evidence proves Java filtering is insufficient and the user explicitly accepts native implementation risk.
 
 - [x] **Step 6B.1: Record the native decision rule**
@@ -1287,7 +1287,7 @@ Native hook engine not justified until verifier and DevCheck evidence prove Java
 Verify:
 
 ```powershell
-Select-String docs\internal\reports\active\NATIVE_HOOK_ENGINE_DECISION_RECORD.md -Pattern "ByteHook|ShadowHook|default-off|16 KB"
+Select-String docs\internal\reports\active\research\2026-05-09\2026-05-09-native-hook-engine-decision-record.md -Pattern "ByteHook|ShadowHook|default-off|16 KB"
 ```
 
 - [x] **Step 6B.2: Compare verifier maps evidence before native adoption**
@@ -1315,11 +1315,11 @@ Expected:
 
 **Why:** This is where we turn the real device crash into a specific fix target.
 
-**Current execution note:** pending. The available Mobile MCP/ADB device in this session is only `emulator-5554` on Android 13. Do not mark the Android 16 DevCheck crash fixed until the real Android 16 matrix below is run and the evidence report is updated.
+**Current execution note:** updated 2026-05-10. Mobile MCP/ADB exposed `emulator-5554` as Pixel 10 Pro XL API 36.1 / Android 16 / SDK 36 with 16 KB pages. Debug and debug-key-signed ciRelease/R8 DevCheck smoke passed on that emulator with LSPosed hook registration and spoof-event evidence. The module-disabled, load-only, isolated hook-family, and physical-device rows below remain unchecked because they require explicit LSPosed/config state changes on the target environment. Do not rewrite the emulator pass as physical-device evidence.
 
 **Files:**
 
-- Modify only evidence report: `docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`
+- Modify only evidence report: `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`
 - No code changes unless a specific failing hook family is identified.
 
 - [ ] **Step 7.1: Run module-disabled control on A16**
@@ -1445,7 +1445,7 @@ Expected:
 
 - Output is evidence only.
 - Do not package Frida, Frida Gum, or this script into Device Masker.
-- Copy findings into `ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`.
+- Copy findings into `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`.
 
 - [ ] **Step 7.6: Use DexKit only as offline target analysis**
 
@@ -1543,6 +1543,14 @@ Expected:
 
 - [ ] **Step 8.5: A16 DevCheck runtime**
 
+2026-05-10 partial completion: Android 16 emulator DevCheck runtime passed for all currently enabled safe hooks. Evidence:
+
+- Debug APK: `logs/device/2026-05-10-213712-a16-flar2.devcheck-*`
+- ciRelease/R8 APK signed with debug key for local smoke: `logs/device/2026-05-10-214023-a16-flar2.devcheck-*`
+- Device facts: SDK 36, Android 16, page size 16384
+
+Still open: physical-device A16 run and the explicit module-disabled/load-only/family-isolated matrix.
+
 On real A16:
 
 ```powershell
@@ -1555,6 +1563,8 @@ Expected:
 - If DevCheck still crashes, report must name the remaining crash class and this plan is not complete.
 
 - [ ] **Step 8.6: Release/R8 runtime**
+
+2026-05-10 partial completion: local `ciRelease` was assembled, signed into `logs/tmp/app-ciRelease-debugkey-signed.apk` only for emulator smoke, installed on Android 16 emulator, and DevCheck stayed alive with LSPosed hook/spoof evidence and no checked release-only ABI crash signatures. Still open: production-signed release/ciRelease runtime and physical-device A16 repeat.
 
 Run:
 
@@ -1579,8 +1589,8 @@ Expected:
 
 **Files:**
 
-- Modify: `docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`
-- Modify: `docs/internal/reports/active/NATIVE_PROC_SELF_MAPS_JAVA_FIRST_RESEARCH_REPORT_2026-05-09.md`
+- Modify: `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`
+- Modify: `docs/internal/reports/active/research/2026-05-09/2026-05-09-native-proc-self-maps-java-first-research-report.md`
 - Modify: `docs/public/ARCHITECTURE.md`
 - Modify: `xposed/AGENTS.md`
 - Modify: `memory-bank/activeContext.md`

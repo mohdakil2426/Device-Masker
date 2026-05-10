@@ -4,7 +4,7 @@
 
 Device Masker is an Android LSPosed/libxposed module for privacy research and controlled per-app device identity spoofing. It has a Compose app for configuration, a shared `:common` contract module, and a `:xposed` hook layer that runs inside scoped target app processes.
 
-The project is active development, not a stable release. As of 2026-05-02, the app has its first verified working base: `com.mantle.verify` launched under LSPosed after the latest crash remediation, Device Masker hooks registered, and LSPosed logs showed live spoof events for multiple identifiers.
+The project is active development, not a stable release. Current emulator evidence is strong for the tested Android 16 paths, but stable-release claims still require broader target-app and configuration-state validation.
 
 ## Core Goal
 
@@ -57,7 +57,9 @@ Release 0.1.5 hardening branch state as of 2026-05-09:
 - Full local gate and Android 13 Mantle smoke passed for the implemented safe track.
 - Java-first proc-maps hardening is implemented through path-aware `ProcMapsHooker`; byte/NIO redaction is per-app opt-in.
 - Native maps redaction and system_server package hiding are still not implemented and must stay advanced, opt-in, separately validated work.
-- Android 16 DevCheck crash is still pending real-device evidence; Android 13 emulator verifier/runtime gates are green.
+- Android 16 emulator DevCheck debug and local debug-key-signed `ciRelease`/R8 smokes passed on `emulator-5554` / Pixel 10 Pro XL API 36.1.
+- Android 16 verifier matrix now confirms configured emulator surfaces including restricted identifiers, direct latitude/longitude getters, WebView default UA, and WebView instance UA. `LOCATION_LAST_KNOWN` remains an unsupported optional probe when Android has no last-known provider object after reboot.
+- Physical-device Android 16 evidence remains separate and must not be inferred from emulator evidence.
 
 Master Implementation Plan status on 2026-05-04:
 - Phase 0: Safety & Stability core fixes complete.
@@ -91,7 +93,7 @@ Latest release R8 runtime check:
 
 ## Development Status
 
-Current status: working development base with release R8 enabled, emulator smoke coverage on Mantle and DevCheck, and user-reported success on a real Android 16 device. The project is not stable until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
+Current status: working development base with release R8 enabled, Android 16 emulator smoke coverage on Mantle/DevCheck/verifier, and user-reported success on a real Android 16 device. The project is not a stable release until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
 
 Known stability decisions:
 - Release shrinking/minification is enabled after replacing direct libxposed SAM/lambda callbacks with the `StableHooker` adapter path.

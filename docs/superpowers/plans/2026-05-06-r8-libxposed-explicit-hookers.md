@@ -12,7 +12,7 @@
 
 ## Assumptions
 
-- The root cause is the release-only libxposed callback ABI failure documented in `docs/internal/reports/R8_LIBXPOSED_RUNTIME_CRASH_ANALYSIS_2026-05-06.md`.
+- The root cause is the release-only libxposed callback ABI failure documented in `docs/internal/reports/closed/validation/2026-05-06/2026-05-06-r8-libxposed-runtime-crash-analysis.md`.
 - R8 must remain enabled for release because it reduces APK size from about 16 MB to about 3.8 MB.
 - No spoofing architecture change is intended: `JsonConfig.appConfigs` stays canonical, config delivery remains RemotePreferences-first, AIDL remains diagnostics-only, and hookers continue returning original values for disabled, missing, blank, malformed, unsafe, or unsupported config.
 - The modern libxposed API 101 contract is the source of truth: callbacks passed to `HookBuilder.intercept(...)` must be real `io.github.libxposed.api.XposedInterface.Hooker` instances with a working `intercept(XposedInterface.Chain)` implementation.
@@ -63,7 +63,7 @@
   - Replace lambda-focused comments/rules with explicit callback-class rules.
 - Modify: `app/proguard-rules.pro`
   - Keep only the app-level libxposed and callback rules required by merged release R8.
-- Modify: `docs/internal/reports/R8_LIBXPOSED_RUNTIME_CRASH_ANALYSIS_2026-05-06.md`
+- Modify: `docs/internal/reports/closed/validation/2026-05-06/2026-05-06-r8-libxposed-runtime-crash-analysis.md`
   - Add implementation result, release APK size, and runtime evidence after validation.
 - Modify: `memory-bank/activeContext.md`, `memory-bank/progress.md`, and any other Memory Bank file whose current state becomes stale.
 
@@ -1229,8 +1229,8 @@ Expected: no `WorkManagerInitializer` crash, no class-loading ANR, no `AbstractM
 ### Task 14: Documentation and Memory Bank Update
 
 **Files:**
-- Modify: `docs/internal/reports/R8_LIBXPOSED_RUNTIME_CRASH_ANALYSIS_2026-05-06.md`
-- Modify: `docs/internal/reports/BUILD_AUDIT_AND_R8_ENABLEMENT_2026-05-06.md`
+- Modify: `docs/internal/reports/closed/validation/2026-05-06/2026-05-06-r8-libxposed-runtime-crash-analysis.md`
+- Modify: `docs/internal/reports/closed/audits/2026-05-06/2026-05-06-build-audit-and-r8-enablement.md`
 - Modify: `memory-bank/activeContext.md`
 - Modify: `memory-bank/progress.md`
 - Modify if stale: `memory-bank/systemPatterns.md`, `memory-bank/techContext.md`
@@ -1292,7 +1292,7 @@ Expected: graphify completes without API-cost source re-analysis errors.
 - [ ] **Step 5: Commit docs**
 
 ```powershell
-git add docs/internal/reports/R8_LIBXPOSED_RUNTIME_CRASH_ANALYSIS_2026-05-06.md docs/internal/reports/BUILD_AUDIT_AND_R8_ENABLEMENT_2026-05-06.md memory-bank/activeContext.md memory-bank/progress.md memory-bank/systemPatterns.md memory-bank/techContext.md graphify-out
+git add docs/internal/reports/closed/validation/2026-05-06/2026-05-06-r8-libxposed-runtime-crash-analysis.md docs/internal/reports/closed/audits/2026-05-06/2026-05-06-build-audit-and-r8-enablement.md memory-bank/activeContext.md memory-bank/progress.md memory-bank/systemPatterns.md memory-bank/techContext.md graphify-out
 git commit -m "docs: record R8 libxposed callback hardening"
 ```
 

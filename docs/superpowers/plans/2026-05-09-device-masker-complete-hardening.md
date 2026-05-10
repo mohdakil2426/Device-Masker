@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:executing-plans` or `superpowers:subagent-driven-development` before implementing this plan. Track every checkbox in this file. Do not implement from memory.
 
-**Source report:** `docs/internal/reports/active/DEVICE_MASKER_COMBINED_RESEARCH_AUDIT_2026-05-09.md`
+**Source report:** `docs/internal/reports/closed/research/2026-05-09/2026-05-09-device-masker-combined-research-audit.md`
 
 **Goal:** Implement every accepted finding from the combined research audit and prove it end to end on the already-running Android 13 emulator `emulator-5554`.
 
@@ -22,9 +22,9 @@
 
 ## Official References To Keep Open
 
-- Combined audit: `docs/internal/reports/active/DEVICE_MASKER_COMBINED_RESEARCH_AUDIT_2026-05-09.md`
+- Combined audit: `docs/internal/reports/closed/research/2026-05-09/2026-05-09-device-masker-combined-research-audit.md`
 - Architecture: `docs/public/ARCHITECTURE.md`
-- Agent coding rules: `docs/public/AGENTS_CODING_RULES.md`
+- Agent project rules: `docs/AGENTS_PROJECT_RULES.md`
 - Root guide: `AGENTS.md`
 - Common guide: `common/AGENTS.md`
 - Xposed guide: `xposed/AGENTS.md`
@@ -97,11 +97,11 @@ Read these files before editing:
 
 ```powershell
 Get-Content AGENTS.md
-Get-Content docs/public/AGENTS_CODING_RULES.md
+Get-Content docs/AGENTS_PROJECT_RULES.md
 Get-Content common/AGENTS.md
 Get-Content xposed/AGENTS.md
 Get-Content .agents/skills/libxposed/SKILL.md
-Get-Content docs/internal/reports/active/DEVICE_MASKER_COMBINED_RESEARCH_AUDIT_2026-05-09.md
+Get-Content docs/internal/reports/closed/research/2026-05-09/2026-05-09-device-masker-combined-research-audit.md
 ```
 
 Verify:
@@ -491,7 +491,7 @@ Verify:
 
 **Files:**
 
-- Create: `docs/internal/reports/active/DEVICE_PROFILE_RUNTIME_COVERAGE_MATRIX.md`
+- Create: `docs/internal/reports/closed/validation/2026-05-09/2026-05-09-device-profile-runtime-coverage-matrix.md`
 - Modify: `common/src/main/kotlin/com/astrixforge/devicemasker/common/DeviceProfilePreset.kt`
 - Modify: `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemHooker.kt`
 - Create: `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemFeatureHooker.kt`
@@ -504,7 +504,7 @@ Verify:
 
 - [x] **Step 3.1: Create coverage matrix**
 
-Create `DEVICE_PROFILE_RUNTIME_COVERAGE_MATRIX.md` with this table:
+Create `docs/internal/reports/closed/validation/2026-05-09/2026-05-09-device-profile-runtime-coverage-matrix.md` with this table:
 
 ```markdown
 # Device Profile Runtime Coverage Matrix
@@ -1137,7 +1137,7 @@ adb -s emulator-5554 shell su -c "settings put global device_masker_system_serve
 adb -s emulator-5554 shell getprop sys.boot_completed
 ```
 
-Keep this recovery command in `docs/internal/reports/active/DEVICE_PROFILE_RUNTIME_COVERAGE_MATRIX.md`:
+Keep this recovery command in `docs/internal/reports/closed/validation/2026-05-09/2026-05-09-device-profile-runtime-coverage-matrix.md`:
 
 ```powershell
 adb -s emulator-5554 shell su -c "pm clear com.astrixforge.devicemasker"
@@ -1558,15 +1558,15 @@ Verify:
 **Files:**
 
 - Modify: `docs/public/ARCHITECTURE.md`
-- Modify: `docs/public/AGENTS_CODING_RULES.md`
+- Modify: `docs/AGENTS_PROJECT_RULES.md`
 - Modify: `AGENTS.md` only if permanent guardrails change.
 - Modify: `common/AGENTS.md`
 - Modify: `xposed/AGENTS.md`
 - Modify: `memory-bank/activeContext.md`
 - Modify: `memory-bank/progress.md`
 - Modify if needed: `memory-bank/systemPatterns.md`
-- Modify: `docs/internal/reports/active/DEVICE_MASKER_COMBINED_RESEARCH_AUDIT_2026-05-09.md`
-- Modify: `docs/internal/reports/active/DEVICE_PROFILE_RUNTIME_COVERAGE_MATRIX.md`
+- Modify: `docs/internal/reports/closed/research/2026-05-09/2026-05-09-device-masker-combined-research-audit.md`
+- Modify: `docs/internal/reports/closed/validation/2026-05-09/2026-05-09-device-profile-runtime-coverage-matrix.md`
 
 - [x] **Step 11.1: Update docs with real implemented state**
 

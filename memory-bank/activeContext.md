@@ -2,7 +2,15 @@
 
 ## Current Focus
 
-Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations. Emulator smoke passed on `com.mantle.verify` and `flar2.devcheck`, and the user confirmed the same R8 build works on a real Android 16 device. Latest checked release APK size was about 4.0 MB unsigned.
+Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations.
+
+Android 16 emulator validation is currently the strongest local evidence path: DevCheck debug and debug-key-signed `ciRelease` smokes passed, the verifier package is scoped and configured, WebView default and instance UA are spoofed, direct latitude/longitude getter probes pass, and the latest static/R8 gate passed. This is still emulator evidence only; do not rewrite it as physical-device proof.
+
+Next tasks:
+1. Add automated expected-vs-actual report generation so future verifier runs do not require ad hoc PowerShell matrix construction.
+2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.
+3. Add physical-device LSPosed/logcat and target-app value evidence only if physical-device claims are needed later.
+4. Keep raw internal reports in internal folders and publish only curated public summaries.
 
 ## 2026-05-09 Release 0.1.5 Hardening Branch
 
@@ -48,7 +56,84 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 
 - Android 13 emulator verifier evidence exists at `logs/device/2026-05-09-verifier-a13-final.json`; Mobile MCP launched the verifier and observed the new JSON sections on screen.
 - 16 KB verification passed for debug, release, and ciRelease APKs. Local release/ciRelease outputs are unsigned because release signing env vars are not present.
-- Real Android 16 DevCheck crash is not yet fixed or proven fixed. No A16 device is exposed through Mobile MCP/ADB in this session, so A16 DevCheck matrix rows remain pending in `docs/internal/reports/active/ANDROID16_COMPATIBILITY_AND_DEVCHECK_CRASH_REPORT.md`.
+- 2026-05-10 Android 16 emulator validation:
+  - Device: `emulator-5554`, Pixel 10 Pro XL API 36.1, Android 16 / SDK 36, 16 KB page size (`getconf PAGE_SIZE=16384`).
+  - Full gate passed in `logs/build/2026-05-10-a16-final-gate.txt`.
+  - 16 KB verification passed for debug, release, and ciRelease APKs in `logs/build/2026-05-10-16kb-debug.txt`, `logs/build/2026-05-10-16kb-release.txt`, and `logs/build/2026-05-10-16kb-ciRelease.txt`.
+  - DevCheck debug runtime passed with LSPosed `XposedEntry`, target selection, `All hooks registered`, spoof events, live PID, and no checked fatal/ABI signatures in `logs/device/2026-05-10-213712-a16-flar2.devcheck-*`.
+  - Local `ciRelease` was signed only for emulator smoke as `logs/tmp/app-ciRelease-debugkey-signed.apk`; DevCheck ciRelease/R8 runtime passed with the same LSPosed evidence and no checked `AbstractMethodError`, `VerifyError`, `NoSuchMethodError`, or fatal crash in `logs/device/2026-05-10-214023-a16-flar2.devcheck-*`.
+  - Verifier wrote Android 16 baseline JSON at `logs/device/2026-05-10-verifier-a16-final.json`; that run was not proof of proc-maps redaction because the verifier was not scoped/configured for LSPosed spoofing.
+- Physical-device Android 16 evidence and the explicit module-disabled/load-only/hook-family matrix remain open. Do not claim real-device completion from emulator evidence.
+
+## 2026-05-10 Verifier Canonical Package Setup
+
+- Added manual device UI rules and later consolidated them into `docs/AGENTS_PROJECT_RULES.md`: manual emulator/device UI work must use Mobile MCP, while ADB/shell remains for command work and evidence capture. The old `docs/public/AGENT_DEVICE_UI_RULES.md` duplicate is no longer present; `docs/AGENTS_PROJECT_RULES.md` is canonical.
+- Locked `:verifier` back to the canonical package `com.astrixforge.devicemasker.verifier`.
+- Built and installed `verifier-debug.apk` on `emulator-5554` / Pixel 10 Pro XL API 36.1.
+- Mobile MCP opened LSPosed from the notification panel and Device Masker UI. Device Masker `TestingA16` Apps tab showed `6 apps • 3 assigned` with DevCheck, DeviceMasker Verifier, and Mantle Verify checked.
+- LSPosed scope DB readback showed Device Masker scoped to `android`, `system`, `flar2.devcheck`, `com.mantle.verify`, and `com.astrixforge.devicemasker.verifier`.
+- Verifier launch under LSPosed showed `XposedEntry loaded`, `All hooks registered`, and spoof events in `logs/device/2026-05-10-verifier-canonical-package-logcat.txt`; no checked `FATAL EXCEPTION`, `AbstractMethodError`, `VerifyError`, `NoSuchMethodError`, or `HookFailedError` appeared in the checked logcat window.
+- Verifier latest JSON at `logs/device/2026-05-10-verifier-canonical-package-latest-2.json` confirmed scoped spoofing for key enabled values including Android ID, device profile, network operator, timezone, and locale. Latitude/longitude remained disabled in the configured profile.
+
+## 2026-05-10 Verifier Value Matrix Upgrade
+
+- Google Developer Knowledge confirmed Android 10+/API 29+ behavior for non-resettable identifiers: `TelephonyManager` persistent IDs and `Build.getSerial()` throw `SecurityException` for normal target-SDK 29+ apps unless privileged/carrier/default-SMS/device-owner conditions apply. This explained the previous verifier failures.
+- Fixed `DeviceHooker` restricted identifier callbacks so configured spoof values are returned before calling `chain.proceed()`. This prevents Android 16 platform restrictions from throwing before the hook can return valid configured values.
+- Improved `:verifier`:
+  - Added `READ_PHONE_NUMBERS`.
+  - Added slot-specific telephony probes.
+  - Added WebView instance UA probe.
+  - Added default accelerometer probe.
+  - Added a machine-readable `checks` matrix with status classification.
+- Fixed `WebViewHooker` static default UA hook target from the wrong `WebView.getDefaultUserAgent(Context)` path to `WebSettings.getDefaultUserAgent(Context)`.
+- Hardened `SensorHooker` to normalize common sensor names such as emulator `Goldfish ...` to generic names.
+- Rebuilt and installed Device Masker + verifier, granted verifier runtime permissions, rebooted the Android 16 emulator so LSPosed loaded the updated module APK, and reran verifier.
+- Post-reboot evidence:
+  - `logs/device/2026-05-10-verifier-matrix-post-reboot-latest.json`
+  - `logs/device/2026-05-10-verifier-matrix-post-reboot-logcat.txt`
+  - `docs/internal/reports/closed/validation/2026-05-10/2026-05-10-verifier-value-matrix-report.md`
+- Matrix result: `PASS=25`, `FAIL=1`, `NOT_CONFIGURED=2`.
+  - Pass: Android ID, serial, IMEI, IMEI slot 0, IMSI, ICCID, phone number, SIM/network values, Wi-Fi, Bluetooth MAC, Advertising ID, GSF ID, MediaDRM ID, device profile fields, timezone, locale, normalized default accelerometer name, and WebView default UA.
+  - Not configured: latitude/longitude because the profile intentionally has both disabled.
+  - Remaining fail: WebView instance `WebSettings.getUserAgentString()` still returns the provider default UA with emulator model even though static `WebSettings.getDefaultUserAgent(Context)` is fixed.
+- No checked `FATAL EXCEPTION`, `AbstractMethodError`, `VerifyError`, `NoSuchMethodError`, or `HookFailedError` appeared in the post-reboot verifier logcat window.
+
+## 2026-05-10 Latitude/Longitude Enabled Rerun
+
+- User enabled both latitude and longitude in Device Masker. Config snapshot at `logs/device/2026-05-10-config-after-latlong-enabled.json` shows `LOCATION_LATITUDE=41.700052` and `LOCATION_LONGITUDE=62.377687`, both enabled for `com.astrixforge.devicemasker.verifier`.
+- Rerun evidence:
+  - `logs/device/2026-05-10-verifier-matrix-latlong-enabled-latest.json`
+  - `logs/device/2026-05-10-verifier-matrix-latlong-enabled-logcat.txt`
+  - `docs/internal/reports/closed/validation/2026-05-10/2026-05-10-verifier-android-16-full-summary.md`
+- Latest matrix result: `PASS=27`, `FAIL=1`, `NOT_CONFIGURED=0`.
+- Location now passes exactly: GPS last-known and synthetic `Location` getter probes both returned `41.700052, 62.377687`.
+- Latest logcat shows `XposedEntry loaded`, `All hooks registered`, 42 spoof-event lines, and no checked fatal/runtime signatures.
+- At this point, `WEBVIEW_INSTANCE_UA` still leaked `sdk_gphone16k_x86_64`; this was fixed and retested in the 2026-05-11 emulator stability pass below.
+
+## 2026-05-11 Emulator Stability Push
+
+- Fixed WebView instance UA by hooking `WebView.getSettings()`, discovering the concrete provider settings class, and looking up inherited/concrete user-agent methods before hooking. This avoids broad classloader hooks.
+- Added verifier matrix rows for `LOCATION_LATITUDE` and `LOCATION_LONGITUDE` direct getter probes.
+- Added safe last-known-location null handling in `LocationHooker` for enabled valid coordinates.
+- Final emulator evidence:
+  - `logs/device/2026-05-11-final-all-emulator-latest.json`
+  - `logs/device/2026-05-11-final-all-emulator-logcat.txt`
+  - `docs/internal/reports/closed/validation/2026-05-11/2026-05-11-android-16-emulator-stability-summary.md`
+- Final verifier result: WebView default UA and WebView instance UA both contain `SM-S928B`; direct latitude/longitude probes return `41.700052, 62.377687`; no fatal hook/runtime signatures; no relevant Device Masker/LSPosed `SecurityException`.
+- Remaining emulator caveat: `LOCATION_LAST_KNOWN` can be `UNSUPPORTED` when Android has no last-known provider object after reboot. Treat direct `Location.getLatitude()`/`getLongitude()` as the deterministic coordinate-spoof evidence.
+- Static/R8 gate passed: `logs/build/2026-05-11-final-emulator-stability-gate.txt`.
+
+## 2026-05-11 Wrap-Up Documentation Cleanup
+
+- Replaced the single Android 16 emulator guide with the broader public validation package:
+  - `docs/public/validation/DEVICE_MASKER_VALIDATION_STATUS.md`
+  - `docs/public/validation/evidence/emulator/android-16/latest.json`
+  - `docs/public/validation/evidence/emulator/android-16/logcat.txt`
+  - `docs/public/validation/evidence/emulator/android-16/build-gate.txt`
+  - `docs/public/validation/evidence/emulator/android-16/config.json`
+- Moved completed/superseded reports into the category/date report structure under `docs/internal/reports/closed/`.
+- Kept active only the reports with open decisions/remediation under `docs/internal/reports/active/<category>/YYYY-MM-DD/`.
+- Report organization now uses the required shape `docs/internal/reports/<active|closed>/<audits|validation|research|summaries>/YYYY-MM-DD/YYYY-MM-DD-topic.md`; details live in `docs/AGENTS_PROJECT_RULES.md`.
 
 ## 2026-05-08 Detekt Maximum Strictness Rollout
 
@@ -124,7 +209,7 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
   `results-state.md` by removing embedded GitHub URLs from `PersonDetailsForm : NavKey` snippets.
 - Clarified the local Navigation 3 migration guide deep-link wording: deep links are not covered by
   the migration guide and should follow the deep-link recipes.
-- Updated `docs/internal/reports/NAVIGATION3_AUDIT_REPORT.md` to stop overclaiming full app
+- Updated `docs/internal/reports/closed/audits/2026-05-07/2026-05-07-navigation-3-audit-report.md` to stop overclaiming full app
   production readiness. The report now scopes the verdict to the Navigation 3 layer and marks the
   local documentation defects as fixed.
 - Verification: `.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon` passed; `graphify update .` refreshed the graph.
@@ -147,7 +232,7 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 
 ## 2026-05-06 Coroutines And Performance Audit Remediation
 
-- Addressed live findings from `docs/internal/reports/coroutines-audit-report.md` and `docs/internal/reports/performance-audit-report.md` without changing Xposed config delivery or hook enablement semantics.
+- Addressed live findings from `docs/internal/reports/closed/audits/2026-05-06/2026-05-06-coroutines-audit-report.md` and `docs/internal/reports/closed/audits/2026-05-06/2026-05-06-performance-audit-report.md` without changing Xposed config delivery or hook enablement semantics.
 - Removed production `runBlocking` and busy `Thread.sleep` polling from `AppLogStore`; app log append now uses non-blocking channel send and flush waits on a monitor.
 - Removed `runBlocking` from `ConfigManager.resetForTests()`.
 - Removed the stored `Context` property and `StaticFieldLeak` suppression from `SpoofRepository`; singleton creation still uses `context.applicationContext`.
@@ -196,7 +281,7 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 - Reorganized `docs/` into `public/`, `internal/`, `superpowers/`.
 - Deleted stale `RUNBOOK.md` (R8/YukiHookAPI references).
 - Cleaned `ARCHITECTURE.md` to pure architecture.
-- Created `docs/internal/reports/BUILD_AUDIT_AND_R8_ENABLEMENT_2026-05-06.md`.
+- Created `docs/internal/reports/closed/audits/2026-05-06/2026-05-06-build-audit-and-r8-enablement.md`.
 
 ### Agent Guides
 - Created `AGENTS.md` (root), `app/AGENTS.md`, `common/AGENTS.md`, `xposed/AGENTS.md`.
@@ -365,7 +450,7 @@ Implemented the follow-up audit fixes for diagnostics and root evidence:
 - Production root command execution uses libsu core 6.0.0; the `RootCommandExecutor` interface remains for unit tests.
 - Root command output now includes per-command manifests and a collector `command_manifest.jsonl` with status, exit code, timeout, root availability, and stderr summary.
 - Target package names are validated before inclusion in root shell commands; invalid or blank target packages skip target-specific commands.
-- `LocationManager.getLastKnownLocation()` now returns a copied `Location` when spoofing coordinates instead of mutating the framework-returned instance in place.
+- `LocationManager.getLastKnownLocation()` returns a copied `Location` when Android provides a location object, and has safe valid-coordinate null handling when the platform returns no object. Direct `Location` latitude/longitude getters remain the deterministic coordinate evidence.
 - PackageManager method discovery has regression coverage for API 33+ flags object overloads.
 
 Verification:

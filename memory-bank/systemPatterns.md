@@ -149,6 +149,14 @@ Proc maps rules:
 - Java byte-stream and Java NIO maps redaction stay opt-in per package until target evidence proves they are safe.
 - Native maps reads are not claimed covered unless a separate native hook track is implemented and verified.
 
+## Android 16 Compatibility Pattern
+
+- Android 16 evidence is tracked separately from Android 13 emulator smoke.
+- Hook-family RemotePreferences keys are the crash-isolation switchboard for target-specific triage.
+- Android 16 emulator evidence proves only that emulator/build combination. Physical-device claims require physical-device LSPosed/logcat and target-app value evidence.
+- Release/R8 hook evidence must come from an installed minified APK and must explicitly check for `AbstractMethodError`, `VerifyError`, `NoSuchMethodError`, and fatal target-process crashes.
+- 16 KB page-size support is verified with `scripts/verify-16kb-page-support.ps1` against debug, release, and `ciRelease` APKs before Android 16 compatibility claims.
+
 Global class lookup hiding is currently disabled by default:
 - `Class.forName` and `ClassLoader.loadClass` hooks are too invasive for target startup.
 - They caused or contributed to startup instability in `com.mantle.verify`.
@@ -183,6 +191,15 @@ Diagnostics facts:
 - There is no custom Device Masker Binder service in system_server.
 - Diagnostics UI does not read custom service status; target hook proof comes from LSPosed/logcat.
 
+## Verifier Matrix Pattern
+
+Runtime value validation uses three artifacts:
+- A live Device Masker config snapshot for expected values.
+- `:verifier` `files/verifier/latest.json` for actual target-app values.
+- LSPosed/logcat for module load, hook registration, spoof events, and runtime error signatures.
+
+Android platform restrictions and unsupported verifier probe shapes are not counted as hook failures unless a supported configured path also fails. WebView UA has two separate surfaces: static `WebSettings.getDefaultUserAgent(Context)` and instance `WebSettings.getUserAgentString()`. Static success alone is not full WebView UA coverage. Instance WebView UA is handled through safe concrete settings discovery from `WebView.getSettings()`, not broad classloader hooks.
+
 ## Current Hook Areas
 
 - `AntiDetectHooker`
@@ -214,6 +231,7 @@ WebView UA spoofing is defensive:
 - Replace only recognizable Android model segments.
 - Pass through unknown formats.
 - Skip abstract `WebSettings` methods.
+- Use `WebView.getSettings()` to discover concrete WebView provider settings classes for instance UA hooks; do not use broad classloader hooks.
 - When changing `setUserAgentString(String)` arguments, copy `chain.args` and call
   `chain.proceed(Object[])`; libxposed returns an immutable args list.
 

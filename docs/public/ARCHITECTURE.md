@@ -1,6 +1,6 @@
 # Device Masker Architecture And Runtime Guide
 
-Date: 2026-05-09
+Date: 2026-05-10
 
 ## Summary
 
@@ -192,6 +192,20 @@ Important facts:
 Android 16 support is validated separately from Android 13 emulator smoke. Hook families can be isolated per target through RemotePreferences keys when a crash needs triage.
 
 Java `/proc/self/maps` hardening is path-aware and owned by `ProcMapsHooker`. It covers tracked Java reader paths and keeps byte/NIO redaction behind explicit per-app policy keys. Native scanner coverage is not claimed unless a later native probe and target-app evidence prove it.
+
+For the current validation matrix, emulator evidence, and evidence boundaries, see `docs/public/validation/DEVICE_MASKER_VALIDATION_STATUS.md`.
+
+## Verifier Evidence
+
+`:verifier` is the local target app for value-by-value checks. It stays simple and machine-readable: launch the target, read Android framework surfaces, and write `files/verifier/latest.json`.
+
+Current validation rules:
+- Treat LSPosed/logcat hook registration as hook-load evidence.
+- Treat verifier JSON as target-app value evidence.
+- Compare verifier values against the live Device Masker config snapshot for expected-vs-actual reports.
+- Keep Android platform restrictions and unsupported verifier probe shapes separate from real spoof failures.
+- Do not claim complete WebView UA spoofing from static UA checks alone; instance `WebSettings.getUserAgentString()` must also be verified.
+- WebView instance UA is handled through `WebView.getSettings()` concrete settings discovery; broad classloader hooks remain disabled by default.
 
 ## Forbidden Patterns
 
