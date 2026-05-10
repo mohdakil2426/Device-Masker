@@ -50,6 +50,19 @@ class DeviceProfileHookCoverageTest {
         )
     }
 
+    @Test
+    fun `webview hooker discovers concrete web settings implementation`() {
+        val webViewHooker = source("WebViewHooker.kt")
+
+        assertTrue(webViewHooker.contains("\"WebView.getSettings()\""))
+        assertTrue(webViewHooker.contains("hookConcreteWebSettings"))
+        assertTrue(webViewHooker.contains("hookedSettingsClasses.add"))
+        assertTrue(webViewHooker.contains("webSettingsMethodOrNull"))
+        assertTrue(webViewHooker.contains("getMethod(name, *params)"))
+        assertTrue(webViewHooker.contains("\"getUserAgentString\""))
+        assertTrue(webViewHooker.contains("\"setUserAgentString\""))
+    }
+
     private fun source(relativePath: String): String =
         File(
                 repoRoot,

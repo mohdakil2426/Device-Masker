@@ -112,10 +112,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m)
                     .intercept(
                         stableHooker { chain ->
-                            val result = chain.proceed()
                             val spoofed =
                                 getConfiguredSpoofValue(prefs, pkg, getter.spoofType)
-                                    ?: return@stableHooker result
+                                    ?: return@stableHooker chain.proceed()
                             reportSpoofEvent(pkg, getter.spoofType)
                             spoofed
                         }
@@ -177,10 +176,9 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                 xi.hook(m)
                     .intercept(
                         stableHooker { chain ->
-                            val result = chain.proceed()
                             val spoofed =
                                 getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
-                                    ?: return@stableHooker result
+                                    ?: return@stableHooker chain.proceed()
                             reportSpoofEvent(pkg, SpoofType.SERIAL)
                             spoofed
                         }

@@ -121,17 +121,35 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
                     .intercept(
                         stableHooker { chain ->
                             val result = chain.proceed()
-                            var name = result as? String ?: return@stableHooker result
-                            val prefixes = listOf("Qualcomm ", "MediaTek ", "Samsung ")
-                            for (prefix in prefixes) {
-                                name = name.replace(prefix, "")
-                            }
-                            name
+                            val sensor = chain.thisObject as? Sensor
+                            val name = result as? String ?: return@stableHooker result
+                            normalizedSensorName(sensor?.type, name)
                         }
                     )
                 xi.deoptimize(m)
             }
         }
+    }
+
+    private fun normalizedSensorName(type: Int?, original: String): String {
+        val generic =
+            when (type) {
+                1 -> "Accelerometer"
+                2 -> "Magnetometer"
+                4 -> "Gyroscope"
+                5 -> "Light Sensor"
+                8 -> "Proximity Sensor"
+                11 -> "Rotation Vector"
+                else -> null
+            }
+        if (generic != null) return generic
+
+        var name = original
+        val prefixes = listOf("Goldfish ", "Qualcomm ", "MediaTek ", "Samsung ")
+        for (prefix in prefixes) {
+            name = name.replace(prefix, "")
+        }
+        return name
     }
 
     private fun filteredSensorListOrOriginal(type: Int, result: Any?, pkg: String): Any? {

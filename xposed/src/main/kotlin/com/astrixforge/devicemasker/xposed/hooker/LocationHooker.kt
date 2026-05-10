@@ -95,15 +95,24 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     .intercept(
                         stableHooker { chain ->
                             val result = chain.proceed()
-                            val location = result as? Location ?: return@stableHooker result
                             val latStr =
                                 getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) { "" }
                             val lonStr =
                                 getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) { "" }
+                            val location =
+                                result as? Location
+                                    ?: createSpoofLocation(
+                                        chain.args.firstOrNull() as? String,
+                                        latStr,
+                                        lonStr,
+                                    )
+                                    ?: return@stableHooker result
 
                             val copy = copyWithSpoof(location, latStr, lonStr)
-                            if (copy !== location)
+                            if (copy !== location || result == null) {
                                 reportSpoofEvent(pkg, SpoofType.LOCATION_LATITUDE)
+                                reportSpoofEvent(pkg, SpoofType.LOCATION_LONGITUDE)
+                            }
                             copy
                         }
                     )
@@ -170,6 +179,16 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
     private fun buildLocale(localeStr: String, current: java.util.Locale): java.util.Locale {
         return runCatching { java.util.Locale.forLanguageTag(localeStr.replace('_', '-')) }
             .getOrElse { current }
+    }
+
+    private fun createSpoofLocation(provider: String?, latStr: String, lonStr: String): Location? {
+        val lat = latStr.toDoubleOrNull() ?: return null
+        val lon = lonStr.toDoubleOrNull() ?: return null
+        return Location(provider ?: "gps").apply {
+            latitude = lat
+            longitude = lon
+            time = System.currentTimeMillis()
+        }
     }
 
     private fun copyWithSpoof(location: Location, latStr: String, lonStr: String): Location {
