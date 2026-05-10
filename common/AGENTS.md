@@ -19,7 +19,7 @@ common/src/main/
 
 - `JsonConfig.appConfigs` is canonical for per-app scope. `SpoofGroup.assignedApps` is legacy/display-only.
 - `SharedPrefsKeys` is the ONLY place to build RemotePreferences key strings.
-- Generators live here and run at config time, never at runtime in `:xposed`.
+- Generators live here and run at config time, never at runtime in `:xposed`; target-process hooks only consume stored values.
 - All generators use `SecureRandom` for cryptographic-quality randomness.
 - Detekt baselines are currently empty; keep common logic small enough to avoid new baseline debt.
 

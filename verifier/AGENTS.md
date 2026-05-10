@@ -22,6 +22,7 @@ Local target app for Android emulator/device validation. This APK is not product
 - Actual values come from `files/verifier/latest.json`.
 - Hook-load proof comes from LSPosed/logcat: `XposedEntry loaded`, hook registration, and spoof events.
 - Runtime reports must include the verifier JSON, logcat file, and config snapshot under `logs/device/`.
+- Android 16 value checks must compare the Device Masker config snapshot against `files/verifier/latest.json` expected vs actual values.
 
 ## Android 16 Notes
 

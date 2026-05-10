@@ -83,6 +83,23 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 - `AppMotion` object: spring-based specs (Expressive, Standard, Snappy, ReducedMotion)
 - `ElevationTokens` Level0–Level5
 
+## Compose Rules
+
+- Reusable composables must accept `modifier: Modifier = Modifier`.
+- State-backed collection parameters should use immutable collection types.
+- Wrap callbacks captured by `LaunchedEffect` or restartable effects with `rememberUpdatedState`.
+- Do not build ViewModels inside composable bodies. Use factories and default parameters at the screen boundary.
+- Helpers that emit multiple independent children need a parent layout.
+- Keep scope-specific modifiers, such as dropdown menu anchors, at the scope call site and pass them down as `modifier`.
+- Split large screens by state, section, row, and action boundaries.
+- Do not add wrapper composables that only forward a ViewModel.
+- Create small stable UI-state models before rendering category-heavy screens.
+
+## App Boundary Rules
+
+- Generate and persist identity values in app/common config flows, not in target-process hooks.
+- Prefer narrow workflow interfaces for new code. Compatibility facades should not keep growing.
+
 ## Diagnostics & Root
 
 - `AppLogStore`: JSONL events in `filesDir/logs/sessions/`

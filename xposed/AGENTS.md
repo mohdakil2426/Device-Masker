@@ -29,6 +29,19 @@ xposed/src/main/
 - `libxposed:api` is `compileOnly` — LSPosed provides runtime
 - Rethrow `XposedFrameworkError` before generic `Throwable` in all catch blocks
 
+## Xposed Safety Rules
+
+- Runtime hooks must use `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations.
+- Never use direct Kotlin SAM callbacks like `.intercept { ... }` in runtime hookers.
+- Separate method discovery, hook registration, and callback behavior.
+- Use data tables for repeated framework getter hooks instead of copy-pasted hook blocks.
+- In hook code, name argument indexes, API constants, identifier lengths, byte sizes, and limits before use.
+- Rethrow `XposedFrameworkError` before generic catches.
+- Return original values for disabled, missing, blank, malformed, unsafe, or unsupported config.
+- Do not generate random fallback identifiers inside target processes.
+- Do not use Timber, Compose, app-private JSON reads, or hardcoded RemotePreferences keys in `:xposed`.
+- Preserve hook isolation: one failed hook must not block unrelated hooks.
+
 ## Entry Point — XposedEntry
 
 Extends `XposedModule` (libxposed API 101). No-arg constructor, framework-instantiated.
