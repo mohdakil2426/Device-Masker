@@ -1,4 +1,4 @@
-package com.astrixforge.devicemasker.ui.components.dialog
+package com.astrixforge.devicemasker.ui.components.sheet
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,13 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -38,80 +36,70 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.common.models.Country
+import com.astrixforge.devicemasker.ui.components.AppModalBottomSheet
 
-@Immutable private data class TimezoneOptions(val items: List<TimezoneEntry>)
+@Immutable private data class CountryOptions(val items: List<Country>)
 
 /**
- * Searchable dialog for selecting a timezone.
+ * Searchable modal sheet for selecting a country.
  *
- * @param selectedTimezone Currently selected timezone ID (e.g., "America/New_York")
- * @param timezoneSelected Called when a timezone is selected
- * @param onDismiss Called when dialog is dismissed
+ * @param selectedCountryIso Currently selected country ISO code
+ * @param countrySelected Called when a country is selected
+ * @param onDismiss Called when sheet is dismissed
  */
 @Composable
-fun TimezonePickerDialog(
-    selectedTimezone: String?,
-    timezoneSelected: (String) -> Unit,
+fun CountryPickerSheet(
+    selectedCountryIso: String?,
+    countrySelected: (Country) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val selectedState = stringResource(R.string.picker_selected_state)
     val notSelectedState = stringResource(R.string.picker_not_selected_state)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.content_timezone_picker),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-        },
-        text = {
-            TimezonePickerContent(
-                searchQuery = searchQuery,
-                queryChanged = { searchQuery = it },
-                selectedTimezone = selectedTimezone,
-                selectedState = selectedState,
-                notSelectedState = notSelectedState,
-                timezoneSelected = timezoneSelected,
-            )
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-        },
-    )
-}
-
-@Composable
-private fun TimezonePickerContent(
-    searchQuery: String,
-    queryChanged: (String) -> Unit,
-    selectedTimezone: String?,
-    selectedState: String,
-    notSelectedState: String,
-    timezoneSelected: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val timezones = remember(searchQuery) { TimezoneOptions(TimezoneEntry.search(searchQuery)) }
-
-    Column(modifier = modifier) {
-        TimezoneSearchField(searchQuery = searchQuery, queryChanged = queryChanged)
-        Spacer(modifier = Modifier.height(12.dp))
-        TimezoneList(
-            timezones = timezones,
-            selectedTimezone = selectedTimezone,
+    AppModalBottomSheet(
+        onDismiss = onDismiss,
+        title = stringResource(R.string.content_country_picker),
+    ) {
+        CountryPickerContent(
+            searchQuery = searchQuery,
+            queryChanged = { searchQuery = it },
+            selectedCountryIso = selectedCountryIso,
             selectedState = selectedState,
             notSelectedState = notSelectedState,
-            timezoneSelected = timezoneSelected,
+            countrySelected = countrySelected,
         )
     }
 }
 
 @Composable
-private fun TimezoneSearchField(
+private fun CountryPickerContent(
+    searchQuery: String,
+    queryChanged: (String) -> Unit,
+    selectedCountryIso: String?,
+    selectedState: String,
+    notSelectedState: String,
+    countrySelected: (Country) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val countries = remember(searchQuery) { CountryOptions(Country.search(searchQuery)) }
+
+    Column(modifier = modifier) {
+        CountrySearchField(searchQuery = searchQuery, queryChanged = queryChanged)
+        Spacer(modifier = Modifier.height(12.dp))
+        CountryList(
+            countries = countries,
+            selectedCountryIso = selectedCountryIso,
+            selectedState = selectedState,
+            notSelectedState = notSelectedState,
+            countrySelected = countrySelected,
+        )
+    }
+}
+
+@Composable
+private fun CountrySearchField(
     searchQuery: String,
     queryChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -120,47 +108,47 @@ private fun TimezoneSearchField(
         value = searchQuery,
         onValueChange = queryChanged,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text(stringResource(R.string.picker_search_timezone_hint)) },
+        placeholder = { Text(stringResource(R.string.picker_search_country_hint)) },
         leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
         singleLine = true,
     )
 }
 
 @Composable
-private fun TimezoneList(
-    timezones: TimezoneOptions,
-    selectedTimezone: String?,
+private fun CountryList(
+    countries: CountryOptions,
+    selectedCountryIso: String?,
     selectedState: String,
     notSelectedState: String,
-    timezoneSelected: (String) -> Unit,
+    countrySelected: (Country) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxWidth().heightIn(max = 350.dp),
+        modifier = modifier.fillMaxWidth().heightIn(max = 420.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        items(timezones.items, key = { it.id }) { timezone ->
-            val isSelected = timezone.id == selectedTimezone
-            TimezoneRow(
-                timezone = timezone,
+        items(countries.items, key = { it.iso }) { country ->
+            val isSelected = country.iso == selectedCountryIso
+            CountryRow(
+                country = country,
                 isSelected = isSelected,
                 stateDescription = if (isSelected) selectedState else notSelectedState,
-                timezoneSelected = timezoneSelected,
+                countrySelected = countrySelected,
             )
 
-            if (timezone != timezones.items.lastOrNull()) {
-                TimezoneDivider()
+            if (country != countries.items.last()) {
+                CountryDivider()
             }
         }
     }
 }
 
 @Composable
-private fun TimezoneRow(
-    timezone: TimezoneEntry,
+private fun CountryRow(
+    country: Country,
     isSelected: Boolean,
     stateDescription: String,
-    timezoneSelected: (String) -> Unit,
+    countrySelected: (Country) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -171,45 +159,32 @@ private fun TimezoneRow(
                     role = Role.Button
                     this.stateDescription = stateDescription
                 }
-                .clickable { timezoneSelected(timezone.id) }
+                .clickable { countrySelected(country) }
                 .padding(vertical = 12.dp, horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TimezoneLabel(timezone = timezone, isSelected = isSelected, modifier = Modifier.weight(1f))
+        CountryLabel(country = country, isSelected = isSelected)
         SelectedIcon(isSelected = isSelected)
     }
 }
 
 @Composable
-private fun TimezoneLabel(
-    timezone: TimezoneEntry,
-    isSelected: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = timezone.displayName,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+private fun CountryLabel(country: Country, isSelected: Boolean, modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
+        Text(text = country.emoji, style = MaterialTheme.typography.titleLarge)
+        Column {
             Text(
-                text = timezone.offset,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
+                text = country.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             )
             Text(
-                text = "•",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
-            Text(
-                text = timezone.region,
+                text = "+${country.phoneCode}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -230,7 +205,7 @@ private fun SelectedIcon(isSelected: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TimezoneDivider(modifier: Modifier = Modifier) {
+private fun CountryDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
         modifier = modifier.padding(horizontal = 8.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),

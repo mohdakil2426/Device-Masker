@@ -1,4 +1,4 @@
-package com.astrixforge.devicemasker.ui.components.dialog
+package com.astrixforge.devicemasker.ui.components.sheet
 
 import java.util.Locale
 import java.util.TimeZone
