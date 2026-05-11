@@ -1,9 +1,11 @@
 package com.astrixforge.devicemasker.ui.screens.groupspoofing.tabs
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,13 +14,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -29,8 +38,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
@@ -42,6 +54,7 @@ import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -56,10 +69,14 @@ fun AppsTabContent(
     allGroups: ImmutableList<SpoofGroup>,
     installedApps: ImmutableList<InstalledApp>,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var debouncedQuery by remember { mutableStateOf("") }
+    var showSystemApps by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         snapshotFlow { searchQuery }
@@ -72,40 +89,68 @@ fun AppsTabContent(
             installedApps = installedApps,
             group = group,
             debouncedQuery = debouncedQuery,
+            showSystemApps = showSystemApps,
         )
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier =
+            modifier.fillMaxSize().pointerInput(Unit) {
+                detectTapGestures { focusManager.clearFocus() }
+            }
+    ) {
         AppsSearchHeader(
-            searchQuery = searchQuery,
+            state =
+                AppsHeaderState(
+                    searchQuery = searchQuery,
+                    showSystemApps = showSystemApps,
+                    isRefreshing = isRefreshing,
+                    filteredCount = filteredApps.size,
+                    assignedCount = group?.assignedAppCount() ?: 0,
+                ),
             queryChanged = { searchQuery = it },
-            filteredCount = filteredApps.size,
-            assignedCount = group?.assignedAppCount() ?: 0,
+            showSystemAppsChanged = { showSystemApps = it },
+            refreshRequested = onRefresh,
         )
-        AppsTabBody(
-            group = group,
-            allGroups = allGroups,
-            installedApps = installedApps,
-            filteredApps = filteredApps,
-            onAppToggle = onAppToggle,
-        )
+        ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh) {
+            AppsTabBody(
+                group = group,
+                allGroups = allGroups,
+                installedApps = installedApps,
+                filteredApps = filteredApps,
+                onAppToggle = { app, checked ->
+                    focusManager.clearFocus()
+                    onAppToggle(app, checked)
+                },
+            )
+        }
     }
 }
 
 private const val SEARCH_DEBOUNCE_MILLIS = 300L
+
+@Immutable
+private data class AppsHeaderState(
+    val searchQuery: String,
+    val showSystemApps: Boolean,
+    val isRefreshing: Boolean,
+    val filteredCount: Int,
+    val assignedCount: Int,
+)
 
 @Composable
 private fun rememberFilteredApps(
     installedApps: ImmutableList<InstalledApp>,
     group: SpoofGroup?,
     debouncedQuery: String,
+    showSystemApps: Boolean,
 ): ImmutableList<InstalledApp> {
     val filteredApps by
-        remember(installedApps, group, debouncedQuery) {
+        remember(installedApps, group, debouncedQuery, showSystemApps) {
             derivedStateOf {
                 val query = debouncedQuery.lowercase()
                 installedApps
                     .asSequence()
-                    .filter { app -> app.matchesAppSearch(query) }
+                    .filter { app -> app.matchesAppSearch(query, showSystemApps) }
                     .sortedWith(
                         compareByDescending<InstalledApp> {
                                 group?.isAppAssigned(it.packageName) == true
@@ -119,45 +164,93 @@ private fun rememberFilteredApps(
     return filteredApps
 }
 
-private fun InstalledApp.matchesAppSearch(query: String): Boolean =
+private fun InstalledApp.matchesAppSearch(query: String, showSystemApps: Boolean): Boolean =
     packageName != BuildConfig.APPLICATION_ID &&
-        !isSystemApp &&
+        (showSystemApps || !isSystemApp) &&
         (query.isEmpty() ||
             label.lowercase().contains(query) ||
             packageName.lowercase().contains(query))
 
 @Composable
 private fun AppsSearchHeader(
-    searchQuery: String,
+    state: AppsHeaderState,
     queryChanged: (String) -> Unit,
-    filteredCount: Int,
-    assignedCount: Int,
+    showSystemAppsChanged: (Boolean) -> Unit,
+    refreshRequested: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
+
     Column(
         modifier = modifier.fillMaxWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         OutlinedTextField(
-            value = searchQuery,
+            value = state.searchQuery,
             onValueChange = queryChanged,
             placeholder = { Text(stringResource(id = R.string.group_spoofing_search_hint)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (state.searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { queryChanged("") }) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription =
+                                stringResource(id = R.string.group_spoofing_clear_search),
+                        )
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             shape = RoundedCornerShape(12.dp),
+        )
+        AppsFilterRow(
+            showSystemApps = state.showSystemApps,
+            showSystemAppsChanged = showSystemAppsChanged,
+            isRefreshing = state.isRefreshing,
+            refreshRequested = refreshRequested,
         )
         Text(
             text =
                 pluralStringResource(
                     id = R.plurals.group_spoofing_apps_assigned_stats,
-                    count = filteredCount,
-                    filteredCount,
-                    assignedCount,
+                    count = state.filteredCount,
+                    state.filteredCount,
+                    state.assignedCount,
                 ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun AppsFilterRow(
+    showSystemApps: Boolean,
+    showSystemAppsChanged: (Boolean) -> Unit,
+    isRefreshing: Boolean,
+    refreshRequested: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilterChip(
+            selected = showSystemApps,
+            onClick = { showSystemAppsChanged(!showSystemApps) },
+            label = { Text(stringResource(id = R.string.group_spoofing_show_system_apps)) },
+        )
+        IconButton(enabled = !isRefreshing, onClick = refreshRequested) {
+            Icon(
+                imageVector = Icons.Filled.Refresh,
+                contentDescription = stringResource(id = R.string.group_spoofing_refresh_apps),
+            )
+        }
     }
 }
 
@@ -250,6 +343,8 @@ private fun AppsTabContentLoadingPreview() {
             allGroups = persistentListOf(),
             installedApps = persistentListOf(),
             onAppToggle = { _, _ -> },
+            isRefreshing = false,
+            onRefresh = {},
         )
     }
 }
@@ -283,6 +378,8 @@ private fun AppsTabContentPopulatedPreview() {
                     ),
                 ),
             onAppToggle = { _, _ -> },
+            isRefreshing = false,
+            onRefresh = {},
         )
     }
 }

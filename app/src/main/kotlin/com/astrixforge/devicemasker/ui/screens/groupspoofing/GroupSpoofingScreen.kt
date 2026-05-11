@@ -78,6 +78,7 @@ fun GroupSpoofingScreenContent(
     val group = state.group
     val groups = state.groups
     val installedApps = state.installedApps
+    val isAppsRefreshing = state.isAppsRefreshing
 
     val selectedTab = state.selectedTab
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 2 })
@@ -112,6 +113,7 @@ fun GroupSpoofingScreenContent(
                     group = group,
                     groups = groups,
                     installedApps = installedApps,
+                    isAppsRefreshing = isAppsRefreshing,
                     viewModel = viewModel,
                 )
             }
@@ -173,6 +175,7 @@ private fun GroupSpoofingPager(
     group: com.astrixforge.devicemasker.common.SpoofGroup,
     groups: ImmutableList<com.astrixforge.devicemasker.common.SpoofGroup>,
     installedApps: ImmutableList<InstalledApp>,
+    isAppsRefreshing: Boolean,
     viewModel: GroupSpoofingViewModel,
 ) {
     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -195,6 +198,8 @@ private fun GroupSpoofingPager(
                     group = group,
                     allGroups = groups,
                     installedApps = installedApps,
+                    isRefreshing = isAppsRefreshing,
+                    onRefresh = { viewModel.refreshApps() },
                     onAppToggle = { app, checked ->
                         if (checked) {
                             viewModel.addAppToGroup(app.packageName)

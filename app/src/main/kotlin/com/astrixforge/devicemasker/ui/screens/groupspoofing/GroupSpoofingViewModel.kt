@@ -45,7 +45,13 @@ class GroupSpoofingViewModel(
             }
         }
 
-        viewModelScope.launch { runCatching { repository.appScopeRepository.loadApps() } }
+        refreshApps(forceRefresh = false)
+
+        viewModelScope.launch {
+            repository.appScopeRepository.isLoading.collect { isLoading ->
+                _state.update { it.copy(isAppsRefreshing = isLoading) }
+            }
+        }
 
         viewModelScope.launch {
             repository.appScopeRepository.installedApps.collect { apps ->
@@ -162,6 +168,16 @@ class GroupSpoofingViewModel(
 
     fun removeAppFromGroup(packageName: String) {
         viewModelScope.launch { repository.removeAppFromGroup(groupId, packageName) }
+    }
+
+    fun refreshApps() {
+        refreshApps(forceRefresh = true)
+    }
+
+    private fun refreshApps(forceRefresh: Boolean) {
+        viewModelScope.launch {
+            runCatching { repository.appScopeRepository.loadApps(forceRefresh) }
+        }
     }
 
     private companion object {

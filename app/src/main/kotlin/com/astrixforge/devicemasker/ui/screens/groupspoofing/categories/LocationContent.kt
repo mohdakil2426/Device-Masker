@@ -33,10 +33,10 @@ import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
-import com.astrixforge.devicemasker.ui.components.dialog.TimezonePickerDialog
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveOutlinedCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
+import com.astrixforge.devicemasker.ui.components.sheet.TimezonePickerSheet
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.items.IndependentSpoofItem
 
 /**
@@ -55,17 +55,17 @@ fun LocationCategoryContent(
     modifier: Modifier = Modifier,
     timezoneSelected: (String) -> Unit = {},
 ) {
-    var showTimezoneDialog by remember { mutableStateOf(false) }
+    var showTimezoneSheet by remember { mutableStateOf(false) }
     val uiState = group.toLocationUiState()
 
-    if (showTimezoneDialog) {
-        TimezonePickerDialog(
+    if (showTimezoneSheet) {
+        TimezonePickerSheet(
             selectedTimezone = uiState.timezoneValue,
             timezoneSelected = { timezone ->
                 timezoneSelected(timezone)
-                showTimezoneDialog = false
+                showTimezoneSheet = false
             },
-            onDismiss = { showTimezoneDialog = false },
+            onDismiss = { showTimezoneSheet = false },
         )
     }
 
@@ -73,7 +73,7 @@ fun LocationCategoryContent(
         LocationSelectionCard(
             uiState = uiState,
             onToggle = onToggle,
-            onTimezoneClick = { showTimezoneDialog = true },
+            onTimezoneClick = { showTimezoneSheet = true },
         )
         LocationSpoofItem(
             type = SpoofType.LOCATION_LATITUDE,

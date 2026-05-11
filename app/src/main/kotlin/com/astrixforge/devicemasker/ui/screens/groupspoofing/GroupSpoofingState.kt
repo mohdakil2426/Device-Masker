@@ -10,6 +10,7 @@ import kotlinx.collections.immutable.persistentListOf
 @Immutable
 data class GroupSpoofingState(
     val isLoading: Boolean = true,
+    val isAppsRefreshing: Boolean = false,
     val group: SpoofGroup? = null,
     val groups: ImmutableList<SpoofGroup> = persistentListOf(),
     val installedApps: ImmutableList<InstalledApp> = persistentListOf(),
