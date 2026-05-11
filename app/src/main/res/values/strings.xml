@@ -1796,6 +1796,9 @@
         group.</string>
     <string name="group_spoofing_not_set">Not set</string>
     <string name="group_spoofing_search_hint">Search apps…</string>
+    <string name="group_spoofing_clear_search">Clear app search</string>
+    <string name="group_spoofing_show_system_apps">System apps</string>
+    <string name="group_spoofing_refresh_apps">Refresh apps</string>
     <string name="group_spoofing_loading_apps">Loading apps…</string>
     <string name="group_spoofing_loading">Loading group…</string>
     <string name="group_spoofing_no_apps_found">No apps found</string>
