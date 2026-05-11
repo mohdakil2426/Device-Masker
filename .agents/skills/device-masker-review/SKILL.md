@@ -21,24 +21,7 @@ Do not create, edit, move, rename, or delete any other project file or folder. D
 
 If the review finds required code, docs, AGENTS.md, Memory Bank, report, or architecture changes, record the exact recommended edits inside the report instead of applying them.
 
-## Required Context
-
-Before researching, read only when not readed else skip dont repeat your self:
-
-- `AGENTS.md`
-- `docs/AGENTS_PROJECT_RULES.md`
-- Relevant module guide such as `app/AGENTS.md`, `common/AGENTS.md`, `xposed/AGENTS.md`, or `verifier/AGENTS.md`
-- All core Memory Bank files:
-  - `memory-bank/projectbrief.md`
-  - `memory-bank/productContext.md`
-  - `memory-bank/systemPatterns.md`
-  - `memory-bank/techContext.md`
-  - `memory-bank/activeContext.md`
-  - `memory-bank/progress.md`
-
 Treat all `AGENTS.md` files and module guides as review targets, not as automatically correct truth. This project is under active development and has frequent breaking changes, validation, package, hook, and documentation changes. For any review that touches rules, architecture, workflow, or module boundaries, compare every relevant `AGENTS.md` rule against current code, Memory Bank, public docs, reports, and validation evidence. Flag stale, contradictory, missing, or over-specific rules and propose exact updates in the report, and be 100% confident and sure about it.
-
-If the review touches Xposed, LSPosed, libxposed, hooks, module lifecycle, scope, `java_init.list`, `RemotePreferences`, deoptimization, or target-process behavior, load `.agents/skills/libxposed/SKILL.md` before judging correctness.
 
 ## Review Workflow
 
