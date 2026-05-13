@@ -91,11 +91,13 @@ sequenceDiagram
 - `JsonConfig.appConfigs` is the canonical app assignment and enablement table.
 - `SpoofGroup.assignedApps` is legacy/display compatibility only.
 - `SharedPrefsKeys` in `:common` is the only source for RemotePreferences key names.
+- Runtime sync must resolve only explicit enabled `AppConfig.groupId` assignments. Default-group fallback is not a hook-scope rule.
 - Generators live in `:common`.
 - Hookers read stored values; hookers do not generate new identities at runtime.
 - `ConfigSync` must clear stale package keys on full sync.
 - `ConfigSync` publishes flat legacy keys plus per-package `DevicePersona` blob/version.
 - `ConfigSync` also publishes per-package hook-family policy keys and default-off proc-maps byte/NIO policy keys.
+- `ConfigSync` publishes the current enabled-app allowlist; `XposedEntry` must require allowlist membership plus per-package enablement before hook registration.
 - Config delivery is RemotePreferences-first.
 - Do not add custom AIDL/Binder config or hook-evidence paths.
 
@@ -108,6 +110,7 @@ sequenceDiagram
 - Skips own app and critical system packages.
 - Hooks only the first package load per classloader.
 - Requires global module enabled and per-app enabled preferences before registering app hooks.
+- Requires current enabled-app allowlist membership before trusting any per-app enabled preference.
 - Logs `All hooks registered` to LSPosed when target hook registration completes.
 
 ## Hook Safety Rules
@@ -247,7 +250,7 @@ WebView UA spoofing is defensive:
 
 - `onModuleLoaded` captures the process name for later package selection.
 - `onPackageReady` considers the loaded package and process base package, then picks the first
-  package enabled in RemotePreferences.
+  package present in the current enabled-app allowlist and enabled in RemotePreferences.
 - Hooks still register once per classloader to avoid duplicated hook chains.
 - This improves secondary package handling but does not make one classloader support multiple
   simultaneous per-package identities.

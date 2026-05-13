@@ -48,6 +48,7 @@ Current expectations:
 - `targetApiVersion=101`
 - `staticScope=false`
 - Default scope includes `android` and `system`
+- Target app hook selection requires the current enabled-app allowlist plus the per-package enabled key.
 
 ## Important Files
 
@@ -56,6 +57,7 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/DeviceMaskerApp.kt` | App initialization and wiring |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/XposedPrefs.kt` | App-side libxposed service binding and RemotePreferences access |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt` | Flattens config into RemotePreferences |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSyncHelpers.kt` | Derives explicit runtime app/group sync state and hook-family policy from canonical config |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/ConfigManager.kt` | JSON config persistence and state |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/AppLogStore.kt` | Rootless app log storage |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Support bundle export bridge |

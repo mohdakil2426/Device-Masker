@@ -81,7 +81,9 @@ This proves the architecture can work end to end for scoped targets with release
 
 For each target app and spoof type:
 - If the module is disabled, return the original value.
+- If the app is not present in the current enabled-app allowlist, return the original value.
 - If the app is not enabled in `AppConfig`, return the original value.
+- If the app has no explicit assigned group, return the original value.
 - If the assigned group is missing or disabled, return the original value.
 - If the spoof type is disabled, blank, missing, or malformed, return the original value.
 - If a valid stored value exists and the type is enabled, return the stored spoofed value.

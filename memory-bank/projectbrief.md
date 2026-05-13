@@ -52,6 +52,7 @@ Latest Detekt strictness state as of 2026-05-08:
 Release 0.1.5 hardening branch state as of 2026-05-09:
 - `:common` uses one shared Luhn helper for IMEI, ICCID, and persona check digits.
 - Config sync writes both flat RemotePreferences keys and a coherent per-package `DevicePersona` blob/version.
+- Config sync and Xposed target selection now require current canonical `appConfigs` assignment and the enabled-app allowlist, preventing stale `app_enabled_*` preferences from activating hooks.
 - `:xposed` profile coverage now includes enriched Build fields, Build.VERSION fields, ABI properties, PackageManager feature checks, SIM count, and subscription count.
 - `:verifier` exists as a separate local target app for controlled runtime evidence.
 - Full local gate and Android 13 Mantle smoke passed for the implemented safe track.

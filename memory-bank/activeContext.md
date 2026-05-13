@@ -11,6 +11,78 @@ Next tasks:
 2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.
 3. Add physical-device LSPosed/logcat and target-app value evidence only if physical-device claims are needed later.
 4. Keep raw internal reports in internal folders and publish only curated public summaries.
+5. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
+5. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
+
+## 2026-05-14 Toggle And Hook-Scope Remediation
+
+- Fixed the current user-reported issue where adding a package to LSPosed scope could activate hooks from stale RemotePreferences even when the app was not currently assigned in Device Masker.
+- `XposedEntry` now requires `module_enabled`, membership in `SharedPrefsKeys.KEY_ENABLED_APPS`, and the per-package enabled key before selecting a target package for app hooks. `module_enabled` defaults closed when missing.
+- `JsonConfig` now exposes explicit assignment resolution for runtime sync; `ConfigSync` uses this path so default-group fallback cannot make an unassigned package hookable.
+- Group, Home, and Group Spoofing UI counts/checked state now derive from canonical `appConfigs` instead of legacy `SpoofGroup.assignedApps`.
+- Group Spoofing category master switches render enabled only when all child spoof types are enabled, avoiding a false fully-on state for partial categories.
+- Config sync now derives ordinary hook-family policy from enabled spoof types so disabled value families do not register unnecessary hookers; anti-detection and package-manager policy remain app-level.
+- Regression coverage was added for stale Xposed scope keys, explicit assignment/default-group fallback, disabled group sync, canonical app-count drift, and hook-family gating.
+- Fresh verification passed:
+
+```powershell
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon --no-configuration-cache
+```
+
+- Runtime LSPosed/device validation was not run for this remediation, so do not claim target-process runtime proof until a scoped target app is launched and LSPosed/logcat evidence is captured.
+- Follow-up runtime validation on `emulator-5554` passed:
+  - assigned verifier app logged target selection, `All hooks registered`, and spoof events.
+  - unassigned but LSPosed-scoped verifier app logged `XposedEntry loaded` only, with no target selection, hook registration, or spoof events.
+  - evidence is under `logs/device/2026-05-14-toggle-scope-test/`.
+  - the implementation summary and audit moved to `docs/internal/reports/closed/`.
+
+## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
+
+- GitNexus migration is active; `npx gitnexus analyze --name devicemasker` refreshes the index.
+- Completed GroupSpoofingScreen UI refactoring (P3 proposal implementation):
+  - Removed refresh icon button from Apps tab header.
+  - Inlined the system app FilterChip into the same Row as the app count text.
+  - Merged `AppsFilterRow` logic into `AppsSearchHeader` — deleted `AppsFilterRow.kt`.
+  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState` (state no longer owns pull-to-refresh triggers).
+  - Removed `isRefreshing` parameter from `AppsSearchHeader` call site in `AppsTabContent`.
+  - Removed the unused refresh icon button import and related stale code.
+- Implemented scroll position persistence for tabbed Group Spoofing interface:
+  - Added `spoofTabScrollPosition` and `appsTabScrollPosition` to `GroupSpoofingState`.
+  - Added `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` to `GroupSpoofingViewModel` with `SavedStateHandle` persistence.
+  - Added `initialScrollPosition` and `onScrollPositionChange` parameters to `SpoofTabContent` and `AppsTabContent`.
+  - Used `rememberLazyListState` with `initialFirstVisibleItemIndex` and `LaunchedEffect` + `snapshotFlow` for tracking.
+  - Fixed `LambdaParameterInRestartableEffect` warnings with `rememberUpdatedState`.
+  - Passed scroll positions from state through `GroupSpoofingPager` to both tab content composables.
+- Fixed detekt violations: `TooManyFunctions` (ViewModel, suppressed), `LongMethod` (SpoofTabContent, suppressed), duplicate `@Suppress` annotations, and `rememberSaveable` import path.
+- Full verification passed: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
+- Commits:
+  - `cb0349e` — "perf(groupspoofing): add scroll position persistence for tabbed interface"
+  - `3d239bd` — "refactor(groupspoofing): remove refresh button and move system apps toggle inline"
+- GitNexus index refreshed after commits.
+
+## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
+
+- GitNexus migration is active; `npx gitnexus analyze --name devicemasker` refreshes the index.
+- Completed GroupSpoofingScreen UI refactoring (P3 proposal implementation):
+  - Removed refresh icon button from Apps tab header.
+  - Inlined the system app FilterChip into the same Row as the app count text.
+  - Merged `AppsFilterRow` logic into `AppsSearchHeader` — deleted `AppsFilterRow.kt`.
+  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState` (state no longer owns pull-to-refresh triggers).
+  - Removed `isRefreshing` parameter from `AppsSearchHeader` call site in `AppsTabContent`.
+  - Removed the unused refresh icon button import and related stale code.
+- Implemented scroll position persistence for tabbed Group Spoofing interface:
+  - Added `spoofTabScrollPosition` and `appsTabScrollPosition` to `GroupSpoofingState`.
+  - Added `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` to `GroupSpoofingViewModel` with `SavedStateHandle` persistence.
+  - Added `initialScrollPosition` and `onScrollPositionChange` parameters to `SpoofTabContent` and `AppsTabContent`.
+  - Used `rememberLazyListState` with `initialFirstVisibleItemIndex` and `LaunchedEffect` + `snapshotFlow` for tracking.
+  - Fixed `LambdaParameterInRestartableEffect` warnings with `rememberUpdatedState`.
+  - Passed scroll positions from state through `GroupSpoofingPager` to both tab content composables.
+- Fixed detekt violations: `TooManyFunctions` (ViewModel, suppressed), `LongMethod` (SpoofTabContent, suppressed), duplicate `@Suppress` annotations, and `rememberSaveable` import path.
+- Full verification passed: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
+- Commits:
+  - `cb0349e` — "perf(groupspoofing): add scroll position persistence for tabbed interface"
+  - `3d239bd` — "refactor(groupspoofing): remove refresh button and move system apps toggle inline"
+- GitNexus index refreshed after commits.
 
 ## 2026-05-12 GitNexus Migration
 
@@ -411,6 +483,9 @@ Target smoke:
 - LSPosed logs are authoritative for target-process hook proof.
 - `JsonConfig.appConfigs` is canonical.
 - `SpoofGroup.assignedApps` is legacy/display compatibility.
+- Runtime sync requires explicit `appConfigs` group assignment; default-group fallback is not hook eligibility.
+- Hook selection requires the current enabled-app allowlist plus the per-package enabled key, not a stale `app_enabled_*` key alone.
+- 2026-05-14 runtime validation confirms LSPosed scope alone does not activate hooks when the app is absent from canonical `appConfigs`.
 - `SharedPrefsKeys` is the only key builder.
 - Hooks return originals for unsafe config.
 - Hookers do not generate runtime identifiers.

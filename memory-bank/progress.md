@@ -21,6 +21,62 @@
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## 2026-05-14 Toggle And Hook-Scope Remediation
+
+- Fixed current hook-scope/toggle bugs from the 2026-05-14 audit without optional feature work.
+- Xposed target selection now requires the current enabled-app allowlist and per-package enabled key, so stale `app_enabled_*` preferences alone cannot activate hooks after LSPosed scope changes.
+- Runtime config sync now requires explicit enabled `AppConfig.groupId` assignment and no longer uses default-group fallback for unassigned packages.
+- Group card, Home group selector, and Group Spoofing Apps tab counts/checked state now read canonical `appConfigs`, not legacy `SpoofGroup.assignedApps`.
+- Group Spoofing category switches no longer show fully enabled when only part of the category is enabled.
+- Hook-family policy sync now disables ordinary value hook families when all related spoof types are disabled, while app-level anti-detection/package-manager policy stays separate.
+- Added regression tests in `ConfigSyncSnapshotTest`, `GroupSpoofingViewModelTest`, `HomeViewModelTest`, fake repository support, and new `XposedEntryScopeTest`.
+- Verification passed:
+
+```powershell
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon --no-configuration-cache
+```
+
+- Runtime LSPosed/device validation for this remediation remains pending.
+- Runtime validation later passed on Android 16 emulator `emulator-5554`:
+  - unassigned Verifier: `XposedEntry loaded` only, no target selection, no hook registration, no spoof events.
+  - assigned Verifier: target selected, hooks registered, spoof events fired.
+  - evidence saved in `logs/device/2026-05-14-toggle-scope-test/`.
+  - related audit and summary reports are closed under `docs/internal/reports/closed/`.
+
+## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
+
+- Implemented GroupSpoofingScreen UI improvements from P3 proposal:
+  - Removed refresh icon button from Apps tab header; pull-to-refresh via `ExpressivePullToRefresh` remains.
+  - Inlined system app FilterChip into same Row as app count stats text.
+  - Deleted `AppsFilterRow.kt` after merging logic into `AppsSearchHeader`.
+  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState`.
+- Implemented scroll position persistence for tabbed interface (P3.1):
+  - `spoofTabScrollPosition` and `appsTabScrollPosition` in `GroupSpoofingState`.
+  - `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` in `GroupSpoofingViewModel` with `SavedStateHandle`.
+  - `initialScrollPosition` and `onScrollPositionChange` parameters added to `SpoofTabContent` and `AppsTabContent`.
+  - `rememberLazyListState` with `initialFirstVisibleItemIndex`, `LaunchedEffect` + `snapshotFlow`, `rememberUpdatedState` fix for `LambdaParameterInRestartableEffect`.
+  - Scroll positions passed from state through `GroupSpoofingPager` to both tab composables.
+- Fixed detekt violations: `TooManyFunctions` (ViewModel), `LongMethod` (SpoofTabContent), duplicate `@Suppress`, wrong `rememberSaveable` import path.
+- Full verification: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
+- Commits: `cb0349e` (scroll persistence), `3d239bd` (UI refactor).
+
+## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
+
+- Implemented GroupSpoofingScreen UI improvements from P3 proposal:
+  - Removed refresh icon button from Apps tab header; pull-to-refresh via `ExpressivePullToRefresh` remains.
+  - Inlined system app FilterChip into same Row as app count stats text.
+  - Deleted `AppsFilterRow.kt` after merging logic into `AppsSearchHeader`.
+  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState`.
+- Implemented scroll position persistence for tabbed interface (P3.1):
+  - `spoofTabScrollPosition` and `appsTabScrollPosition` in `GroupSpoofingState`.
+  - `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` in `GroupSpoofingViewModel` with `SavedStateHandle`.
+  - `initialScrollPosition` and `onScrollPositionChange` parameters added to `SpoofTabContent` and `AppsTabContent`.
+  - `rememberLazyListState` with `initialFirstVisibleItemIndex`, `LaunchedEffect` + `snapshotFlow`, `rememberUpdatedState` fix for `LambdaParameterInRestartableEffect`.
+  - Scroll positions passed from state through `GroupSpoofingPager` to both tab composables.
+- Fixed detekt violations: `TooManyFunctions` (ViewModel), `LongMethod` (SpoofTabContent), duplicate `@Suppress`, wrong `rememberSaveable` import path.
+- Full verification: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
+- Commits: `cb0349e` (scroll persistence), `3d239bd` (UI refactor).
+
 ## 2026-05-12 GitNexus Migration
 
 - Graphify is no longer the project code-intelligence tool.
@@ -98,6 +154,8 @@
 - Config sync writes flattened per-app RemotePreferences keys.
 - Full config sync clears stale package keys.
 - `AppConfig` is the canonical app/group assignment model.
+- Runtime hook eligibility requires explicit `AppConfig.groupId` assignment and current enabled-app allowlist membership.
+- Android 16 emulator runtime evidence confirms LSPosed scope alone is insufficient for hook activation.
 - Per-app risky-hook and class lookup hiding opt-ins are persisted through local config and RemotePreferences.
 - Per-app hook-family isolation keys are persisted through RemotePreferences.
 - Proc-maps byte and NIO redaction policy keys are persisted default-off through RemotePreferences.
