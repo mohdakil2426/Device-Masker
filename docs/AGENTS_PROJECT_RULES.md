@@ -19,6 +19,14 @@ These rules are mandatory for agents working in Device Masker. They cover code c
 - Build long JSON, command text, manifests, and assertion text through small helpers.
 - Keep compatibility facades narrow; new workflow code should depend on smaller interfaces.
 
+## Config Scope Correctness
+
+- `JsonConfig.appConfigs` is the canonical source for app assignment, app enablement, group app counts, and UI checked state.
+- `SpoofGroup.assignedApps` is legacy/display compatibility only. Do not use it for new runtime, sync, toggle, count, or hook-scope decisions.
+- Runtime RemotePreferences sync must require an explicit enabled `AppConfig.groupId` that resolves to an enabled group. Do not let default-group fallback make an unassigned package hookable.
+- Xposed target selection must require both the current `SharedPrefsKeys.KEY_ENABLED_APPS` allowlist membership and the per-package enabled key. A stale `app_enabled_*` boolean is not proof of current assignment.
+- Hook-family policy keys should follow the enabled spoof types for ordinary value hook families, while app-wide anti-detection/package-manager policy remains explicit and conservative.
+
 ## Constants
 
 - Name every domain number.

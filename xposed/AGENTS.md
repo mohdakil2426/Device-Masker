@@ -28,6 +28,7 @@ xposed/src/main/
 - **No direct Kotlin SAM `.intercept { ... }` callbacks** — use `stableHooker { ... }` or explicit named `XposedInterface.Hooker`
 - `libxposed:api` is `compileOnly` — LSPosed provides runtime
 - Rethrow `XposedFrameworkError` before generic `Throwable` in all catch blocks
+- Target app hook selection must require both current `enabled_apps` allowlist membership and the per-package enabled key. A stale `app_enabled_*` key alone must never register hooks.
 
 ## Xposed Safety Rules
 
@@ -53,13 +54,13 @@ Extends `XposedModule` (libxposed API 101). No-arg constructor, framework-instan
 3. **`onPackageReady`** — main hook path:
    - Skips `android`, own package, SystemUI, Phone, GMS
    - Gets `RemotePreferences` via `getRemotePreferences(PREFS_GROUP)`
-   - Checks global kill-switch + per-app enable
+   - Checks global kill-switch + current enabled-app allowlist + per-app enable
    - Deduplicates per ClassLoader (`ConcurrentHashMap` of identity hashes)
    - Registers target hookers in the project-defined order. Keep anti-detection first unless a fresh runtime validation proves a different order safe.
 
 ### Package Selection
 
-`selectHookPackage()` derives base package from `processName` (before `:`), checks both loaded and base package against RemotePreferences enable keys, returns first enabled candidate.
+`selectHookPackage()` derives base package from `processName` (before `:`), checks both loaded and base package against the current enabled-app allowlist plus RemotePreferences enable keys, and returns the first enabled candidate.
 
 ## Hook Registration Pattern
 

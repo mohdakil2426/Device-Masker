@@ -7,6 +7,8 @@ Android LSPosed/libxposed module for per-app device identity spoofing. Gradle mo
 - Config delivery is RemotePreferences-first. Do not add custom AIDL/Binder config or hook-evidence paths.
 - `SharedPrefsKeys.kt` is the only source for RemotePreferences key names.
 - `JsonConfig.appConfigs` is canonical for app scope; `SpoofGroup.assignedApps` is legacy/display-only.
+- Runtime sync must use explicit app-to-group assignment from `JsonConfig.appConfigs`; do not use default-group fallback for hook eligibility.
+- Xposed target selection must require the current `enabled_apps` allowlist plus the per-package enabled key; a stale `app_enabled_*` key alone must never activate hooks.
 - Generated identity values are created in app/common config flows, never inside target-process hooks.
 - `:xposed` must return original values for disabled, missing, blank, malformed, unsafe, or unsupported config.
 - `:xposed` must not use Timber, Compose, random generation, app-private JSON reads, or hardcoded preference keys.
@@ -170,7 +172,7 @@ Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expr
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **DeviceMasker** (5123 symbols, 12309 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **DeviceMasker** (5182 symbols, 12362 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

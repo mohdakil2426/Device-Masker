@@ -1,6 +1,6 @@
 # Device Masker Architecture And Runtime Guide
 
-Date: 2026-05-10
+Date: 2026-05-14
 
 ## Summary
 
@@ -97,9 +97,11 @@ flowchart LR
 Rules:
 - `JsonConfig.appConfigs` is canonical.
 - `SpoofGroup.assignedApps` is legacy/display compatibility only.
+- Runtime sync uses explicit enabled `AppConfig.groupId` assignment. Default-group fallback is not valid hook eligibility for an unassigned package.
 - `SharedPrefsKeys` builds all RemotePreferences keys.
 - `ConfigSync` writes flattened per-app keys plus a coherent per-package `DevicePersona` blob/version.
 - Full sync clears stale package keys.
+- `ConfigSync` publishes the current enabled-app allowlist; `:xposed` requires that allowlist plus the per-package enabled key before registering target hooks.
 - Hookers read stored values only; persona fallback is allowed only after a spoof type is enabled.
 
 ## Config Flow
@@ -146,7 +148,7 @@ sequenceDiagram
     LS->>Entry: onModuleLoaded
     LS->>Entry: onPackageReady
     Entry->>Prefs: getRemotePreferences
-    Entry->>Prefs: Check module enabled and app enabled
+    Entry->>Prefs: Check module enabled, enabled-app allowlist, and app enabled
     alt Enabled target app
         Entry->>Anti: Register safer anti-detection hooks
         Entry->>Hook: Register spoof hooks
@@ -229,6 +231,7 @@ Do not:
 flowchart TD
     Call["Hooked API call"]
     Module{"Module enabled?"}
+    AppList{"Package in current enabled-app allowlist?"}
     App{"Target app enabled?"}
     Type{"Spoof type enabled?"}
     Value{"Stored value valid?"}
@@ -237,7 +240,9 @@ flowchart TD
 
     Call --> Module
     Module -->|No| Original
-    Module -->|Yes| App
+    Module -->|Yes| AppList
+    AppList -->|No| Original
+    AppList -->|Yes| App
     App -->|No| Original
     App -->|Yes| Type
     Type -->|No| Original

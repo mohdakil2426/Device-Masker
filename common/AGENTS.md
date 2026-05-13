@@ -22,6 +22,7 @@ common/src/main/
 - Generators live here and run at config time, never at runtime in `:xposed`; target-process hooks only consume stored values.
 - All generators use `SecureRandom` for cryptographic-quality randomness.
 - Detekt baselines are currently empty; keep common logic small enough to avoid new baseline debt.
+- Runtime group resolution must require an explicit enabled `AppConfig.groupId`. Keep any default-group fallback out of hook eligibility and config sync paths.
 
 ## Data Model Hierarchy
 
@@ -109,6 +110,7 @@ Persona generation is intentionally split across focused helpers:
 | Pattern | Example |
 |---------|---------|
 | `module_enabled` | global toggle |
+| `enabled_apps` | current canonical package allowlist |
 | `app_enabled_{sanitizedPkg}` | `app_enabled_com_example_app` |
 | `spoof_enabled_{sanitizedPkg}_{TYPE}` | `spoof_enabled_com_example_app_IMEI` |
 | `spoof_{sanitizedPkg}_{TYPE}` | `spoof_com_example_app_ANDROID_ID` |

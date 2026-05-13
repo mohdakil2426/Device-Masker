@@ -99,6 +99,9 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 
 - Generate and persist identity values in app/common config flows, not in target-process hooks.
 - Prefer narrow workflow interfaces for new code. Compatibility facades should not keep growing.
+- `JsonConfig.appConfigs` is canonical for group app counts, app checked state, and RemotePreferences sync inputs.
+- Do not use `SpoofGroup.assignedApps` for new active toggle/count/sync decisions; it is legacy/display compatibility only.
+- Runtime sync must require explicit app-to-group assignment. Do not let default-group fallback make an unassigned package hookable.
 
 ## Diagnostics & Root
 
