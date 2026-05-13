@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.ui.screens.groupspoofing
 
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.assignedAppCount
@@ -79,4 +80,32 @@ class GroupSpoofingViewModelTest {
             assertEquals(1, after.group?.assignedAppCount())
         }
     }
+
+    @Test
+    fun `app configs expose canonical assignment even when legacy group apps are stale`() =
+        runTest {
+            val group =
+                SpoofGroup.createNew(name = "G1").copy(assignedApps = setOf("com.stale.app"))
+            val repository =
+                FakeSpoofRepository(
+                    initialGroups = listOf(group),
+                    initialAppConfigs =
+                        mapOf(
+                            "com.current.app" to
+                                AppConfig(
+                                    packageName = "com.current.app",
+                                    groupId = group.id,
+                                    isEnabled = true,
+                                )
+                        ),
+                )
+            val viewModel = GroupSpoofingViewModel(repository, group.id)
+
+            viewModel.state.test {
+                val state = awaitItem()
+
+                assertEquals(group.id, state.appConfigs["com.current.app"]?.groupId)
+                assertEquals(null, state.appConfigs["com.stale.app"])
+            }
+        }
 }

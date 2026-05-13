@@ -11,6 +11,7 @@ import com.astrixforge.devicemasker.common.withValue
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +64,12 @@ class GroupSpoofingViewModel(
         viewModelScope.launch {
             repository.appScopeRepository.installedApps.collect { apps ->
                 _state.update { it.copy(installedApps = apps.toImmutableList()) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.appConfigs.collect { appConfigs ->
+                _state.update { it.copy(appConfigs = appConfigs.toImmutableMap()) }
             }
         }
     }

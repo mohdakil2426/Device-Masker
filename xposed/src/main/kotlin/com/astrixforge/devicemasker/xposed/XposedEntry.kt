@@ -73,6 +73,17 @@ class XposedEntry : XposedModule() {
             private set
 
         private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+
+        internal fun isPackageCurrentlyEnabledForHooks(
+            packageName: String,
+            prefs: SharedPreferences,
+        ): Boolean {
+            if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, false)) return false
+            val enabledApps =
+                prefs.getStringSet(SharedPrefsKeys.KEY_ENABLED_APPS, emptySet()) ?: emptySet()
+            return packageName in enabledApps &&
+                prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false)
+        }
     }
 
     private var processName: String = ""
@@ -196,9 +207,8 @@ class XposedEntry : XposedModule() {
         }
 
     private fun enabledHookPackageOrNull(loadedPackage: String, prefs: SharedPreferences): String? {
-        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return null
         return selectHookPackage(loadedPackage, prefs)?.takeIf {
-            prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(it), false)
+            isPackageCurrentlyEnabledForHooks(it, prefs)
         }
     }
 
@@ -217,8 +227,7 @@ class XposedEntry : XposedModule() {
         val processBasePackage = processName.substringBefore(':').takeIf { it.isNotBlank() }
         val candidates = listOfNotNull(loadedPackage, processBasePackage).distinct()
         return candidates.firstOrNull { candidate ->
-            candidate !in SKIP_PACKAGES &&
-                prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(candidate), false)
+            candidate !in SKIP_PACKAGES && isPackageCurrentlyEnabledForHooks(candidate, prefs)
         }
     }
 

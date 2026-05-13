@@ -328,7 +328,7 @@ private fun StandardCategoryItem(
 }
 
 private fun UIDisplayCategory.isEnabledFor(group: SpoofGroup?): Boolean =
-    isCorrelated && types.any { group?.isTypeEnabled(it) ?: false }
+    isCorrelated && types.all { group?.isTypeEnabled(it) ?: false }
 
 private fun SpoofType.displayValue(rawValue: String): String =
     if (this == SpoofType.DEVICE_PROFILE) {

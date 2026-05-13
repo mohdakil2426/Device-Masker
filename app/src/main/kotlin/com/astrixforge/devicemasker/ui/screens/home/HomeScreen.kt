@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.StatCard
@@ -64,7 +65,9 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.StatusActive
 import com.astrixforge.devicemasker.ui.theme.StatusInactive
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 
 /**
  * Home screen displaying module status and quick stats.
@@ -108,6 +111,7 @@ fun HomeScreen(
         isXposedActive = state.isXposedActive,
         isModuleEnabled = state.isModuleEnabled,
         groups = state.groups,
+        appConfigs = state.appConfigs,
         selectedGroup = state.selectedGroup,
         groupSelected = { group -> viewModel.selectGroup(group.id) },
         enabledAppsCount = state.enabledAppsCount,
@@ -125,6 +129,7 @@ fun HomeScreenContent(
     isXposedActive: Boolean,
     isModuleEnabled: Boolean,
     groups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     selectedGroup: SpoofGroup?,
     groupSelected: (SpoofGroup) -> Unit,
     enabledAppsCount: Int,
@@ -178,6 +183,7 @@ fun HomeScreenContent(
                 // Group Selector Card with Dropdown
                 GroupSelectorCard(
                     groups = groups,
+                    appConfigs = appConfigs,
                     selectedGroup = selectedGroup,
                     groupSelected = groupSelected,
                     onClick = onNavigateToSpoof,
@@ -355,6 +361,7 @@ private fun statusText(isXposedActive: Boolean, isModuleEnabled: Boolean): Strin
 @Composable
 private fun GroupSelectorCard(
     groups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     selectedGroup: SpoofGroup?,
     groupSelected: (SpoofGroup) -> Unit,
     onClick: () -> Unit,
@@ -388,6 +395,7 @@ private fun GroupSelectorCard(
             )
             GroupDropdownMenu(
                 groups = groups,
+                appConfigs = appConfigs,
                 selectedGroup = selectedGroup,
                 expanded = dropdownExpanded,
                 groupSelected = groupSelected,
@@ -444,6 +452,7 @@ private fun HomeScreenContentPreview() {
                     SpoofGroup.createNew("Work Group"),
                     SpoofGroup.createNew("Gaming"),
                 ),
+            appConfigs = persistentMapOf(),
             selectedGroup = SpoofGroup.createDefaultGroup(),
             groupSelected = {},
             enabledAppsCount = 12,
@@ -462,6 +471,7 @@ private fun HomeScreenInactivePreview() {
             isXposedActive = false,
             isModuleEnabled = false,
             groups = persistentListOf(),
+            appConfigs = persistentMapOf(),
             selectedGroup = null,
             groupSelected = {},
             enabledAppsCount = 0,

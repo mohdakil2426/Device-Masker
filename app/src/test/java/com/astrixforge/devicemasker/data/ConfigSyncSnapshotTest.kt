@@ -53,6 +53,141 @@ class ConfigSyncSnapshotTest {
     }
 
     @Test
+    fun `snapshot does not enable app without explicit group assignment`() {
+        val group =
+            SpoofGroup.createNew("Default")
+                .copy(
+                    id = "default-group",
+                    isDefault = true,
+                    identifiers =
+                        mapOf(
+                            SpoofType.IMEI to
+                                DeviceIdentifier(
+                                    type = SpoofType.IMEI,
+                                    value = "490154203237518",
+                                    isEnabled = true,
+                                )
+                        ),
+                )
+        val config =
+            JsonConfig(
+                groups = mapOf(group.id to group),
+                appConfigs =
+                    mapOf(
+                        "com.example.unassigned" to
+                            AppConfig("com.example.unassigned", groupId = null, isEnabled = true)
+                    ),
+            )
+
+        val snapshot = ConfigSync.buildSnapshot(config, previousEnabledApps = emptySet())
+
+        assertFalse(
+            snapshot.booleans.getValue(SharedPrefsKeys.getAppEnabledKey("com.example.unassigned"))
+        )
+        assertNull(
+            snapshot.strings[
+                    SharedPrefsKeys.getSpoofValueKey("com.example.unassigned", SpoofType.IMEI)]
+        )
+        assertTrue(
+            snapshot.removeKeys.contains(
+                SharedPrefsKeys.getPersonaBlobKey("com.example.unassigned")
+            )
+        )
+    }
+
+    @Test
+    fun `snapshot disables assigned apps when group is disabled`() {
+        val group =
+            SpoofGroup.createNew("Disabled")
+                .copy(
+                    id = "disabled-group",
+                    isEnabled = false,
+                    identifiers =
+                        mapOf(
+                            SpoofType.IMEI to
+                                DeviceIdentifier(
+                                    type = SpoofType.IMEI,
+                                    value = "490154203237518",
+                                    isEnabled = true,
+                                )
+                        ),
+                )
+        val config =
+            JsonConfig(
+                groups = mapOf(group.id to group),
+                appConfigs =
+                    mapOf(
+                        "com.example.disabledgroup" to
+                            AppConfig(
+                                "com.example.disabledgroup",
+                                groupId = group.id,
+                                isEnabled = true,
+                            )
+                    ),
+            )
+
+        val snapshot = ConfigSync.buildSnapshot(config, previousEnabledApps = emptySet())
+
+        assertFalse(
+            snapshot.booleans.getValue(
+                SharedPrefsKeys.getAppEnabledKey("com.example.disabledgroup")
+            )
+        )
+        assertFalse(
+            snapshot.booleans.getValue(
+                SharedPrefsKeys.getSpoofEnabledKey("com.example.disabledgroup", SpoofType.IMEI)
+            )
+        )
+        assertNull(
+            snapshot.strings[
+                    SharedPrefsKeys.getSpoofValueKey("com.example.disabledgroup", SpoofType.IMEI)]
+        )
+    }
+
+    @Test
+    fun `snapshot disables value hook families when related spoof types are disabled`() {
+        val group =
+            SpoofGroup.createNew("Work")
+                .copy(
+                    id = "group-work",
+                    identifiers =
+                        listOf(
+                                SpoofType.IMEI,
+                                SpoofType.IMSI,
+                                SpoofType.ICCID,
+                                SpoofType.SIM_COUNTRY_ISO,
+                                SpoofType.NETWORK_COUNTRY_ISO,
+                                SpoofType.SIM_OPERATOR_NAME,
+                                SpoofType.CARRIER_MCC_MNC,
+                                SpoofType.NETWORK_OPERATOR,
+                                SpoofType.PHONE_NUMBER,
+                                SpoofType.SERIAL,
+                                SpoofType.ANDROID_ID,
+                            )
+                            .associateWith { type ->
+                                DeviceIdentifier(type = type, value = "disabled", isEnabled = false)
+                            },
+                )
+        val config =
+            JsonConfig(
+                groups = mapOf(group.id to group),
+                appConfigs =
+                    mapOf(
+                        "com.example.enabled" to
+                            AppConfig("com.example.enabled", groupId = group.id, isEnabled = true)
+                    ),
+            )
+
+        val snapshot = ConfigSync.buildSnapshot(config, previousEnabledApps = emptySet())
+
+        assertFalse(
+            snapshot.booleans.getValue(
+                SharedPrefsKeys.getHookFamilyEnabledKey("com.example.enabled", "device")
+            )
+        )
+    }
+
+    @Test
     fun `snapshot clears packages removed since the last sync`() {
         val group =
             SpoofGroup.createNew("Work")

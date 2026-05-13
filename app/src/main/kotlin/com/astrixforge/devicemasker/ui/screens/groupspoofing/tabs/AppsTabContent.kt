@@ -48,9 +48,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
-import com.astrixforge.devicemasker.common.assignedAppCount
-import com.astrixforge.devicemasker.common.isAppAssigned
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.EmptyState
@@ -58,7 +57,9 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIn
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -68,6 +69,7 @@ import kotlinx.coroutines.flow.debounce
 fun AppsTabContent(
     group: SpoofGroup?,
     allGroups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     installedApps: ImmutableList<InstalledApp>,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     isRefreshing: Boolean,
@@ -93,6 +95,7 @@ fun AppsTabContent(
             group = group,
             debouncedQuery = debouncedQuery,
             showSystemApps = showSystemApps,
+            appConfigs = appConfigs,
         )
 
     Column(
@@ -107,7 +110,7 @@ fun AppsTabContent(
                     searchQuery = searchQuery,
                     showSystemApps = showSystemApps,
                     filteredCount = filteredApps.size,
-                    assignedCount = group?.assignedAppCount() ?: 0,
+                    assignedCount = appConfigs.countAssignedToGroup(group?.id),
                 ),
             queryChanged = { searchQuery = it },
             showSystemAppsChanged = { showSystemApps = it },
@@ -116,6 +119,7 @@ fun AppsTabContent(
             AppsTabBody(
                 group = group,
                 allGroups = allGroups,
+                appConfigs = appConfigs,
                 installedApps = installedApps,
                 filteredApps = filteredApps,
                 initialScrollPosition = initialScrollPosition,
@@ -145,9 +149,10 @@ private fun rememberFilteredApps(
     group: SpoofGroup?,
     debouncedQuery: String,
     showSystemApps: Boolean,
+    appConfigs: ImmutableMap<String, AppConfig>,
 ): ImmutableList<InstalledApp> {
     val filteredApps by
-        remember(installedApps, group, debouncedQuery, showSystemApps) {
+        remember(installedApps, group, debouncedQuery, showSystemApps, appConfigs) {
             derivedStateOf {
                 val query = debouncedQuery.lowercase()
                 installedApps
@@ -155,7 +160,7 @@ private fun rememberFilteredApps(
                     .filter { app -> app.matchesAppSearch(query, showSystemApps) }
                     .sortedWith(
                         compareByDescending<InstalledApp> {
-                                group?.isAppAssigned(it.packageName) == true
+                                appConfigs.isAssignedToGroup(it.packageName, group?.id)
                             }
                             .thenBy { it.label.lowercase() }
                     )
@@ -237,6 +242,7 @@ private fun AppsSearchHeader(
 private fun AppsTabBody(
     group: SpoofGroup?,
     allGroups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     installedApps: ImmutableList<InstalledApp>,
     filteredApps: ImmutableList<InstalledApp>,
     initialScrollPosition: Int,
@@ -251,6 +257,7 @@ private fun AppsTabBody(
             AppsList(
                 group = group,
                 allGroups = allGroups,
+                appConfigs = appConfigs,
                 apps = filteredApps,
                 initialScrollPosition = initialScrollPosition,
                 onScrollPositionChange = onScrollPositionChange,
@@ -283,6 +290,7 @@ private fun EmptyAppsSearchState(modifier: Modifier = Modifier) {
 private fun AppsList(
     group: SpoofGroup?,
     allGroups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     apps: ImmutableList<InstalledApp>,
     initialScrollPosition: Int,
     onScrollPositionChange: (Int) -> Unit,
@@ -313,8 +321,8 @@ private fun AppsList(
         items(items = apps, key = { it.packageName }, contentType = { "app_item" }) { app ->
             AppListItem(
                 app = app,
-                isAssigned = group?.isAppAssigned(app.packageName) == true,
-                assignedToOtherGroupName = app.assignedGroupName(group, allGroups),
+                isAssigned = appConfigs.isAssignedToGroup(app.packageName, group?.id),
+                assignedToOtherGroupName = app.assignedGroupName(group, allGroups, appConfigs),
                 onToggle = { checked -> onAppToggle(app, checked) },
                 modifier = Modifier.fillMaxWidth().animateItem(),
             )
@@ -328,8 +336,25 @@ private fun AppsList(
 private fun InstalledApp.assignedGroupName(
     currentGroup: SpoofGroup?,
     allGroups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
 ): String? =
-    allGroups.firstOrNull { it.id != currentGroup?.id && it.isAppAssigned(packageName) }?.name
+    appConfigs[packageName]
+        ?.groupId
+        ?.takeIf { it != currentGroup?.id }
+        ?.let { assignedGroupId -> allGroups.firstOrNull { it.id == assignedGroupId }?.name }
+
+private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String?): Int =
+    if (groupId == null) {
+        0
+    } else {
+        values.count { it.groupId == groupId && it.isEnabled }
+    }
+
+private fun Map<String, AppConfig>.isAssignedToGroup(
+    packageName: String,
+    groupId: String?,
+): Boolean =
+    groupId != null && this[packageName]?.let { it.groupId == groupId && it.isEnabled } == true
 
 // ═══════════════════════════════════════════════════════════
 // Previews
@@ -342,6 +367,7 @@ private fun AppsTabContentLoadingPreview() {
         AppsTabContent(
             group = null,
             allGroups = persistentListOf(),
+            appConfigs = persistentMapOf(),
             installedApps = persistentListOf(),
             onAppToggle = { _, _ -> },
             isRefreshing = false,
@@ -357,6 +383,7 @@ private fun AppsTabContentPopulatedPreview() {
         AppsTabContent(
             group = SpoofGroup.createNew("Preview Group"),
             allGroups = persistentListOf(),
+            appConfigs = persistentMapOf(),
             installedApps =
                 persistentListOf(
                     InstalledApp(

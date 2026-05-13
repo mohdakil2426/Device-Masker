@@ -112,6 +112,7 @@ fun GroupSpoofingScreenContent(
                     pagerState = pagerState,
                     group = group,
                     groups = groups,
+                    appConfigs = state.appConfigs,
                     installedApps = installedApps,
                     isAppsRefreshing = isAppsRefreshing,
                     spoofTabScrollPosition = state.spoofTabScrollPosition,
@@ -176,6 +177,11 @@ private fun GroupSpoofingPager(
     pagerState: androidx.compose.foundation.pager.PagerState,
     group: com.astrixforge.devicemasker.common.SpoofGroup,
     groups: ImmutableList<com.astrixforge.devicemasker.common.SpoofGroup>,
+    appConfigs:
+        kotlinx.collections.immutable.ImmutableMap<
+            String,
+            com.astrixforge.devicemasker.common.AppConfig,
+        >,
     installedApps: ImmutableList<InstalledApp>,
     isAppsRefreshing: Boolean,
     spoofTabScrollPosition: Int,
@@ -203,6 +209,7 @@ private fun GroupSpoofingPager(
                 AppsTabContent(
                     group = group,
                     allGroups = groups,
+                    appConfigs = appConfigs,
                     installedApps = installedApps,
                     isRefreshing = isAppsRefreshing,
                     onRefresh = { viewModel.refreshApps() },

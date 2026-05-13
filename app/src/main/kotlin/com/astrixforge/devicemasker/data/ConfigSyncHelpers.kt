@@ -14,7 +14,66 @@ internal data class AppSyncState(
     val classLookupHidingEnabled: Boolean,
     val persona: DevicePersona?,
     val spoofTypes: List<SpoofTypeSyncState>,
-)
+) {
+    fun isHookFamilyEnabled(family: String): Boolean =
+        appEnabled &&
+            when (family) {
+                "anti_detect",
+                "package_manager" -> true
+                "device" ->
+                    hasEnabledType(
+                        SpoofType.IMEI,
+                        SpoofType.IMSI,
+                        SpoofType.ICCID,
+                        SpoofType.SIM_COUNTRY_ISO,
+                        SpoofType.NETWORK_COUNTRY_ISO,
+                        SpoofType.SIM_OPERATOR_NAME,
+                        SpoofType.CARRIER_MCC_MNC,
+                        SpoofType.NETWORK_OPERATOR,
+                        SpoofType.PHONE_NUMBER,
+                        SpoofType.SERIAL,
+                        SpoofType.ANDROID_ID,
+                    )
+                "subscription" ->
+                    hasEnabledType(
+                        SpoofType.ICCID,
+                        SpoofType.SIM_COUNTRY_ISO,
+                        SpoofType.CARRIER_NAME,
+                        SpoofType.CARRIER_MCC_MNC,
+                        SpoofType.PHONE_NUMBER,
+                    )
+                "network" ->
+                    hasEnabledType(
+                        SpoofType.WIFI_MAC,
+                        SpoofType.WIFI_SSID,
+                        SpoofType.WIFI_BSSID,
+                        SpoofType.BLUETOOTH_MAC,
+                        SpoofType.CARRIER_NAME,
+                        SpoofType.CARRIER_MCC_MNC,
+                    )
+                "system",
+                "system_feature",
+                "sensor",
+                "webview" -> hasEnabledType(SpoofType.DEVICE_PROFILE)
+                "location" ->
+                    hasEnabledType(
+                        SpoofType.LOCATION_LATITUDE,
+                        SpoofType.LOCATION_LONGITUDE,
+                        SpoofType.TIMEZONE,
+                        SpoofType.LOCALE,
+                    )
+                "advertising" ->
+                    hasEnabledType(
+                        SpoofType.ADVERTISING_ID,
+                        SpoofType.GSF_ID,
+                        SpoofType.MEDIA_DRM_ID,
+                    )
+                else -> false
+            }
+
+    private fun hasEnabledType(vararg types: SpoofType): Boolean =
+        spoofTypes.any { it.enabled && it.type in types }
+}
 
 internal data class SpoofTypeSyncState(
     val type: SpoofType,
@@ -23,7 +82,7 @@ internal data class SpoofTypeSyncState(
 )
 
 internal fun JsonConfig.syncStateFor(packageName: String): AppSyncState? {
-    val group = getGroupForApp(packageName) ?: return null
+    val group = getExplicitGroupForApp(packageName) ?: return null
     val configApp = getAppConfig(packageName)
     val appEnabled = isModuleEnabled && configApp?.isEnabled == true && group.isEnabled
     val riskyHooksEnabled = appEnabled && configApp.riskyHooksEnabled
@@ -64,7 +123,7 @@ internal fun SharedPreferences.Editor.putAppSyncState(state: AppSyncState) {
     hookFamilyNames.forEach { family ->
         putBoolean(
             SharedPrefsKeys.getHookFamilyEnabledKey(state.packageName, family),
-            state.appEnabled,
+            state.isHookFamilyEnabled(family),
         )
     }
     putBoolean(SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(state.packageName), false)

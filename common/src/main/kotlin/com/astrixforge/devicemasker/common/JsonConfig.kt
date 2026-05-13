@@ -98,6 +98,14 @@ data class JsonConfig(
     }
 
     /**
+     * Gets the explicitly assigned group for a package. Runtime sync must not use default fallback.
+     */
+    fun getExplicitGroupForApp(packageName: String): SpoofGroup? {
+        val appConfig = appConfigs[packageName]
+        return appConfig?.groupId?.takeIf { appConfig.isEnabled }?.let(groups::get)
+    }
+
+    /**
      * Adds or updates an app configuration.
      *
      * @return Updated JsonConfig

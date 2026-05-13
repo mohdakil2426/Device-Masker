@@ -147,7 +147,7 @@ object ConfigSync {
                 state?.classLookupHidingEnabled == true
             hookFamilyNames.forEach { family ->
                 booleans[SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family)] =
-                    state?.appEnabled == true
+                    state?.isHookFamilyEnabled(family) == true
             }
             booleans[SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(packageName)] = false
             booleans[SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(packageName)] = false

@@ -5,7 +5,6 @@ import com.astrixforge.devicemasker.common.CorrelationGroup
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.addApp
-import com.astrixforge.devicemasker.common.assignedAppCount
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.removeApp
 import com.astrixforge.devicemasker.common.withEnabled
@@ -24,6 +23,7 @@ import kotlinx.coroutines.flow.update
 class FakeSpoofRepository(
     initialGroups: List<SpoofGroup> = emptyList(),
     initialModuleEnabled: Boolean = false,
+    initialAppConfigs: Map<String, AppConfig> = emptyMap(),
     override val appScopeRepository: IAppScopeRepository = FakeAppScopeRepository(),
 ) : ISpoofRepository {
 
@@ -33,14 +33,17 @@ class FakeSpoofRepository(
     private val _groups = MutableStateFlow(initialGroups)
     override val groups: Flow<List<SpoofGroup>> = _groups.asStateFlow()
 
-    private val _appConfigs = MutableStateFlow<Map<String, AppConfig>>(emptyMap())
+    private val _appConfigs = MutableStateFlow(initialAppConfigs)
     override val appConfigs: Flow<Map<String, AppConfig>> = _appConfigs.asStateFlow()
 
     override val activeGroup: Flow<SpoofGroup?> = _groups.map { list -> list.find { it.isDefault } }
 
     override val enabledAppCount: Flow<Int> =
-        _groups.map { groups ->
-            groups.sumOf { group -> if (group.isEnabled) group.assignedAppCount() else 0 }
+        combine(_groups, _appConfigs) { groups, appConfigs ->
+            appConfigs.values.count { appConfig ->
+                appConfig.isEnabled &&
+                    groups.any { group -> group.id == appConfig.groupId && group.isEnabled }
+            }
         }
 
     override val dashboardState: Flow<SpoofRepository.DashboardState> =

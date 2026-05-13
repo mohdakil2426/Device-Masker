@@ -2,8 +2,8 @@ package com.astrixforge.devicemasker.ui.screens.home
 
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
-import com.astrixforge.devicemasker.common.addApp
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -33,9 +33,20 @@ class HomeViewModelTest {
 
     @Test
     fun `group selection updates selected group and counts`() = runTest {
-        val group =
-            SpoofGroup.createNew(name = "TestGroup", isDefault = true).addApp("com.example.app")
-        val repository = FakeSpoofRepository(initialGroups = listOf(group))
+        val group = SpoofGroup.createNew(name = "TestGroup", isDefault = true)
+        val repository =
+            FakeSpoofRepository(
+                initialGroups = listOf(group),
+                initialAppConfigs =
+                    mapOf(
+                        "com.example.app" to
+                            AppConfig(
+                                packageName = "com.example.app",
+                                groupId = group.id,
+                                isEnabled = true,
+                            )
+                    ),
+            )
         val viewModel = HomeViewModel(repository)
 
         // Initial state
@@ -68,9 +79,16 @@ class HomeViewModelTest {
 
     @Test
     fun `enabledAppsCount reflects repository`() = runTest {
-        val group =
-            SpoofGroup.createNew(name = "G1", isDefault = true).addApp("a.b.c").addApp("d.e.f")
-        val repository = FakeSpoofRepository(initialGroups = listOf(group))
+        val group = SpoofGroup.createNew(name = "G1", isDefault = true)
+        val repository =
+            FakeSpoofRepository(
+                initialGroups = listOf(group),
+                initialAppConfigs =
+                    mapOf(
+                        "a.b.c" to AppConfig(packageName = "a.b.c", groupId = group.id),
+                        "d.e.f" to AppConfig(packageName = "d.e.f", groupId = group.id),
+                    ),
+            )
         val viewModel = HomeViewModel(repository)
 
         viewModel.state.test { assertEquals(2, awaitItem().enabledAppsCount) }

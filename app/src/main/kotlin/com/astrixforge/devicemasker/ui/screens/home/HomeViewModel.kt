@@ -3,11 +3,12 @@ package com.astrixforge.devicemasker.ui.screens.home
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.astrixforge.devicemasker.common.assignedAppCount
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.enabledCount
 import com.astrixforge.devicemasker.data.XposedPrefs
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,18 +41,20 @@ class HomeViewModel(
                     repository.moduleEnabled,
                     repository.groups,
                     repository.activeGroup,
-                ) { connected, moduleEnabled, groups, activeGroup ->
+                    repository.appConfigs,
+                ) { connected, moduleEnabled, groups, activeGroup, appConfigs ->
                     val selectedGroup =
                         activeGroup ?: groups.find { it.isDefault } ?: groups.firstOrNull()
                     HomeState(
                         isXposedActive = connected,
                         isModuleEnabled = moduleEnabled,
                         groups = groups.toImmutableList(),
+                        appConfigs = appConfigs.toImmutableMap(),
                         selectedGroup = selectedGroup,
                         maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
                         enabledAppsCount =
                             if (selectedGroup?.isEnabled == true) {
-                                selectedGroup.assignedAppCount()
+                                appConfigs.countAssignedToGroup(selectedGroup.id)
                             } else 0,
                         isLoading = false,
                     )
@@ -75,7 +78,7 @@ class HomeViewModel(
                     selectedGroup = group,
                     enabledAppsCount =
                         if (group?.isEnabled == true) {
-                            group.assignedAppCount()
+                            currentState.appConfigs.countAssignedToGroup(group.id)
                         } else 0,
                     maskedIdentifiersCount = group?.enabledCount() ?: 0,
                 )
@@ -98,3 +101,6 @@ class HomeViewModel(
         }
     }
 }
+
+private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String): Int =
+    values.count { it.groupId == groupId && it.isEnabled }

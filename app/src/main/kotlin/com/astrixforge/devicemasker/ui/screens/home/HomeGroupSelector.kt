@@ -27,11 +27,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.common.assignedAppCount
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.ui.components.IconCircle
 import com.astrixforge.devicemasker.ui.components.expressive.CompactExpressiveIconButton
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 
 @Composable
 internal fun GroupSelectorHeader(
@@ -106,6 +107,7 @@ private fun GroupSelectorActions(rotationAngle: Float, onViewGroup: () -> Unit) 
 @Composable
 internal fun GroupDropdownMenu(
     groups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     selectedGroup: SpoofGroup?,
     expanded: Boolean,
     groupSelected: (SpoofGroup) -> Unit,
@@ -122,6 +124,7 @@ internal fun GroupDropdownMenu(
             groups.forEach { group ->
                 GroupMenuItem(
                     group = group,
+                    appCount = appConfigs.countAssignedToGroup(group.id),
                     isSelected = group.id == selectedGroup?.id,
                     onClick = {
                         groupSelected(group)
@@ -143,7 +146,12 @@ private fun EmptyGroupMenuItem(dismiss: () -> Unit) {
 }
 
 @Composable
-private fun GroupMenuItem(group: SpoofGroup, isSelected: Boolean, onClick: () -> Unit) {
+private fun GroupMenuItem(
+    group: SpoofGroup,
+    appCount: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     DropdownMenuItem(
         text = {
             Row(
@@ -151,7 +159,7 @@ private fun GroupMenuItem(group: SpoofGroup, isSelected: Boolean, onClick: () ->
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                GroupMenuText(group = group, isSelected = isSelected)
+                GroupMenuText(group = group, appCount = appCount, isSelected = isSelected)
                 GroupMenuState(group = group, isSelected = isSelected)
             }
         },
@@ -160,16 +168,11 @@ private fun GroupMenuItem(group: SpoofGroup, isSelected: Boolean, onClick: () ->
 }
 
 @Composable
-private fun GroupMenuText(group: SpoofGroup, isSelected: Boolean) {
+private fun GroupMenuText(group: SpoofGroup, appCount: Int, isSelected: Boolean) {
     Column {
         Text(text = group.name, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
         Text(
-            text =
-                pluralStringResource(
-                    id = R.plurals.home_apps_count,
-                    count = group.assignedAppCount(),
-                    group.assignedAppCount(),
-                ),
+            text = pluralStringResource(id = R.plurals.home_apps_count, count = appCount, appCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -196,5 +199,8 @@ private fun GroupMenuState(group: SpoofGroup, isSelected: Boolean) {
         }
     }
 }
+
+private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String): Int =
+    values.count { it.groupId == groupId && it.isEnabled }
 
 private const val DROPDOWN_WIDTH_FRACTION = 0.9f
