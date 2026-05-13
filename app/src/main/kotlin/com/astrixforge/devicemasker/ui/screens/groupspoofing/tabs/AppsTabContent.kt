@@ -18,7 +18,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -103,13 +102,11 @@ fun AppsTabContent(
                 AppsHeaderState(
                     searchQuery = searchQuery,
                     showSystemApps = showSystemApps,
-                    isRefreshing = isRefreshing,
                     filteredCount = filteredApps.size,
                     assignedCount = group?.assignedAppCount() ?: 0,
                 ),
             queryChanged = { searchQuery = it },
             showSystemAppsChanged = { showSystemApps = it },
-            refreshRequested = onRefresh,
         )
         ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh) {
             AppsTabBody(
@@ -132,7 +129,6 @@ private const val SEARCH_DEBOUNCE_MILLIS = 300L
 private data class AppsHeaderState(
     val searchQuery: String,
     val showSystemApps: Boolean,
-    val isRefreshing: Boolean,
     val filteredCount: Int,
     val assignedCount: Int,
 )
@@ -176,7 +172,6 @@ private fun AppsSearchHeader(
     state: AppsHeaderState,
     queryChanged: (String) -> Unit,
     showSystemAppsChanged: (Boolean) -> Unit,
-    refreshRequested: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
@@ -207,48 +202,26 @@ private fun AppsSearchHeader(
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             shape = RoundedCornerShape(12.dp),
         )
-        AppsFilterRow(
-            showSystemApps = state.showSystemApps,
-            showSystemAppsChanged = showSystemAppsChanged,
-            isRefreshing = state.isRefreshing,
-            refreshRequested = refreshRequested,
-        )
-        Text(
-            text =
-                pluralStringResource(
-                    id = R.plurals.group_spoofing_apps_assigned_stats,
-                    count = state.filteredCount,
-                    state.filteredCount,
-                    state.assignedCount,
-                ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun AppsFilterRow(
-    showSystemApps: Boolean,
-    showSystemAppsChanged: (Boolean) -> Unit,
-    isRefreshing: Boolean,
-    refreshRequested: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        FilterChip(
-            selected = showSystemApps,
-            onClick = { showSystemAppsChanged(!showSystemApps) },
-            label = { Text(stringResource(id = R.string.group_spoofing_show_system_apps)) },
-        )
-        IconButton(enabled = !isRefreshing, onClick = refreshRequested) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = stringResource(id = R.string.group_spoofing_refresh_apps),
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text =
+                    pluralStringResource(
+                        id = R.plurals.group_spoofing_apps_assigned_stats,
+                        count = state.filteredCount,
+                        state.filteredCount,
+                        state.assignedCount,
+                    ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FilterChip(
+                selected = state.showSystemApps,
+                onClick = { showSystemAppsChanged(!state.showSystemApps) },
+                label = { Text(stringResource(id = R.string.group_spoofing_show_system_apps)) },
             )
         }
     }

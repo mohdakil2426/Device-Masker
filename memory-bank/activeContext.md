@@ -12,6 +12,14 @@ Next tasks:
 3. Add physical-device LSPosed/logcat and target-app value evidence only if physical-device claims are needed later.
 4. Keep raw internal reports in internal folders and publish only curated public summaries.
 
+## 2026-05-12 GitNexus Migration
+
+- Graphify is removed from the active project workflow.
+- GitNexus is the active code-intelligence tool and this repo is indexed as `devicemasker`.
+- Refresh command: `npx gitnexus analyze --name devicemasker`.
+- Verified status: `npx gitnexus status` reports up to date at commit `17def8e`, with 5,115 symbols, 12,291 edges, 187 clusters, and 300 flows.
+- Use GitNexus MCP resources such as `gitnexus://repo/devicemasker/context`, `clusters`, and `processes` for codebase navigation.
+
 ## 2026-05-09 Release 0.1.5 Hardening Branch
 
 - Active branch: `release/0.1.5`.
@@ -169,8 +177,8 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 .\gradlew.bat :common:testDebugUnitTest --no-daemon
 ```
 
-- Latest continuation pass also verified `.\gradlew.bat spotlessApply :common:compileDebugKotlin :app:compileDebugKotlin --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :xposed:compileDebugKotlin --no-daemon --stacktrace`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, and `graphify update .`.
-- Latest focused cleanup verification also passed `.\gradlew.bat spotlessApply :app:compileDebugKotlin detekt --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest detekt --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :common:compileDebugKotlin :common:testDebugUnitTest detekt --no-daemon --stacktrace`, `.\gradlew.bat detektBaseline --no-daemon --stacktrace`, and `graphify update .`.
+- Latest continuation pass also verified `.\gradlew.bat spotlessApply :common:compileDebugKotlin :app:compileDebugKotlin --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :xposed:compileDebugKotlin --no-daemon --stacktrace`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, and the then-current Graphify refresh.
+- Latest focused cleanup verification also passed `.\gradlew.bat spotlessApply :app:compileDebugKotlin detekt --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest detekt --no-daemon --stacktrace`, `.\gradlew.bat spotlessApply :common:compileDebugKotlin :common:testDebugUnitTest detekt --no-daemon --stacktrace`, `.\gradlew.bat detektBaseline --no-daemon --stacktrace`, and the then-current Graphify refresh.
 - Latest app-only cleanup also passed `.\gradlew.bat spotlessApply :app:compileDebugKotlin :app:testDebugUnitTest --no-daemon --stacktrace`, `.\gradlew.bat detektBaseline --no-daemon --stacktrace`, and `.\gradlew.bat detekt --no-daemon --stacktrace`; current app baseline count is 0.
 - Important: Detekt passes with empty baselines in `:app`, `:common`, and `:xposed`.
 
@@ -189,7 +197,7 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 - Catalog currently contains Kotlin `2.3.21`; this was present in the working diff during the update and was verified by the build, but it was not part of the agreed candidate set.
 - `spotlessApply` was required because the dependency gate exposed existing formatting violations; it mechanically formatted touched Kotlin files.
 - Verification passed: `.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon` and `.\gradlew.bat assembleRelease :app:assembleCiRelease --no-daemon`.
-- `graphify update .` refreshed the graph after source formatting changes.
+- The then-current Graphify refresh updated the graph after source formatting changes.
 
 ## 2026-05-07 Single Root-Backed Export Implementation
 
@@ -212,7 +220,7 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 - Updated `docs/internal/reports/closed/audits/2026-05-07/2026-05-07-navigation-3-audit-report.md` to stop overclaiming full app
   production readiness. The report now scopes the verdict to the Navigation 3 layer and marks the
   local documentation defects as fixed.
-- Verification: `.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon` passed; `graphify update .` refreshed the graph.
+- Verification: `.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon` passed; the then-current Graphify refresh updated the graph.
 
 ## 2026-05-07 Custom AIDL Removal
 
@@ -242,7 +250,7 @@ Result: `BUILD SUCCESSFUL` in `logs/build/2026-05-09-a16-proc-maps-final-gate.tx
 - Made `Country` `@Serializable`.
 - Optimized Xposed hot paths: `SensorHooker` no longer reflects for `Sensor.getType()` inside the callback, and `AntiDetectHooker.filterStackTrace()` returns the original stack array when no hidden frame exists while using manual filtering for hidden frames.
 - Audit findings intentionally not applied: `XposedPrefs` already uses `CopyOnWriteArrayList`, so the reported concurrent modification issue is stale; `useLegacyPackaging=true` remains because the project guide documents it as required for primary-dex Xposed class loading.
-- Verification: `spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-configuration-cache` passed; `lint test assembleDebug assembleRelease --no-configuration-cache` passed; static searches found no production `runBlocking`, `Thread.sleep`, sensor `getType` reflection lookup, `StaticFieldLeak` suppression, import `checkNotNull(inputStream)`, or stack-frame `filterNot` allocation. `graphify update .` refreshed the graph.
+- Verification: `spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-configuration-cache` passed; `lint test assembleDebug assembleRelease --no-configuration-cache` passed; static searches found no production `runBlocking`, `Thread.sleep`, sensor `getType` reflection lookup, `StaticFieldLeak` suppression, import `checkNotNull(inputStream)`, or stack-frame `filterNot` allocation. The then-current Graphify refresh updated the graph.
 
 ## 2026-05-06 StrictMode And Detekt Guardrails
 

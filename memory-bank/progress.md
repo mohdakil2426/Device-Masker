@@ -21,6 +21,15 @@
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## 2026-05-12 GitNexus Migration
+
+- Graphify is no longer the project code-intelligence tool.
+- Removed the tracked `.graphifyignore`; existing `graphify-out/*` deletion is preserved.
+- Ran `npx gitnexus setup` to configure GitNexus MCP/skills for local tools.
+- Indexed this repository with `npx gitnexus analyze --name devicemasker`.
+- GitNexus status is up to date at commit `17def8e` with 5,115 symbols, 12,291 edges, 187 clusters, and 300 flows.
+- Future code-intelligence refresh command is `npx gitnexus analyze --name devicemasker`, not `graphify update .`.
+
 ## Latest Audit Remediation
 
 - Release 0.1.5 hardening branch work on 2026-05-09:
@@ -55,7 +64,7 @@
   - Latest app cleanup split ConfigSync helpers, ExpressiveSwitch state/dimensions, picker dialog stable list state, SIM card controls, device hardware sections, location sections, Apps tab helpers, Groups helpers, and Settings helpers.
   - Current remaining baseline rule counts: zero across `:app`, `:common`, and `:xposed`.
   - Final app baseline cleanup split `IConfigManager` and `ISpoofRepository` into smaller workflow contracts while keeping `ConfigManager` and `SpoofRepository` as unified compatibility facades.
-  - Verification passed: `spotlessApply`, `:common:compileDebugKotlin :app:compileDebugKotlin`, `:xposed:compileDebugKotlin`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, `:xposed:testDebugUnitTest`, the Xposed R8 ABI guard, and `graphify update .`.
+  - Verification passed: `spotlessApply`, `:common:compileDebugKotlin :app:compileDebugKotlin`, `:xposed:compileDebugKotlin`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, `:xposed:testDebugUnitTest`, the Xposed R8 ABI guard, and the then-current Graphify refresh.
   - Latest app-only verification passed: `.\gradlew.bat :app:testDebugUnitTest --no-daemon --stacktrace` and `.\gradlew.bat detekt --no-daemon --stacktrace`.
 - CI/CD and manual release workflow setup was implemented for version `0.1.1`:
   - `VERSION_NAME=0.1.1` and `VERSION_CODE=2` now live in `gradle.properties`.
@@ -65,7 +74,7 @@
   - Local verification passed for `.\gradlew.bat :app:assembleDebug --no-daemon` and `.\gradlew.bat spotlessCheck detekt :app:assembleCiRelease --no-daemon`; APK metadata showed `versionName=0.1.1`, `versionCode=2`.
 - Dependency candidate update completed after checking Google Developer Knowledge, web search, and Maven metadata: Gradle wrapper `9.5.0`, Spotless `8.4.0`, Compose BOM `2026.05.00`, Material3 `1.5.0-alpha19`, and `adaptive-navigation3` `1.3.0-beta01`.
 - Verification passed with `spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon` and `assembleRelease :app:assembleCiRelease --no-daemon`.
-- `graphify update .` completed after Spotless-formatted source changes.
+- The then-current Graphify refresh completed after Spotless-formatted source changes.
 - Fixed current live coroutine/performance audit issues across `:app`, `:common`, and `:xposed`.
 - Production app sources no longer contain `runBlocking` or `Thread.sleep` from the audited paths.
 - `AppLogStore` uses non-blocking channel append plus monitor-based flush.
@@ -76,7 +85,7 @@
 - `Country` is serializable.
 - `SensorHooker` avoids per-sensor reflection in the hook callback, and `AntiDetectHooker.filterStackTrace()` avoids array allocation when there are no hidden frames.
 - Verified with `spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon --no-configuration-cache` and `lint test assembleDebug assembleRelease --no-daemon --no-configuration-cache`, both `BUILD SUCCESSFUL`.
-- `graphify update .` completed after code changes.
+- The then-current Graphify refresh completed after code changes.
 
 ## What Works
 
@@ -428,7 +437,7 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - LSPosed/logcat showed `All hooks registered for: com.mantle.verify`.
 - Spoof events included ANDROID_ID, CARRIER_MCC_MNC, NETWORK_OPERATOR, IMEI, BLUETOOTH_MAC, WIFI_MAC, WIFI_SSID, and PHONE_NUMBER.
 - Mobile MCP observed Mantle showing spoofed model `Nothing A065` and spoofed fingerprint `Nothing/Pong/Pong:14/AP31.240617.009/2409251803:user/release-keys`.
-- `graphify update .` completed and refreshed `graphify-out`.
+- The then-current Graphify refresh completed and refreshed `graphify-out`.
 
 ### 2026-05-06 R8 Libxposed Callback Runtime Fix
 
