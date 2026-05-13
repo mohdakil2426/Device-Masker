@@ -6,11 +6,11 @@ This records the report lifecycle cleanup applied after user approval.
 
 These still contain open decisions, caveats, or pending follow-up:
 
-- `docs/internal/reports/active/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`
+- `docs/internal/reports/closed/validation/2026-05-09/2026-05-09-android-16-compatibility-devcheck-crash-report.md`
   - Keep active until the module-disabled/load-only/hook-family isolation matrix is either run or explicitly dropped.
-- `docs/internal/reports/active/research/2026-05-09/2026-05-09-native-hook-engine-decision-record.md`
+- `docs/internal/reports/closed/research/2026-05-09/2026-05-09-native-hook-engine-decision-record.md`
   - Keep active while native maps redaction remains a future decision.
-- `docs/internal/reports/active/research/2026-05-09/2026-05-09-native-proc-self-maps-java-first-research-report.md`
+- `docs/internal/reports/closed/research/2026-05-09/2026-05-09-native-proc-self-maps-java-first-research-report.md`
   - Keep active because Java byte/NIO redaction is opt-in and native scanner coverage is not implemented.
 ## Moved To Closed
 
