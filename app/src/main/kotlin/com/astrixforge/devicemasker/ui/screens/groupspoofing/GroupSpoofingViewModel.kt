@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
  * @param repository The [ISpoofRepository] for data access
  * @param groupId The ID of the group to display
  */
+@Suppress("TooManyFunctions")
 class GroupSpoofingViewModel(
     private val repository: ISpoofRepository,
     private val groupId: String,
@@ -32,7 +33,13 @@ class GroupSpoofingViewModel(
 ) : ViewModel() {
 
     private val _state =
-        MutableStateFlow(GroupSpoofingState(selectedTab = savedStateHandle[KEY_SELECTED_TAB] ?: 0))
+        MutableStateFlow(
+            GroupSpoofingState(
+                selectedTab = savedStateHandle[KEY_SELECTED_TAB] ?: 0,
+                spoofTabScrollPosition = savedStateHandle[KEY_SPOOF_TAB_SCROLL] ?: 0,
+                appsTabScrollPosition = savedStateHandle[KEY_APPS_TAB_SCROLL] ?: 0,
+            )
+        )
     val state: StateFlow<GroupSpoofingState> = _state.asStateFlow()
 
     init {
@@ -180,7 +187,19 @@ class GroupSpoofingViewModel(
         }
     }
 
+    fun setSpoofTabScrollPosition(position: Int) {
+        savedStateHandle[KEY_SPOOF_TAB_SCROLL] = position
+        _state.update { it.copy(spoofTabScrollPosition = position) }
+    }
+
+    fun setAppsTabScrollPosition(position: Int) {
+        savedStateHandle[KEY_APPS_TAB_SCROLL] = position
+        _state.update { it.copy(appsTabScrollPosition = position) }
+    }
+
     private companion object {
         const val KEY_SELECTED_TAB = "selectedTab"
+        const val KEY_SPOOF_TAB_SCROLL = "spoofTabScroll"
+        const val KEY_APPS_TAB_SCROLL = "appsTabScroll"
     }
 }

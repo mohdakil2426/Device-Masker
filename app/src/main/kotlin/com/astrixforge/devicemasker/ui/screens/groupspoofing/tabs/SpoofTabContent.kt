@@ -9,14 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,6 +41,7 @@ import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
  * Shows all spoof categories (SIM, Device, Network, Advertising, Location) organized as expandable
  * sections.
  */
+@Suppress("LongMethod")
 @Composable
 fun SpoofTabContent(
     group: SpoofGroup?,
@@ -46,11 +51,27 @@ fun SpoofTabContent(
     onToggle: (SpoofType, Boolean) -> Unit,
     onCarrierChange: (Carrier) -> Unit,
     timezoneSelected: (String) -> Unit,
+    initialScrollPosition: Int = 0,
+    onScrollPositionChange: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var expandedCategories by rememberSaveable(group?.id) { mutableStateOf(emptyList<String>()) }
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialScrollPosition)
+    val currentOnScrollPositionChange by rememberUpdatedState(onScrollPositionChange)
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { currentOnScrollPositionChange(it) }
+    }
+
+    LaunchedEffect(Unit) {
+        if (initialScrollPosition > 0) {
+            listState.scrollToItem(initialScrollPosition)
+        }
+    }
 
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,6 +33,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -70,6 +72,8 @@ fun AppsTabContent(
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    initialScrollPosition: Int = 0,
+    onScrollPositionChange: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
@@ -114,6 +118,8 @@ fun AppsTabContent(
                 allGroups = allGroups,
                 installedApps = installedApps,
                 filteredApps = filteredApps,
+                initialScrollPosition = initialScrollPosition,
+                onScrollPositionChange = onScrollPositionChange,
                 onAppToggle = { app, checked ->
                     focusManager.clearFocus()
                     onAppToggle(app, checked)
@@ -203,7 +209,7 @@ private fun AppsSearchHeader(
             shape = RoundedCornerShape(12.dp),
         )
         Row(
-            modifier = modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -233,6 +239,8 @@ private fun AppsTabBody(
     allGroups: ImmutableList<SpoofGroup>,
     installedApps: ImmutableList<InstalledApp>,
     filteredApps: ImmutableList<InstalledApp>,
+    initialScrollPosition: Int,
+    onScrollPositionChange: (Int) -> Unit,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -244,6 +252,8 @@ private fun AppsTabBody(
                 group = group,
                 allGroups = allGroups,
                 apps = filteredApps,
+                initialScrollPosition = initialScrollPosition,
+                onScrollPositionChange = onScrollPositionChange,
                 onAppToggle = onAppToggle,
                 modifier = modifier,
             )
@@ -274,10 +284,28 @@ private fun AppsList(
     group: SpoofGroup?,
     allGroups: ImmutableList<SpoofGroup>,
     apps: ImmutableList<InstalledApp>,
+    initialScrollPosition: Int,
+    onScrollPositionChange: (Int) -> Unit,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialScrollPosition)
+    val currentOnScrollPositionChange by rememberUpdatedState(onScrollPositionChange)
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { currentOnScrollPositionChange(it) }
+    }
+
+    LaunchedEffect(Unit) {
+        // Restore scroll position after list is composed
+        if (initialScrollPosition > 0) {
+            listState.scrollToItem(initialScrollPosition)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),

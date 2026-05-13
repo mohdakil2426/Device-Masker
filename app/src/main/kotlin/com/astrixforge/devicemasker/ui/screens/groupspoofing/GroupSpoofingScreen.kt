@@ -114,6 +114,8 @@ fun GroupSpoofingScreenContent(
                     groups = groups,
                     installedApps = installedApps,
                     isAppsRefreshing = isAppsRefreshing,
+                    spoofTabScrollPosition = state.spoofTabScrollPosition,
+                    appsTabScrollPosition = state.appsTabScrollPosition,
                     viewModel = viewModel,
                 )
             }
@@ -176,6 +178,8 @@ private fun GroupSpoofingPager(
     groups: ImmutableList<com.astrixforge.devicemasker.common.SpoofGroup>,
     installedApps: ImmutableList<InstalledApp>,
     isAppsRefreshing: Boolean,
+    spoofTabScrollPosition: Int,
+    appsTabScrollPosition: Int,
     viewModel: GroupSpoofingViewModel,
 ) {
     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -191,6 +195,8 @@ private fun GroupSpoofingPager(
                     onRegenerateLocation = { viewModel.regenerateLocation() },
                     onCarrierChange = { carrier -> viewModel.updateCarrier(carrier) },
                     timezoneSelected = { timezone -> viewModel.updateTimezone(timezone) },
+                    initialScrollPosition = spoofTabScrollPosition,
+                    onScrollPositionChange = { viewModel.setSpoofTabScrollPosition(it) },
                 )
 
             1 ->
@@ -200,6 +206,8 @@ private fun GroupSpoofingPager(
                     installedApps = installedApps,
                     isRefreshing = isAppsRefreshing,
                     onRefresh = { viewModel.refreshApps() },
+                    initialScrollPosition = appsTabScrollPosition,
+                    onScrollPositionChange = { viewModel.setAppsTabScrollPosition(it) },
                     onAppToggle = { app, checked ->
                         if (checked) {
                             viewModel.addAppToGroup(app.packageName)
