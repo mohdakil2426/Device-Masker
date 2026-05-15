@@ -1,6 +1,6 @@
 # Device Masker Architecture And Runtime Guide
 
-Date: 2026-05-14
+Date: 2026-05-15
 
 ## Summary
 
@@ -32,6 +32,8 @@ flowchart TD
     Json["filesDir/config.json"]
     Sync["ConfigSync"]
     XPrefs["XposedPrefs"]
+    Scope["LSPosed module scope"]
+    Apps["Installed app metadata"]
     Remote["libxposed RemotePreferences"]
     Common[":common"]
     Verifier[":verifier"]
@@ -48,6 +50,8 @@ flowchart TD
     UI --> VM --> Repo --> Config
     Config --> Json
     Config --> Sync --> XPrefs --> Remote
+    XPrefs --> Scope --> VM
+    Repo --> Apps --> VM
     App --> Common
     Verifier --> Target
     Entry --> Common
@@ -98,6 +102,8 @@ Rules:
 - `JsonConfig.appConfigs` is canonical.
 - `SpoofGroup.assignedApps` is legacy/display compatibility only.
 - Runtime sync uses explicit enabled `AppConfig.groupId` assignment. Default-group fallback is not valid hook eligibility for an unassigned package.
+- `AppConfig.isEnabled` is standalone app-level spoof eligibility. Group assignment and unassignment preserve it unless the user explicitly toggles the app.
+- LSPosed scope is an app-side observation source for UI and refresh state. It is not runtime hook eligibility by itself.
 - `SharedPrefsKeys` builds all RemotePreferences keys.
 - `ConfigSync` writes flattened per-app keys plus a coherent per-package `DevicePersona` blob/version.
 - Full sync clears stale package keys.
@@ -132,6 +138,33 @@ sequenceDiagram
         Hook-->>API: Return original value
     end
 ```
+
+## Home Scoped Apps Flow
+
+The Home screen has a separate app-side flow for the "Scoped Apps" section. It shows apps currently selected in LSPosed scope and lets the user toggle app-level spoof eligibility without changing group assignment.
+
+```mermaid
+flowchart LR
+    LSPosed["LSPosed service scope"] --> XPrefs["XposedPrefs.scopedPackages"]
+    PackageManager["PackageManager installed apps"] --> ScopeRepo["AppScopeRepository.installedApps"]
+    XPrefs --> HomeVM["HomeViewModel"]
+    ScopeRepo --> HomeVM
+    HomeVM --> Builder["buildHomeScopedApps"]
+    Builder --> HomeUI["Home Scoped Apps section"]
+    HomeUI --> Toggle["Per-app switch"]
+    Toggle --> Repo["SpoofRepository.setAppEnabled"]
+    Repo --> Config["ConfigManager.setAppEnabled"]
+    Config --> AppConfig["JsonConfig.appConfigs[pkg].isEnabled"]
+```
+
+Rules:
+
+- The list is derived from `XposedPrefs.scopedPackages` joined with installed app metadata, not from spoof groups or `appConfigs`.
+- `android` and `system` are filtered out of the Home list because they are framework scope entries, not user target apps.
+- Packages missing from installed-app metadata are omitted instead of rendered as raw package names.
+- Pull-to-refresh refreshes installed app metadata and rereads LSPosed scope.
+- Disabling an app here only sets `AppConfig.isEnabled = false`; it does not remove LSPosed scope or clear group assignment.
+- Runtime hooks still require the synced `enabled_apps` allowlist, the per-package enabled key, an explicit enabled group assignment, and enabled spoof type values.
 
 ## Runtime Hook Flow
 

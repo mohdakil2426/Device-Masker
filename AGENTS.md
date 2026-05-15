@@ -7,6 +7,8 @@ Android LSPosed/libxposed module for per-app device identity spoofing. Gradle mo
 - Config delivery is RemotePreferences-first. Do not add custom AIDL/Binder config or hook-evidence paths.
 - `SharedPrefsKeys.kt` is the only source for RemotePreferences key names.
 - `JsonConfig.appConfigs` is canonical for app scope; `SpoofGroup.assignedApps` is legacy/display-only.
+- `AppConfig.isEnabled` is standalone app-level enablement; do not reset it during group assignment or unassignment.
+- LSPosed scoped-app UI must read libxposed service scope data; do not derive a "scoped apps" list from spoof groups.
 - Runtime sync must use explicit app-to-group assignment from `JsonConfig.appConfigs`; do not use default-group fallback for hook eligibility.
 - Xposed target selection must require the current `enabled_apps` allowlist plus the per-package enabled key; a stale `app_enabled_*` key alone must never activate hooks.
 - Generated identity values are created in app/common config flows, never inside target-process hooks.

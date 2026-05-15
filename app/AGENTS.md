@@ -46,7 +46,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 | File | Role |
 |------|------|
 | `DeviceMaskerApp.kt` | Application entry — plants Timber trees, inits ConfigManager/XposedPrefs/RootAccessManager, registers config sync on LSPosed bind |
-| `data/XposedPrefs.kt` | Writes to RemotePreferences via `XposedService.getRemotePreferences()`. All keys delegate to `SharedPrefsKeys` in `:common`. Uses `commit()` not `apply()`. |
+| `data/XposedPrefs.kt` | Writes to RemotePreferences via `XposedService.getRemotePreferences()`, and exposes LSPosed scope via `scopedPackages`/`refreshScope()`. All keys delegate to `SharedPrefsKeys` in `:common`. Uses `commit()` not `apply()`. |
 | `data/ConfigSync.kt` | Flattens `JsonConfig` → flat per-app SharedPreferences keys. `syncFromConfig()` for full sync, `syncApp()` for single app. Clears stale keys. |
 | `data/ConfigSyncHelpers.kt` | App sync state and SharedPreferences editor helpers used by `ConfigSync`. |
 | `service/ConfigManager.kt` | JSON config CRUD. Backs `AtomicFile` at `filesDir/config.json`. Exposes `config: StateFlow<JsonConfig>`. Uses `Mutex` for thread-safe saves. |
@@ -57,7 +57,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 
 | Screen | ViewModel | Key Repository Methods |
 |--------|-----------|----------------------|
-| Home | `HomeViewModel(ISpoofRepository, isXposedActiveFlow)` | `setModuleEnabled()`, `setActiveGroup()`, `refreshScopedApps()`, `setAppEnabled()`, `regenerateAllValues()` |
+| Home | `HomeViewModel(ISpoofRepository, isXposedActiveFlow, xposedScopeStateFlow)` | `setModuleEnabled()`, `setActiveGroup()`, `refreshScopedApps()`, `setAppEnabled()`, `regenerateAllValues()` |
 | Groups | `GroupsViewModel(ISpoofRepository)` | `createGroup()`, `deleteGroup()`, `setDefaultGroup()`, `exportGroups()`, `importGroups()` |
 | GroupSpoofing | `GroupSpoofingViewModel(ISpoofRepository, groupId)` | `generateValue()`, `updateGroupWithCarrier()`, `updateGroupWithDeviceProfile()`, `addAppToGroup()`, `removeAppFromGroup()` |
 | Settings | `SettingsViewModel(Application, ISettingsDataStore, ILogManager, ioDispatcher)` | `setThemeMode()`, `exportLogsToUri()`, `createShareableLogs()` |
@@ -101,6 +101,8 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 - Prefer narrow workflow interfaces for new code. Compatibility facades should not keep growing.
 - `JsonConfig.appConfigs` is canonical for group app counts, app checked state, and RemotePreferences sync inputs.
 - Do not use `SpoofGroup.assignedApps` for new active toggle/count/sync decisions; it is legacy/display compatibility only.
+- Home Scoped Apps must use `XposedPrefs.scopedPackages` joined with installed apps. Do not derive LSPosed scoped-app lists from spoof groups or `appConfigs`.
+- `AppConfig.isEnabled` is standalone app-level user control. Preserve it during group assignment and unassignment unless the user explicitly toggles app enablement.
 - Runtime sync must require explicit app-to-group assignment. Do not let default-group fallback make an unassigned package hookable.
 
 ## Diagnostics & Root

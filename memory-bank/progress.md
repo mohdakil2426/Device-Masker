@@ -25,7 +25,8 @@
 
 - Export logs bottom sheet buttons: commit `6ca01eb`. Replaced `Row` + `FilledTonalButton` with `QuickActionRow` inside `ExportActionsBottomSheetContent`. Bottom sheet preserved, inner buttons changed to M3 `ButtonGroup` with `clickableItem()`.
 - Group selector bottom sheet: commit `18bcaed`. Replaced `GroupDropdownMenu` with `GroupSelectorBottomSheet` using `AppModalBottomSheet`. Card opens sheet on tap; sheet shows groups as clickable rows. Chevron rotation removed.
-- Scoped Apps section: implemented but not committed at the time of writing. Home now shows LSPosed-scoped installed user apps, not spoof-group app lists. It reads `XposedPrefs.scopedPackages`, filters `android`/`system`, joins against loaded installed-app metadata, and omits missing packages instead of showing raw package names.
+- Scoped Apps section: commit `e40e050`. Home now shows LSPosed-scoped installed user apps, not spoof-group app lists. It reads `XposedPrefs.scopedPackages`, filters `android`/`system`, joins against loaded installed-app metadata, and omits missing packages instead of showing raw package names.
+- Architecture and agent rules now document this as a narrow app-side architecture change: Home observes LSPosed scope, joins installed app metadata, and writes standalone `AppConfig.isEnabled` without changing hook/runtime contracts.
 - Home now loads installed apps on init and force-refreshes them during scoped-app pull-to-refresh, so the section does not depend on another screen warming the app cache.
 - The per-row switch updates standalone `AppConfig.isEnabled`; group assignment/unassignment preserves this Home-level enabled state.
 - Group Spoofing app rows now use canonical `AppConfig.groupId` for selected state and show Home-disabled assigned apps as disabled rather than removing them from the group UI.

@@ -14,6 +14,7 @@ Next tasks:
 ### LSPosed Scoped Apps Section
 - Implemented Home `Scoped Apps` as the LSPosed scope view, not a spoof-group assignment view.
 - Source data: `XposedPrefs.scopedPackages` plus installed-app metadata from `AppScopeRepository.installedApps`; `android` and `system` are filtered out.
+- Architecture/rules docs now record that Home Scoped Apps is an app-side LSPosed scope observation flow, not hook eligibility and not a spoof-group-derived list.
 - Home now loads installed apps on init so scoped apps do not depend on another screen warming the app cache.
 - Pull-to-refresh now force-refreshes installed apps and rereads LSPosed scope, fixing stale/missing rows after LSPosed scope changes.
 - Rows show resolved installed app labels only. LSPosed-scoped packages missing from the installed-app list are omitted instead of falling back to raw package names.
