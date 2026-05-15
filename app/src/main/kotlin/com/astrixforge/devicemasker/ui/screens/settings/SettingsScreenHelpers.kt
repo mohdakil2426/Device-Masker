@@ -133,9 +133,7 @@ internal fun SettingsDialogsAndSheets(
         ExportActionsBottomSheetContent(
             title = stringResource(R.string.settings_export_sheet_title),
             saveLabel = stringResource(R.string.settings_export_save),
-            saveDescription = stringResource(R.string.settings_export_save_desc),
             shareLabel = stringResource(R.string.settings_export_share),
-            shareDescription = stringResource(R.string.settings_export_share_desc),
             onSave = { exportLogsLauncher.launch(generateLogFileName()) },
             onShare = onShareLogs,
             onDismiss = { exportSheetChanged(false) },

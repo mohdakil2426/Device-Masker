@@ -5,22 +5,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +29,8 @@ import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.components.AppModalBottomSheet
 import com.astrixforge.devicemasker.ui.components.ScreenHeader
+import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
+import com.astrixforge.devicemasker.ui.components.expressive.QuickActionRow
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
@@ -120,43 +116,33 @@ fun SettingsScreen(
 internal fun ExportActionsBottomSheetContent(
     title: String,
     saveLabel: String,
-    saveDescription: String,
     shareLabel: String,
-    shareDescription: String,
     onSave: () -> Unit,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AppModalBottomSheet(onDismiss = onDismiss, modifier = modifier, title = title) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            FilledTonalButton(
-                onClick = {
-                    onSave()
-                    onDismiss()
-                },
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(imageVector = Icons.Outlined.Save, contentDescription = saveDescription)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(saveLabel)
-            }
-
-            FilledTonalButton(
-                onClick = {
-                    onShare()
-                    onDismiss()
-                },
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(imageVector = Icons.Outlined.Share, contentDescription = shareDescription)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(shareLabel)
-            }
-        }
+        QuickActionRow(
+            primaryAction =
+                QuickAction(
+                    label = saveLabel,
+                    icon = Icons.Outlined.Save,
+                    onClick = {
+                        onSave()
+                        onDismiss()
+                    },
+                ),
+            secondaryAction =
+                QuickAction(
+                    label = shareLabel,
+                    icon = Icons.Outlined.Share,
+                    onClick = {
+                        onShare()
+                        onDismiss()
+                    },
+                ),
+        )
     }
 }
 
