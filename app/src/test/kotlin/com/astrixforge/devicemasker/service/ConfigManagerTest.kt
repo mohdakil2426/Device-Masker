@@ -3,6 +3,7 @@ package com.astrixforge.devicemasker.service
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import java.io.File
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -43,19 +44,13 @@ class ConfigManagerTest {
         ConfigManager.init(context)
         ConfigManager.init(context)
 
-        ConfigManager.isInitialized.test {
-            skipItems(1) // skip initial false
-            assertTrue(awaitItem())
-        }
+        awaitInitialized()
     }
 
     @Test
     fun `concurrent modifications are consistent`() = runTest {
         ConfigManager.init(context)
-        ConfigManager.isInitialized.test {
-            skipItems(1)
-            assertTrue(awaitItem())
-        }
+        awaitInitialized()
 
         val jobs =
             List(20) { index ->
@@ -98,10 +93,7 @@ class ConfigManagerTest {
         ConfigManager.resetForTests()
         ConfigManager.init(context)
 
-        ConfigManager.isInitialized.test {
-            skipItems(1)
-            assertTrue(awaitItem())
-        }
+        awaitInitialized()
 
         val backups =
             context.filesDir
@@ -114,10 +106,7 @@ class ConfigManagerTest {
     @Test
     fun `unassign app preserves standalone home enabled state`() = runTest {
         ConfigManager.init(context)
-        ConfigManager.isInitialized.test {
-            skipItems(1)
-            assertTrue(awaitItem())
-        }
+        awaitInitialized()
         val group = ConfigManager.createGroup("Scoped")
 
         ConfigManager.assignAppToGroup("com.example.app", group.id)
@@ -132,10 +121,7 @@ class ConfigManagerTest {
     @Test
     fun `assign app preserves standalone home disabled state`() = runTest {
         ConfigManager.init(context)
-        ConfigManager.isInitialized.test {
-            skipItems(1)
-            assertTrue(awaitItem())
-        }
+        awaitInitialized()
         val group = ConfigManager.createGroup("Scoped")
 
         ConfigManager.setAppEnabled("com.example.app", false)
@@ -144,5 +130,9 @@ class ConfigManagerTest {
         val appConfig = ConfigManager.getAppConfig("com.example.app")
         assertEquals(group.id, appConfig?.groupId)
         assertEquals(false, appConfig?.isEnabled)
+    }
+
+    private suspend fun awaitInitialized() {
+        ConfigManager.isInitialized.first { it }
     }
 }

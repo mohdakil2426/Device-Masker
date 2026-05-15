@@ -21,6 +21,8 @@ Next tasks:
 - The Home row switch is standalone user control over `AppConfig.isEnabled`; group assignment/unassignment preserves that enabled state.
 - Group Spoofing app selection now uses canonical `AppConfig.groupId` for assignment display, while disabled Home-scoped apps remain visible as disabled in group app lists.
 - UI refinements: section title is plain text like Quick Actions, app rows keep icons, section is expandable, row composition uses stable package keys, and spacing from Quick Actions to Scoped Apps is tightened.
+- 2026-05-16 follow-up: Scoped Apps now sorts installed scoped apps alphabetically A-Z by resolved label, then package name. Disabled rows keep their alphabetical position instead of being grouped separately, and disabled app cards render muted with reduced alpha for clearer state.
+- Latest failed GitHub Actions run on `release/0.1.5` was CI run `25930803257`; failure was in `ConfigManagerTest` unit tests. Cause: racy `StateFlow` Turbine waits skipped the current `true` initialization value and timed out. Tests now wait for the first observed `true` initialization value deterministically.
 - Verification passed:
 
 ```powershell

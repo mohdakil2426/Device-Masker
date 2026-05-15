@@ -37,11 +37,7 @@ fun buildHomeScopedApps(
                 status = appConfig.toHomeScopedAppStatus(group),
             )
         }
-        .sortedWith(
-            compareBy<HomeScopedApp> { it.status.sortOrder }
-                .thenBy { it.label.lowercase() }
-                .thenBy { it.packageName }
-        )
+        .sortedWith(compareBy<HomeScopedApp> { it.label.lowercase() }.thenBy { it.packageName })
         .toList()
         .toImmutableList()
 }
@@ -53,14 +49,5 @@ private fun AppConfig?.toHomeScopedAppStatus(group: SpoofGroup?): HomeScopedAppS
         !group.isEnabled -> HomeScopedAppStatus.DisabledByGroup
         else -> HomeScopedAppStatus.Enabled
     }
-
-private val HomeScopedAppStatus.sortOrder: Int
-    get() =
-        when (this) {
-            HomeScopedAppStatus.Enabled -> 0
-            HomeScopedAppStatus.DisabledByApp -> 1
-            HomeScopedAppStatus.DisabledByGroup -> 2
-            HomeScopedAppStatus.NotConfigured -> 3
-        }
 
 private val DEFAULT_LSPOSED_SCOPE_PACKAGES = setOf("android", "system")

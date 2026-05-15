@@ -31,6 +31,8 @@
 - The per-row switch updates standalone `AppConfig.isEnabled`; group assignment/unassignment preserves this Home-level enabled state.
 - Group Spoofing app rows now use canonical `AppConfig.groupId` for selected state and show Home-disabled assigned apps as disabled rather than removing them from the group UI.
 - Scoped Apps UI uses plain section title text, expandable content, app icons, stable package keys for row state, and tighter spacing from Quick Actions.
+- 2026-05-16 follow-up: Scoped Apps rows now sort A-Z by resolved app label with package-name tie-breaks, disabled rows stay in their alphabetical position, and disabled app cards render with muted alpha.
+- Latest failed GitHub Actions CI run `25930803257` failed in `ConfigManagerTest` because several tests skipped the current `StateFlow` initialization value and could time out. The tests now wait for the first observed initialized state instead of assuming an emission order.
 - Verification passed: `.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --no-daemon` and `.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --no-daemon`.
 
 ## 2026-05-14 Toggle And Hook-Scope Remediation

@@ -83,14 +83,48 @@ class HomeScopedAppsBuilderTest {
                 groups = listOf(disabledGroup, enabledGroup),
             )
 
-        assertEquals(
-            listOf(
-                HomeScopedAppStatus.Enabled,
-                HomeScopedAppStatus.DisabledByApp,
-                HomeScopedAppStatus.DisabledByGroup,
-            ),
-            apps.map { it.status },
-        )
+        val statusByPackage = apps.associate { it.packageName to it.status }
+        assertEquals(HomeScopedAppStatus.DisabledByApp, statusByPackage["com.app.disabled"])
+        assertEquals(HomeScopedAppStatus.DisabledByGroup, statusByPackage["com.group.disabled"])
+        assertEquals(HomeScopedAppStatus.Enabled, statusByPackage["com.enabled"])
+    }
+
+    @Test
+    fun buildHomeScopedApps_sortsByLabelAndKeepsDisabledAppsInAlphabeticalPlace() {
+        val group = SpoofGroup.createNew("Enabled")
+
+        val apps =
+            buildHomeScopedApps(
+                scopeState =
+                    XposedScopeState.Connected(setOf("com.zebra", "com.alpha", "com.beta")),
+                installedApps =
+                    listOf(
+                        InstalledApp("com.zebra", "Zebra", isSystemApp = false),
+                        InstalledApp("com.alpha", "Alpha", isSystemApp = false),
+                        InstalledApp("com.beta", "Beta", isSystemApp = false),
+                    ),
+                appConfigs =
+                    mapOf(
+                        "com.zebra" to AppConfig(packageName = "com.zebra", groupId = group.id),
+                        "com.alpha" to
+                            AppConfig(
+                                packageName = "com.alpha",
+                                groupId = group.id,
+                                isEnabled = false,
+                            ),
+                        "com.beta" to AppConfig(packageName = "com.beta", groupId = group.id),
+                    ),
+                groups = listOf(group),
+            )
+
+        assertEquals(listOf("Alpha", "Beta", "Zebra"), apps.map { it.label })
+        assertEquals(HomeScopedAppStatus.DisabledByApp, apps.first().status)
+    }
+
+    @Test
+    fun homeScopedAppCardAlpha_mutesDisabledAppsOnly() {
+        assertEquals(1f, homeScopedAppCardAlpha(isGloballyEnabled = true))
+        assertEquals(0.62f, homeScopedAppCardAlpha(isGloballyEnabled = false))
     }
 
     @Test

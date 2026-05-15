@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -60,11 +61,12 @@ fun HomeScopedAppsSection(
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(true) }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         SectionHeader(
             title = stringResource(R.string.home_scoped_apps),
             isExpanded = isExpanded,
             onExpandChange = { isExpanded = it },
+            verticalPadding = 2.dp,
         )
         AnimatedVisibility(
             visible = isExpanded,
@@ -101,10 +103,13 @@ private fun HomeScopedAppCard(
 
     ExpressiveCard(
         modifier =
-            modifier.fillMaxWidth().semantics {
-                role = Role.Switch
-                stateDescription = if (app.isGloballyEnabled) enabledState else disabledState
-            },
+            modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = homeScopedAppCardAlpha(app.isGloballyEnabled) }
+                .semantics {
+                    role = Role.Switch
+                    stateDescription = if (app.isGloballyEnabled) enabledState else disabledState
+                },
         onClick = { onAppEnabledChange(app, !app.isGloballyEnabled) },
         shape = MaterialTheme.shapes.small,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -202,4 +207,9 @@ private fun HomeScopedAppIcon(packageName: String, label: String, modifier: Modi
     }
 }
 
+internal fun homeScopedAppCardAlpha(isGloballyEnabled: Boolean): Float =
+    if (isGloballyEnabled) ENABLED_SCOPED_APP_CARD_ALPHA else DISABLED_SCOPED_APP_CARD_ALPHA
+
+private const val ENABLED_SCOPED_APP_CARD_ALPHA = 1f
+private const val DISABLED_SCOPED_APP_CARD_ALPHA = 0.62f
 private const val APP_ICON_SIZE_PX = 80

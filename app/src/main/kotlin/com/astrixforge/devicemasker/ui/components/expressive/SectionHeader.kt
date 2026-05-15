@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
@@ -61,6 +62,7 @@ fun SectionHeader(
     countColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     isExpanded: Boolean = true,
     onExpandChange: ((Boolean) -> Unit)? = null,
+    verticalPadding: Dp = 12.dp,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -87,7 +89,7 @@ fun SectionHeader(
                         Modifier
                     }
                 )
-                .padding(vertical = 12.dp),
+                .padding(vertical = verticalPadding),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
