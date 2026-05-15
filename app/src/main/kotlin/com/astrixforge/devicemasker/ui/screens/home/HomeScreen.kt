@@ -357,7 +357,7 @@ private fun statusText(isXposedActive: Boolean, isModuleEnabled: Boolean): Strin
         else -> stringResource(id = R.string.home_protection_disabled)
     }
 
-/** Group selector card with dropdown menu. */
+/** Group selector card with bottom sheet for group selection. */
 @Composable
 private fun GroupSelectorCard(
     groups: ImmutableList<SpoofGroup>,
@@ -367,41 +367,30 @@ private fun GroupSelectorCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var dropdownExpanded by rememberSaveable { mutableStateOf(false) }
-    val rotationAngle by
-        animateFloatAsState(
-            targetValue = if (dropdownExpanded) 180f else 0f,
-            animationSpec =
-                if (AppMotion.shouldReduceMotion()) {
-                    AppMotion.ReducedAlpha
-                } else {
-                    AppMotion.Spatial.Snappy
-                },
-            label = "dropdownRotation",
-        )
+    var showBottomSheet by rememberSaveable { mutableStateOf(false) }
 
     ExpressiveCard(
-        onClick = { dropdownExpanded = true },
+        onClick = { showBottomSheet = true },
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
     ) {
-        Column {
-            GroupSelectorHeader(
-                selectedGroup = selectedGroup,
-                rotationAngle = rotationAngle,
-                onViewGroup = onClick,
-            )
-            GroupDropdownMenu(
-                groups = groups,
-                appConfigs = appConfigs,
-                selectedGroup = selectedGroup,
-                expanded = dropdownExpanded,
-                groupSelected = groupSelected,
-                dismiss = { dropdownExpanded = false },
-            )
-        }
+        GroupSelectorHeader(
+            selectedGroup = selectedGroup,
+            rotationAngle = 0f,
+            onViewGroup = onClick,
+        )
+    }
+
+    if (showBottomSheet) {
+        GroupSelectorBottomSheet(
+            groups = groups,
+            appConfigs = appConfigs,
+            selectedGroup = selectedGroup,
+            groupSelected = groupSelected,
+            dismiss = { showBottomSheet = false },
+        )
     }
 }
 
