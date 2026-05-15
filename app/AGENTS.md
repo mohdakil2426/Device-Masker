@@ -57,7 +57,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 
 | Screen | ViewModel | Key Repository Methods |
 |--------|-----------|----------------------|
-| Home | `HomeViewModel(ISpoofRepository, isXposedActiveFlow)` | `setModuleEnabled()`, `setActiveGroup()`, `regenerateAllValues()` |
+| Home | `HomeViewModel(ISpoofRepository, isXposedActiveFlow)` | `setModuleEnabled()`, `setActiveGroup()`, `refreshScopedApps()`, `setAppEnabled()`, `regenerateAllValues()` |
 | Groups | `GroupsViewModel(ISpoofRepository)` | `createGroup()`, `deleteGroup()`, `setDefaultGroup()`, `exportGroups()`, `importGroups()` |
 | GroupSpoofing | `GroupSpoofingViewModel(ISpoofRepository, groupId)` | `generateValue()`, `updateGroupWithCarrier()`, `updateGroupWithDeviceProfile()`, `addAppToGroup()`, `removeAppFromGroup()` |
 | Settings | `SettingsViewModel(Application, ISettingsDataStore, ILogManager, ioDispatcher)` | `setThemeMode()`, `exportLogsToUri()`, `createShareableLogs()` |

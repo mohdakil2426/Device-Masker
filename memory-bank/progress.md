@@ -21,6 +21,17 @@
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## 2026-05-15 Home Screen UI Refinements
+
+- Export logs bottom sheet buttons: commit `6ca01eb`. Replaced `Row` + `FilledTonalButton` with `QuickActionRow` inside `ExportActionsBottomSheetContent`. Bottom sheet preserved, inner buttons changed to M3 `ButtonGroup` with `clickableItem()`.
+- Group selector bottom sheet: commit `18bcaed`. Replaced `GroupDropdownMenu` with `GroupSelectorBottomSheet` using `AppModalBottomSheet`. Card opens sheet on tap; sheet shows groups as clickable rows. Chevron rotation removed.
+- Scoped Apps section: implemented but not committed at the time of writing. Home now shows LSPosed-scoped installed user apps, not spoof-group app lists. It reads `XposedPrefs.scopedPackages`, filters `android`/`system`, joins against loaded installed-app metadata, and omits missing packages instead of showing raw package names.
+- Home now loads installed apps on init and force-refreshes them during scoped-app pull-to-refresh, so the section does not depend on another screen warming the app cache.
+- The per-row switch updates standalone `AppConfig.isEnabled`; group assignment/unassignment preserves this Home-level enabled state.
+- Group Spoofing app rows now use canonical `AppConfig.groupId` for selected state and show Home-disabled assigned apps as disabled rather than removing them from the group UI.
+- Scoped Apps UI uses plain section title text, expandable content, app icons, stable package keys for row state, and tighter spacing from Quick Actions.
+- Verification passed: `.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --no-daemon` and `.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --no-daemon`.
+
 ## 2026-05-14 Toggle And Hook-Scope Remediation
 
 - Fixed current hook-scope/toggle bugs from the 2026-05-14 audit without optional feature work.
@@ -60,16 +71,7 @@
 - Full verification: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
 - Commits: `cb0349e` (scroll persistence), `3d239bd` (UI refactor).
 
-## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
-
-- Implemented GroupSpoofingScreen UI improvements from P3 proposal:
-  - Removed refresh icon button from Apps tab header; pull-to-refresh via `ExpressivePullToRefresh` remains.
-  - Inlined system app FilterChip into same Row as app count stats text.
-  - Deleted `AppsFilterRow.kt` after merging logic into `AppsSearchHeader`.
-  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState`.
-- Implemented scroll position persistence for tabbed interface (P3.1):
-  - `spoofTabScrollPosition` and `appsTabScrollPosition` in `GroupSpoofingState`.
-  - `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` in `GroupSpoofingViewModel` with `SavedStateHandle`.
+## 2026-05-12 GitNexus Migration
   - `initialScrollPosition` and `onScrollPositionChange` parameters added to `SpoofTabContent` and `AppsTabContent`.
   - `rememberLazyListState` with `initialFirstVisibleItemIndex`, `LaunchedEffect` + `snapshotFlow`, `rememberUpdatedState` fix for `LambdaParameterInRestartableEffect`.
   - Scroll positions passed from state through `GroupSpoofingPager` to both tab composables.
@@ -192,6 +194,9 @@
 - Navigation 3 app navigation compiles and passes navigator unit tests. `NavController`, `NavHost`, Navigation Compose `composable`, and `toRoute()` have been removed from app runtime navigation. The selected top-level tab is saved with `rememberSaveable`, while each stack is saved with `rememberNavBackStack`.
 - Navigation 3 deep links support `devicemasker://open/home`, `/groups`, `/groups/{groupId}`, `/settings`, and `/diagnostics`. Group Detail and Diagnostics use synthetic stacks, and emulator smoke verified Group Detail and Diagnostics links.
 - Navigation 3 expanded-width/list-detail smoke passed in emulator landscape: Groups list and Group Detail rendered side by side.
+- Home screen group selector uses `AppModalBottomSheet` instead of `DropdownMenu` for group selection.
+- Home screen shows the Scoped Apps section below Quick Actions. It lists LSPosed-scoped installed user apps, excluding default scope entries (`android`, `system`), and keeps Device Masker's per-app enable switch separate from spoof-group assignment.
+- Export logs bottom sheet uses `QuickActionRow` (M3 `ButtonGroup`) for Save/Share actions.
 
 Latest verification caveat:
 - On 2026-05-04 later in the emulator session, module injection was active again. `com.mantle.verify` and `flar2.devcheck` both showed `XposedEntry`, target selection, `All hooks registered`, and spoof events in logcat.

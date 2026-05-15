@@ -2,17 +2,39 @@
 
 ## Current Focus
 
-Release R8 is enabled and runtime-validated. Direct Kotlin SAM callbacks passed to libxposed `HookBuilder.intercept { ... }` caused Mantle release crashes with `AbstractMethodError`; the durable path is `StableHooker`/`stableHooker`, with production hookers using `intercept(stableHooker { ... })` or explicit named `XposedInterface.Hooker` implementations.
-
-Android 16 emulator validation is currently the strongest local evidence path: DevCheck debug and debug-key-signed `ciRelease` smokes passed, the verifier package is scoped and configured, WebView default and instance UA are spoofed, direct latitude/longitude getter probes pass, and the latest static/R8 gate passed. This is still emulator evidence only; do not rewrite it as physical-device proof.
+UI refinements on `release/0.1.5` — unifying component styles, motion, and bottom sheet patterns across screens. Release R8 is enabled and runtime-validated. Android 16 emulator validation is the strongest local evidence path.
 
 Next tasks:
 1. Add automated expected-vs-actual report generation so future verifier runs do not require ad hoc PowerShell matrix construction.
 2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.
-3. Add physical-device LSPosed/logcat and target-app value evidence only if physical-device claims are needed later.
-4. Keep raw internal reports in internal folders and publish only curated public summaries.
-5. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
-5. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
+3. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
+
+## 2026-05-15 Home Screen UI Refinements
+
+### LSPosed Scoped Apps Section
+- Implemented Home `Scoped Apps` as the LSPosed scope view, not a spoof-group assignment view.
+- Source data: `XposedPrefs.scopedPackages` plus installed-app metadata from `AppScopeRepository.installedApps`; `android` and `system` are filtered out.
+- Home now loads installed apps on init so scoped apps do not depend on another screen warming the app cache.
+- Pull-to-refresh now force-refreshes installed apps and rereads LSPosed scope, fixing stale/missing rows after LSPosed scope changes.
+- Rows show resolved installed app labels only. LSPosed-scoped packages missing from the installed-app list are omitted instead of falling back to raw package names.
+- The Home row switch is standalone user control over `AppConfig.isEnabled`; group assignment/unassignment preserves that enabled state.
+- Group Spoofing app selection now uses canonical `AppConfig.groupId` for assignment display, while disabled Home-scoped apps remain visible as disabled in group app lists.
+- UI refinements: section title is plain text like Quick Actions, app rows keep icons, section is expandable, row composition uses stable package keys, and spacing from Quick Actions to Scoped Apps is tightened.
+- Verification passed:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --no-daemon
+```
+
+### Export Logs Bottom Sheet Buttons
+- Commit `6ca01eb`. Replaced `Row` + `FilledTonalButton` inside `ExportActionsBottomSheetContent` with `QuickActionRow` (M3 `ButtonGroup` + `clickableItem()`). Bottom sheet preserved, only inner buttons changed. Same coordinated press-expand animation as home screen quick actions.
+
+### Group Selector Bottom Sheet
+- Commit `18bcaed`. Replaced `GroupDropdownMenu` (`DropdownMenu`) in `GroupSelectorCard` with `GroupSelectorBottomSheet` using `AppModalBottomSheet`. The card still opens the sheet on tap; the sheet shows groups as clickable rows with name, app count, check mark for selected, and disabled indicator. Chevron rotation animation removed. Files changed: `HomeGroupSelector.kt`, `HomeScreen.kt`.
+
+### Home Screen Structure (updated)
+Sections in order: StatusCard → QuickStatsRow (protected apps, masked identifiers) → GroupSelectorCard (opens bottom sheet) → QuickActionsSection (Configure, Regenerate) → Scoped Apps.
 
 ## 2026-05-14 Toggle And Hook-Scope Remediation
 
@@ -35,30 +57,6 @@ Next tasks:
   - unassigned but LSPosed-scoped verifier app logged `XposedEntry loaded` only, with no target selection, hook registration, or spoof events.
   - evidence is under `logs/device/2026-05-14-toggle-scope-test/`.
   - the implementation summary and audit moved to `docs/internal/reports/closed/`.
-
-## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
-
-- GitNexus migration is active; `npx gitnexus analyze --name devicemasker` refreshes the index.
-- Completed GroupSpoofingScreen UI refactoring (P3 proposal implementation):
-  - Removed refresh icon button from Apps tab header.
-  - Inlined the system app FilterChip into the same Row as the app count text.
-  - Merged `AppsFilterRow` logic into `AppsSearchHeader` — deleted `AppsFilterRow.kt`.
-  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState` (state no longer owns pull-to-refresh triggers).
-  - Removed `isRefreshing` parameter from `AppsSearchHeader` call site in `AppsTabContent`.
-  - Removed the unused refresh icon button import and related stale code.
-- Implemented scroll position persistence for tabbed Group Spoofing interface:
-  - Added `spoofTabScrollPosition` and `appsTabScrollPosition` to `GroupSpoofingState`.
-  - Added `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` to `GroupSpoofingViewModel` with `SavedStateHandle` persistence.
-  - Added `initialScrollPosition` and `onScrollPositionChange` parameters to `SpoofTabContent` and `AppsTabContent`.
-  - Used `rememberLazyListState` with `initialFirstVisibleItemIndex` and `LaunchedEffect` + `snapshotFlow` for tracking.
-  - Fixed `LambdaParameterInRestartableEffect` warnings with `rememberUpdatedState`.
-  - Passed scroll positions from state through `GroupSpoofingPager` to both tab content composables.
-- Fixed detekt violations: `TooManyFunctions` (ViewModel, suppressed), `LongMethod` (SpoofTabContent, suppressed), duplicate `@Suppress` annotations, and `rememberSaveable` import path.
-- Full verification passed: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
-- Commits:
-  - `cb0349e` — "perf(groupspoofing): add scroll position persistence for tabbed interface"
-  - `3d239bd` — "refactor(groupspoofing): remove refresh button and move system apps toggle inline"
-- GitNexus index refreshed after commits.
 
 ## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
 
