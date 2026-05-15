@@ -369,7 +369,7 @@ object ConfigManager : IConfigManager {
                     }
                 }
             val appConfig =
-                config.getAppConfig(packageName)?.copy(groupId = groupId, isEnabled = true)
+                config.getAppConfig(packageName)?.copy(groupId = groupId)
                     ?: AppConfig(packageName = packageName, groupId = groupId)
             config.copy(groups = groups).setAppConfig(appConfig)
         }
@@ -386,7 +386,11 @@ object ConfigManager : IConfigManager {
                         group
                     }
                 }
-            config.copy(groups = groups).removeAppConfig(packageName)
+            val currentAppConfig = config.getAppConfig(packageName)
+            val configWithoutGroup =
+                currentAppConfig?.copy(groupId = null)
+                    ?: AppConfig(packageName = packageName, groupId = null)
+            config.copy(groups = groups).setAppConfig(configWithoutGroup)
         }
     }
 

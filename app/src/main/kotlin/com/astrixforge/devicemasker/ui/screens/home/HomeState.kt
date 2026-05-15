@@ -24,4 +24,6 @@ data class HomeState(
     val selectedGroup: SpoofGroup? = null,
     val enabledAppsCount: Int = 0,
     val maskedIdentifiersCount: Int = 0,
+    val isScopedAppsRefreshing: Boolean = false,
+    val scopedApps: ImmutableList<HomeScopedApp> = persistentListOf(),
 )

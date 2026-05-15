@@ -4,7 +4,11 @@ import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
+import com.astrixforge.devicemasker.data.XposedScopeState
+import com.astrixforge.devicemasker.data.models.InstalledApp
+import com.astrixforge.devicemasker.testing.FakeAppScopeRepository
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -14,6 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
 
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
@@ -92,5 +97,42 @@ class HomeViewModelTest {
         val viewModel = HomeViewModel(repository)
 
         viewModel.state.test { assertEquals(2, awaitItem().enabledAppsCount) }
+    }
+
+    @Test
+    fun `loads installed apps so scoped apps appear without opening apps tab first`() = runTest {
+        val appScopeRepository =
+            FakeAppScopeRepository(
+                appsLoadedFromSystem =
+                    listOf(InstalledApp("com.scoped.app", "Scoped App", isSystemApp = false))
+            )
+        val repository = FakeSpoofRepository(appScopeRepository = appScopeRepository)
+        val scopeState =
+            MutableStateFlow<XposedScopeState>(XposedScopeState.Connected(setOf("com.scoped.app")))
+
+        val viewModel = HomeViewModel(repository, xposedScopeStateFlow = scopeState)
+        advanceUntilIdle()
+
+        assertEquals(1, appScopeRepository.loadAppsCalls)
+        assertEquals(false, appScopeRepository.lastForceRefresh)
+        assertEquals(listOf("Scoped App"), viewModel.state.value.scopedApps.map { it.label })
+    }
+
+    @Test
+    fun `refresh scoped apps force refreshes installed app cache`() = runTest {
+        val appScopeRepository = FakeAppScopeRepository()
+        val repository = FakeSpoofRepository(appScopeRepository = appScopeRepository)
+        val viewModel =
+            HomeViewModel(
+                repository = repository,
+                xposedScopeStateFlow = MutableStateFlow(XposedScopeState.Disconnected),
+            )
+        advanceUntilIdle()
+
+        viewModel.refreshScopedApps()
+        advanceUntilIdle()
+
+        assertEquals(2, appScopeRepository.loadAppsCalls)
+        assertEquals(true, appScopeRepository.lastForceRefresh)
     }
 }

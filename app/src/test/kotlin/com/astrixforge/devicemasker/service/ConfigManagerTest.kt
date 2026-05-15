@@ -110,4 +110,39 @@ class ConfigManagerTest {
         assertEquals(1, backups.size)
         assertEquals("this is not json { broken", backups.single().readText())
     }
+
+    @Test
+    fun `unassign app preserves standalone home enabled state`() = runTest {
+        ConfigManager.init(context)
+        ConfigManager.isInitialized.test {
+            skipItems(1)
+            assertTrue(awaitItem())
+        }
+        val group = ConfigManager.createGroup("Scoped")
+
+        ConfigManager.assignAppToGroup("com.example.app", group.id)
+        ConfigManager.setAppEnabled("com.example.app", false)
+        ConfigManager.unassignApp("com.example.app")
+
+        val appConfig = ConfigManager.getAppConfig("com.example.app")
+        assertEquals(null, appConfig?.groupId)
+        assertEquals(false, appConfig?.isEnabled)
+    }
+
+    @Test
+    fun `assign app preserves standalone home disabled state`() = runTest {
+        ConfigManager.init(context)
+        ConfigManager.isInitialized.test {
+            skipItems(1)
+            assertTrue(awaitItem())
+        }
+        val group = ConfigManager.createGroup("Scoped")
+
+        ConfigManager.setAppEnabled("com.example.app", false)
+        ConfigManager.assignAppToGroup("com.example.app", group.id)
+
+        val appConfig = ConfigManager.getAppConfig("com.example.app")
+        assertEquals(group.id, appConfig?.groupId)
+        assertEquals(false, appConfig?.isEnabled)
+    }
 }

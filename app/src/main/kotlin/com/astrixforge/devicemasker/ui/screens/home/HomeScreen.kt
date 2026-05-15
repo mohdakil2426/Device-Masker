@@ -56,6 +56,7 @@ import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.StatCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
+import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
@@ -116,6 +117,10 @@ fun HomeScreen(
         groupSelected = { group -> viewModel.selectGroup(group.id) },
         enabledAppsCount = state.enabledAppsCount,
         maskedIdentifiersCount = state.maskedIdentifiersCount,
+        isScopedAppsRefreshing = state.isScopedAppsRefreshing,
+        scopedApps = state.scopedApps,
+        onScopedAppEnabledChange = viewModel::setAppEnabled,
+        onScopedAppsRefresh = viewModel::refreshScopedApps,
         onNavigateToSpoof = navigateToSpoofWhenResumed,
         onRegenerateAll = { viewModel.regenerateAll { onRegenerateAll() } },
         isLoading = state.isLoading,
@@ -137,71 +142,97 @@ fun HomeScreenContent(
     onNavigateToSpoof: () -> Unit,
     onRegenerateAll: () -> Unit,
     modifier: Modifier = Modifier,
+    isScopedAppsRefreshing: Boolean = false,
+    scopedApps: ImmutableList<HomeScopedApp> = persistentListOf(),
+    onScopedAppEnabledChange: (String, Boolean) -> Unit = { _, _ -> },
+    onScopedAppsRefresh: () -> Unit = {},
     isLoading: Boolean = false,
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        if (isLoading) {
-            ExpressiveLoadingIndicator(modifier = Modifier.align(Alignment.Center))
-        } else {
-            Column(
-                modifier =
-                    Modifier.fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Status Card - Hero Section
-                StatusCard(
-                    isXposedActive = isXposedActive,
-                    isModuleEnabled = isModuleEnabled,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Quick Stats Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ExpressivePullToRefresh(
+        isRefreshing = isScopedAppsRefreshing,
+        onRefresh = onScopedAppsRefresh,
+        modifier = modifier,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isLoading) {
+                ExpressiveLoadingIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                Column(
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    StatCard(
-                        icon = Icons.Outlined.Apps,
-                        value = enabledAppsCount.toString(),
-                        label = stringResource(id = R.string.home_protected_apps_label),
-                        modifier = Modifier.weight(1f),
+                    StatusCard(
+                        isXposedActive = isXposedActive,
+                        isModuleEnabled = isModuleEnabled,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    StatCard(
-                        icon = Icons.Outlined.Fingerprint,
-                        value = maskedIdentifiersCount.toString(),
-                        label = stringResource(id = R.string.home_masked_ids_label),
-                        modifier = Modifier.weight(1f),
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    QuickStatsRow(
+                        enabledAppsCount = enabledAppsCount,
+                        maskedIdentifiersCount = maskedIdentifiersCount,
+                        modifier = Modifier.fillMaxWidth(),
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    GroupSelectorCard(
+                        groups = groups,
+                        appConfigs = appConfigs,
+                        selectedGroup = selectedGroup,
+                        groupSelected = groupSelected,
+                        onClick = onNavigateToSpoof,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    QuickActionsSection(
+                        onNavigateToSpoof = onNavigateToSpoof,
+                        onRegenerateAll = onRegenerateAll,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    HomeScopedAppsSection(
+                        scopedApps = scopedApps,
+                        onAppEnabledChange = { app, enabled ->
+                            onScopedAppEnabledChange(app.packageName, enabled)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Group Selector Card with Dropdown
-                GroupSelectorCard(
-                    groups = groups,
-                    appConfigs = appConfigs,
-                    selectedGroup = selectedGroup,
-                    groupSelected = groupSelected,
-                    onClick = onNavigateToSpoof,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Quick Actions
-                QuickActionsSection(
-                    onNavigateToSpoof = onNavigateToSpoof,
-                    onRegenerateAll = onRegenerateAll,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun QuickStatsRow(
+    enabledAppsCount: Int,
+    maskedIdentifiersCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        StatCard(
+            icon = Icons.Outlined.Apps,
+            value = enabledAppsCount.toString(),
+            label = stringResource(id = R.string.home_protected_apps_label),
+            modifier = Modifier.weight(1f),
+        )
+        StatCard(
+            icon = Icons.Outlined.Fingerprint,
+            value = maskedIdentifiersCount.toString(),
+            label = stringResource(id = R.string.home_masked_ids_label),
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

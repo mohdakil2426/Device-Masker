@@ -42,12 +42,15 @@ object XposedPrefs {
     @Volatile internal var initialized = false
     private val serviceBindCallbacks = CopyOnWriteArrayList<() -> Unit>()
     internal val serviceConnectedState = MutableStateFlow(false)
+    internal val scopeState = MutableStateFlow<XposedScopeState>(XposedScopeState.Disconnected)
     val isServiceConnected: StateFlow<Boolean> = serviceConnectedState.asStateFlow()
+    val scopedPackages: StateFlow<XposedScopeState> = scopeState.asStateFlow()
 
     internal fun reset() {
         xposedService = null
         initialized = false
         serviceConnectedState.value = false
+        scopeState.value = XposedScopeState.Disconnected
         serviceBindCallbacks.clear()
     }
 
@@ -68,6 +71,7 @@ object XposedPrefs {
                 override fun onServiceBind(service: XposedService) {
                     xposedService = service
                     serviceConnectedState.value = true
+                    refreshScope(service)
                     Timber.tag(TAG).i("XposedService connected (%s)", service.frameworkName)
                     serviceBindCallbacks.forEach { callback ->
                         runCatching(callback).onFailure { e ->
@@ -79,6 +83,7 @@ object XposedPrefs {
                 override fun onServiceDied(service: XposedService) {
                     xposedService = null
                     serviceConnectedState.value = false
+                    scopeState.value = XposedScopeState.Disconnected
                     Timber.tag(TAG).w("XposedService died")
                 }
             }
@@ -95,6 +100,22 @@ object XposedPrefs {
     }
 
     fun isConnected(): Boolean = xposedService != null
+
+    fun refreshScope() {
+        val service = xposedService
+        if (service == null) {
+            scopeState.value = XposedScopeState.Disconnected
+            return
+        }
+        refreshScope(service)
+    }
+
+    private fun refreshScope(service: XposedService) {
+        scopeState.value =
+            runCatching { XposedScopeState.Connected(service.scope.toSet()) }
+                .onFailure { e -> Timber.tag(TAG).w(e, "Failed to read LSPosed scope") }
+                .getOrElse { e -> XposedScopeState.Error(e.message.orEmpty()) }
+    }
 
     /**
      * Returns the [SharedPreferences] instance backed by [XposedService.getRemotePreferences].

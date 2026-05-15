@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.enabledCount
 import com.astrixforge.devicemasker.data.XposedPrefs
+import com.astrixforge.devicemasker.data.XposedScopeState
+import com.astrixforge.devicemasker.data.models.InstalledApp
+import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
@@ -28,34 +31,60 @@ import kotlinx.coroutines.launch
 class HomeViewModel(
     private val repository: ISpoofRepository,
     private val isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
+    private val xposedScopeStateFlow: StateFlow<XposedScopeState> = XposedPrefs.scopedPackages,
     @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
+    private val isScopedAppsRefreshing = MutableStateFlow(false)
 
     init {
+        viewModelScope.launch { repository.appScopeRepository.loadApps(forceRefresh = false) }
         viewModelScope.launch {
             combine(
                     isXposedActiveFlow,
                     repository.moduleEnabled,
-                    repository.groups,
-                    repository.activeGroup,
-                    repository.appConfigs,
-                ) { connected, moduleEnabled, groups, activeGroup, appConfigs ->
+                    isScopedAppsRefreshing,
+                    combine(
+                        repository.groups,
+                        repository.activeGroup,
+                        repository.appConfigs,
+                        repository.appScopeRepository.installedApps,
+                        xposedScopeStateFlow,
+                    ) { groups, activeGroup, appConfigs, installedApps, xposedScopeState ->
+                        GroupFlows(
+                            groups = groups,
+                            activeGroup = activeGroup,
+                            appConfigs = appConfigs,
+                            installedApps = installedApps,
+                            xposedScopeState = xposedScopeState,
+                        )
+                    },
+                ) { connected, moduleEnabled, scopedAppsRefreshing, inner ->
                     val selectedGroup =
-                        activeGroup ?: groups.find { it.isDefault } ?: groups.firstOrNull()
+                        inner.activeGroup
+                            ?: inner.groups.find { it.isDefault }
+                            ?: inner.groups.firstOrNull()
                     HomeState(
                         isXposedActive = connected,
                         isModuleEnabled = moduleEnabled,
-                        groups = groups.toImmutableList(),
-                        appConfigs = appConfigs.toImmutableMap(),
+                        groups = inner.groups.toImmutableList(),
+                        appConfigs = inner.appConfigs.toImmutableMap(),
                         selectedGroup = selectedGroup,
                         maskedIdentifiersCount = selectedGroup?.enabledCount() ?: 0,
                         enabledAppsCount =
                             if (selectedGroup?.isEnabled == true) {
-                                appConfigs.countAssignedToGroup(selectedGroup.id)
+                                inner.appConfigs.countAssignedToGroup(selectedGroup.id)
                             } else 0,
+                        scopedApps =
+                            buildHomeScopedApps(
+                                scopeState = inner.xposedScopeState,
+                                installedApps = inner.installedApps,
+                                appConfigs = inner.appConfigs,
+                                groups = inner.groups,
+                            ),
+                        isScopedAppsRefreshing = scopedAppsRefreshing,
                         isLoading = false,
                     )
                 }
@@ -86,6 +115,22 @@ class HomeViewModel(
         }
     }
 
+    fun setAppEnabled(packageName: String, enabled: Boolean) {
+        viewModelScope.launch { repository.setAppEnabled(packageName, enabled) }
+    }
+
+    fun refreshScopedApps() {
+        viewModelScope.launch {
+            isScopedAppsRefreshing.value = true
+            try {
+                repository.appScopeRepository.loadApps(forceRefresh = true)
+                XposedPrefs.refreshScope()
+            } finally {
+                isScopedAppsRefreshing.value = false
+            }
+        }
+    }
+
     /**
      * Regenerate all values for the selected group.
      *
@@ -104,3 +149,11 @@ class HomeViewModel(
 
 private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String): Int =
     values.count { it.groupId == groupId && it.isEnabled }
+
+private data class GroupFlows(
+    val groups: List<SpoofGroup>,
+    val activeGroup: SpoofGroup?,
+    val appConfigs: Map<String, AppConfig>,
+    val installedApps: List<InstalledApp>,
+    val xposedScopeState: XposedScopeState,
+)

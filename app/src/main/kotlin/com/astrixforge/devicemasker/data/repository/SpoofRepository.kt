@@ -610,6 +610,10 @@ constructor(
         }
     }
 
+    override suspend fun setAppEnabled(packageName: String, enabled: Boolean) {
+        configManager.setAppEnabled(packageName, enabled)
+    }
+
     override suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
         configManager.setAppRiskyHooksEnabled(packageName, enabled)
     }

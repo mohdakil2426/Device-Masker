@@ -168,7 +168,7 @@ class FakeSpoofRepository(
         _appConfigs.update { configs ->
             configs +
                 (packageName to
-                    (configs[packageName]?.copy(groupId = groupId, isEnabled = true)
+                    (configs[packageName]?.copy(groupId = groupId)
                         ?: AppConfig(packageName = packageName, groupId = groupId)))
         }
     }
@@ -177,7 +177,22 @@ class FakeSpoofRepository(
         _groups.update { list ->
             list.map { if (it.id == groupId) it.removeApp(packageName) else it }
         }
-        _appConfigs.update { it - packageName }
+        _appConfigs.update { configs ->
+            configs +
+                (packageName to
+                    (configs[packageName]?.copy(groupId = null)
+                        ?: AppConfig(packageName = packageName, groupId = null)))
+        }
+    }
+
+    override suspend fun setAppEnabled(packageName: String, enabled: Boolean) {
+        _appConfigs.update { configs ->
+            configs +
+                (packageName to
+                    (configs[packageName] ?: AppConfig(packageName = packageName)).copy(
+                        isEnabled = enabled
+                    ))
+        }
     }
 
     override suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {

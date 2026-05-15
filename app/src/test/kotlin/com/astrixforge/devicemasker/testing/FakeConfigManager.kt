@@ -123,7 +123,7 @@ class FakeConfigManager : IConfigManager {
                 }
             }
         val appConfig =
-            getAppConfig(packageName)?.copy(groupId = groupId, isEnabled = true)
+            getAppConfig(packageName)?.copy(groupId = groupId)
                 ?: AppConfig(packageName = packageName, groupId = groupId)
         _config.value = _config.value.copy(groups = groups).setAppConfig(appConfig)
     }
@@ -137,7 +137,10 @@ class FakeConfigManager : IConfigManager {
                     group
                 }
             }
-        _config.value = _config.value.copy(groups = groups).removeAppConfig(packageName)
+        val appConfig =
+            getAppConfig(packageName)?.copy(groupId = null)
+                ?: AppConfig(packageName = packageName, groupId = null)
+        _config.value = _config.value.copy(groups = groups).setAppConfig(appConfig)
     }
 
     override fun setAppEnabled(packageName: String, enabled: Boolean) {

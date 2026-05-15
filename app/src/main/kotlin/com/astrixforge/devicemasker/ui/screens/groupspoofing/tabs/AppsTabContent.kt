@@ -160,7 +160,7 @@ private fun rememberFilteredApps(
                     .filter { app -> app.matchesAppSearch(query, showSystemApps) }
                     .sortedWith(
                         compareByDescending<InstalledApp> {
-                                appConfigs.isAssignedToGroup(it.packageName, group?.id)
+                                appConfigs.isInGroup(it.packageName, group?.id)
                             }
                             .thenBy { it.label.lowercase() }
                     )
@@ -321,7 +321,8 @@ private fun AppsList(
         items(items = apps, key = { it.packageName }, contentType = { "app_item" }) { app ->
             AppListItem(
                 app = app,
-                isAssigned = appConfigs.isAssignedToGroup(app.packageName, group?.id),
+                isAssigned = appConfigs.isInGroup(app.packageName, group?.id),
+                isAppEnabled = appConfigs[app.packageName]?.isEnabled != false,
                 assignedToOtherGroupName = app.assignedGroupName(group, allGroups, appConfigs),
                 onToggle = { checked -> onAppToggle(app, checked) },
                 modifier = Modifier.fillMaxWidth().animateItem(),
@@ -350,11 +351,8 @@ private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String?): Int =
         values.count { it.groupId == groupId && it.isEnabled }
     }
 
-private fun Map<String, AppConfig>.isAssignedToGroup(
-    packageName: String,
-    groupId: String?,
-): Boolean =
-    groupId != null && this[packageName]?.let { it.groupId == groupId && it.isEnabled } == true
+private fun Map<String, AppConfig>.isInGroup(packageName: String, groupId: String?): Boolean =
+    groupId != null && this[packageName]?.groupId == groupId
 
 // ═══════════════════════════════════════════════════════════
 // Previews

@@ -52,8 +52,9 @@ fun AppListItem(
     assignedToOtherGroupName: String?,
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    isAppEnabled: Boolean = true,
 ) {
-    val isDisabled = assignedToOtherGroupName != null
+    val isDisabled = assignedToOtherGroupName != null || !isAppEnabled
     val assignedState = stringResource(R.string.group_app_selected_state)
     val unassignedState = stringResource(R.string.group_app_unselected_state)
 
@@ -74,6 +75,7 @@ fun AppListItem(
         AppListItemContent(
             app = app,
             isAssigned = isAssigned,
+            isAppEnabled = isAppEnabled,
             assignedToOtherGroupName = assignedToOtherGroupName,
             toggleRequested = onToggle,
         )
@@ -84,6 +86,7 @@ fun AppListItem(
 private fun AppListItemContent(
     app: InstalledApp,
     isAssigned: Boolean,
+    isAppEnabled: Boolean,
     assignedToOtherGroupName: String?,
     toggleRequested: (Boolean) -> Unit,
 ) {
@@ -96,6 +99,7 @@ private fun AppListItemContent(
         AppIcon(app = app)
         AppDetails(
             app = app,
+            isAppEnabled = isAppEnabled,
             assignedToOtherGroupName = assignedToOtherGroupName,
             modifier = Modifier.weight(1f),
         )
@@ -110,6 +114,7 @@ private fun AppListItemContent(
 @Composable
 private fun AppDetails(
     app: InstalledApp,
+    isAppEnabled: Boolean,
     assignedToOtherGroupName: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -123,7 +128,7 @@ private fun AppDetails(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = appSubtitle(app.packageName, assignedToOtherGroupName),
+            text = appSubtitle(app.packageName, isAppEnabled, assignedToOtherGroupName),
             style = MaterialTheme.typography.bodySmall,
             color =
                 if (isDisabled) {
@@ -138,11 +143,16 @@ private fun AppDetails(
 }
 
 @Composable
-private fun appSubtitle(packageName: String, assignedToOtherGroupName: String?): String =
-    if (assignedToOtherGroupName != null) {
-        stringResource(id = R.string.group_spoofing_assigned_to, assignedToOtherGroupName)
-    } else {
-        packageName
+private fun appSubtitle(
+    packageName: String,
+    isAppEnabled: Boolean,
+    assignedToOtherGroupName: String?,
+): String =
+    when {
+        assignedToOtherGroupName != null ->
+            stringResource(id = R.string.group_spoofing_assigned_to, assignedToOtherGroupName)
+        !isAppEnabled -> stringResource(id = R.string.group_spoofing_app_disabled_by_home)
+        else -> packageName
     }
 
 @Composable
