@@ -176,7 +176,7 @@ jobs:
           find dist/actions -maxdepth 2 -type f -print
 
       - name: Upload signed release APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-release-signed-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
@@ -185,7 +185,7 @@ jobs:
           retention-days: 14
 
       - name: Upload debug APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-debug-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
@@ -194,7 +194,7 @@ jobs:
           retention-days: 14
 
       - name: Upload source archive artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-source-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
@@ -203,7 +203,7 @@ jobs:
           retention-days: 14
 
       - name: Upload mapping artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-mapping-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
@@ -212,7 +212,7 @@ jobs:
           retention-days: 14
 
       - name: Upload build metadata artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-build-metadata-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
@@ -221,7 +221,7 @@ jobs:
           retention-days: 14
 
       - name: Upload quality reports artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-quality-reports-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |

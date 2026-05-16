@@ -49,10 +49,12 @@
 - Added reusable IME-dismiss focus handling for Compose search fields.
 - Group Spoofing Apps tab search now clears focus when the keyboard is dismissed via Back/system keyboard dismissal.
 - Country and timezone picker search fields reuse the same behavior and now save search text with `rememberSaveable`.
+- Updated CI and release workflow artifact upload steps to `actions/upload-artifact@v6` after the pushed CI run exposed Node.js 20 deprecation warnings.
 - Targeted verification passed:
 
 ```powershell
 .\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.ImeDismissFocusHandlerTest --no-daemon
+git diff --check -- .github/workflows/ci.yml .github/workflows/release.yml
 ```
 
 ## 2026-05-15 Home Screen UI Refinements

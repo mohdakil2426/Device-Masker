@@ -40,6 +40,7 @@ Verification passed:
 - Group Spoofing Apps tab search now clears focus when the user dismisses the software keyboard with Back/system keyboard dismissal.
 - Added reusable `ClearFocusOnImeDismiss` and `shouldClearFocusAfterImeDismiss()` under `ui.components`.
 - Reused the same behavior for country and timezone picker search fields; their search text now uses `rememberSaveable`.
+- GitHub Actions `actions/upload-artifact` usage in CI/release workflows was updated from v4 to v6 after CI passed with Node.js 20 deprecation warnings.
 - No project rule, architecture, or module guide update was needed because this is localized Compose UI behavior and does not change config, runtime hook eligibility, or module boundaries.
 - GitNexus remained locked by `.gitnexus/lbug` during the pre-edit query; rerun graph impact/change detection after the local lock clears.
 
@@ -47,6 +48,7 @@ Verification passed:
 
 ```powershell
 .\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.ImeDismissFocusHandlerTest --no-daemon
+git diff --check -- .github/workflows/ci.yml .github/workflows/release.yml
 ```
 
 ## 2026-05-15 Home Screen UI Refinements

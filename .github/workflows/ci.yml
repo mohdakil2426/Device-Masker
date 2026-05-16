@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload lint and test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: quality-reports-${{ github.run_id }}
           path: |
@@ -188,7 +188,7 @@ jobs:
           ls -la dist/metadata
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-debug-${{ github.run_id }}
           path: |
@@ -198,7 +198,7 @@ jobs:
 
       - name: Upload signed release APK
         if: steps.signing.outputs.available == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-release-signed-${{ github.run_id }}
           path: |
@@ -207,7 +207,7 @@ jobs:
           retention-days: 14
 
       - name: Upload source archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-source-${{ github.run_id }}
           path: |
@@ -216,7 +216,7 @@ jobs:
           retention-days: 14
 
       - name: Upload build metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: DeviceMasker-build-metadata-${{ github.run_id }}
           path: |
