@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
@@ -52,6 +53,7 @@ import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
+import com.astrixforge.devicemasker.ui.components.ClearFocusOnImeDismiss
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
@@ -186,6 +188,9 @@ private fun AppsSearchHeader(
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
+    var isSearchFocused by remember { mutableStateOf(false) }
+
+    ClearFocusOnImeDismiss(isFocused = isSearchFocused, clearFocus = { focusManager.clearFocus() })
 
     Column(
         modifier = modifier.fillMaxWidth().padding(16.dp),
@@ -207,7 +212,10 @@ private fun AppsSearchHeader(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth().onFocusChanged { focusState ->
+                    isSearchFocused = focusState.isFocused
+                },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),

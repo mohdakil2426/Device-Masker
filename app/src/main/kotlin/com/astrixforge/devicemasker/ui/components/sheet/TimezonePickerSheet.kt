@@ -24,9 +24,12 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -37,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.components.AppModalBottomSheet
+import com.astrixforge.devicemasker.ui.components.ClearFocusOnImeDismiss
 
 @Immutable private data class TimezoneOptions(val items: List<TimezoneEntry>)
 
@@ -53,7 +57,7 @@ fun TimezonePickerSheet(
     timezoneSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val selectedState = stringResource(R.string.picker_selected_state)
     val notSelectedState = stringResource(R.string.picker_not_selected_state)
 
@@ -103,10 +107,18 @@ private fun TimezoneSearchField(
     queryChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
+    var isSearchFocused by remember { mutableStateOf(false) }
+
+    ClearFocusOnImeDismiss(isFocused = isSearchFocused, clearFocus = { focusManager.clearFocus() })
+
     OutlinedTextField(
         value = searchQuery,
         onValueChange = queryChanged,
-        modifier = modifier.fillMaxWidth(),
+        modifier =
+            modifier.fillMaxWidth().onFocusChanged { focusState ->
+                isSearchFocused = focusState.isFocused
+            },
         placeholder = { Text(stringResource(R.string.picker_search_timezone_hint)) },
         leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
         singleLine = true,
