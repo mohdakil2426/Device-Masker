@@ -47,6 +47,17 @@ class DeviceMaskerNavigatorTest {
     }
 
     @Test
+    fun visibleBackStackCannotMutateNavigationState() {
+        val state = DeviceMaskerNavigationState()
+
+        val exposedStack = state.visibleBackStack
+
+        assertFalse(exposedStack is MutableList<*>)
+        assertEquals(listOf(NavDestination.Home), exposedStack)
+        assertEquals(NavDestination.Home, state.currentDestination)
+    }
+
+    @Test
     fun backFromChildPopsToCurrentTopLevel() {
         val state = DeviceMaskerNavigationState()
         val navigator = DeviceMaskerNavigator(state)

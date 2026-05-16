@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.SettingsDataStore
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigator
@@ -19,7 +20,6 @@ import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsScreen
 import com.astrixforge.devicemasker.ui.screens.groups.GroupsScreen
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingScreenContent
 import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
 @Composable
 internal fun HomeDestinationEntry(repository: SpoofRepository, navigator: DeviceMaskerNavigator) {

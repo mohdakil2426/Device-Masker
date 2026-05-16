@@ -290,6 +290,29 @@ object ConfigManager : IConfigManager {
         updateConfig { it.addOrUpdateGroup(updatedGroup) }
     }
 
+    /** Sets the default group through one config transform. */
+    override fun setDefaultGroup(groupId: String) {
+        updateConfig { config ->
+            if (config.getGroup(groupId) == null) return@updateConfig config
+
+            val updatedAt = System.currentTimeMillis()
+            config.copy(
+                groups =
+                    config.groups.mapValues { (id, group) ->
+                        group.copy(
+                            isDefault = id == groupId,
+                            updatedAt =
+                                if (id == groupId || group.isDefault) {
+                                    updatedAt
+                                } else {
+                                    group.updatedAt
+                                },
+                        )
+                    }
+            )
+        }
+    }
+
     /** Deletes a group. */
     override fun deleteGroup(groupId: String) {
         updateConfig { it.removeGroup(groupId) }

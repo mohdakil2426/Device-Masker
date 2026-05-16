@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.navigation3.runtime.rememberNavBackStack
 
 val topLevelDestinations: List<NavDestination> =
@@ -62,7 +63,14 @@ class DeviceMaskerNavigationState(
     val currentDestination: NavDestination
         get() = backStacks.getValue(topLevelDestination).last()
 
-    val visibleBackStack = mutableStateListOf<NavDestination>().apply { addAll(currentBackStack) }
+    private val mutableVisibleBackStack =
+        mutableStateListOf<NavDestination>().apply { addAll(currentBackStack) }
+
+    val visibleBackStack: List<NavDestination>
+        get() = mutableVisibleBackStack.toList()
+
+    internal val navDisplayBackStack: SnapshotStateList<NavDestination>
+        get() = mutableVisibleBackStack
 
     val isFocusScreen: Boolean
         get() =
@@ -107,8 +115,8 @@ class DeviceMaskerNavigationState(
     }
 
     private fun syncVisibleBackStack() {
-        visibleBackStack.clear()
-        visibleBackStack.addAll(currentBackStack)
+        mutableVisibleBackStack.clear()
+        mutableVisibleBackStack.addAll(currentBackStack)
     }
 }
 

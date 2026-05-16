@@ -67,6 +67,18 @@ class FakeConfigManager : IConfigManager {
             _config.value.addOrUpdateGroup(group.copy(updatedAt = System.currentTimeMillis()))
     }
 
+    override fun setDefaultGroup(groupId: String) {
+        if (_config.value.getGroup(groupId) == null) return
+
+        _config.value =
+            _config.value.copy(
+                groups =
+                    _config.value.groups.mapValues { (id, group) ->
+                        group.copy(isDefault = id == groupId)
+                    }
+            )
+    }
+
     override fun deleteGroup(groupId: String) {
         _config.value = _config.value.removeGroup(groupId)
     }

@@ -2,6 +2,10 @@ package com.astrixforge.devicemasker.ui.screens.diagnostics
 
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
+import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import com.astrixforge.devicemasker.diagnostics.AntiDetectionTest
+import com.astrixforge.devicemasker.diagnostics.DiagnosticResult
+import com.astrixforge.devicemasker.service.IDiagnosticsProvider
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -21,9 +25,14 @@ class DiagnosticsViewModelTest {
     private fun createViewModel(
         repository: FakeSpoofRepository = FakeSpoofRepository(),
         isXposedActiveFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
+        diagnosticsProvider: IDiagnosticsProvider? = null,
     ): DiagnosticsViewModel {
         val app = RuntimeEnvironment.getApplication()
-        return DiagnosticsViewModel(app, repository, isXposedActiveFlow)
+        return if (diagnosticsProvider == null) {
+            DiagnosticsViewModel(app, repository, isXposedActiveFlow)
+        } else {
+            DiagnosticsViewModel(app, repository, isXposedActiveFlow, diagnosticsProvider)
+        }
     }
 
     @Test
@@ -72,4 +81,23 @@ class DiagnosticsViewModelTest {
             assertTrue(awaitItem().isXposedActive)
         }
     }
+
+    @Test
+    fun `diagnostics failure clears loading and records error`() = runTest {
+        val viewModel = createViewModel(diagnosticsProvider = ThrowingDiagnosticsProvider())
+
+        viewModel.state.test {
+            val state = awaitItem()
+            assertFalse(state.isLoading)
+            assertTrue(state.diagnosticsErrorMessage?.contains("diagnostics exploded") == true)
+        }
+    }
+}
+
+private class ThrowingDiagnosticsProvider : IDiagnosticsProvider {
+    override suspend fun runDiagnosticTests(repository: ISpoofRepository): List<DiagnosticResult> {
+        error("diagnostics exploded")
+    }
+
+    override fun runAntiDetectionTests(): List<AntiDetectionTest> = emptyList()
 }

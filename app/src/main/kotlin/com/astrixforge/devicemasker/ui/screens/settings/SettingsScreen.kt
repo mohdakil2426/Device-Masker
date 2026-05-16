@@ -26,13 +26,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.components.AppModalBottomSheet
 import com.astrixforge.devicemasker.ui.components.ScreenHeader
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionRow
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
 /**
  * Settings screen for app preferences.

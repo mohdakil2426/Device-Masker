@@ -1,7 +1,8 @@
 package com.astrixforge.devicemasker.ui.screens.diagnostics
 
 import androidx.compose.runtime.Immutable
-import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.diagnostics.AntiDetectionTest
+import com.astrixforge.devicemasker.diagnostics.DiagnosticResult
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -13,6 +14,7 @@ data class DiagnosticsState(
     val isXposedActive: Boolean = false,
     val diagnosticResults: ImmutableList<DiagnosticResult> = persistentListOf(),
     val antiDetectionResults: ImmutableList<AntiDetectionTest> = persistentListOf(),
+    val diagnosticsErrorMessage: String? = null,
     val reproCaptureState: ReproCaptureState = ReproCaptureState.IDLE,
 )
 
@@ -23,31 +25,3 @@ enum class ReproCaptureState {
     EXPORT_READY,
     ERROR,
 }
-
-/** Data class representing a diagnostic result. */
-@Immutable
-data class DiagnosticResult(
-    val type: SpoofType,
-    val realValue: String?,
-    val spoofedValue: String?,
-    val isActive: Boolean,
-    val isSpoofed: Boolean,
-) {
-    val status: DiagnosticStatus
-        get() =
-            when {
-                !isActive -> DiagnosticStatus.INACTIVE
-                isSpoofed -> DiagnosticStatus.SUCCESS
-                else -> DiagnosticStatus.WARNING
-            }
-}
-
-enum class DiagnosticStatus {
-    SUCCESS,
-    WARNING,
-    INACTIVE,
-}
-
-/** Anti-detection test result. */
-@Immutable
-data class AntiDetectionTest(val nameRes: Int, val descriptionRes: Int, val isPassed: Boolean)

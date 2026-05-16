@@ -24,12 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.StatusActive
+import com.astrixforge.devicemasker.ui.theme.statusActive
 
 /**
  * Collapsible section header with Material 3 Expressive animations.
@@ -169,7 +171,15 @@ private fun SectionHeaderExpandIcon(
         Box(modifier = modifier.size(40.dp), contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Default.ExpandMore,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                contentDescription =
+                    stringResource(
+                        id =
+                            if (isExpanded) {
+                                R.string.action_collapse
+                            } else {
+                                R.string.action_expand
+                            }
+                    ),
                 modifier = Modifier.rotate(iconRotation),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -190,7 +200,7 @@ private fun SectionHeaderPreview() {
                 title = "Anti-Detection",
                 icon = Icons.Outlined.Security,
                 count = "4/5 passed",
-                countColor = StatusActive,
+                countColor = MaterialTheme.colorScheme.statusActive,
                 onExpandChange = {},
             )
         }

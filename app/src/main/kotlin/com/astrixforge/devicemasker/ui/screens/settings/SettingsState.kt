@@ -1,7 +1,7 @@
 package com.astrixforge.devicemasker.ui.screens.settings
 
 import androidx.compose.runtime.Immutable
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
+import com.astrixforge.devicemasker.data.models.ThemeMode
 
 /** UI state for the Settings screen. */
 @Immutable

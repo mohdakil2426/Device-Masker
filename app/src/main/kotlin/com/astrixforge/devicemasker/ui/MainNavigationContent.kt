@@ -37,6 +37,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import com.astrixforge.devicemasker.data.SettingsDataStore
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.navigation.BottomNavBar
@@ -46,7 +47,6 @@ import com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigator
 import com.astrixforge.devicemasker.ui.navigation.NavDestination
 import com.astrixforge.devicemasker.ui.navigation.bottomNavItems
 import com.astrixforge.devicemasker.ui.theme.AppMotion
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -137,7 +137,7 @@ internal fun DeviceMaskerNavDisplay(
     modifier: Modifier = Modifier,
 ) {
     NavDisplay(
-        backStack = navigationState.visibleBackStack,
+        backStack = navigationState.navDisplayBackStack,
         modifier = modifier,
         onBack = navigationBackHandler,
         entryDecorators = entryDecorators,

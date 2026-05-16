@@ -5,8 +5,8 @@ import android.provider.Settings
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
-import com.astrixforge.devicemasker.ui.screens.diagnostics.AntiDetectionTest
-import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticResult
+import com.astrixforge.devicemasker.diagnostics.AntiDetectionTest
+import com.astrixforge.devicemasker.diagnostics.DiagnosticResult
 import kotlinx.coroutines.flow.first
 
 class DefaultDiagnosticsProvider(private val context: Application) : IDiagnosticsProvider {

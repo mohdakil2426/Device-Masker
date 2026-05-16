@@ -15,11 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -28,13 +25,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -47,14 +41,17 @@ import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.SpoofCategory
 import com.astrixforge.devicemasker.data.models.SpoofType
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
-import com.astrixforge.devicemasker.ui.components.expressive.AnimatedSection
+import com.astrixforge.devicemasker.diagnostics.AntiDetectionTest
+import com.astrixforge.devicemasker.diagnostics.DiagnosticResult
+import com.astrixforge.devicemasker.diagnostics.DiagnosticStatus
+import com.astrixforge.devicemasker.ui.components.expressive.AnimatedSectionStateful
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
+import com.astrixforge.devicemasker.ui.components.expressive.StatusIndicatorWithIcon
 import com.astrixforge.devicemasker.ui.navigation.diagnosticsViewModelFactory
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.StatusActive
-import com.astrixforge.devicemasker.ui.theme.StatusInactive
-import com.astrixforge.devicemasker.ui.theme.StatusWarning
+import com.astrixforge.devicemasker.ui.theme.statusActive
+import com.astrixforge.devicemasker.ui.theme.statusWarning
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -228,10 +225,9 @@ private fun ConfigSyncInfoCard() {
  */
 @Composable
 private fun AntiDetectionSection(tests: ImmutableList<AntiDetectionTest>) {
-    var isExpanded by rememberSaveable { mutableStateOf(true) }
     val passedCount = tests.count { it.isPassed }
 
-    AnimatedSection(
+    AnimatedSectionStateful(
         title = stringResource(id = R.string.diagnostics_anti_detection),
         icon = Icons.Outlined.Security,
         count =
@@ -241,9 +237,12 @@ private fun AntiDetectionSection(tests: ImmutableList<AntiDetectionTest>) {
                 passedCount,
                 tests.size,
             ),
-        countColor = if (passedCount == tests.size) StatusActive else StatusWarning,
-        isExpanded = isExpanded,
-        onExpandChange = { isExpanded = it },
+        countColor =
+            if (passedCount == tests.size) {
+                MaterialTheme.colorScheme.statusActive
+            } else {
+                MaterialTheme.colorScheme.statusWarning
+            },
     ) {
         tests.forEach { test ->
             AntiDetectionTestItem(test = test)
@@ -258,22 +257,7 @@ private fun AntiDetectionSection(tests: ImmutableList<AntiDetectionTest>) {
 @Composable
 private fun AntiDetectionTestItem(test: AntiDetectionTest) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier =
-                Modifier.size(24.dp)
-                    .background(
-                        color = if (test.isPassed) StatusActive else StatusInactive,
-                        shape = CircleShape,
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = if (test.isPassed) Icons.Default.Check else Icons.Default.Close,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(16.dp),
-            )
-        }
+        StatusIndicatorWithIcon(isSuccess = test.isPassed, size = 24.dp)
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -301,9 +285,7 @@ private fun CategoryDiagnosticSection(
     category: SpoofCategory,
     results: ImmutableList<DiagnosticResult>,
 ) {
-    var isExpanded by rememberSaveable(category.displayName) { mutableStateOf(true) }
-
-    AnimatedSection(
+    AnimatedSectionStateful(
         title = category.displayName,
         count =
             pluralStringResource(
@@ -311,8 +293,6 @@ private fun CategoryDiagnosticSection(
                 count = results.size,
                 results.size,
             ),
-        isExpanded = isExpanded,
-        onExpandChange = { isExpanded = it },
     ) {
         results.forEach { result ->
             DiagnosticResultItem(result = result)
@@ -367,8 +347,10 @@ private fun DiagnosticResultItem(result: DiagnosticResult) {
 private fun StatusBadge(status: DiagnosticStatus) {
     val (color, textRes) =
         when (status) {
-            DiagnosticStatus.SUCCESS -> StatusActive to R.string.diagnostics_hook_success
-            DiagnosticStatus.WARNING -> StatusWarning to R.string.diagnostics_hook_failure
+            DiagnosticStatus.SUCCESS ->
+                MaterialTheme.colorScheme.statusActive to R.string.diagnostics_hook_success
+            DiagnosticStatus.WARNING ->
+                MaterialTheme.colorScheme.statusWarning to R.string.diagnostics_hook_failure
             DiagnosticStatus.INACTIVE ->
                 MaterialTheme.colorScheme.onSurfaceVariant to R.string.diagnostics_hook_inactive
         }

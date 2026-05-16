@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -24,12 +23,9 @@ import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,14 +52,16 @@ import com.astrixforge.devicemasker.ui.components.StatCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
+import com.astrixforge.devicemasker.ui.components.expressive.HeroStatusIndicator
 import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
 import com.astrixforge.devicemasker.ui.components.expressive.QuickActionGroup
+import com.astrixforge.devicemasker.ui.components.expressive.StatusIndicator
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.navigation.homeViewModelFactory
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.StatusActive
-import com.astrixforge.devicemasker.ui.theme.StatusInactive
+import com.astrixforge.devicemasker.ui.theme.statusActive
+import com.astrixforge.devicemasker.ui.theme.statusInactive
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
@@ -245,7 +242,12 @@ private fun StatusCard(
 ) {
     val statusColor by
         animateColorAsState(
-            targetValue = if (isXposedActive && isModuleEnabled) StatusActive else StatusInactive,
+            targetValue =
+                if (isXposedActive && isModuleEnabled) {
+                    MaterialTheme.colorScheme.statusActive
+                } else {
+                    MaterialTheme.colorScheme.statusInactive
+                },
             animationSpec = AppMotion.Effect.Color,
             label = "statusColor",
         )
@@ -326,25 +328,8 @@ private fun StatusCardContent(
 }
 
 @Composable
-private fun StatusIcon(isActive: Boolean, statusColor: Color) {
-    val statusIconShape = MaterialShapes.SoftBurst.toShape(startAngle = -90)
-    Box(
-        modifier =
-            Modifier.size(80.dp).clip(statusIconShape).background(statusColor.copy(alpha = 0.2f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Shield,
-            contentDescription =
-                if (isActive) {
-                    stringResource(id = R.string.home_protection_active)
-                } else {
-                    stringResource(id = R.string.home_protection_disabled)
-                },
-            modifier = Modifier.size(48.dp),
-            tint = statusColor,
-        )
-    }
+private fun StatusIcon(isActive: Boolean, @Suppress("UNUSED_PARAMETER") statusColor: Color) {
+    HeroStatusIndicator(isActive = isActive, icon = Icons.Filled.Shield)
 }
 
 @Composable
@@ -353,7 +338,7 @@ private fun StatusBadge(isXposedActive: Boolean, isModuleEnabled: Boolean, statu
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(statusColor))
+        StatusIndicator(color = statusColor, size = 12.dp)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = statusText(isXposedActive = isXposedActive, isModuleEnabled = isModuleEnabled),

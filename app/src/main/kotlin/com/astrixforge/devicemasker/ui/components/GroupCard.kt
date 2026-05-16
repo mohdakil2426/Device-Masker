@@ -42,7 +42,7 @@ import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import com.astrixforge.devicemasker.ui.components.expressive.animatedRoundedCornerShape
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.StatusActive
+import com.astrixforge.devicemasker.ui.theme.statusActive
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -347,7 +347,7 @@ fun CompactGroupCard(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = stringResource(R.string.group_card_selected),
-                    tint = StatusActive,
+                    tint = MaterialTheme.colorScheme.statusActive,
                     modifier = Modifier.size(20.dp),
                 )
             }

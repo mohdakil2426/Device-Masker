@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -32,6 +32,12 @@ class SettingsDataStore(private val context: Context) : ISettingsDataStore {
         val DYNAMIC_COLORS = booleanPreferencesKey("dynamic_colors")
     }
 
+    private companion object {
+        private const val THEME_SYSTEM = 0
+        private const val THEME_LIGHT = 1
+        private const val THEME_DARK = 2
+    }
+
     // ═══════════════════════════════════════════════════════════
     // THEME SETTINGS
     // ═══════════════════════════════════════════════════════════
@@ -40,9 +46,9 @@ class SettingsDataStore(private val context: Context) : ISettingsDataStore {
     override val themeMode: Flow<ThemeMode> =
         dataStore.data.map { prefs ->
             when (prefs[Keys.THEME_MODE]) {
-                0 -> ThemeMode.SYSTEM
-                1 -> ThemeMode.LIGHT
-                2 -> ThemeMode.DARK
+                THEME_SYSTEM -> ThemeMode.SYSTEM
+                THEME_LIGHT -> ThemeMode.LIGHT
+                THEME_DARK -> ThemeMode.DARK
                 else -> ThemeMode.SYSTEM
             }
         }
@@ -52,9 +58,9 @@ class SettingsDataStore(private val context: Context) : ISettingsDataStore {
         dataStore.edit { prefs ->
             prefs[Keys.THEME_MODE] =
                 when (mode) {
-                    ThemeMode.SYSTEM -> 0
-                    ThemeMode.LIGHT -> 1
-                    ThemeMode.DARK -> 2
+                    ThemeMode.SYSTEM -> THEME_SYSTEM
+                    ThemeMode.LIGHT -> THEME_LIGHT
+                    ThemeMode.DARK -> THEME_DARK
                 }
         }
     }

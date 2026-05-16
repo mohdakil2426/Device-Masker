@@ -1,6 +1,6 @@
 package com.astrixforge.devicemasker.data
 
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
 interface ISettingsDataStore {

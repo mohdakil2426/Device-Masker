@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.astrixforge.devicemasker.R
@@ -30,12 +31,14 @@ fun ConfirmationDialog(
     message: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     confirmText: String = stringResource(id = R.string.action_confirm),
     dismissText: String = stringResource(id = R.string.action_cancel),
     isDestructive: Boolean = false,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         icon = {
             Icon(
                 imageVector = if (isDestructive) Icons.Filled.Delete else Icons.Filled.Warning,
@@ -75,13 +78,19 @@ fun ConfirmationDialog(
  * @param onDismiss Callback when dialog is dismissed
  */
 @Composable
-fun DeleteConfirmationDialog(itemName: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+fun DeleteConfirmationDialog(
+    itemName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     ConfirmationDialog(
         title = stringResource(id = R.string.dialog_delete_title),
         message = stringResource(id = R.string.dialog_delete_message, itemName),
         confirmText = stringResource(id = R.string.action_delete),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
+        modifier = modifier,
         isDestructive = true,
     )
 }

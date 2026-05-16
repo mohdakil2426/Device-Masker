@@ -10,10 +10,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.service.diagnostics.RootLogCaptureService
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
 @Composable
 internal fun RequestStartupRootCapture(appContext: Context) {

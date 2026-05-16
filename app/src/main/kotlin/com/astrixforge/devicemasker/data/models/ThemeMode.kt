@@ -1,12 +1,8 @@
-package com.astrixforge.devicemasker.ui.theme
+package com.astrixforge.devicemasker.data.models
 
 import com.astrixforge.devicemasker.R
 
-/**
- * Theme mode options for the app.
- *
- * Defines the available theme modes that users can select.
- */
+/** Theme mode options persisted by SettingsDataStore and rendered by the UI. */
 enum class ThemeMode(val displayNameRes: Int) {
     SYSTEM(R.string.settings_theme_system),
     LIGHT(R.string.settings_theme_light),
