@@ -5,7 +5,7 @@
 | Area | Status |
 | --- | --- |
 | Project phase | Development, R8 enabled in release |
-| Build | Focused R8 release gate passing: `spotlessApply spotlessCheck :xposed:testDebugUnitTest :app:assembleRelease` |
+| Build | Latest local UI-audit remediation gate passing: `spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug` |
 | Unit tests | Passing |
 | Lint/format/static analysis | Passing with Spotless, lint, and Detekt `allRules=true`; baselines are empty |
 | Debug APK launch | Verified on `emulator-5554` |
@@ -20,6 +20,40 @@
 | Verifier | `:verifier` local target app builds, installs, launches, and writes `files/verifier/latest.json` |
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
+
+## 2026-05-16 Comprehensive UI Audit Remediation
+
+- Remediated the active comprehensive UI audit plan without committing or pushing.
+- Moved diagnostics UI result models into `com.astrixforge.devicemasker.diagnostics`.
+- Moved `ThemeMode` into `com.astrixforge.devicemasker.data.models` and removed raw theme-mode persistence integers from `SettingsDataStore`.
+- Added diagnostics failure handling and provider injection in `DiagnosticsViewModel`.
+- Hid mutable navigation stack ownership from external callers; `visibleBackStack` now returns an immutable list while `NavDisplay` uses an internal snapshot list.
+- Added one-step default-group switching through `ConfigManager.setDefaultGroup(groupId)`.
+- Added reusable `StatusColors` theme extensions and `withAmoledSurfaces()` for AMOLED dynamic surfaces.
+- Applied focused Compose polish: localized SectionHeader expand/collapse content descriptions, `rememberSaveable` timezone sheet state, and reusable dialog `modifier` parameters.
+- GitNexus impact and detect-changes checks were attempted but blocked by the local LadybugDB lock; rerun after `.gitnexus/lbug` is available.
+- Verification passed:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.data.repository.SpoofRepositoryTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.theme.ThemeColorTest --no-daemon
+.\gradlew.bat :app:compileDebugKotlin --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon
+```
+
+## 2026-05-16 Search IME Dismiss Polish
+
+- Added reusable IME-dismiss focus handling for Compose search fields.
+- Group Spoofing Apps tab search now clears focus when the keyboard is dismissed via Back/system keyboard dismissal.
+- Country and timezone picker search fields reuse the same behavior and now save search text with `rememberSaveable`.
+- Targeted verification passed:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.ImeDismissFocusHandlerTest --no-daemon
+```
 
 ## 2026-05-15 Home Screen UI Refinements
 

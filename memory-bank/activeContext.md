@@ -9,6 +9,46 @@ Next tasks:
 2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.
 3. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
 
+## 2026-05-16 Comprehensive UI Audit Remediation
+
+- Implementation plan: `docs/superpowers/plans/2026-05-16-ui-audit-remediation.md`.
+- Scope: remediation from `docs/internal/reports/active/audits/2026-05-16/comprehensive-ui-audit.md`; no commit or push was performed per user instruction.
+- Diagnostics models moved out of the UI package to `com.astrixforge.devicemasker.diagnostics`.
+- `ThemeMode` moved from `ui.theme` to `data.models`; settings persistence now uses named theme constants instead of raw numeric literals.
+- `DiagnosticsViewModel` now has an injectable `IDiagnosticsProvider` and catches diagnostic provider failures so loading/refreshing state clears and the error is recorded in UI state.
+- `DeviceMaskerNavigationState.visibleBackStack` is now exposed as an immutable `List`; `NavDisplay` receives an internal mutable snapshot list.
+- Active group switching now uses one `ConfigManager.setDefaultGroup(groupId)` update instead of multi-step repository writes.
+- AMOLED dynamic color now reuses one `withAmoledSurfaces()` helper for all surface container roles, and UI status colors now come from reusable `ColorScheme.status*` extension properties.
+- Compose polish applied: timezone sheet state uses `rememberSaveable`, SectionHeader expand/collapse descriptions use string resources, and reusable dialog composables accept `modifier`.
+- `GroupsScreenBody` already applied its modifier correctly; no random churn was made there.
+- GitNexus impact/detect checks were attempted repeatedly but blocked by a LadybugDB file lock. Rerun GitNexus change detection after the index lock clears.
+
+Verification passed:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.data.repository.SpoofRepositoryTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.theme.ThemeColorTest --no-daemon
+.\gradlew.bat :app:compileDebugKotlin --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon
+```
+
+## 2026-05-16 Search IME Dismiss Polish
+
+- Group Spoofing Apps tab search now clears focus when the user dismisses the software keyboard with Back/system keyboard dismissal.
+- Added reusable `ClearFocusOnImeDismiss` and `shouldClearFocusAfterImeDismiss()` under `ui.components`.
+- Reused the same behavior for country and timezone picker search fields; their search text now uses `rememberSaveable`.
+- No project rule, architecture, or module guide update was needed because this is localized Compose UI behavior and does not change config, runtime hook eligibility, or module boundaries.
+- GitNexus remained locked by `.gitnexus/lbug` during the pre-edit query; rerun graph impact/change detection after the local lock clears.
+
+Verification passed:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.ImeDismissFocusHandlerTest --no-daemon
+```
+
 ## 2026-05-15 Home Screen UI Refinements
 
 ### LSPosed Scoped Apps Section

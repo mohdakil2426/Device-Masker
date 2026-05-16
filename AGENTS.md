@@ -29,9 +29,9 @@ Android LSPosed/libxposed module for per-app device identity spoofing. Gradle mo
 | `:xposed` | XposedEntry, all hookers, PrefsHelper, DualLog | **No Timber. No Compose. No random generation.** `libxposed:api` is `compileOnly`. |
 | `:verifier` | Local target app for emulator/device validation evidence | Not production app. Keep it simple and machine-readable. |
 
-## Architecture Reference
+## Project Architecture
 
-For full architecture, config flow, diagnostics flow, and module interaction details, read `docs/public/ARCHITECTURE.md`.
+Non-Negotiable: For full app architecture, config flow, diagnostics flow, and module interaction details, Must read `docs/public/ARCHITECTURE.md` befor doing anything.
 
 Root `AGENTS.md` only keeps permanent guardrails. Do not duplicate detailed architecture here; update the architecture doc and Memory Bank when architecture changes.
 
@@ -163,7 +163,9 @@ Non-negotiable rule: read the per-module rules befor read/write there files/fold
 
 Non-Negotiable rule: Load the `libxposed` skill before any Xposed work: `.agents/skills/libxposed/SKILL.md` becouse all you Know about lsposed/xposed/libxposed framework/api are out-dated/old, so this skill have the latest official docs and raw github clone repos and javadoc, full imformation so befor any xposed work load/read the skill first.
 
-Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expressive`, `navigation-3`, `r8-analyzer`.
+Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expressive`, `navigation-3`, `r8-analyzer`, `android-cli`, `compose`, `jetpack-compose`
+
+Must use all of these skills accourding to there job never skip. 
 
 ## MCP Usage
 
@@ -174,7 +176,7 @@ Other available skills: `claude-android-ninja`, `edge-to-edge`, `material-3-expr
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **DeviceMasker** (5235 symbols, 12458 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **DeviceMasker** (5402 symbols, 12760 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
