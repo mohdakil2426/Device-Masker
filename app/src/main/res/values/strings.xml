@@ -80,7 +80,7 @@
     <string name="settings_export_logs_share_chooser">Share Logs</string>
 
     <!-- Settings Screen -->
-    <string name="settings_title">Setting</string>
+    <string name="settings_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_mode">Theme Mode</string>
     <string name="settings_amoled_mode">AMOLED mode</string>
@@ -204,7 +204,7 @@
     <string name="app_item_icon">App icon</string>
     <string name="nav_home">Home</string>
     <string name="nav_groups">Groups</string>
-    <string name="nav_settings">Setting</string>
+    <string name="nav_settings">Settings</string>
     <string name="nav_tab">%1$s tab</string>
     <string name="nav_current_tab">Current tab: %1$s</string>
     <string name="nav_open_tab">Open %1$s tab</string>
@@ -358,7 +358,7 @@
     <string name="picker_search_timezone_label">Search timezones</string>
 
     <string name="screen_groups_title">Groups</string>
-    <string name="screen_settings_title">Setting</string>
+    <string name="screen_settings_title">Settings</string>
     <string name="screen_diagnostics_title">Diagnostics</string>
     <string name="screen_home_title">Home</string>
 
@@ -395,7 +395,7 @@
     <string name="dialog_select_item">Select item</string>
 
     <string name="nav_destination_groups">Groups</string>
-    <string name="nav_destination_settings">Setting</string>
+    <string name="nav_destination_settings">Settings</string>
     <string name="nav_destination_home">Home</string>
 
     <string name="settings_export_sheet_desc">Choose how to export diagnostics logs</string>
@@ -557,7 +557,7 @@
 
     <string name="bottom_nav_home">Home</string>
     <string name="bottom_nav_groups">Groups</string>
-    <string name="bottom_nav_settings">Setting</string>
+    <string name="bottom_nav_settings">Settings</string>
 
     <string name="group_card_disabled_alpha">Disabled appearance</string>
     <string name="group_card_enabled_alpha">Enabled appearance</string>
@@ -1678,7 +1678,7 @@
 
     <string name="nav_home_final">Home</string>
     <string name="nav_groups_final">Groups</string>
-    <string name="nav_settings_final">Setting</string>
+    <string name="nav_settings_final">Settings</string>
 
     <string name="quick_actions_final">Quick actions</string>
 
@@ -1722,7 +1722,7 @@
 
     <string name="bottom_nav_home_final">Home</string>
     <string name="bottom_nav_groups_final">Groups</string>
-    <string name="bottom_nav_settings_final">Setting</string>
+    <string name="bottom_nav_settings_final">Settings</string>
 
     <string name="dialog_cancel_final">Cancel</string>
     <string name="dialog_delete_final">Delete</string>
@@ -1741,7 +1741,7 @@
 
     <string name="screen_title_home_final">Home</string>
     <string name="screen_title_groups_final">Groups</string>
-    <string name="screen_title_settings_final">Setting</string>
+    <string name="screen_title_settings_final">Settings</string>
     <string name="screen_title_diagnostics_final">Diagnostics</string>
 
     <string name="section_title_quick_actions_final">Quick Actions</string>
