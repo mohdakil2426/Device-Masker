@@ -93,6 +93,8 @@
     <string name="logs_monitor_clear">Clear logs</string>
     <string name="logs_monitor_empty">No matching logs captured yet.</string>
     <string name="logs_monitor_search">Search</string>
+    <string name="logs_monitor_source_filter">Source</string>
+    <string name="logs_monitor_level_filter">Minimum level</string>
     <string name="logs_monitor_notification_channel">Live logs monitor</string>
     <string name="logs_monitor_notification_title">Monitoring diagnostic logs</string>
     <string name="logs_monitor_notification_text">Capturing local logcat evidence.</string>

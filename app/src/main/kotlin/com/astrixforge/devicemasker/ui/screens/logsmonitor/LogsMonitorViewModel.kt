@@ -65,8 +65,15 @@ class LogsMonitorViewModel(private val repository: ILogMonitorRepository) : View
         return filter { row ->
             row.level.ordinal >= filter.minLevel.ordinal &&
                 (filter.source == LogMonitorSource.ALL || row.source == filter.source) &&
-                (normalizedQuery.isEmpty() ||
-                    row.rawLine.contains(normalizedQuery, ignoreCase = true))
+                row.matchesQuery(normalizedQuery)
         }
     }
+
+    private fun LogMonitorRow.matchesQuery(query: String): Boolean =
+        query.isEmpty() ||
+            rawLine.contains(query, ignoreCase = true) ||
+            message.contains(query, ignoreCase = true) ||
+            tag.contains(query, ignoreCase = true) ||
+            source.name.contains(query, ignoreCase = true) ||
+            level.name.contains(query, ignoreCase = true)
 }

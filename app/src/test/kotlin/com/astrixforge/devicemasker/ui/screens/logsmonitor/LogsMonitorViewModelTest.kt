@@ -6,6 +6,7 @@ import com.astrixforge.devicemasker.service.logmonitor.LogCaptureStatus
 import com.astrixforge.devicemasker.service.logmonitor.LogMonitorLevel
 import com.astrixforge.devicemasker.service.logmonitor.LogMonitorRow
 import com.astrixforge.devicemasker.service.logmonitor.LogMonitorSource
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LogsMonitorViewModelTest {
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
@@ -56,6 +58,36 @@ class LogsMonitorViewModelTest {
         assertEquals("hook failed", viewModel.state.value.visibleRows.single().message)
         assertEquals(1, repository.startCount)
         assertEquals(1, repository.stopCount)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `query matches parsed row fields when raw line is redacted`() = runTest {
+        val repository = FakeLogMonitorRepository()
+        val viewModel = LogsMonitorViewModel(repository)
+        val collectJob = launch { viewModel.state.collect {} }
+
+        repository.rowsFlow.value =
+            listOf(
+                LogMonitorRow(
+                    1,
+                    1,
+                    LogMonitorSource.XPOSED,
+                    LogMonitorLevel.DEBUG,
+                    "LSPosedFramework",
+                    "Spoof event: com.mantle.verify/IMEI",
+                    "(redacted)",
+                )
+            )
+        viewModel.setSource(LogMonitorSource.XPOSED)
+        viewModel.setQuery("IMEI")
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.state.value.visibleRows.size)
+        assertEquals(
+            "Spoof event: com.mantle.verify/IMEI",
+            viewModel.state.value.visibleRows.single().message,
+        )
         collectJob.cancel()
     }
 

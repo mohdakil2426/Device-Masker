@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.ui.screens.logsmonitor
 
 import android.app.Application
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,24 +13,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Stop
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -118,7 +121,15 @@ private fun LogsMonitorHeader(
     onStop: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        LogsMonitorTitleRow(status = status, onNavigateBack = onNavigateBack)
+        LogCaptureActions(status = status, onStart = onStart, onStop = onStop, onClear = onClear)
+    }
+}
+
+@Composable
+private fun LogsMonitorTitleRow(status: LogCaptureStatus, onNavigateBack: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onNavigateBack) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
@@ -136,24 +147,42 @@ private fun LogsMonitorHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = if (status == LogCaptureStatus.RUNNING) onStop else onStart) {
+    }
+}
+
+@Composable
+private fun LogCaptureActions(
+    status: LogCaptureStatus,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+    onClear: () -> Unit,
+) {
+    val isRunning = status == LogCaptureStatus.RUNNING
+    val captureLabel =
+        stringResource(if (isRunning) R.string.logs_monitor_stop else R.string.logs_monitor_start)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        FilledTonalButton(
+            onClick = if (isRunning) onStop else onStart,
+            modifier = Modifier.weight(1f),
+            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+        ) {
             Icon(
-                imageVector =
-                    if (status == LogCaptureStatus.RUNNING) Icons.Outlined.Stop
-                    else Icons.Outlined.PlayArrow,
-                contentDescription =
-                    if (status == LogCaptureStatus.RUNNING) {
-                        stringResource(R.string.logs_monitor_stop)
-                    } else {
-                        stringResource(R.string.logs_monitor_start)
-                    },
+                imageVector = if (isRunning) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+                contentDescription = captureLabel,
+                modifier = Modifier.padding(end = 8.dp),
             )
+            Text(text = captureLabel)
         }
-        IconButton(onClick = onClear) {
+        OutlinedButton(
+            onClick = onClear,
+            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+        ) {
             Icon(
                 Icons.Outlined.Delete,
                 contentDescription = stringResource(R.string.logs_monitor_clear),
+                modifier = Modifier.padding(end = 8.dp),
             )
+            Text(text = stringResource(R.string.logs_monitor_clear))
         }
     }
 }
@@ -166,24 +195,43 @@ private fun LogsMonitorFilters(
     onQueryChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
+        Text(
+            text = stringResource(R.string.logs_monitor_source_filter),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             LogMonitorSource.entries.forEach { source ->
                 FilterChip(
                     selected = state.filter.source == source,
                     onClick = { onSourceSelect(source) },
-                    label = { Text(source.name) },
+                    label = { Text(source.displayLabel()) },
                 )
             }
         }
-        Row(
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.logs_monitor_level_filter),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             LogMonitorLevel.entries.forEach { level ->
-                AssistChip(onClick = { onMinLevelSelect(level) }, label = { Text(level.name) })
+                FilterChip(
+                    selected = state.filter.minLevel == level,
+                    onClick = { onMinLevelSelect(level) },
+                    label = { Text(level.displayLabel()) },
+                )
             }
         }
         OutlinedTextField(
@@ -200,7 +248,7 @@ private fun LogsMonitorFilters(
 private fun LogRow(row: LogMonitorRow) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "${row.level.name} ${row.source.name} ${row.tag}",
+            text = "${row.level.displayLabel()} ${row.source.displayLabel()} ${row.tag}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -212,3 +260,23 @@ private fun LogRow(row: LogMonitorRow) {
         )
     }
 }
+
+private fun LogMonitorSource.displayLabel(): String =
+    when (this) {
+        LogMonitorSource.ALL -> "All"
+        LogMonitorSource.APP -> "App"
+        LogMonitorSource.XPOSED -> "Xposed"
+        LogMonitorSource.LSPOSED -> "LSPosed"
+        LogMonitorSource.CRASH -> "Crash"
+        LogMonitorSource.LOGCAT -> "Logcat"
+    }
+
+private fun LogMonitorLevel.displayLabel(): String =
+    when (this) {
+        LogMonitorLevel.VERBOSE -> "Verbose"
+        LogMonitorLevel.DEBUG -> "Debug"
+        LogMonitorLevel.INFO -> "Info"
+        LogMonitorLevel.WARN -> "Warn"
+        LogMonitorLevel.ERROR -> "Error"
+        LogMonitorLevel.FATAL -> "Fatal"
+    }
