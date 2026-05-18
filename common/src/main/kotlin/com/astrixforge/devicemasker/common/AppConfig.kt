@@ -10,7 +10,8 @@ import kotlinx.serialization.Serializable
  * that app.
  *
  * @property packageName The app's package name
- * @property groupId ID of the assigned group (null = use default)
+ * @property groupId ID of the assigned group. UI display flows may fall back to the default group,
+ *   but runtime sync and hook eligibility require an explicit non-null assignment.
  * @property isEnabled Whether spoofing is enabled for this app
  * @property riskyHooksEnabled Whether opt-in risky hook groups may be registered for this app
  * @property classLookupHidingEnabled Whether global class lookup anti-detection hooks may be used

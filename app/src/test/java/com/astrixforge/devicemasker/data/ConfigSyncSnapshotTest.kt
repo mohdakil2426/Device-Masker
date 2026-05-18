@@ -7,6 +7,7 @@ import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.common.setAppConfig
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -255,6 +256,16 @@ class ConfigSyncSnapshotTest {
             "ConfigSync.syncApp must include AppConfig.isEnabled, matching full snapshot sync.",
             syncFile.contains("configApp?.isEnabled == true"),
         )
+    }
+
+    @Test
+    fun `current enabled apps includes all app config packages during dirty sync`() {
+        val config =
+            JsonConfig.createDefault()
+                .setAppConfig(AppConfig("com.example.one", groupId = null, isEnabled = false))
+                .setAppConfig(AppConfig("com.example.two", groupId = null, isEnabled = false))
+
+        assertEquals(setOf("com.example.one", "com.example.two"), config.appConfigs.keys)
     }
 
     private fun projectFile(path: String): File {
