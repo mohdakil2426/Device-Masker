@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import android.hardware.Sensor
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
@@ -37,10 +37,10 @@ object SensorHooker : BaseSpoofHooker("SensorHooker") {
             11, // TYPE_ROTATION_VECTOR
         )
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
         // Load preset at hook-registration time. If DEVICE_PROFILE is disabled, missing, or
         // invalid, leave all sensor APIs untouched for this process.
-        val presetId = getConfiguredSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) ?: return
+        val presetId = getConfiguredSpoofValue(snapshot, SpoofType.DEVICE_PROFILE) ?: return
         val preset = DeviceProfilePreset.findById(presetId) ?: return
 
         hookSensorManager(cl, xi, pkg)

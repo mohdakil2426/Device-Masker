@@ -1,8 +1,8 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
@@ -33,8 +33,8 @@ object SystemFeatureHooker : BaseSpoofHooker("SystemFeatureHooker") {
             "android.software.telecom",
         )
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        val preset = getConfiguredDeviceProfilePreset(prefs, pkg) ?: return
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
+        val preset = getConfiguredDeviceProfilePreset(snapshot) ?: return
         val pmClass = cl.loadClassOrNull("android.app.ApplicationPackageManager") ?: return
 
         hookHasSystemFeature(pmClass, xi, preset, pkg, String::class.java)

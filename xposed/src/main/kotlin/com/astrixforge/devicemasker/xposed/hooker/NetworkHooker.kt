@@ -1,7 +1,7 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 import java.net.NetworkInterface
@@ -24,18 +24,18 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
 
     private const val MAC_HEX_RADIX = 16
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        hookWifiInfo(cl, xi, prefs, pkg)
-        hookNetworkInterface(cl, xi, prefs, pkg)
-        hookBluetoothAdapter(cl, xi, prefs, pkg)
-        hookTelephonyCarrier(cl, xi, prefs, pkg)
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
+        hookWifiInfo(cl, xi, pkg, snapshot)
+        hookNetworkInterface(cl, xi, pkg, snapshot)
+        hookBluetoothAdapter(cl, xi, pkg, snapshot)
+        hookTelephonyCarrier(cl, xi, pkg, snapshot)
     }
 
     private fun hookWifiInfo(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val wifiInfoClass = cl.loadClassOrNull("android.net.wifi.WifiInfo") ?: return
         safeHook("WifiInfo.getMacAddress()") {
@@ -45,7 +45,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
+                                getConfiguredSpoofValue(snapshot, SpoofType.WIFI_MAC)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                             spoofed
@@ -61,7 +61,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val ssid =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_SSID)
+                                getConfiguredSpoofValue(snapshot, SpoofType.WIFI_SSID)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.WIFI_SSID)
                             if (ssid.startsWith("\"")) ssid else "\"$ssid\""
@@ -77,7 +77,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_BSSID)
+                                getConfiguredSpoofValue(snapshot, SpoofType.WIFI_BSSID)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.WIFI_BSSID)
                             spoofed
@@ -91,8 +91,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
     private fun hookNetworkInterface(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val niClass = cl.loadClassOrNull("java.net.NetworkInterface") ?: return
         safeHook("NetworkInterface.getHardwareAddress()") {
@@ -112,7 +112,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                                 return@stableHooker result
                             }
                             val mac =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.WIFI_MAC)
+                                getConfiguredSpoofValue(snapshot, SpoofType.WIFI_MAC)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.WIFI_MAC)
                             runCatching {
@@ -131,8 +131,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
     private fun hookBluetoothAdapter(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val btClass = cl.loadClassOrNull("android.bluetooth.BluetoothAdapter") ?: return
         safeHook("BluetoothAdapter.getAddress()") {
@@ -142,7 +142,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.BLUETOOTH_MAC)
+                                getConfiguredSpoofValue(snapshot, SpoofType.BLUETOOTH_MAC)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.BLUETOOTH_MAC)
                             spoofed
@@ -156,8 +156,8 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
     private fun hookTelephonyCarrier(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val tmClass = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
         safeHook("TelephonyManager.getNetworkOperatorName()") {
@@ -167,7 +167,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_NAME)
+                                getConfiguredSpoofValue(snapshot, SpoofType.CARRIER_NAME)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.CARRIER_NAME)
                             spoofed
@@ -183,7 +183,7 @@ object NetworkHooker : BaseSpoofHooker("NetworkHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                                getConfiguredSpoofValue(snapshot, SpoofType.CARRIER_MCC_MNC)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
                             spoofed

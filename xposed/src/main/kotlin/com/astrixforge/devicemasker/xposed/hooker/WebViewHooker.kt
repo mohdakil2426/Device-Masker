@@ -1,8 +1,8 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 import java.lang.reflect.Method
@@ -34,9 +34,9 @@ object WebViewHooker : BaseSpoofHooker("WebViewHooker") {
     private val hookedSettingsClasses: MutableSet<String> =
         Collections.newSetFromMap(ConcurrentHashMap())
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
         // Load preset once at hook-registration time
-        val presetId = getSpoofValue(prefs, pkg, SpoofType.DEVICE_PROFILE) { "" }
+        val presetId = getSpoofValue(snapshot, SpoofType.DEVICE_PROFILE) { "" }
         val preset = if (presetId.isNotEmpty()) DeviceProfilePreset.findById(presetId) else null
 
         hookWebSettings(cl, xi, preset, pkg)

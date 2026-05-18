@@ -141,43 +141,50 @@ class XposedEntry : XposedModule() {
         // 3. Remaining hookers can run in any order.
         // ═══════════════════════════════════════════════════════════
         val policy = HookFamilyPolicy.fromPrefs(prefs, hookPackage)
+        val snapshot = HookConfigSnapshot.fromPrefs(prefs, hookPackage)
         hookSafely(hookPackage, "AntiDetectHooker", policy.antiDetectEnabled) {
             AntiDetectHooker.hook(cl, this, hookPackage)
             ProcMapsHooker.hook(cl, this, prefs, hookPackage)
         }
         hookSafely(hookPackage, "DeviceHooker", policy.deviceEnabled) {
-            DeviceHooker.hook(cl, this, prefs, hookPackage)
+            DeviceHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "SubscriptionHooker", policy.subscriptionEnabled) {
-            SubscriptionHooker.hook(cl, this, prefs, hookPackage)
+            SubscriptionHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "NetworkHooker", policy.networkEnabled) {
-            NetworkHooker.hook(cl, this, prefs, hookPackage)
+            NetworkHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "SystemHooker", policy.systemEnabled) {
-            SystemHooker.hook(cl, this, prefs, hookPackage)
+            SystemHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "SystemFeatureHooker", policy.systemFeatureEnabled) {
-            SystemFeatureHooker.hook(cl, this, prefs, hookPackage)
+            SystemFeatureHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "LocationHooker", policy.locationEnabled) {
-            LocationHooker.hook(cl, this, prefs, hookPackage)
+            LocationHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "SensorHooker", policy.sensorEnabled) {
-            SensorHooker.hook(cl, this, prefs, hookPackage)
+            SensorHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "AdvertisingHooker", policy.advertisingEnabled) {
-            AdvertisingHooker.hook(cl, this, prefs, hookPackage)
+            AdvertisingHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "WebViewHooker", policy.webViewEnabled) {
-            WebViewHooker.hook(cl, this, prefs, hookPackage)
+            WebViewHooker.hook(cl, this, hookPackage, snapshot)
         }
         hookSafely(hookPackage, "PackageManagerHooker", policy.packageManagerEnabled) {
             PackageManagerHooker.hook(cl, this, hookPackage)
         }
 
-        log(Log.INFO, TAG, "Hooks registered for: $hookPackage", null)
         log(Log.INFO, TAG, "All hooks registered for: $hookPackage", null)
+        XposedDiagnosticEventSink.log(
+            Log.INFO,
+            TAG,
+            "All hooks registered for: $hookPackage",
+            eventType =
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_REGISTERED,
+        )
     }
 
     private fun shouldSkipLoadedPackage(pkg: String): Boolean =
@@ -252,24 +259,8 @@ class XposedEntry : XposedModule() {
         }
         try {
             XposedDiagnosticEventSink.hookHealth.recordRegistrationAttempt(name, "hook")
-            XposedDiagnosticEventSink.log(
-                Log.DEBUG,
-                TAG,
-                "[$name] Hook registration started for $pkg",
-                eventType =
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
-                        .HOOK_REGISTRATION_STARTED,
-            )
             block()
             XposedDiagnosticEventSink.hookHealth.recordRegistrationSuccess(name, "hook")
-            XposedDiagnosticEventSink.log(
-                Log.DEBUG,
-                TAG,
-                "[$name] Hook registered for $pkg",
-                eventType =
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
-                        .HOOK_REGISTERED,
-            )
         } catch (e: XposedFrameworkError) {
             throw e
         } catch (t: Throwable) {

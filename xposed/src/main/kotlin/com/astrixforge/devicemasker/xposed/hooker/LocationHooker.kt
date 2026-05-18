@@ -1,8 +1,8 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import android.location.Location
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
@@ -26,18 +26,18 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
         val elapsedRealtimeNanos: Long,
     )
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        hookLocation(cl, xi, prefs, pkg)
-        hookLocationManager(cl, xi, prefs, pkg)
-        hookTimeZone(cl, xi, prefs, pkg)
-        hookLocale(cl, xi, prefs, pkg)
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
+        hookLocation(cl, xi, pkg, snapshot)
+        hookLocationManager(cl, xi, pkg, snapshot)
+        hookTimeZone(cl, xi, pkg, snapshot)
+        hookLocale(cl, xi, pkg, snapshot)
     }
 
     private fun hookLocation(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val locationClass = cl.loadClassOrNull("android.location.Location") ?: return
         safeHook("Location.getLatitude()") {
@@ -48,7 +48,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                             val result = chain.proceed()
                             val current = (result as? Double) ?: 0.0
                             val spoofed =
-                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) {
+                                getSpoofValue(snapshot, SpoofType.LOCATION_LATITUDE) {
                                     current.toString()
                                 }
                             val finalVal = spoofed.toDoubleOrNull() ?: current
@@ -68,7 +68,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                             val result = chain.proceed()
                             val current = (result as? Double) ?: 0.0
                             val spoofed =
-                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) {
+                                getSpoofValue(snapshot, SpoofType.LOCATION_LONGITUDE) {
                                     current.toString()
                                 }
                             val finalVal = spoofed.toDoubleOrNull() ?: current
@@ -85,8 +85,8 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
     private fun hookLocationManager(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val lmClass = cl.loadClassOrNull("android.location.LocationManager") ?: return
         safeHook("LocationManager.getLastKnownLocation(String)") {
@@ -95,10 +95,9 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     .intercept(
                         stableHooker { chain ->
                             val result = chain.proceed()
-                            val latStr =
-                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LATITUDE) { "" }
+                            val latStr = getSpoofValue(snapshot, SpoofType.LOCATION_LATITUDE) { "" }
                             val lonStr =
-                                getSpoofValue(prefs, pkg, SpoofType.LOCATION_LONGITUDE) { "" }
+                                getSpoofValue(snapshot, SpoofType.LOCATION_LONGITUDE) { "" }
                             val location =
                                 result as? Location
                                     ?: createSpoofLocation(
@@ -124,8 +123,8 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
     private fun hookTimeZone(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val tzClass = cl.loadClassOrNull("java.util.TimeZone") ?: return
         safeHook("TimeZone.getDefault()") {
@@ -134,7 +133,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                     .intercept(
                         stableHooker { chain ->
                             val result = chain.proceed()
-                            val tzId = getSpoofValue(prefs, pkg, SpoofType.TIMEZONE) { "" }
+                            val tzId = getSpoofValue(snapshot, SpoofType.TIMEZONE) { "" }
                             if (tzId.isNotBlank()) {
                                 reportSpoofEvent(pkg, SpoofType.TIMEZONE)
                                 java.util.TimeZone.getTimeZone(tzId)
@@ -151,8 +150,8 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
     private fun hookLocale(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val localeClass = cl.loadClassOrNull("java.util.Locale") ?: return
         safeHook("Locale.getDefault()") {
@@ -162,7 +161,7 @@ object LocationHooker : BaseSpoofHooker("LocationHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val current = result as? java.util.Locale ?: return@stableHooker result
-                            val localeStr = getSpoofValue(prefs, pkg, SpoofType.LOCALE) { "" }
+                            val localeStr = getSpoofValue(snapshot, SpoofType.LOCALE) { "" }
                             if (localeStr.isNotBlank()) {
                                 reportSpoofEvent(pkg, SpoofType.LOCALE)
                                 buildLocale(localeStr, current)

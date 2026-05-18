@@ -1,8 +1,8 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
@@ -68,14 +68,13 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
      *
      * @param cl The target app's ClassLoader
      * @param xi The XposedInterface hook engine
-     * @param prefs RemotePreferences for this process (live, no restart needed)
      * @param pkg The target app's package name
      */
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        hookTelephonyManager(cl, xi, prefs, pkg)
-        hookBuildSerial(cl, xi, prefs, pkg)
-        hookSettingsSecure(cl, xi, prefs, pkg)
-        hookSystemProperties(cl, xi, prefs, pkg)
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
+        hookTelephonyManager(cl, xi, pkg, snapshot)
+        hookBuildSerial(cl, xi, pkg, snapshot)
+        hookSettingsSecure(cl, xi, pkg, snapshot)
+        hookSystemProperties(cl, xi, pkg, snapshot)
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -85,24 +84,24 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookTelephonyManager(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         val tm = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
         val intClass = Int::class.javaPrimitiveType!!
 
         TELEPHONY_GETTERS.forEach { getter ->
-            hookTelephonyGetter(tm, xi, prefs, pkg, getter)
-            if (getter.hasSlotOverload) hookTelephonyGetter(tm, xi, prefs, pkg, getter, intClass)
+            hookTelephonyGetter(tm, xi, pkg, snapshot, getter)
+            if (getter.hasSlotOverload) hookTelephonyGetter(tm, xi, pkg, snapshot, getter, intClass)
         }
-        hookSimCountGetters(tm, xi, prefs, pkg)
+        hookSimCountGetters(tm, xi, pkg, snapshot)
     }
 
     private fun hookTelephonyGetter(
         tm: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
         getter: TelephonyGetter,
         vararg parameterTypes: Class<*>,
     ) {
@@ -113,7 +112,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     .intercept(
                         stableHooker { chain ->
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, getter.spoofType)
+                                getConfiguredSpoofValue(snapshot, getter.spoofType)
                                     ?: return@stableHooker chain.proceed()
                             reportSpoofEvent(pkg, getter.spoofType)
                             spoofed
@@ -127,19 +126,19 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookSimCountGetters(
         tm: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         SIM_COUNT_METHODS.forEach { methodName ->
-            hookSimCountGetter(tm, xi, prefs, pkg, methodName)
+            hookSimCountGetter(tm, xi, pkg, snapshot, methodName)
         }
     }
 
     private fun hookSimCountGetter(
         tm: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
         methodName: String,
     ) {
         safeHook("TelephonyManager.$methodName()") {
@@ -149,7 +148,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val preset =
-                                getConfiguredDeviceProfilePreset(prefs, pkg)
+                                getConfiguredDeviceProfilePreset(snapshot)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
                             preset.safeSimCount()
@@ -167,8 +166,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookBuildSerial(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         safeHook("Build.getSerial()") {
             val buildClass = cl.loadClassOrNull("android.os.Build") ?: return@safeHook
@@ -177,7 +176,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                     .intercept(
                         stableHooker { chain ->
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                                getConfiguredSpoofValue(snapshot, SpoofType.SERIAL)
                                     ?: return@stableHooker chain.proceed()
                             reportSpoofEvent(pkg, SpoofType.SERIAL)
                             spoofed
@@ -195,15 +194,15 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookSettingsSecure(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         safeHook("Settings.Secure.getString()") {
             val secureClass =
                 cl.loadClassOrNull("android.provider.Settings\$Secure") ?: return@safeHook
             val resolverClass =
                 cl.loadClassOrNull("android.content.ContentResolver") ?: return@safeHook
-            hookAndroidIdSetting(secureClass, xi, prefs, pkg, "getString", resolverClass)
+            hookAndroidIdSetting(secureClass, xi, pkg, snapshot, "getString", resolverClass)
         }
         safeHook("Settings.Secure.getStringForUser()") {
             val secureClass =
@@ -213,8 +212,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
             hookAndroidIdSetting(
                 secureClass,
                 xi,
-                prefs,
                 pkg,
+                snapshot,
                 "getStringForUser",
                 resolverClass,
                 Int::class.javaPrimitiveType!!,
@@ -225,8 +224,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookAndroidIdSetting(
         secureClass: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
         methodName: String,
         resolverClass: Class<*>,
         vararg extraParameterTypes: Class<*>,
@@ -240,7 +239,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         val key = chain.args.getOrNull(1) as? String ?: return@stableHooker result
                         if (key != ANDROID_ID_KEY) return@stableHooker result
                         val spoofed =
-                            getConfiguredSpoofValue(prefs, pkg, SpoofType.ANDROID_ID)
+                            getConfiguredSpoofValue(snapshot, SpoofType.ANDROID_ID)
                                 ?: return@stableHooker result
                         reportSpoofEvent(pkg, SpoofType.ANDROID_ID)
                         spoofed
@@ -257,20 +256,20 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookSystemProperties(
         cl: ClassLoader,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
         safeHook("SystemProperties.get(String)") {
             val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
-            hookSerialSystemProperty(spClass, xi, prefs, pkg, String::class.java)
+            hookSerialSystemProperty(spClass, xi, pkg, snapshot, String::class.java)
         }
         safeHook("SystemProperties.get(String, String)") {
             val spClass = cl.loadClassOrNull("android.os.SystemProperties") ?: return@safeHook
             hookSerialSystemProperty(
                 spClass,
                 xi,
-                prefs,
                 pkg,
+                snapshot,
                 String::class.java,
                 String::class.java,
             )
@@ -280,8 +279,8 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
     private fun hookSerialSystemProperty(
         spClass: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
         vararg parameterTypes: Class<*>,
     ) {
         spClass.methodOrNull("get", *parameterTypes)?.let { m ->
@@ -292,7 +291,7 @@ object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
                         val key = chain.args.firstOrNull() as? String ?: return@stableHooker result
                         if (key !in SERIAL_PROPERTY_KEYS) return@stableHooker result
                         val spoofed =
-                            getConfiguredSpoofValue(prefs, pkg, SpoofType.SERIAL)
+                            getConfiguredSpoofValue(snapshot, SpoofType.SERIAL)
                                 ?: return@stableHooker result
                         reportSpoofEvent(pkg, SpoofType.SERIAL)
                         spoofed

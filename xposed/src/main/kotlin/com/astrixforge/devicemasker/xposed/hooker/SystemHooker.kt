@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 import java.lang.reflect.Field
@@ -29,8 +29,8 @@ object SystemHooker : BaseSpoofHooker("SystemHooker") {
 
     private const val MILLIS_PER_SECOND = 1_000L
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
-        val preset = getConfiguredDeviceProfilePreset(prefs, pkg) ?: return
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
+        val preset = getConfiguredDeviceProfilePreset(snapshot) ?: return
 
         applyBuildFieldOverrides(cl, preset)
         hookSystemProperties(cl, xi, preset, pkg)
