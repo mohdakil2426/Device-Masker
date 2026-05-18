@@ -5,11 +5,11 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.ISettingsDataStore
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.ILogManager
 import com.astrixforge.devicemasker.service.LogExportResult
 import com.astrixforge.devicemasker.service.LogManager
 import com.astrixforge.devicemasker.service.ShareableLogResult
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

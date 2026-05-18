@@ -10,8 +10,10 @@ import com.astrixforge.devicemasker.xposed.hooker.DeviceHooker
 import com.astrixforge.devicemasker.xposed.hooker.LocationHooker
 import com.astrixforge.devicemasker.xposed.hooker.NetworkHooker
 import com.astrixforge.devicemasker.xposed.hooker.PackageManagerHooker
+import com.astrixforge.devicemasker.xposed.hooker.ProcMapsHooker
 import com.astrixforge.devicemasker.xposed.hooker.SensorHooker
 import com.astrixforge.devicemasker.xposed.hooker.SubscriptionHooker
+import com.astrixforge.devicemasker.xposed.hooker.SystemFeatureHooker
 import com.astrixforge.devicemasker.xposed.hooker.SystemHooker
 import com.astrixforge.devicemasker.xposed.hooker.WebViewHooker
 import io.github.libxposed.api.XposedModule
@@ -71,6 +73,17 @@ class XposedEntry : XposedModule() {
             private set
 
         private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+
+        internal fun isPackageCurrentlyEnabledForHooks(
+            packageName: String,
+            prefs: SharedPreferences,
+        ): Boolean {
+            if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, false)) return false
+            val enabledApps =
+                prefs.getStringSet(SharedPrefsKeys.KEY_ENABLED_APPS, emptySet()) ?: emptySet()
+            return packageName in enabledApps &&
+                prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(packageName), false)
+        }
     }
 
     private var processName: String = ""
@@ -127,31 +140,51 @@ class XposedEntry : XposedModule() {
         //    Apps cross-check TelephonyManager and SubscriptionManager results.
         // 3. Remaining hookers can run in any order.
         // ═══════════════════════════════════════════════════════════
-        hookSafely(hookPackage, "AntiDetectHooker") { AntiDetectHooker.hook(cl, this, hookPackage) }
-        hookSafely(hookPackage, "DeviceHooker") { DeviceHooker.hook(cl, this, prefs, hookPackage) }
-        hookSafely(hookPackage, "SubscriptionHooker") {
-            SubscriptionHooker.hook(cl, this, prefs, hookPackage)
+        val policy = HookFamilyPolicy.fromPrefs(prefs, hookPackage)
+        val snapshot = HookConfigSnapshot.fromPrefs(prefs, hookPackage)
+        hookSafely(hookPackage, "AntiDetectHooker", policy.antiDetectEnabled) {
+            AntiDetectHooker.hook(cl, this, hookPackage)
+            ProcMapsHooker.hook(cl, this, prefs, hookPackage)
         }
-        hookSafely(hookPackage, "NetworkHooker") {
-            NetworkHooker.hook(cl, this, prefs, hookPackage)
+        hookSafely(hookPackage, "DeviceHooker", policy.deviceEnabled) {
+            DeviceHooker.hook(cl, this, hookPackage, snapshot)
         }
-        hookSafely(hookPackage, "SystemHooker") { SystemHooker.hook(cl, this, prefs, hookPackage) }
-        hookSafely(hookPackage, "LocationHooker") {
-            LocationHooker.hook(cl, this, prefs, hookPackage)
+        hookSafely(hookPackage, "SubscriptionHooker", policy.subscriptionEnabled) {
+            SubscriptionHooker.hook(cl, this, hookPackage, snapshot)
         }
-        hookSafely(hookPackage, "SensorHooker") { SensorHooker.hook(cl, this, prefs, hookPackage) }
-        hookSafely(hookPackage, "AdvertisingHooker") {
-            AdvertisingHooker.hook(cl, this, prefs, hookPackage)
+        hookSafely(hookPackage, "NetworkHooker", policy.networkEnabled) {
+            NetworkHooker.hook(cl, this, hookPackage, snapshot)
         }
-        hookSafely(hookPackage, "WebViewHooker") {
-            WebViewHooker.hook(cl, this, prefs, hookPackage)
+        hookSafely(hookPackage, "SystemHooker", policy.systemEnabled) {
+            SystemHooker.hook(cl, this, hookPackage, snapshot)
         }
-        hookSafely(hookPackage, "PackageManagerHooker") {
+        hookSafely(hookPackage, "SystemFeatureHooker", policy.systemFeatureEnabled) {
+            SystemFeatureHooker.hook(cl, this, hookPackage, snapshot)
+        }
+        hookSafely(hookPackage, "LocationHooker", policy.locationEnabled) {
+            LocationHooker.hook(cl, this, hookPackage, snapshot)
+        }
+        hookSafely(hookPackage, "SensorHooker", policy.sensorEnabled) {
+            SensorHooker.hook(cl, this, hookPackage, snapshot)
+        }
+        hookSafely(hookPackage, "AdvertisingHooker", policy.advertisingEnabled) {
+            AdvertisingHooker.hook(cl, this, hookPackage, snapshot)
+        }
+        hookSafely(hookPackage, "WebViewHooker", policy.webViewEnabled) {
+            WebViewHooker.hook(cl, this, hookPackage, snapshot)
+        }
+        hookSafely(hookPackage, "PackageManagerHooker", policy.packageManagerEnabled) {
             PackageManagerHooker.hook(cl, this, hookPackage)
         }
 
-        log(Log.INFO, TAG, "Hooks registered for: $hookPackage", null)
         log(Log.INFO, TAG, "All hooks registered for: $hookPackage", null)
+        XposedDiagnosticEventSink.log(
+            Log.INFO,
+            TAG,
+            "All hooks registered for: $hookPackage",
+            eventType =
+                com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_REGISTERED,
+        )
     }
 
     private fun shouldSkipLoadedPackage(pkg: String): Boolean =
@@ -181,9 +214,8 @@ class XposedEntry : XposedModule() {
         }
 
     private fun enabledHookPackageOrNull(loadedPackage: String, prefs: SharedPreferences): String? {
-        if (!prefs.getBoolean(SharedPrefsKeys.KEY_MODULE_ENABLED, true)) return null
         return selectHookPackage(loadedPackage, prefs)?.takeIf {
-            prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(it), false)
+            isPackageCurrentlyEnabledForHooks(it, prefs)
         }
     }
 
@@ -202,8 +234,7 @@ class XposedEntry : XposedModule() {
         val processBasePackage = processName.substringBefore(':').takeIf { it.isNotBlank() }
         val candidates = listOfNotNull(loadedPackage, processBasePackage).distinct()
         return candidates.firstOrNull { candidate ->
-            candidate !in SKIP_PACKAGES &&
-                prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey(candidate), false)
+            candidate !in SKIP_PACKAGES && isPackageCurrentlyEnabledForHooks(candidate, prefs)
         }
     }
 
@@ -214,27 +245,22 @@ class XposedEntry : XposedModule() {
      * If the block throws (e.g., class not found, method signature mismatch on this OEM), the error
      * is logged and execution continues with the next hooker.
      */
-    private fun hookSafely(pkg: String, name: String, block: () -> Unit) {
+    private fun hookSafely(pkg: String, name: String, enabled: Boolean = true, block: () -> Unit) {
+        if (!enabled) {
+            log(Log.INFO, TAG, "$name disabled by hook-family policy for: $pkg", null)
+            XposedDiagnosticEventSink.log(
+                Log.INFO,
+                TAG,
+                "$name disabled by hook-family policy for: $pkg",
+                eventType =
+                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType.HOOK_SKIPPED,
+            )
+            return
+        }
         try {
             XposedDiagnosticEventSink.hookHealth.recordRegistrationAttempt(name, "hook")
-            XposedDiagnosticEventSink.log(
-                Log.DEBUG,
-                TAG,
-                "[$name] Hook registration started for $pkg",
-                eventType =
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
-                        .HOOK_REGISTRATION_STARTED,
-            )
             block()
             XposedDiagnosticEventSink.hookHealth.recordRegistrationSuccess(name, "hook")
-            XposedDiagnosticEventSink.log(
-                Log.DEBUG,
-                TAG,
-                "[$name] Hook registered for $pkg",
-                eventType =
-                    com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
-                        .HOOK_REGISTERED,
-            )
         } catch (e: XposedFrameworkError) {
             throw e
         } catch (t: Throwable) {

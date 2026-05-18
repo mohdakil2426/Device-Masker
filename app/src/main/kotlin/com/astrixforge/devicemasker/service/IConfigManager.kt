@@ -33,6 +33,8 @@ interface ConfigGroupStore {
 
     fun updateGroup(group: SpoofGroup)
 
+    fun setDefaultGroup(groupId: String)
+
     fun deleteGroup(groupId: String)
 
     fun getGroupForApp(packageName: String): SpoofGroup?

@@ -5,21 +5,188 @@
 | Area | Status |
 | --- | --- |
 | Project phase | Development, R8 enabled in release |
-| Build | Focused R8 release gate passing: `spotlessApply spotlessCheck :xposed:testDebugUnitTest :app:assembleRelease` |
+| Build | Latest local performance/warning gate passing: `spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug` plus release/R8 gate |
 | Unit tests | Passing |
-| Lint/format/static analysis | Passing with Spotless, lint, and Detekt `allRules=true`; baselines are empty |
+| Lint/format/static analysis | Passing with Spotless, lint, and Detekt `allRules=true`; app/common/xposed/verifier lint reports say `No issues found`; Detekt baselines are empty |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
 | Diagnostics | Structured JSONL app logs, Diagnostics UI without custom Binder status, support bundle export with optional root/logcat artifacts |
-| Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; user confirmed real Android 16 device success |
+| Target hook validation | R8 release APK smoke-passed on `com.mantle.verify` and `flar2.devcheck` with LSPosed hook/spoof log evidence; Android 16 emulator DevCheck debug and ciRelease/R8 smokes passed |
+| Android 16 DevCheck crash track | Evidence tooling and hook isolation implemented; Android 16 emulator all-safe-hooks smoke passed; physical-device and isolated matrix rows still pending |
+| Proc maps hardening | Path-aware Java line filtering implemented; byte/NIO redaction implemented as per-app opt-in; native maps redaction not implemented |
 | M3E UI | Core and advanced implementation verified |
 | Navigation | Navigation 3 `NavDisplay` with typed `NavKey` destinations, app-owned saveable top-level stacks |
+| Verifier | `:verifier` local target app builds, installs, launches, and writes `files/verifier/latest.json` |
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## 2026-05-18 Logs System Remediation
+
+- Support export now uses real app JSONL events and real diagnostic snapshots instead of placeholder `{}` values.
+- Root export captures all logcat buffers, filtered Device Masker/LSPosed evidence, and copied LSPosed log directories when root is granted.
+- Every root artifact has manifest evidence for status, exit code, byte counts, and root availability.
+- Logs Monitor is available from Settings for live root logcat observation while reproducing target-app behavior.
+- Follow-up export verification fixed and proved three issues: LSPosed directory logs are now copied from `/data/adb/lspd/log*`, redacted `app/app_events.jsonl` plus `xposed/xposed_events.jsonl` remain valid JSONL, and `hook_health.json` is no longer an empty placeholder.
+- Fresh emulator export evidence: `logs/device/2026-05-18-user-export-fixed-final-122647.zip` contains `root/lsposed/lsposed_log.txt` and `root/lsposed/lsposed_log_old.txt`, app JSONL `1063` valid lines, Xposed JSONL `908` valid lines, and derived hook health totals from the parsed Xposed events.
+- Local database storage remains intentionally deferred until measured monitor volume requires it.
+
+## 2026-05-18 Performance Optimization And Warning Cleanup
+
+- Completed `docs/superpowers/plans/2026-05-18-performance-optimization-and-warning-cleanup.md` without commit or push.
+- Home scoped apps now load only LSPosed-scoped package metadata through `loadScopedApps()` instead of forcing a full installed-app scan at Home startup.
+- Added bounded shared `AppIconCache` and `CachedAppIcon`; Home scoped rows and app-list rows reuse it.
+- Home scoped apps render through a bounded lazy list with stable keys.
+- Config sync now supports dirty package sync through `ConfigSync.syncPackages()` and `ConfigManager` sync hints, avoiding full per-package rewrites for app/group mutations while preserving full sync where global state changes.
+- Xposed value hookers now receive a per-package `HookConfigSnapshot` built once from RemotePreferences. Snapshot lookup supports enabled-type checks, flat values, and persona fallback.
+- Xposed registration logging is coalesced: per-hook success spam removed, health counters/failure logs retained, final `All hooks registered` diagnostic retained.
+- Support bundle JSONL entries are streamed into the zip line-by-line.
+- Startup root capture is delayed by one frame plus 1500 ms.
+- Group Spoofing Apps tab derives sorted/filter-ready `AppRowModel` values in the ViewModel instead of sorting and lowercasing inside composition.
+- Warning cleanup brought app/common/xposed/verifier lint reports to `No issues found`. It removed 1092 lint-reported unused string entries and kept only narrow intentional suppressions for explicit `commit()` checks, target-SDK deferral, dependency availability, and verifier/Xposed platform reflection.
+- GitNexus change detection completed; aggregate risk was critical because of breadth: 52 changed files, 217 changed symbols, and 80 affected symbols. Affected flows matched the planned performance/config/Xposed/UI/diagnostics/startup areas.
+
+Verification passed:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --tests com.astrixforge.devicemasker.data.repository.AppScopeRepositoryTest --tests com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilderTest --tests com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.AppIconCacheTest --tests com.astrixforge.devicemasker.service.ConfigSyncTest --tests com.astrixforge.devicemasker.data.ConfigSyncSnapshotTest --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.HookConfigSnapshotTest --tests com.astrixforge.devicemasker.xposed.PrefsHelperTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest --no-daemon
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon
+.\gradlew.bat lint --no-daemon --no-configuration-cache
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache
+```
+
+## 2026-05-16 Comprehensive UI Audit Remediation
+
+- Remediated the active comprehensive UI audit plan without committing or pushing.
+- Moved diagnostics UI result models into `com.astrixforge.devicemasker.diagnostics`.
+- Moved `ThemeMode` into `com.astrixforge.devicemasker.data.models` and removed raw theme-mode persistence integers from `SettingsDataStore`.
+- Added diagnostics failure handling and provider injection in `DiagnosticsViewModel`.
+- Hid mutable navigation stack ownership from external callers; `visibleBackStack` now returns an immutable list while `NavDisplay` uses an internal snapshot list.
+- Added one-step default-group switching through `ConfigManager.setDefaultGroup(groupId)`.
+- Added reusable `StatusColors` theme extensions and `withAmoledSurfaces()` for AMOLED dynamic surfaces.
+- Applied focused Compose polish: localized SectionHeader expand/collapse content descriptions, `rememberSaveable` timezone sheet state, and reusable dialog `modifier` parameters.
+- GitNexus impact and detect-changes checks were attempted but blocked by the local LadybugDB lock; rerun after `.gitnexus/lbug` is available.
+- Verification passed:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.navigation.DeviceMaskerNavigatorTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.data.repository.SpoofRepositoryTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.theme.ThemeColorTest --no-daemon
+.\gradlew.bat :app:compileDebugKotlin --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon
+```
+
+## 2026-05-16 Search IME Dismiss Polish
+
+- Added reusable IME-dismiss focus handling for Compose search fields.
+- Group Spoofing Apps tab search now clears focus when the keyboard is dismissed via Back/system keyboard dismissal.
+- Country and timezone picker search fields reuse the same behavior and now save search text with `rememberSaveable`.
+- Updated CI and release workflow artifact upload steps to `actions/upload-artifact@v6` after the pushed CI run exposed Node.js 20 deprecation warnings.
+- Targeted verification passed:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.ImeDismissFocusHandlerTest --no-daemon
+git diff --check -- .github/workflows/ci.yml .github/workflows/release.yml
+```
+
+## 2026-05-15 Home Screen UI Refinements
+
+- Export logs bottom sheet buttons: commit `6ca01eb`. Replaced `Row` + `FilledTonalButton` with `QuickActionRow` inside `ExportActionsBottomSheetContent`. Bottom sheet preserved, inner buttons changed to M3 `ButtonGroup` with `clickableItem()`.
+- Group selector bottom sheet: commit `18bcaed`. Replaced `GroupDropdownMenu` with `GroupSelectorBottomSheet` using `AppModalBottomSheet`. Card opens sheet on tap; sheet shows groups as clickable rows. Chevron rotation removed.
+- Scoped Apps section: commit `e40e050`. Home now shows LSPosed-scoped installed user apps, not spoof-group app lists. It reads `XposedPrefs.scopedPackages`, filters `android`/`system`, joins against loaded installed-app metadata, and omits missing packages instead of showing raw package names.
+- Architecture and agent rules now document this as a narrow app-side architecture change: Home observes LSPosed scope, joins installed app metadata, and writes standalone `AppConfig.isEnabled` without changing hook/runtime contracts.
+- Home now loads installed apps on init and force-refreshes them during scoped-app pull-to-refresh, so the section does not depend on another screen warming the app cache.
+- The per-row switch updates standalone `AppConfig.isEnabled`; group assignment/unassignment preserves this Home-level enabled state.
+- Group Spoofing app rows now use canonical `AppConfig.groupId` for selected state and show Home-disabled assigned apps as disabled rather than removing them from the group UI.
+- Scoped Apps UI uses plain section title text, expandable content, app icons, stable package keys for row state, and tighter spacing from Quick Actions.
+- 2026-05-16 follow-up: Scoped Apps rows now sort A-Z by resolved app label with package-name tie-breaks, disabled rows stay in their alphabetical position, and disabled app cards render with muted alpha.
+- Latest failed GitHub Actions CI run `25930803257` failed in `ConfigManagerTest` because several tests skipped the current `StateFlow` initialization value and could time out. The tests now wait for the first observed initialized state instead of assuming an emission order.
+- Verification passed: `.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --no-daemon` and `.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --no-daemon`.
+
+## 2026-05-14 Toggle And Hook-Scope Remediation
+
+- Fixed current hook-scope/toggle bugs from the 2026-05-14 audit without optional feature work.
+- Xposed target selection now requires the current enabled-app allowlist and per-package enabled key, so stale `app_enabled_*` preferences alone cannot activate hooks after LSPosed scope changes.
+- Runtime config sync now requires explicit enabled `AppConfig.groupId` assignment and no longer uses default-group fallback for unassigned packages.
+- Group card, Home group selector, and Group Spoofing Apps tab counts/checked state now read canonical `appConfigs`, not legacy `SpoofGroup.assignedApps`.
+- Group Spoofing category switches no longer show fully enabled when only part of the category is enabled.
+- Hook-family policy sync now disables ordinary value hook families when all related spoof types are disabled, while app-level anti-detection/package-manager policy stays separate.
+- Added regression tests in `ConfigSyncSnapshotTest`, `GroupSpoofingViewModelTest`, `HomeViewModelTest`, fake repository support, and new `XposedEntryScopeTest`.
+- Verification passed:
+
+```powershell
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon --no-configuration-cache
+```
+
+- Runtime LSPosed/device validation for this remediation remains pending.
+- Runtime validation later passed on Android 16 emulator `emulator-5554`:
+  - unassigned Verifier: `XposedEntry loaded` only, no target selection, no hook registration, no spoof events.
+  - assigned Verifier: target selected, hooks registered, spoof events fired.
+  - evidence saved in `logs/device/2026-05-14-toggle-scope-test/`.
+  - related audit and summary reports are closed under `docs/internal/reports/closed/`.
+
+## 2026-05-14 GroupSpoofingScreen UI Refactoring And P3 Performance
+
+- Implemented GroupSpoofingScreen UI improvements from P3 proposal:
+  - Removed refresh icon button from Apps tab header; pull-to-refresh via `ExpressivePullToRefresh` remains.
+  - Inlined system app FilterChip into same Row as app count stats text.
+  - Deleted `AppsFilterRow.kt` after merging logic into `AppsSearchHeader`.
+  - Removed `isRefreshing` and `refreshRequested` from `AppsHeaderState`.
+- Implemented scroll position persistence for tabbed interface (P3.1):
+  - `spoofTabScrollPosition` and `appsTabScrollPosition` in `GroupSpoofingState`.
+  - `setSpoofTabScrollPosition()` and `setAppsTabScrollPosition()` in `GroupSpoofingViewModel` with `SavedStateHandle`.
+  - `initialScrollPosition` and `onScrollPositionChange` parameters added to `SpoofTabContent` and `AppsTabContent`.
+  - `rememberLazyListState` with `initialFirstVisibleItemIndex`, `LaunchedEffect` + `snapshotFlow`, `rememberUpdatedState` fix for `LambdaParameterInRestartableEffect`.
+  - Scroll positions passed from state through `GroupSpoofingPager` to both tab composables.
+- Fixed detekt violations: `TooManyFunctions` (ViewModel), `LongMethod` (SpoofTabContent), duplicate `@Suppress`, wrong `rememberSaveable` import path.
+- Full verification: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
+- Commits: `cb0349e` (scroll persistence), `3d239bd` (UI refactor).
+
+## 2026-05-12 GitNexus Migration
+  - `initialScrollPosition` and `onScrollPositionChange` parameters added to `SpoofTabContent` and `AppsTabContent`.
+  - `rememberLazyListState` with `initialFirstVisibleItemIndex`, `LaunchedEffect` + `snapshotFlow`, `rememberUpdatedState` fix for `LambdaParameterInRestartableEffect`.
+  - Scroll positions passed from state through `GroupSpoofingPager` to both tab composables.
+- Fixed detekt violations: `TooManyFunctions` (ViewModel), `LongMethod` (SpoofTabContent), duplicate `@Suppress`, wrong `rememberSaveable` import path.
+- Full verification: `spotlessApply spotlessCheck detekt :app:testDebugUnitTest` → `BUILD SUCCESSFUL`.
+- Commits: `cb0349e` (scroll persistence), `3d239bd` (UI refactor).
+
+## 2026-05-12 GitNexus Migration
+
+- Graphify is no longer the project code-intelligence tool.
+- Removed the tracked `.graphifyignore`; existing `graphify-out/*` deletion is preserved.
+- Ran `npx gitnexus setup` to configure GitNexus MCP/skills for local tools.
+- Indexed this repository with `npx gitnexus analyze --name devicemasker`.
+- GitNexus status is up to date at commit `17def8e` with 5,115 symbols, 12,291 edges, 187 clusters, and 300 flows.
+- Future code-intelligence refresh command is `npx gitnexus analyze --name devicemasker`, not `graphify update .`.
+
 ## Latest Audit Remediation
 
+- Release 0.1.5 hardening branch work on 2026-05-09:
+  - Added shared Luhn helper and routed IMEI/ICCID/persona check digits through it.
+  - Config sync now publishes `DevicePersona` blob/version and flat keys; hook-side persona fallback respects per-type enablement.
+  - Added profile hooks for enriched Build fields, Build.VERSION fields, ABI properties, NFC/telephony features, SIM count, and subscription count.
+  - Added diagnostics-only Android Advanced Protection and Identity Check snapshot export.
+  - Added `:verifier` local target app and included it in CI/report paths.
+  - Full local gate passed with `:verifier:assembleDebug`.
+  - Android 13 emulator evidence captured under `logs/device/`; Mantle showed LSPosed module load, hook registration including `SystemFeatureHooker`, spoof events, and no checked fatal crash signatures.
+  - Native maps redaction and system_server package hiding remain unimplemented high-risk tracks, not default behavior.
+- Android 16 compatibility/proc-maps implementation on 2026-05-09:
+  - Added `HookFamilyPolicy` and per-app hook-family RemotePreferences keys for crash isolation.
+  - Removed HiddenApiBypass dependency from app/xposed build files and catalog.
+  - Added `ProcMapsHooker` and `ProcMapsPolicy`; maps/smaps Java line filtering is path-aware, while byte/NIO redaction is explicit opt-in.
+  - Added verifier probes for proc maps, package visibility, and runtime facts.
+  - Added A16 crash evidence and 16 KB APK verification scripts.
+  - Full gate passed in `logs/build/2026-05-09-a16-proc-maps-final-gate.txt`.
+  - Android 13 verifier launched through ADB and Mobile MCP; `logs/device/2026-05-09-verifier-a13-final.json` contains `procMaps`, `packageVisibility`, and `runtime`.
+  - 16 KB verification passed for debug, release, and ciRelease APKs.
+  - 2026-05-10 Android 16 emulator evidence was captured on `emulator-5554` / Pixel 10 Pro XL API 36.1 / SDK 36 / 16 KB pages. DevCheck stayed alive under debug and debug-key-signed ciRelease/R8 builds with LSPosed `XposedEntry`, target selection, `All hooks registered`, spoof events, and no checked fatal/ABI signatures. Physical-device evidence and the explicit module-disabled/load-only/hook-family matrix remain pending.
 - Detekt maximum strictness rollout started on 2026-05-08:
   - `allRules=true` enabled in root Detekt configuration.
   - Shared Detekt config tightened for complexity, coroutine, potential-bugs, style, and Compose rules.
@@ -33,7 +200,7 @@
   - Latest app cleanup split ConfigSync helpers, ExpressiveSwitch state/dimensions, picker dialog stable list state, SIM card controls, device hardware sections, location sections, Apps tab helpers, Groups helpers, and Settings helpers.
   - Current remaining baseline rule counts: zero across `:app`, `:common`, and `:xposed`.
   - Final app baseline cleanup split `IConfigManager` and `ISpoofRepository` into smaller workflow contracts while keeping `ConfigManager` and `SpoofRepository` as unified compatibility facades.
-  - Verification passed: `spotlessApply`, `:common:compileDebugKotlin :app:compileDebugKotlin`, `:xposed:compileDebugKotlin`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, `:xposed:testDebugUnitTest`, the Xposed R8 ABI guard, and `graphify update .`.
+  - Verification passed: `spotlessApply`, `:common:compileDebugKotlin :app:compileDebugKotlin`, `:xposed:compileDebugKotlin`, `detektBaseline`, `detekt`, `:common:testDebugUnitTest :app:testDebugUnitTest`, `:xposed:testDebugUnitTest`, the Xposed R8 ABI guard, and the then-current Graphify refresh.
   - Latest app-only verification passed: `.\gradlew.bat :app:testDebugUnitTest --no-daemon --stacktrace` and `.\gradlew.bat detekt --no-daemon --stacktrace`.
 - CI/CD and manual release workflow setup was implemented for version `0.1.1`:
   - `VERSION_NAME=0.1.1` and `VERSION_CODE=2` now live in `gradle.properties`.
@@ -43,7 +210,7 @@
   - Local verification passed for `.\gradlew.bat :app:assembleDebug --no-daemon` and `.\gradlew.bat spotlessCheck detekt :app:assembleCiRelease --no-daemon`; APK metadata showed `versionName=0.1.1`, `versionCode=2`.
 - Dependency candidate update completed after checking Google Developer Knowledge, web search, and Maven metadata: Gradle wrapper `9.5.0`, Spotless `8.4.0`, Compose BOM `2026.05.00`, Material3 `1.5.0-alpha19`, and `adaptive-navigation3` `1.3.0-beta01`.
 - Verification passed with `spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug --no-daemon` and `assembleRelease :app:assembleCiRelease --no-daemon`.
-- `graphify update .` completed after Spotless-formatted source changes.
+- The then-current Graphify refresh completed after Spotless-formatted source changes.
 - Fixed current live coroutine/performance audit issues across `:app`, `:common`, and `:xposed`.
 - Production app sources no longer contain `runBlocking` or `Thread.sleep` from the audited paths.
 - `AppLogStore` uses non-blocking channel append plus monitor-based flush.
@@ -54,7 +221,7 @@
 - `Country` is serializable.
 - `SensorHooker` avoids per-sensor reflection in the hook callback, and `AntiDetectHooker.filterStackTrace()` avoids array allocation when there are no hidden frames.
 - Verified with `spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest --no-daemon --no-configuration-cache` and `lint test assembleDebug assembleRelease --no-daemon --no-configuration-cache`, both `BUILD SUCCESSFUL`.
-- `graphify update .` completed after code changes.
+- The then-current Graphify refresh completed after code changes.
 
 ## What Works
 
@@ -67,10 +234,15 @@
 - Config sync writes flattened per-app RemotePreferences keys.
 - Full config sync clears stale package keys.
 - `AppConfig` is the canonical app/group assignment model.
+- Runtime hook eligibility requires explicit `AppConfig.groupId` assignment and current enabled-app allowlist membership.
+- Android 16 emulator runtime evidence confirms LSPosed scope alone is insufficient for hook activation.
 - Per-app risky-hook and class lookup hiding opt-ins are persisted through local config and RemotePreferences.
+- Per-app hook-family isolation keys are persisted through RemotePreferences.
+- Proc-maps byte and NIO redaction policy keys are persisted default-off through RemotePreferences.
 - Hook-side pref reads distinguish missing/disabled values from configured values.
 - High-risk hooks pass through when config is unsafe.
 - Class lookup anti-detection remains disabled by default and only registers when both per-app opt-ins are enabled.
+- `/proc/self/maps` filtering is path-aware through `ProcMapsHooker`; broad global `BufferedReader.readLine()` maps filtering has been removed.
 - Hook-side registration and spoof events are mirrored to LSPosed logs.
 - Rootless app log export works from app-owned storage.
 - Single support export works through `Export Logs` and builds the maximum root/logcat bundle.
@@ -86,6 +258,9 @@
   LSPosed/logcat-owned rather than service-owned.
 - `com.mantle.verify` launched after latest remediation and emitted spoof events.
 - `flar2.devcheck` launched after latest remediation and emitted spoof events.
+- On Android 16 emulator (`emulator-5554`, Pixel 10 Pro XL API 36.1, SDK 36, 16 KB pages), `flar2.devcheck` launched under debug and debug-key-signed `ciRelease` builds, stayed alive, registered hooks, emitted spoof events, and showed no checked fatal/ABI crash signatures.
+- On Android 16 emulator, `com.astrixforge.devicemasker.verifier` is installed with the canonical package, assigned to the `TestingA16` group through Device Masker UI, scoped in LSPosed, and validated with LSPosed/logcat hook registration plus spoofed verifier JSON for key enabled values.
+- The upgraded verifier value matrix now passes configured emulator surfaces on Android 16 after the 2026-05-11 fix: restricted telephony/serial values return spoofed values, direct location coordinate getters match the configured values exactly, WebView default UA and instance UA are spoofed, and sensor name normalization works. `LOCATION_LAST_KNOWN` can be unsupported when Android has no last-known provider object after reboot.
 - Diagnostics UI reports `Module Active`, anti-detection `4/4 tests passed`, real/spoofed Android ID, and real/spoofed Device Profile.
 - Basic support export through DocumentsUI works and saved `/sdcard/devicemasker_support_20260504_150228.zip`.
 - M3E core UI now uses `MaterialExpressiveTheme`, `MotionScheme.expressive()`, native `LoadingIndicator`, native `ContainedLoadingIndicator`, native `ButtonGroup`, 10-step shape tokens, asymmetric shape tokens, 15 emphasized typography styles, `LocalEmphasizedTypography`, and a `MaterialShapes.SoftBurst` Home hero moment.
@@ -97,10 +272,18 @@
 - Navigation 3 app navigation compiles and passes navigator unit tests. `NavController`, `NavHost`, Navigation Compose `composable`, and `toRoute()` have been removed from app runtime navigation. The selected top-level tab is saved with `rememberSaveable`, while each stack is saved with `rememberNavBackStack`.
 - Navigation 3 deep links support `devicemasker://open/home`, `/groups`, `/groups/{groupId}`, `/settings`, and `/diagnostics`. Group Detail and Diagnostics use synthetic stacks, and emulator smoke verified Group Detail and Diagnostics links.
 - Navigation 3 expanded-width/list-detail smoke passed in emulator landscape: Groups list and Group Detail rendered side by side.
+- Home screen group selector uses `AppModalBottomSheet` instead of `DropdownMenu` for group selection.
+- Home screen shows the Scoped Apps section below Quick Actions. It lists LSPosed-scoped installed user apps, excluding default scope entries (`android`, `system`), and keeps Device Masker's per-app enable switch separate from spoof-group assignment.
+- Export logs bottom sheet uses `QuickActionRow` (M3 `ButtonGroup`) for Save/Share actions.
 
 Latest verification caveat:
 - On 2026-05-04 later in the emulator session, module injection was active again. `com.mantle.verify` and `flar2.devcheck` both showed `XposedEntry`, target selection, `All hooks registered`, and spoof events in logcat.
 - Runtime gaps remain for disabled/missing/malformed pass-through, exact value-by-value assertions for all spoof types, real reboot boot-capture validation, and broader app-category validation.
+
+Immediate next work:
+- Add automated expected-vs-actual report generation so future verifier runs do not require ad hoc PowerShell matrix construction.
+- Keep emulator validation current after hook changes, including debug and `ciRelease`/R8 installs.
+- Keep public docs curated; raw active/closed reports stay internal.
 
 ## Completed Milestones
 
@@ -395,7 +578,7 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 - LSPosed/logcat showed `All hooks registered for: com.mantle.verify`.
 - Spoof events included ANDROID_ID, CARRIER_MCC_MNC, NETWORK_OPERATOR, IMEI, BLUETOOTH_MAC, WIFI_MAC, WIFI_SSID, and PHONE_NUMBER.
 - Mobile MCP observed Mantle showing spoofed model `Nothing A065` and spoofed fingerprint `Nothing/Pong/Pong:14/AP31.240617.009/2409251803:user/release-keys`.
-- `graphify update .` completed and refreshed `graphify-out`.
+- The then-current Graphify refresh completed and refreshed `graphify-out`.
 
 ### 2026-05-06 R8 Libxposed Callback Runtime Fix
 
@@ -432,7 +615,7 @@ The master plan now has an updated verified checklist. Core safety/build/runtime
 
 ### 2026-05-07 Navigation 3 Audit Cleanup
 
-- Reviewed `docs/internal/reports/NAVIGATION3_AUDIT_REPORT.md` against current code, local
+- Reviewed `docs/internal/reports/closed/audits/2026-05-07/2026-05-07-navigation-3-audit-report.md` against current code, local
   `$navigation-3` recipes, and Google developer docs.
 - Added `dropUnlessResumed` to navigation click paths that mutate Navigation 3 state.
 - Fixed corrupted local Navigation 3 result recipe snippets and clarified deep-link guide wording.
@@ -463,3 +646,21 @@ Engineering cleanup accepted as deferred/user-owned:
 - Clean AGP 10 deprecation warnings.
 - Add more hook helper tests.
 - Keep docs and Memory Bank current after every runtime validation result.
+
+### 2026-05-18 Performance Optimization And Warning Cleanup
+
+- Implemented Home scoped metadata fast path: scoped package metadata is loaded directly from LSPosed scope instead of scanning all installed apps during Home startup.
+- Added shared `AppIconCache` and routed Home/app-list icon rendering through cached async icon loads.
+- Added scoped RemotePreferences sync through `ConfigSync.syncPackages()` and ConfigManager dirty-package hints.
+- Added `HookConfigSnapshot` in `:xposed` so hookers use a process-local snapshot built once at package-ready time.
+- Reduced xposed registration log chatter by removing per-hook debug start/success events while retaining failures, health counters, and final registered events.
+- Streamed support bundle JSONL output, delayed startup root capture after first frame, and precomputed Group Spoofing Apps tab row models in the ViewModel.
+- Cleaned lint warnings/resources: removed 1092 unused string resources, moved adaptive launcher XMLs out of obsolete `mipmap-anydpi-v26`, fixed the export-log plural warning, fixed the modifier-parameter warning, removed an obsolete SDK guard, converted root-state prefs to KTX edit, and added a narrow lint ignore for the preserved launcher foreground vector.
+- Follow-up warning cleanup made all app/common/xposed/verifier lint reports clean. Production ViewModel factories now provide real `SavedStateHandle`s; tests pass explicit handles. Intentional private API reflection in Xposed/verifier remains narrowly suppressed because it is required hook/evidence behavior. Version-catalog dependency availability warnings are suppressed instead of unverified bumps; an attempted coroutine bump failed dependency resolution in this environment.
+- Verification passed:
+  - `.\gradlew.bat lint --no-daemon`
+  - `.\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon`
+  - `.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon`
+  - `.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon`
+  - `.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache`
+- Current module lint reports (`:app`, `:common`, `:xposed`, `:verifier`) all say `No issues found`.

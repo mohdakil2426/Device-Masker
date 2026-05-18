@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
@@ -15,6 +16,7 @@ internal object AntiDetectPackageManagerHooks {
 
     private const val TAG = "AntiDetectHooker"
 
+    @SuppressLint("PrivateApi")
     fun hook(cl: ClassLoader, xi: XposedInterface, hiddenPackages: Set<String>) {
         val pmClass = cl.loadClass("android.app.ApplicationPackageManager")
 

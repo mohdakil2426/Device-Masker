@@ -18,9 +18,9 @@
 | Config bridge | libxposed RemotePreferences |
 | Local config | JSON in app `filesDir` |
 | IPC | No custom AIDL/Binder path; app-side libxposed service is used for RemotePreferences |
-| Serialization | kotlinx.serialization JSON 1.10.0 |
+| Serialization | kotlinx.serialization JSON 1.11.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
-| Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
+| Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed`, root copied LSPosed logs, user-started live logcat monitor |
 | Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and single root/logcat support export |
 | Image loading | Coil Compose 3.4.0 |
 | Static analysis | Detekt 2.0.0-alpha.3 with Compose rules 0.5.8 |
@@ -33,6 +33,7 @@
 | `:app` | UI, app state, local config, RemotePreferences writes, rootless logs, diagnostics views |
 | `:common` | Shared models, generators, key builders, config contracts |
 | `:xposed` | libxposed entry point, target-process hooks, anti-detection, LSPosed/logcat diagnostics |
+| `:verifier` | Local validation target app that reads framework identity surfaces and writes machine-readable evidence |
 
 ## Xposed Metadata
 
@@ -47,6 +48,7 @@ Current expectations:
 - `targetApiVersion=101`
 - `staticScope=false`
 - Default scope includes `android` and `system`
+- Target app hook selection requires the current enabled-app allowlist plus the per-package enabled key.
 
 ## Important Files
 
@@ -55,31 +57,65 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/DeviceMaskerApp.kt` | App initialization and wiring |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/XposedPrefs.kt` | App-side libxposed service binding and RemotePreferences access |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSync.kt` | Flattens config into RemotePreferences |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/data/ConfigSyncHelpers.kt` | Derives explicit runtime app/group sync state and hook-family policy from canonical config |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/ConfigManager.kt` | JSON config persistence and state |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/AppLogStore.kt` | Rootless app log storage |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/LogManager.kt` | Support bundle export bridge |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/JsonlDiagnosticStore.kt` | Rotating diagnostic JSONL store |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/SupportBundleBuilder.kt` | Local support bundle ZIP builder |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCollector.kt` | Opt-in root maximum artifact collector and command manifest writer |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/LsposedLogCopyCollector.kt` | Root-only copier for known LSPosed persisted log files |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootAccessManager.kt` | Central root grant state and startup root request |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCaptureService.kt` | Foreground service for bounded root startup/boot capture |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/logmonitor/LiveLogCaptureService.kt` | User-started foreground service for live root logcat monitor |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/BootCaptureReceiver.kt` | Starts root capture after `BOOT_COMPLETED` when Android allows it |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config repository |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/AppScopeRepository.kt` | Installed-app metadata repository plus scoped metadata fast path for Home |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/IAppScopeRepository.kt` | App scope repository contract used by ViewModels/tests |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/components/AppIconCache.kt` | Bounded app icon cache for Home scoped rows and app lists |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/NavDestination.kt` | Navigation 3 `NavKey` destination model |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerNavigationState.kt` | App-owned Navigation 3 top-level stacks and navigator |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerDeepLinks.kt` | Navigation 3 deep-link URI parsing and synthetic stack definitions |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerViewModelFactories.kt` | Manual factories that create lifecycle `SavedStateHandle` instances for production screens |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |
+| `common/src/main/kotlin/com/astrixforge/devicemasker/common/util/Luhn.kt` | Shared IMEI/ICCID check-digit implementation |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed module entry |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/HookConfigSnapshot.kt` | Per-package value/persona snapshot used by hot hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsHelper.kt` | Hook-side preference helper/reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/AntiDetectHooker.kt` | Safer anti-detection hooks |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/HookFamilyPolicy.kt` | Per-app hook-family isolation from RemotePreferences |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/ProcMapsHooker.kt` | Path-aware Java maps/smaps filtering |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/ProcMapsPolicy.kt` | Per-app proc-maps byte/NIO policy reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/WebViewHooker.kt` | Defensive WebView UA hook |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/SystemFeatureHooker.kt` | Device-profile PackageManager feature hooks |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/VerifierActivity.kt` | Local target app evidence reader |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/ProcMapsProbe.kt` | Verifier proc-maps Java reader/byte/RAF probe |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/PackageVisibilityProbe.kt` | Verifier PackageManager API 33+ visibility probe |
+| `verifier/src/main/kotlin/com/astrixforge/devicemasker/verifier/CrashProbe.kt` | Verifier runtime/build facts for crash comparison |
+| `scripts/collect-a16-crash-evidence.ps1` | ADB evidence capture for Android 16 target app crashes |
+| `scripts/verify-16kb-page-support.ps1` | APK zipalign and packaged `.so` 16 KB page-size check |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/MainDispatcherRule.kt` | Test coroutine dispatcher rule |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/testing/*.kt` | Fake implementations for testing |
 | `app/src/test/kotlin/com/astrixforge/devicemasker/ui/screens/*/*ViewModelTest.kt` | ViewModel unit tests |
 | `docs/reports/IMPLEMENTATION_COMPLETION_SUMMARY_2026-05-04.md` | Plan completion summary |
+
+Latest Android 16 verifier evidence:
+- `logs/device/2026-05-10-config-after-latlong-enabled.json`
+- `logs/device/2026-05-10-verifier-matrix-latlong-enabled-latest.json`
+- `logs/device/2026-05-10-verifier-matrix-latlong-enabled-logcat.txt`
+- `docs/internal/reports/closed/validation/2026-05-10/2026-05-10-verifier-android-16-full-summary.md`
+- `logs/device/2026-05-11-final-all-emulator-latest.json`
+- `logs/device/2026-05-11-final-all-emulator-logcat.txt`
+- `logs/build/2026-05-11-final-emulator-stability-gate.txt`
+- `docs/internal/reports/closed/validation/2026-05-11/2026-05-11-android-16-emulator-stability-summary.md`
+- `docs/public/validation/DEVICE_MASKER_VALIDATION_STATUS.md`
+- `docs/public/validation/evidence/emulator/android-16/latest.json`
+- `docs/public/validation/evidence/emulator/android-16/logcat.txt`
+- `docs/public/validation/evidence/emulator/android-16/build-gate.txt`
+- `docs/public/validation/evidence/emulator/android-16/config.json`
 
 ## Build Commands
 
@@ -108,6 +144,7 @@ Targeted gates:
 .\gradlew.bat detekt --no-daemon
 .\gradlew.bat detektBaseline --no-daemon
 .\gradlew.bat assembleDebug --no-daemon
+.\gradlew.bat :verifier:assembleDebug --no-daemon
 ```
 
 Detekt strictness notes:
@@ -129,7 +166,23 @@ adb shell am start -W -a android.intent.action.VIEW -d "devicemasker://open/diag
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\debug\app-debug.apk
+powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\release\app-release-unsigned.apk
+powershell -ExecutionPolicy Bypass -File scripts\verify-16kb-page-support.ps1 app\build\outputs\apk\ciRelease\app-ciRelease-unsigned.apk
 ```
+
+Android 16 crash evidence capture:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\collect-a16-crash-evidence.ps1 -TargetPackage flar2.devcheck -OutputDir logs/device
+```
+
+Current Android 16 emulator evidence capture used:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\collect-a16-crash-evidence.ps1 -Device emulator-5554 -TargetPackage flar2.devcheck -OutputDir logs/device
+```
+
+For local R8 smoke when production signing is unavailable, the unsigned `ciRelease` APK may be signed to `logs/tmp/app-ciRelease-debugkey-signed.apk` with the Android debug key and installed only as emulator evidence. Do not treat that artifact as production release signing evidence.
 
 Install debug APK:
 
@@ -160,6 +213,8 @@ Get-ChildItem -Path common/src,xposed/src -Recurse -Filter '*.kt' | Select-Strin
 Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-String 'IMEIGenerator|IMSIGenerator|ICCIDGenerator|MACGenerator|UUIDGenerator|PhoneNumberGenerator|SerialGenerator|\{ "(us|Carrier|310260|HomeNetwork)" \}|ByteArray\(32\)|\?: 310|\?: 260'
 Get-ChildItem -Path xposed/src/main/kotlin -Recurse -Filter '*.kt' | Select-String '\(\?<=|UA_DEVICE_REGEX|hookClassForName\(cl, xi\)|hookClassLoaderLoadClass\(cl, xi\)'
 Get-ChildItem -Path xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker -Filter '*.kt' | Where-Object { $_.Name -ne 'BaseSpoofHooker.kt' } | Select-String '\.intercept\s*\{'
+rg -n "HiddenApiBypass|org\.lsposed\.hiddenapibypass|Timber\.|Random\(" xposed/src/main/kotlin app/build.gradle.kts xposed/build.gradle.kts gradle/libs.versions.toml
+rg -n "DexKit|frida|bytehook|shadowhook|xhook|Dobby" app/src/main common/src/main xposed/src/main gradle
 ```
 
 ## Runtime Requirements
@@ -173,7 +228,13 @@ Runtime validation needs:
 
 ## Known Technical Warnings
 
-- `material3-adaptive-navigation3` is on `1.3.0-alpha10`, which required moving the project to compile SDK 37.
+- `material3-adaptive-navigation3` is on `1.3.0-beta01`, which required moving the project to compile SDK 37.
 - Release shrinking is enabled and was validated on emulator targets plus user-reported real
   Android 16 hardware. Do not bypass `StableHooker` for libxposed runtime callbacks.
+- App/common/xposed/verifier lint reports are clean as of 2026-05-18. Narrow lint suppressions remain intentional for explicit `commit()` checks, target-SDK deferral, dependency availability, and verifier/Xposed platform reflection.
+- The app target SDK remains 36 intentionally. Do not bump target SDK only to silence lint; do it through a behavior-validation plan.
+- Version-catalog dependency availability warnings are suppressed until dependency upgrades can be verified against reachable repositories. An attempted coroutine bump was reverted because dependency resolution failed in this environment.
+- HiddenApiBypass is intentionally not a dependency. Android 16 compatibility work must not add it as a shortcut.
+- Java proc-maps redaction is not native scanner coverage. Native hook engines require a separate evidence-backed plan.
+- Android 16 emulator evidence from `emulator-5554` / Pixel 10 Pro XL API 36.1 proves that emulator path only. Physical-device Android 16 claims still require separate evidence.
 - In-app diagnostics Binder can be unavailable under SELinux; LSPosed logs remain the practical runtime source.

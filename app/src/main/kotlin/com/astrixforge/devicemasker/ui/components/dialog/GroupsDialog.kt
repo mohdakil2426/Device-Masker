@@ -34,6 +34,7 @@ import kotlinx.collections.immutable.persistentListOf
 @Composable
 fun CreateGroupDialog(
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     existingNames: ImmutableList<String> = persistentListOf(),
     onCreate: (name: String, description: String) -> Unit,
 ) {
@@ -44,6 +45,7 @@ fun CreateGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
         title = { Text(stringResource(id = R.string.group_create_new)) },
         text = {
@@ -100,6 +102,7 @@ fun CreateGroupDialog(
 fun EditGroupDialog(
     group: SpoofGroup,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     onSave: (name: String, description: String) -> Unit,
 ) {
     var name by remember { mutableStateOf(group.name) }
@@ -108,6 +111,7 @@ fun EditGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         icon = { Icon(imageVector = Icons.Default.Groups, contentDescription = null) },
         title = { Text(stringResource(id = R.string.group_edit_dialog_title)) },
         text = {
@@ -141,9 +145,10 @@ fun EditGroupDialog(
 
 /** Dialog for confirming group deletion. */
 @Composable
-fun DeleteGroupDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+fun DeleteGroupDialog(onDismiss: () -> Unit, onConfirm: () -> Unit, modifier: Modifier = Modifier) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         icon = {
             Icon(
                 imageVector = Icons.Default.Groups,

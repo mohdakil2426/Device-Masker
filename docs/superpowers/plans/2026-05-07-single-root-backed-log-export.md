@@ -1097,7 +1097,7 @@ If no code changed, do not commit.
 - Modify: `memory-bank/activeContext.md`
 - Modify: `memory-bank/progress.md`
 - Modify: `memory-bank/techContext.md`
-- Modify: `docs/internal/reports/EXPORT_OPTIONS_ROOT_MAXIMUM_ONLY_ANALYSIS_2026-05-07.md` only if implementation differs from the report.
+- Modify: `docs/internal/reports/closed/research/2026-05-07/2026-05-07-export-options-root-maximum-only-analysis.md` only if implementation differs from the report.
 
 - [ ] **Step 1: Update architecture docs**
 
@@ -1172,7 +1172,7 @@ Expected: no current-architecture matches. Historical internal reports under `do
 - [ ] **Step 6: Commit docs**
 
 ```powershell
-git add docs/public/ARCHITECTURE.md memory-bank/systemPatterns.md memory-bank/activeContext.md memory-bank/progress.md memory-bank/techContext.md docs/internal/reports/EXPORT_OPTIONS_ROOT_MAXIMUM_ONLY_ANALYSIS_2026-05-07.md
+git add docs/public/ARCHITECTURE.md memory-bank/systemPatterns.md memory-bank/activeContext.md memory-bank/progress.md memory-bank/techContext.md docs/internal/reports/closed/research/2026-05-07/2026-05-07-export-options-root-maximum-only-analysis.md
 git commit -m "docs: document single root backed log export"
 ```
 

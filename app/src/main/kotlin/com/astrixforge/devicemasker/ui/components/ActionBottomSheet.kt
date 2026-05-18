@@ -14,7 +14,6 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -33,7 +32,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 /**
- * A reusable modal bottom sheet that displays a list of action items.
+ * A reusable sheet that displays a list of action items.
  *
  * Follows Material 3 design patterns with expressive styling. Each action item displays an icon,
  * title, and optional description.
@@ -53,39 +52,23 @@ fun ActionBottomSheet(
     title: String? = null,
     sheetState: SheetState = rememberModalBottomSheetState(),
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
+    AppModalBottomSheet(
+        onDismiss = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier,
+        title = title,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)
-        ) {
-            // Optional title
-            if (title != null) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-            }
-
-            // Action items
-            actions.forEach { action ->
-                ActionItemRow(
-                    icon = action.icon,
-                    title = action.title,
-                    description = action.description,
-                    enabled = action.enabled,
-                    onClick = {
-                        action.onClick()
-                        onDismiss()
-                    },
-                )
-            }
+        actions.forEach { action ->
+            ActionItemRow(
+                icon = action.icon,
+                title = action.title,
+                description = action.description,
+                enabled = action.enabled,
+                onClick = {
+                    action.onClick()
+                    onDismiss()
+                },
+            )
         }
     }
 }

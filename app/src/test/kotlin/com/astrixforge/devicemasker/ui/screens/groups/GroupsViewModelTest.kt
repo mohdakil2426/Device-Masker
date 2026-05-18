@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.ui.screens.groups
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.testing.FakeSpoofRepository
@@ -14,10 +15,13 @@ class GroupsViewModelTest {
 
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
+    private fun groupsViewModel(repository: FakeSpoofRepository): GroupsViewModel =
+        GroupsViewModel(repository, SavedStateHandle())
+
     @Test
     fun `create group adds to list`() = runTest {
         val repository = FakeSpoofRepository()
-        val viewModel = GroupsViewModel(repository)
+        val viewModel = groupsViewModel(repository)
 
         viewModel.state.test {
             assertTrue(awaitItem().groups.isEmpty())
@@ -33,7 +37,7 @@ class GroupsViewModelTest {
     fun `delete group removes from list`() = runTest {
         val repository = FakeSpoofRepository()
         repository.createGroup("ToDelete", "")
-        val viewModel = GroupsViewModel(repository)
+        val viewModel = groupsViewModel(repository)
 
         viewModel.state.test {
             val before = awaitItem()
@@ -48,19 +52,20 @@ class GroupsViewModelTest {
     @Test
     fun `export returns json data`() = runTest {
         val repository = FakeSpoofRepository()
-        val viewModel = GroupsViewModel(repository)
+        val viewModel = groupsViewModel(repository)
 
         var result: Result<String>? = null
         viewModel.exportGroups { result = it }
 
-        assertTrue(result!!.isSuccess)
-        assertTrue(result!!.getOrThrow().contains("groups"))
+        val exportResult = result ?: error("Export result was not delivered")
+        assertTrue(exportResult.isSuccess)
+        assertTrue(exportResult.getOrThrow().contains("groups"))
     }
 
     @Test
     fun `import malformed json returns false`() = runTest {
         val repository = FakeSpoofRepository()
-        val viewModel = GroupsViewModel(repository)
+        val viewModel = groupsViewModel(repository)
 
         var result = true
         viewModel.importGroups("not json") { result = it }

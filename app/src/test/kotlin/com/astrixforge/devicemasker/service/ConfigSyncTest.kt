@@ -88,9 +88,51 @@ class ConfigSyncTest {
         syncAppAsync(config, "com.example.target", prefs)
 
         assertTrue(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.target"), false))
+        assertNotNull(
+            prefs.getString(SharedPrefsKeys.getPersonaBlobKey("com.example.target"), null)
+        )
 
         clearAppAsync("com.example.target", prefs)
 
         assertFalse(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.target"), false))
+        assertEquals(
+            null,
+            prefs.getString(SharedPrefsKeys.getPersonaBlobKey("com.example.target"), null),
+        )
+    }
+
+    @Test
+    fun `sync packages updates enabled app allowlist and only requested package keys`() {
+        val prefs = FakeSharedPreferences()
+        val group = SpoofGroup.createNew("Scoped").copy(id = "group-scoped")
+        val config =
+            JsonConfig.createDefault()
+                .addOrUpdateGroup(group)
+                .setAppConfig(
+                    com.astrixforge.devicemasker.common.AppConfig(
+                        "com.example.one",
+                        groupId = group.id,
+                        isEnabled = true,
+                    )
+                )
+                .setAppConfig(
+                    com.astrixforge.devicemasker.common.AppConfig(
+                        "com.example.two",
+                        groupId = group.id,
+                        isEnabled = true,
+                    )
+                )
+
+        ConfigSync.syncPackages(config, setOf("com.example.one"), prefs)
+
+        assertEquals(
+            setOf("com.example.one", "com.example.two"),
+            prefs.getStringSet(SharedPrefsKeys.KEY_ENABLED_APPS, null),
+        )
+        assertTrue(prefs.getBoolean(SharedPrefsKeys.getAppEnabledKey("com.example.one"), false))
+        assertFalse(
+            "syncPackages must not write unrelated package app key",
+            prefs.contains(SharedPrefsKeys.getAppEnabledKey("com.example.two")),
+        )
     }
 }

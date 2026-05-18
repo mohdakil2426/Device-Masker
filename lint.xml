@@ -10,4 +10,16 @@
         <ignore path="docs/**" />
         <ignore path="local.properties" />
     </issue>
+    <issue id="UnusedResources">
+        <ignore path="app/src/main/res/drawable/ic_launcher_foreground.xml" />
+    </issue>
+    <issue id="OldTargetApi">
+        <ignore path="app/build.gradle.kts" />
+    </issue>
+    <issue id="GradleDependency">
+        <ignore path="gradle/libs.versions.toml" />
+    </issue>
+    <issue id="NewerVersionAvailable">
+        <ignore path="gradle/libs.versions.toml" />
+    </issue>
 </lint>

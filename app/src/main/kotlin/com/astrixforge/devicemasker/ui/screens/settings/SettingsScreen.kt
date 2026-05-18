@@ -4,27 +4,17 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,14 +23,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
+import com.astrixforge.devicemasker.ui.components.AppModalBottomSheet
 import com.astrixforge.devicemasker.ui.components.ScreenHeader
+import com.astrixforge.devicemasker.ui.components.expressive.QuickAction
+import com.astrixforge.devicemasker.ui.components.expressive.QuickActionRow
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
 /**
  * Settings screen for app preferences.
@@ -67,6 +59,7 @@ fun SettingsScreen(
     onShareLogs: () -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
+    onNavigateToLogsMonitor: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
 ) {
     var showThemeModeDialog by rememberSaveable { mutableStateOf(false) }
@@ -103,6 +96,7 @@ fun SettingsScreen(
         onDynamicColorChange = onDynamicColorChange,
         onExportLogsClick = { if (!isExportingLogs) showExportSheet = true },
         onNavigateToDiagnostics = onNavigateToDiagnostics,
+        onNavigateToLogsMonitor = onNavigateToLogsMonitor,
         modifier = modifier,
     )
     SettingsDialogsAndSheets(
@@ -124,57 +118,33 @@ fun SettingsScreen(
 internal fun ExportActionsBottomSheetContent(
     title: String,
     saveLabel: String,
-    saveDescription: String,
     shareLabel: String,
-    shareDescription: String,
     onSave: () -> Unit,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 16.dp),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                FilledTonalButton(
+    AppModalBottomSheet(onDismiss = onDismiss, modifier = modifier, title = title) {
+        QuickActionRow(
+            primaryAction =
+                QuickAction(
+                    label = saveLabel,
+                    icon = Icons.Outlined.Save,
                     onClick = {
                         onSave()
                         onDismiss()
                     },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(imageVector = Icons.Outlined.Save, contentDescription = saveDescription)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(saveLabel)
-                }
-
-                FilledTonalButton(
+                ),
+            secondaryAction =
+                QuickAction(
+                    label = shareLabel,
+                    icon = Icons.Outlined.Share,
                     onClick = {
                         onShare()
                         onDismiss()
                     },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(imageVector = Icons.Outlined.Share, contentDescription = shareDescription)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(shareLabel)
-                }
-            }
-        }
+                ),
+        )
     }
 }
 
@@ -194,6 +164,7 @@ internal fun SettingsScreenContent(
     onDynamicColorChange: (Boolean) -> Unit = {},
     onExportLogsClick: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
+    onNavigateToLogsMonitor: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -220,6 +191,7 @@ internal fun SettingsScreenContent(
                 isExportingLogs = isExportingLogs,
                 onExportLogsClick = onExportLogsClick,
                 onNavigateToDiagnostics = onNavigateToDiagnostics,
+                onNavigateToLogsMonitor = onNavigateToLogsMonitor,
             )
         }
 

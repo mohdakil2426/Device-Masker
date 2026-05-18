@@ -10,12 +10,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.components.dialog.ThemeModeDialog
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 
 @Composable
 internal fun settingsBuildTypeValue(): String =
@@ -41,8 +42,9 @@ internal fun isDarkModeActive(themeMode: ThemeMode): Boolean {
 internal fun exportResultMessage(exportResult: ExportResult?): String? =
     when (exportResult) {
         is ExportResult.Success ->
-            stringResource(
-                R.string.settings_export_logs_success,
+            pluralStringResource(
+                R.plurals.settings_export_logs_success,
+                exportResult.lineCount,
                 exportResult.lineCount,
                 exportResult.filePath,
             )
@@ -82,6 +84,7 @@ internal fun SettingsScreenFrame(
     onDynamicColorChange: (Boolean) -> Unit,
     onExportLogsClick: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
+    onNavigateToLogsMonitor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
@@ -99,6 +102,7 @@ internal fun SettingsScreenFrame(
             onDynamicColorChange = onDynamicColorChange,
             onExportLogsClick = onExportLogsClick,
             onNavigateToDiagnostics = onNavigateToDiagnostics,
+            onNavigateToLogsMonitor = onNavigateToLogsMonitor,
         )
         SnackbarHost(
             hostState = snackbarHostState,
@@ -133,9 +137,7 @@ internal fun SettingsDialogsAndSheets(
         ExportActionsBottomSheetContent(
             title = stringResource(R.string.settings_export_sheet_title),
             saveLabel = stringResource(R.string.settings_export_save),
-            saveDescription = stringResource(R.string.settings_export_save_desc),
             shareLabel = stringResource(R.string.settings_export_share),
-            shareDescription = stringResource(R.string.settings_export_share_desc),
             onSave = { exportLogsLauncher.launch(generateLogFileName()) },
             onShare = onShareLogs,
             onDismiss = { exportSheetChanged(false) },

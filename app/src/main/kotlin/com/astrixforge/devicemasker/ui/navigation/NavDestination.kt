@@ -23,6 +23,8 @@ sealed interface NavDestination : NavKey {
 
     @Serializable @SerialName("diagnostics") data object Diagnostics : NavDestination
 
+    @Serializable @SerialName("logs_monitor") data object LogsMonitor : NavDestination
+
     @Serializable
     @SerialName("group_spoofing")
     data class GroupSpoofing(val groupId: String) : NavDestination

@@ -18,8 +18,7 @@ import io.github.libxposed.api.error.XposedFrameworkError
  * ## Detection vectors covered
  * 1. Stack trace analysis — filters XposedBridge/LSPosed/YukiHookAPI frames from Thread/Throwable
  * 2. ClassLoader.loadClass() — prevents detection via direct classloader queries
- * 3. /proc/self/maps — filters Xposed native library paths from BufferedReader.readLine()
- * 4. PackageManager — hides LSPosed Manager, Magisk, VirtualXposed from PM queries
+ * 3. PackageManager — hides LSPosed Manager, Magisk, VirtualXposed from PM queries
  *
  * ## API 101 changes
  * - Extends nothing (no YukiBaseHooker)
@@ -67,18 +66,6 @@ object AntiDetectHooker {
             "org.jetbrains.",
         )
 
-    private val HIDDEN_LIBRARY_PATTERNS =
-        listOf(
-            "libxposed",
-            "liblspd",
-            "libriru",
-            "libsandhook",
-            "libpine",
-            "libwhale",
-            "libdobby",
-            "libsubstrate",
-        )
-
     private val HIDDEN_PACKAGES =
         setOf(
             "de.robv.android.xposed.installer",
@@ -102,7 +89,6 @@ object AntiDetectHooker {
             "Class lookup hiding skipped for target startup safety",
             eventType = DiagnosticEventType.HOOK_SKIPPED,
         )
-        hookProcMaps(cl, xi)
         AntiDetectPackageManagerHooks.hook(cl, xi, HIDDEN_PACKAGES)
 
         DualLog.debug(TAG, "Anti-detection hooks registered for: $pkg")
@@ -250,43 +236,6 @@ object AntiDetectHooker {
             throw e
         } catch (t: Throwable) {
             DualLog.warn(TAG, "Class.forName() hook failed", t)
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // /proc/self/maps hook via BufferedReader.readLine()
-    // ─────────────────────────────────────────────────────────────
-
-    private fun hookProcMaps(cl: ClassLoader, xi: XposedInterface) {
-        try {
-            val brClass = cl.loadClass("java.io.BufferedReader")
-            brClass
-                .getDeclaredMethod("readLine")
-                .also { it.isAccessible = true }
-                .let { m ->
-                    xi.hook(m)
-                        .intercept(
-                            stableHooker { chain ->
-                                val result = chain.proceed()
-                                val line = result as? String
-                                if (
-                                    line != null &&
-                                        HIDDEN_LIBRARY_PATTERNS.any {
-                                            line.contains(it, ignoreCase = true)
-                                        }
-                                ) {
-                                    ""
-                                } else {
-                                    result
-                                }
-                            }
-                        )
-                    xi.deoptimize(m)
-                }
-        } catch (e: XposedFrameworkError) {
-            throw e
-        } catch (t: Throwable) {
-            DualLog.warn(TAG, "BufferedReader.readLine() hook failed", t)
         }
     }
 

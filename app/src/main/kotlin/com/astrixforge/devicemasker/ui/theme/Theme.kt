@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.astrixforge.devicemasker.data.models.ThemeMode
 
 /**
  * AMOLED Dark Color Scheme.
@@ -199,14 +200,18 @@ private fun dynamicColorScheme(
 
 @RequiresApi(Build.VERSION_CODES.S)
 private fun dynamicAmoledColorScheme(context: Context): ColorScheme =
-    dynamicDarkColorScheme(context)
-        .copy(
-            background = AmoledBlack,
-            surface = AmoledBlack,
-            surfaceContainer = AmoledSurfaceContainer,
-            surfaceContainerLow = AmoledSurface,
-            surfaceContainerLowest = AmoledBlack,
-        )
+    dynamicDarkColorScheme(context).withAmoledSurfaces()
+
+internal fun ColorScheme.withAmoledSurfaces(): ColorScheme =
+    copy(
+        background = AmoledBlack,
+        surface = AmoledBlack,
+        surfaceContainer = AmoledSurfaceContainer,
+        surfaceContainerHigh = AmoledSurfaceContainerHigh,
+        surfaceContainerHighest = AmoledSurfaceContainerHighest,
+        surfaceContainerLow = AmoledSurface,
+        surfaceContainerLowest = AmoledBlack,
+    )
 
 private fun customDarkColorScheme(amoledBlack: Boolean): ColorScheme =
     if (amoledBlack) {

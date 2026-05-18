@@ -9,12 +9,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 
 @Composable
 internal fun GroupsScreenBody(
     groups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     isRefreshing: Boolean,
     snackbarHostState: SnackbarHostState,
     onGroupClick: (SpoofGroup) -> Unit,
@@ -30,6 +33,7 @@ internal fun GroupsScreenBody(
     Box(modifier = modifier.fillMaxSize()) {
         GroupsScreenContent(
             groups = groups,
+            appConfigs = appConfigs,
             isRefreshing = isRefreshing,
             onGroupClick = onGroupClick,
             onCreateGroup = onCreateGroup,

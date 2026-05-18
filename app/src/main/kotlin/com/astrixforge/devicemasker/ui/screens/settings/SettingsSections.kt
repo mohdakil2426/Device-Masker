@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DarkMode
@@ -19,20 +19,20 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.ui.components.SettingsClickableItem
 import com.astrixforge.devicemasker.ui.components.SettingsClickableItemWithValue
 import com.astrixforge.devicemasker.ui.components.SettingsInfoItem
 import com.astrixforge.devicemasker.ui.components.SettingsSection
 import com.astrixforge.devicemasker.ui.components.SettingsSwitchItem
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
+import com.astrixforge.devicemasker.ui.components.expressive.CompactLoadingIndicator
 
 @Composable
 internal fun AppearanceSettingsSection(
@@ -98,6 +98,7 @@ internal fun DebugSettingsSection(
     isExportingLogs: Boolean,
     onExportLogsClick: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
+    onNavigateToLogsMonitor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SettingsSection(title = stringResource(id = R.string.settings_debug), modifier = modifier) {
@@ -117,7 +118,17 @@ internal fun DebugSettingsSection(
                     stringResource(id = R.string.settings_export_logs_description)
                 },
             onClick = { if (!isExportingLogs) onExportLogsClick() },
-            trailingContent = if (isExportingLogs) ({ SettingsLoadingIndicator() }) else null,
+            trailingContent =
+                if (isExportingLogs)
+                    ({ CompactLoadingIndicator(modifier = Modifier.padding(end = 8.dp)) })
+                else null,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsClickableItem(
+            icon = Icons.Outlined.Article,
+            title = stringResource(id = R.string.settings_logs_monitor),
+            description = stringResource(id = R.string.settings_logs_monitor_description),
+            onClick = onNavigateToLogsMonitor,
         )
         Spacer(modifier = Modifier.height(8.dp))
         SettingsClickableItem(
@@ -154,11 +165,6 @@ internal fun AboutSettingsSection(
             value = moduleInfoValue,
         )
     }
-}
-
-@Composable
-private fun SettingsLoadingIndicator() {
-    ContainedLoadingIndicator(modifier = Modifier.padding(end = 8.dp).width(24.dp).height(24.dp))
 }
 
 private fun ThemeMode.icon() =

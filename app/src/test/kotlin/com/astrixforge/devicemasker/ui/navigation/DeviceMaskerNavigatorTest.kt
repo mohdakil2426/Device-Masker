@@ -37,6 +37,22 @@ class DeviceMaskerNavigatorTest {
     }
 
     @Test
+    fun navigateToLogsMonitorUsesSettingsStack() {
+        val state = DeviceMaskerNavigationState()
+        val navigator = DeviceMaskerNavigator(state)
+
+        navigator.navigateToLogsMonitor()
+
+        assertEquals(NavDestination.Settings, state.topLevelDestination)
+        assertEquals(NavDestination.LogsMonitor, state.currentDestination)
+        assertEquals(
+            listOf(NavDestination.Settings, NavDestination.LogsMonitor),
+            state.currentBackStack,
+        )
+        assertTrue(state.isFocusScreen)
+    }
+
+    @Test
     fun restoredTopLevelDestinationUsesRestoredStack() {
         val state =
             DeviceMaskerNavigationState(restoredTopLevelDestination = NavDestination.Settings)
@@ -44,6 +60,17 @@ class DeviceMaskerNavigatorTest {
         assertEquals(NavDestination.Settings, state.topLevelDestination)
         assertEquals(NavDestination.Settings, state.currentDestination)
         assertEquals(listOf(NavDestination.Settings), state.visibleBackStack)
+    }
+
+    @Test
+    fun visibleBackStackCannotMutateNavigationState() {
+        val state = DeviceMaskerNavigationState()
+
+        val exposedStack = state.visibleBackStack
+
+        assertFalse(exposedStack is MutableList<*>)
+        assertEquals(listOf(NavDestination.Home), exposedStack)
+        assertEquals(NavDestination.Home, state.currentDestination)
     }
 
     @Test

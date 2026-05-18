@@ -81,7 +81,7 @@ subprojects {
 
 spotless {
     kotlin {
-        target("app/**/*.kt", "common/**/*.kt", "xposed/**/*.kt")
+        target("app/**/*.kt", "common/**/*.kt", "xposed/**/*.kt", "verifier/**/*.kt")
         targetExclude("**/build/**/*.kt")
         targetExclude("**/memory-bank/**")
         targetExclude("**/openspec/**")
@@ -103,6 +103,7 @@ spotless {
             "app/**/*.gradle.kts",
             "common/**/*.gradle.kts",
             "xposed/**/*.gradle.kts",
+            "verifier/**/*.gradle.kts",
         )
         targetExclude("**/build/**/*.gradle.kts")
         targetExclude("**/memory-bank/**")

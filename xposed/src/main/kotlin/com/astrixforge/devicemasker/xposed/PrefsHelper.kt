@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.xposed
 
 import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DevicePersona
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
 import com.astrixforge.devicemasker.common.SpoofType
 
@@ -39,7 +40,7 @@ object PrefsHelper {
         if (!typeEnabled) return null
 
         val stored = prefs.getString(SharedPrefsKeys.getSpoofValueKey(packageName, type), null)
-        return stored?.takeIf { it.isNotBlank() }
+        return stored?.takeIf { it.isNotBlank() } ?: getPersonaSpoofValue(prefs, packageName, type)
     }
 
     /**
@@ -79,4 +80,15 @@ object PrefsHelper {
     fun isClassLookupHidingEnabled(prefs: SharedPreferences, packageName: String): Boolean =
         areRiskyHooksEnabled(prefs, packageName) &&
             prefs.getBoolean(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName), false)
+
+    private fun getPersonaSpoofValue(
+        prefs: SharedPreferences,
+        packageName: String,
+        type: SpoofType,
+    ): String? {
+        val personaJson = prefs.getString(SharedPrefsKeys.getPersonaBlobKey(packageName), null)
+        val persona = DevicePersona.parseOrNull(personaJson) ?: return null
+        if (persona.packageName != packageName) return null
+        return persona.getValue(type)?.takeIf { it.isNotBlank() }
+    }
 }

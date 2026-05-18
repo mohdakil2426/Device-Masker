@@ -1,6 +1,5 @@
 package com.astrixforge.devicemasker.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,14 +18,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -37,13 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @Composable
 fun AppListItem(
@@ -52,10 +44,12 @@ fun AppListItem(
     assignedToOtherGroupName: String?,
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    isAppEnabled: Boolean = true,
 ) {
-    val isDisabled = assignedToOtherGroupName != null
+    val isDisabled = assignedToOtherGroupName != null || !isAppEnabled
     val assignedState = stringResource(R.string.group_app_selected_state)
     val unassignedState = stringResource(R.string.group_app_unselected_state)
+    val iconCache = rememberAppIconCache()
 
     ExpressiveCard(
         onClick = { onToggle(!isAssigned) },
@@ -74,8 +68,10 @@ fun AppListItem(
         AppListItemContent(
             app = app,
             isAssigned = isAssigned,
+            isAppEnabled = isAppEnabled,
             assignedToOtherGroupName = assignedToOtherGroupName,
             toggleRequested = onToggle,
+            iconCache = iconCache,
         )
     }
 }
@@ -84,8 +80,10 @@ fun AppListItem(
 private fun AppListItemContent(
     app: InstalledApp,
     isAssigned: Boolean,
+    isAppEnabled: Boolean,
     assignedToOtherGroupName: String?,
     toggleRequested: (Boolean) -> Unit,
+    iconCache: AppIconCache,
 ) {
     val isDisabled = assignedToOtherGroupName != null
     Row(
@@ -93,9 +91,10 @@ private fun AppListItemContent(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(app = app)
+        CachedAppIcon(packageName = app.packageName, label = app.label, iconCache = iconCache)
         AppDetails(
             app = app,
+            isAppEnabled = isAppEnabled,
             assignedToOtherGroupName = assignedToOtherGroupName,
             modifier = Modifier.weight(1f),
         )
@@ -110,6 +109,7 @@ private fun AppListItemContent(
 @Composable
 private fun AppDetails(
     app: InstalledApp,
+    isAppEnabled: Boolean,
     assignedToOtherGroupName: String?,
     modifier: Modifier = Modifier,
 ) {
@@ -123,7 +123,7 @@ private fun AppDetails(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = appSubtitle(app.packageName, assignedToOtherGroupName),
+            text = appSubtitle(app.packageName, isAppEnabled, assignedToOtherGroupName),
             style = MaterialTheme.typography.bodySmall,
             color =
                 if (isDisabled) {
@@ -138,11 +138,16 @@ private fun AppDetails(
 }
 
 @Composable
-private fun appSubtitle(packageName: String, assignedToOtherGroupName: String?): String =
-    if (assignedToOtherGroupName != null) {
-        stringResource(id = R.string.group_spoofing_assigned_to, assignedToOtherGroupName)
-    } else {
-        packageName
+private fun appSubtitle(
+    packageName: String,
+    isAppEnabled: Boolean,
+    assignedToOtherGroupName: String?,
+): String =
+    when {
+        assignedToOtherGroupName != null ->
+            stringResource(id = R.string.group_spoofing_assigned_to, assignedToOtherGroupName)
+        !isAppEnabled -> stringResource(id = R.string.group_spoofing_app_disabled_by_home)
+        else -> packageName
     }
 
 @Composable
@@ -167,38 +172,6 @@ private fun AppAssignmentControl(
     }
 }
 
-@Composable
-private fun AppIcon(app: InstalledApp, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val iconBitmap by
-        produceState<androidx.compose.ui.graphics.ImageBitmap?>(
-            initialValue = null,
-            app.packageName,
-        ) {
-            value =
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                            context.packageManager
-                                .getApplicationIcon(app.packageName)
-                                .toBitmap(width = APP_ICON_SIZE_PX, height = APP_ICON_SIZE_PX)
-                                .asImageBitmap()
-                        }
-                        .getOrNull()
-                }
-        }
-
-    if (iconBitmap != null) {
-        Image(
-            bitmap = iconBitmap!!,
-            contentDescription = app.label,
-            modifier = modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
-        )
-    } else {
-        AppIconFallback(modifier = modifier)
-    }
-}
-
-private const val APP_ICON_SIZE_PX = 80
 private const val DISABLED_ALPHA = 0.6f
 
 @Composable

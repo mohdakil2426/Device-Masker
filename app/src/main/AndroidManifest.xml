@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.QUERY_ADVANCED_PROTECTION_MODE" />
     <!-- Android 10+: Uses MediaStore API (no permission needed for Downloads) -->
 
     <application
@@ -113,6 +114,15 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Local root diagnostics capture for LSPosed module validation and support bundles" />
+        </service>
+
+        <service
+            android:name=".service.logmonitor.LiveLogCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started live logcat monitor for local LSPosed module debugging" />
         </service>
 
     </application>

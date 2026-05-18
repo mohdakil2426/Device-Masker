@@ -4,7 +4,7 @@
 
 Device Masker is an Android LSPosed/libxposed module for privacy research and controlled per-app device identity spoofing. It has a Compose app for configuration, a shared `:common` contract module, and a `:xposed` hook layer that runs inside scoped target app processes.
 
-The project is active development, not a stable release. As of 2026-05-02, the app has its first verified working base: `com.mantle.verify` launched under LSPosed after the latest crash remediation, Device Masker hooks registered, and LSPosed logs showed live spoof events for multiple identifiers.
+The project is active development, not a stable release. Current emulator evidence is strong for the tested Android 16 paths, but stable-release claims still require broader target-app and configuration-state validation.
 
 ## Core Goal
 
@@ -35,19 +35,44 @@ Device Masker does not attempt:
 
 ## Current Verified State
 
-Latest full gate (post-Master Implementation Plan 2026-05-04 M3E follow-up):
+Latest performance/warning cleanup gates on 2026-05-18:
 
 ```powershell
-.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache
 ```
 
 Result: `BUILD SUCCESSFUL`.
+
+Current performance/warning cleanup state:
+- Home scoped-app loading uses scoped package metadata and no longer full-scans installed apps on startup.
+- App icon decoding is centralized in bounded `AppIconCache`.
+- Config sync supports dirty package writes through `ConfigSync.syncPackages()` while full sync remains available for global/import/repair flows.
+- `:xposed` builds one `HookConfigSnapshot` per selected package and value hook callbacks read from that snapshot.
+- Support bundle JSONL export streams entries into the ZIP instead of joining large logs in memory.
+- Group Spoofing app rows are derived as `AppRowModel` in the ViewModel.
+- App/common/xposed/verifier lint reports say `No issues found`.
+- This work has local unit/static/build/R8 proof only; do not claim fresh target-device hook proof from it.
 
 Latest Detekt strictness state as of 2026-05-08:
 - Detekt runs with `allRules=true`.
 - `:app`, `:common`, and `:xposed` baselines are empty.
 - `.\gradlew.bat detekt --no-daemon --stacktrace` passes after baseline regeneration.
 - Keep baselines at zero unless accepted existing debt is explicitly documented.
+
+Release 0.1.5 hardening branch state as of 2026-05-09:
+- `:common` uses one shared Luhn helper for IMEI, ICCID, and persona check digits.
+- Config sync writes both flat RemotePreferences keys and a coherent per-package `DevicePersona` blob/version.
+- Config sync and Xposed target selection now require current canonical `appConfigs` assignment and the enabled-app allowlist, preventing stale `app_enabled_*` preferences from activating hooks.
+- `:xposed` profile coverage now includes enriched Build fields, Build.VERSION fields, ABI properties, PackageManager feature checks, SIM count, and subscription count.
+- `:verifier` exists as a separate local target app for controlled runtime evidence.
+- Full local gate and Android 13 Mantle smoke passed for the implemented safe track.
+- Java-first proc-maps hardening is implemented through path-aware `ProcMapsHooker`; byte/NIO redaction is per-app opt-in.
+- Native maps redaction and system_server package hiding are still not implemented and must stay advanced, opt-in, separately validated work.
+- Android 16 emulator DevCheck debug and local debug-key-signed `ciRelease`/R8 smokes passed on `emulator-5554` / Pixel 10 Pro XL API 36.1.
+- Android 16 verifier matrix now confirms configured emulator surfaces including restricted identifiers, direct latitude/longitude getters, WebView default UA, and WebView instance UA. `LOCATION_LAST_KNOWN` remains an unsupported optional probe when Android has no last-known provider object after reboot.
+- Physical-device Android 16 evidence remains separate and must not be inferred from emulator evidence.
 
 Master Implementation Plan status on 2026-05-04:
 - Phase 0: Safety & Stability core fixes complete.
@@ -81,7 +106,7 @@ Latest release R8 runtime check:
 
 ## Development Status
 
-Current status: working development base with release R8 enabled, emulator smoke coverage on Mantle and DevCheck, and user-reported success on a real Android 16 device. The project is not stable until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
+Current status: working development base with release R8 enabled, Android 16 emulator smoke coverage on Mantle/DevCheck/verifier, and user-reported success on a real Android 16 device. The project is not a stable release until broader LSPosed validation passes across more target apps, more Android versions, and enabled/disabled/malformed config scenarios.
 
 Known stability decisions:
 - Release shrinking/minification is enabled after replacing direct libxposed SAM/lambda callbacks with the `StableHooker` adapter path.

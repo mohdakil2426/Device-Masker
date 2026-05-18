@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.EmptyState
@@ -58,7 +59,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 
 /**
  * Screen for managing spoof groups.
@@ -100,6 +103,7 @@ fun GroupsScreen(
     val timestampFormatter = remember { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US) }
     GroupsScreenBody(
         groups = state.groups,
+        appConfigs = state.appConfigs,
         isRefreshing = state.isRefreshing,
         snackbarHostState = snackbarHostState,
         onGroupClick = onGroupClick,
@@ -135,6 +139,7 @@ fun GroupsScreen(
 @Composable
 fun GroupsScreenContent(
     groups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     isRefreshing: Boolean,
     onGroupClick: (SpoofGroup) -> Unit,
     onCreateGroup: () -> Unit,
@@ -154,6 +159,7 @@ fun GroupsScreenContent(
         ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = {}) {
             GroupsList(
                 groups = groups,
+                appConfigs = appConfigs,
                 onGroupClick = onGroupClick,
                 onEditGroup = onEditGroup,
                 onDeleteGroup = onDeleteGroup,
@@ -238,6 +244,7 @@ private fun GroupsOverflowMenu(
 @Composable
 private fun GroupsList(
     groups: ImmutableList<SpoofGroup>,
+    appConfigs: ImmutableMap<String, AppConfig>,
     onGroupClick: (SpoofGroup) -> Unit,
     onEditGroup: (SpoofGroup) -> Unit,
     onDeleteGroup: (SpoofGroup) -> Unit,
@@ -263,6 +270,7 @@ private fun GroupsList(
                 GroupCard(
                     group = group,
                     isEnabled = group.isEnabled,
+                    appCount = appConfigs.countAssignedToGroup(group.id),
                     onClick = dropUnlessResumed { onGroupClick(group) },
                     onEdit = { onEditGroup(group) },
                     onDelete = { onDeleteGroup(group) },
@@ -283,6 +291,9 @@ private fun GroupsEmptyState() {
         subtitle = stringResource(id = R.string.group_create_new),
     )
 }
+
+private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String): Int =
+    values.count { it.groupId == groupId && it.isEnabled }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -360,6 +371,7 @@ private fun GroupsScreenContentPreview() {
                     SpoofGroup.createNew("Samsung Galaxy S24"),
                     SpoofGroup.createNew("Pixel 9 Pro"),
                 ),
+            appConfigs = persistentMapOf(),
             isRefreshing = false,
             onGroupClick = {},
             onCreateGroup = {},
@@ -376,6 +388,7 @@ private fun GroupsScreenEmptyPreview() {
     DeviceMaskerTheme {
         GroupsScreenContent(
             groups = persistentListOf(),
+            appConfigs = persistentMapOf(),
             isRefreshing = false,
             onGroupClick = {},
             onCreateGroup = {},

@@ -53,8 +53,8 @@ object ConfigManager : IConfigManager {
     private const val TAG = "ConfigManager"
     private const val CONFIG_FILE_NAME = "config.json"
 
-    private lateinit var configFile: AtomicFile
-    private lateinit var appContext: Context
+    private var configFile: AtomicFile? = null
+    private var appContext: Context? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // In-memory configuration
@@ -68,6 +68,12 @@ object ConfigManager : IConfigManager {
     private val initGeneration = AtomicInteger(0)
     private val saveMutex = Mutex()
 
+    private sealed interface SyncHint {
+        data object Full : SyncHint
+
+        data class Packages(val packageNames: Set<String>) : SyncHint
+    }
+
     /**
      * Initializes the ConfigManager with application context. Must be called in
      * Application.onCreate() or MainActivity.
@@ -78,9 +84,11 @@ object ConfigManager : IConfigManager {
             return
         }
 
-        appContext = context.applicationContext
-        configFile = AtomicFile(File(context.filesDir, CONFIG_FILE_NAME))
-        Timber.tag(TAG).d("Config file: ${configFile.baseFile.absolutePath}")
+        val applicationContext = context.applicationContext
+        val localConfigFile = AtomicFile(File(applicationContext.filesDir, CONFIG_FILE_NAME))
+        appContext = applicationContext
+        configFile = localConfigFile
+        Timber.tag(TAG).d("Config file: ${localConfigFile.baseFile.absolutePath}")
 
         val generation = initGeneration.incrementAndGet()
         scope.launch {
@@ -99,12 +107,13 @@ object ConfigManager : IConfigManager {
         withContext(Dispatchers.IO) {
             try {
                 // Try loading from local file first
-                if (configFile.baseFile.exists()) {
-                    val json = String(configFile.readFully())
+                val localConfigFile = requireConfigFile()
+                if (localConfigFile.baseFile.exists()) {
+                    val json = String(localConfigFile.readFully())
                     val loadedConfig =
                         JsonConfig.parse(json).withDerivedAppConfigsFromAssignedApps()
                     _config.value = loadedConfig
-                    ConfigSync.syncFromConfig(appContext, loadedConfig)
+                    ConfigSync.syncFromConfig(requireAppContext(), loadedConfig)
                     Timber.tag(TAG).i("Config loaded from local file")
                     return@withContext
                 }
@@ -134,22 +143,29 @@ object ConfigManager : IConfigManager {
         saveConfigInternal(defaultConfig, generation)
     }
 
+    private fun requireConfigFile(): AtomicFile =
+        checkNotNull(configFile) { "ConfigManager not initialized. Call init() first." }
+
+    private fun requireAppContext(): Context =
+        checkNotNull(appContext) { "ConfigManager not initialized. Call init() first." }
+
     private inline fun writeConfigFile(config: JsonConfig, writeFailed: (Throwable) -> Nothing) {
-        val stream = configFile.startWrite()
+        val localConfigFile = requireConfigFile()
+        val stream = localConfigFile.startWrite()
         try {
             stream.write(config.toJsonString().toByteArray())
-            configFile.finishWrite(stream)
+            localConfigFile.finishWrite(stream)
         } catch (error: IOException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         } catch (error: SerializationException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         } catch (error: IllegalArgumentException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         } catch (error: IllegalStateException) {
-            configFile.failWrite(stream)
+            localConfigFile.failWrite(stream)
             writeFailed(error)
         }
     }
@@ -158,14 +174,18 @@ object ConfigManager : IConfigManager {
         Timber.tag(TAG).e(error, "Failed to save config")
     }
 
-    private suspend fun persistAndSyncConfig(config: JsonConfig) {
+    private suspend fun persistAndSyncConfig(config: JsonConfig, syncHint: SyncHint) {
         try {
             // 1. Persist raw JSON locally as a backup and for UI reload on next launch
             writeConfigFile(config) { throw it }
             Timber.tag(TAG).d("Config saved to local file")
 
             // 2. Flatten per-app keys into RemotePreferences (live delivery to hooks)
-            ConfigSync.syncFromConfig(appContext, config)
+            when (syncHint) {
+                SyncHint.Full -> ConfigSync.syncFromConfig(requireAppContext(), config)
+                is SyncHint.Packages ->
+                    ConfigSync.syncPackages(requireAppContext(), config, syncHint.packageNames)
+            }
             Timber.tag(TAG).d("Config synced to RemotePreferences")
         } catch (e: IOException) {
             logSaveFailure(e)
@@ -179,16 +199,17 @@ object ConfigManager : IConfigManager {
     }
 
     private fun preserveCorruptedConfig() {
-        if (!configFile.baseFile.exists()) return
+        val localConfigFile = requireConfigFile()
+        if (!localConfigFile.baseFile.exists()) return
         val backup =
             File(
-                configFile.baseFile.parentFile,
+                localConfigFile.baseFile.parentFile,
                 "$CONFIG_FILE_NAME.corrupted.${System.currentTimeMillis()}",
             )
         val preserved =
             runCatching {
-                    configFile.baseFile.copyTo(backup, overwrite = true)
-                    configFile.baseFile.delete()
+                    localConfigFile.baseFile.copyTo(backup, overwrite = true)
+                    localConfigFile.baseFile.delete()
                 }
                 .isSuccess
         if (preserved) {
@@ -200,14 +221,18 @@ object ConfigManager : IConfigManager {
 
     /** Saves the current configuration to local file and syncs to service. */
     override fun saveConfig() {
+        saveConfig(SyncHint.Full)
+    }
+
+    private fun saveConfig(syncHint: SyncHint) {
         val generation = initGeneration.get()
         val snapshot = _config.value
-        scope.launch { saveConfigInternal(snapshot, generation) }
+        scope.launch { saveConfigInternal(snapshot, generation, syncHint) }
     }
 
     override fun syncCurrentConfig() {
-        if (!::appContext.isInitialized) return
-        scope.launch { ConfigSync.syncFromConfig(appContext, _config.value) }
+        val context = appContext ?: return
+        scope.launch { ConfigSync.syncFromConfig(context, _config.value) }
     }
 
     /**
@@ -220,19 +245,26 @@ object ConfigManager : IConfigManager {
      *
      * No AIDL service write — config delivery is exclusively via RemotePreferences.
      */
-    private suspend fun saveConfigInternal(config: JsonConfig, generation: Int) {
+    private suspend fun saveConfigInternal(
+        config: JsonConfig,
+        generation: Int,
+        syncHint: SyncHint = SyncHint.Full,
+    ) {
         withContext(Dispatchers.IO) {
             saveMutex.withLock {
                 if (initGeneration.get() != generation) return@withLock
-                persistAndSyncConfig(config)
+                persistAndSyncConfig(config, syncHint)
             }
         }
     }
 
     /** Updates the configuration and saves. */
-    private fun updateConfig(transform: (JsonConfig) -> JsonConfig) {
+    private fun updateConfig(
+        syncHint: SyncHint = SyncHint.Full,
+        transform: (JsonConfig) -> JsonConfig,
+    ) {
         _config.update(transform)
-        saveConfig()
+        saveConfig(syncHint)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -276,7 +308,32 @@ object ConfigManager : IConfigManager {
     /** Updates an existing group. */
     override fun updateGroup(group: SpoofGroup) {
         val updatedGroup = group.copy(updatedAt = System.currentTimeMillis())
-        updateConfig { it.addOrUpdateGroup(updatedGroup) }
+        updateConfig(syncHint = SyncHint.Packages(packagesAssignedToGroup(group.id))) {
+            it.addOrUpdateGroup(updatedGroup)
+        }
+    }
+
+    /** Sets the default group through one config transform. */
+    override fun setDefaultGroup(groupId: String) {
+        updateConfig { config ->
+            if (config.getGroup(groupId) == null) return@updateConfig config
+
+            val updatedAt = System.currentTimeMillis()
+            config.copy(
+                groups =
+                    config.groups.mapValues { (id, group) ->
+                        group.copy(
+                            isDefault = id == groupId,
+                            updatedAt =
+                                if (id == groupId || group.isDefault) {
+                                    updatedAt
+                                } else {
+                                    group.updatedAt
+                                },
+                        )
+                    }
+            )
+        }
     }
 
     /** Deletes a group. */
@@ -344,7 +401,7 @@ object ConfigManager : IConfigManager {
 
     /** Assigns an app to a group. */
     override fun assignAppToGroup(packageName: String, groupId: String) {
-        updateConfig { config ->
+        updateConfig(syncHint = SyncHint.Packages(setOf(packageName))) { config ->
             if (config.getGroup(groupId) == null) return@updateConfig config
 
             val groups =
@@ -358,7 +415,7 @@ object ConfigManager : IConfigManager {
                     }
                 }
             val appConfig =
-                config.getAppConfig(packageName)?.copy(groupId = groupId, isEnabled = true)
+                config.getAppConfig(packageName)?.copy(groupId = groupId)
                     ?: AppConfig(packageName = packageName, groupId = groupId)
             config.copy(groups = groups).setAppConfig(appConfig)
         }
@@ -366,7 +423,7 @@ object ConfigManager : IConfigManager {
 
     /** Unassigns an app from its group. */
     override fun unassignApp(packageName: String) {
-        updateConfig { config ->
+        updateConfig(syncHint = SyncHint.Packages(setOf(packageName))) { config ->
             val groups =
                 config.groups.mapValues { (_, group) ->
                     if (packageName in group.assignedApps) {
@@ -375,7 +432,11 @@ object ConfigManager : IConfigManager {
                         group
                     }
                 }
-            config.copy(groups = groups).removeAppConfig(packageName)
+            val currentAppConfig = config.getAppConfig(packageName)
+            val configWithoutGroup =
+                currentAppConfig?.copy(groupId = null)
+                    ?: AppConfig(packageName = packageName, groupId = null)
+            config.copy(groups = groups).setAppConfig(configWithoutGroup)
         }
     }
 
@@ -384,22 +445,35 @@ object ConfigManager : IConfigManager {
         val appConfig =
             getAppConfig(packageName)?.copy(isEnabled = enabled)
                 ?: AppConfig(packageName = packageName, isEnabled = enabled)
-        updateConfig { it.setAppConfig(appConfig) }
+        updateConfig(syncHint = SyncHint.Packages(setOf(packageName))) {
+            it.setAppConfig(appConfig)
+        }
     }
 
     override fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {
         val appConfig =
             (getAppConfig(packageName) ?: AppConfig(packageName = packageName))
                 .withRiskyHooksEnabled(enabled)
-        updateConfig { it.setAppConfig(appConfig) }
+        updateConfig(syncHint = SyncHint.Packages(setOf(packageName))) {
+            it.setAppConfig(appConfig)
+        }
     }
 
     override fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean) {
         val appConfig =
             (getAppConfig(packageName) ?: AppConfig(packageName = packageName))
                 .withClassLookupHidingEnabled(enabled)
-        updateConfig { it.setAppConfig(appConfig) }
+        updateConfig(syncHint = SyncHint.Packages(setOf(packageName))) {
+            it.setAppConfig(appConfig)
+        }
     }
+
+    private fun packagesAssignedToGroup(groupId: String): Set<String> =
+        _config.value.appConfigs.values
+            .asSequence()
+            .filter { it.groupId == groupId }
+            .map { it.packageName }
+            .toSet()
 
     /** Resets initialization state for tests. */
     internal fun resetForTests() {

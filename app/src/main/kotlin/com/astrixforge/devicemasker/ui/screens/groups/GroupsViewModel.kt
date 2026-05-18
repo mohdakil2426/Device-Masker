@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.astrixforge.devicemasker.data.models.SpoofGroup
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -21,18 +22,22 @@ import kotlinx.coroutines.launch
  */
 class GroupsViewModel(
     private val repository: ISpoofRepository,
-    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupsState())
     val state: StateFlow<GroupsState> = _state.asStateFlow()
 
     init {
-        // Collect groups
         viewModelScope.launch {
-            repository.getAllGroups().collect { groups ->
-                _state.update { it.copy(groups = groups.toImmutableList(), isLoading = false) }
-            }
+            combine(repository.getAllGroups(), repository.appConfigs) { groups, appConfigs ->
+                    GroupsState(
+                        groups = groups.toImmutableList(),
+                        appConfigs = appConfigs.toImmutableMap(),
+                        isLoading = false,
+                    )
+                }
+                .collect { groupsState -> _state.value = groupsState }
         }
     }
 

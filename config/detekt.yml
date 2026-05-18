@@ -406,16 +406,16 @@ performance:
     active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
   SpreadOperator:
-    active: false
+    active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
   UnnecessaryInitOnArray:
-    active: false
+    active: true
   UnnecessaryPartOfBinaryExpression:
-    active: false
+    active: true
   UnnecessaryTemporaryInstantiation:
     active: true
   UnnecessaryTypeCasting:
-    active: false
+    active: true
 
 potential-bugs:
   active: true
@@ -431,7 +431,7 @@ potential-bugs:
   CharArrayToStringCall:
     active: true
   Deprecation:
-    active: false
+    active: true
     aliases: ['DEPRECATION']
     excludeImportStatements: false
   DontDowncastCollectionTypes:
@@ -491,7 +491,7 @@ potential-bugs:
   IteratorNotThrowingNoSuchElementException:
     active: true
   LateinitUsage:
-    active: false
+    active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
     ignoreOnClassesPattern: ''
   MapGetWithNotNullAssertionOperator:
@@ -510,13 +510,13 @@ potential-bugs:
       - 'java.io.ByteArrayInputStream'
       - 'java.io.ByteArrayOutputStream'
   NullCheckOnMutableProperty:
-    active: false
+    active: true
   NullableToStringCall:
-    active: false
+    active: true
   PropertyUsedBeforeDeclaration:
-    active: false
+    active: true
   UnconditionalJumpStatementInLoop:
-    active: false
+    active: true
   UnnamedParameterUse:
     active: false
     allowAdjacentDifferentTypeParams: true

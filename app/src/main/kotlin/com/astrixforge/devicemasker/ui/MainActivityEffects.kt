@@ -10,14 +10,22 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessState
 import com.astrixforge.devicemasker.service.diagnostics.RootLogCaptureService
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
+import kotlinx.coroutines.delay
+
+private const val STARTUP_ROOT_CAPTURE_DELAY_MILLIS = 1500L
 
 @Composable
 internal fun RequestStartupRootCapture(appContext: Context) {
-    LaunchedEffect(Unit) { requestRootAndCaptureStartup(appContext, force = false) }
+    LaunchedEffect(Unit) {
+        withFrameNanos {}
+        delay(STARTUP_ROOT_CAPTURE_DELAY_MILLIS)
+        requestRootAndCaptureStartup(appContext, force = false)
+    }
 }
 
 @Composable

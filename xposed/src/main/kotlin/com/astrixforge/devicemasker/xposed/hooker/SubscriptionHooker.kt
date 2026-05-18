@@ -1,7 +1,8 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.hooker.callback.stableHooker
 import io.github.libxposed.api.XposedInterface
 
@@ -20,8 +21,8 @@ import io.github.libxposed.api.XposedInterface
  * - SubscriptionInfo.getMnc() / getMncString() — Mobile Network Code
  * - SubscriptionInfo.getNumber() — phone number
  * - SubscriptionInfo.getSubscriberId() — IMSI (via SubscriptionInfo on newer APIs)
- * - SubscriptionManager.getActiveSubscriptionInfoList() — preserves list shape; individual
- *   SubscriptionInfo getters are spoofed when apps inspect each entry
+ * - SubscriptionManager.getActiveSubscriptionInfoCount() — profile-consistent active SIM count
+ * - SubscriptionManager.getActiveSubscriptionInfoCountMax() — profile-consistent maximum SIM count
  *
  * ## SIM count consistency
  * We do NOT hide SIM slots unless the device preset indicates a single-SIM device. Hiding slots
@@ -33,56 +34,63 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
     private const val MIN_MCC_MNC_LENGTH = 5
     private const val MAX_MCC_MNC_LENGTH = 6
 
-    fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+    fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
         val siClass = cl.loadClassOrNull("android.telephony.SubscriptionInfo") ?: return
 
-        hookSubscriptionInfoGetters(siClass, xi, prefs, pkg)
-        hookSubscriptionManagerList(cl, xi)
+        hookSubscriptionInfoGetters(siClass, xi, pkg, snapshot)
+        hookSubscriptionManager(cl, xi, pkg, snapshot)
     }
 
     private fun hookSubscriptionInfoGetters(
         siClass: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
     ) {
-        hookSubscriptionStringGetter(siClass, xi, prefs, pkg, "getIccId", SpoofType.ICCID)
+        hookSubscriptionStringGetter(siClass, xi, pkg, snapshot, "getIccId", SpoofType.ICCID)
         hookSubscriptionStringGetter(
             siClass,
             xi,
-            prefs,
             pkg,
+            snapshot,
             "getCountryIso",
             SpoofType.SIM_COUNTRY_ISO,
         )
         hookSubscriptionStringGetter(
             siClass,
             xi,
-            prefs,
             pkg,
+            snapshot,
             "getCarrierName",
             SpoofType.CARRIER_NAME,
         )
         hookSubscriptionStringGetter(
             siClass,
             xi,
-            prefs,
             pkg,
+            snapshot,
             "getDisplayName",
             SpoofType.CARRIER_NAME,
         )
-        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMcc") { it.first.toInt() }
-        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMnc") { it.second.toInt() }
-        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMccString") { it.first }
-        hookCarrierCodeGetter(siClass, xi, prefs, pkg, "getMncString") { it.second }
-        hookSubscriptionStringGetter(siClass, xi, prefs, pkg, "getNumber", SpoofType.PHONE_NUMBER)
+        hookCarrierCodeGetter(siClass, xi, pkg, snapshot, "getMcc") { it.first.toInt() }
+        hookCarrierCodeGetter(siClass, xi, pkg, snapshot, "getMnc") { it.second.toInt() }
+        hookCarrierCodeGetter(siClass, xi, pkg, snapshot, "getMccString") { it.first }
+        hookCarrierCodeGetter(siClass, xi, pkg, snapshot, "getMncString") { it.second }
+        hookSubscriptionStringGetter(
+            siClass,
+            xi,
+            pkg,
+            snapshot,
+            "getNumber",
+            SpoofType.PHONE_NUMBER,
+        )
     }
 
     private fun hookSubscriptionStringGetter(
         siClass: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
         methodName: String,
         spoofType: SpoofType,
     ) {
@@ -93,7 +101,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val spoofed =
-                                getConfiguredSpoofValue(prefs, pkg, spoofType)
+                                getConfiguredSpoofValue(snapshot, spoofType)
                                     ?: return@stableHooker result
                             reportSpoofEvent(pkg, spoofType)
                             spoofed
@@ -107,8 +115,8 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
     private fun hookCarrierCodeGetter(
         siClass: Class<*>,
         xi: XposedInterface,
-        prefs: SharedPreferences,
         pkg: String,
+        snapshot: HookConfigSnapshot,
         methodName: String,
         codePart: (Pair<String, String>) -> Any,
     ) {
@@ -119,7 +127,7 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
                         stableHooker { chain ->
                             val result = chain.proceed()
                             val mccMnc =
-                                getConfiguredSpoofValue(prefs, pkg, SpoofType.CARRIER_MCC_MNC)
+                                getConfiguredSpoofValue(snapshot, SpoofType.CARRIER_MCC_MNC)
                                     ?: return@stableHooker result
                             val carrier = parseCarrierMccMnc(mccMnc) ?: return@stableHooker result
                             reportSpoofEvent(pkg, SpoofType.CARRIER_MCC_MNC)
@@ -131,12 +139,43 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
         }
     }
 
-    private fun hookSubscriptionManagerList(cl: ClassLoader, xi: XposedInterface) {
+    private fun hookSubscriptionManager(
+        cl: ClassLoader,
+        xi: XposedInterface,
+        pkg: String,
+        snapshot: HookConfigSnapshot,
+    ) {
         val smClass = cl.loadClassOrNull("android.telephony.SubscriptionManager") ?: return
-        safeHook("SubscriptionManager.getActiveSubscriptionInfoList()") {
-            // No params (API 22+)
-            smClass.methodOrNull("getActiveSubscriptionInfoList")?.let { m ->
-                xi.hook(m).intercept(stableHooker { chain -> chain.proceed() })
+        hookSubscriptionManagerCount(smClass, xi, pkg, snapshot, "getActiveSubscriptionInfoCount")
+        hookSubscriptionManagerCount(
+            smClass,
+            xi,
+            pkg,
+            snapshot,
+            "getActiveSubscriptionInfoCountMax",
+        )
+    }
+
+    private fun hookSubscriptionManagerCount(
+        smClass: Class<*>,
+        xi: XposedInterface,
+        pkg: String,
+        snapshot: HookConfigSnapshot,
+        methodName: String,
+    ) {
+        safeHook("SubscriptionManager.$methodName()") {
+            smClass.methodOrNull(methodName)?.let { m ->
+                xi.hook(m)
+                    .intercept(
+                        stableHooker { chain ->
+                            val result = chain.proceed()
+                            val preset =
+                                getConfiguredDeviceProfilePreset(snapshot)
+                                    ?: return@stableHooker result
+                            reportSpoofEvent(pkg, SpoofType.DEVICE_PROFILE)
+                            preset.safeSimCount()
+                        }
+                    )
                 xi.deoptimize(m)
             }
         }
@@ -150,4 +189,6 @@ object SubscriptionHooker : BaseSpoofHooker("SubscriptionHooker") {
             return null
         return digits.take(MCC_LENGTH) to digits.drop(MCC_LENGTH)
     }
+
+    private fun DeviceProfilePreset.safeSimCount(): Int = simCount.coerceIn(1, 2)
 }

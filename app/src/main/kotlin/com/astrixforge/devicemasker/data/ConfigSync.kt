@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.data
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.astrixforge.devicemasker.common.JsonConfig
 import com.astrixforge.devicemasker.common.SharedPrefsKeys
@@ -59,6 +60,7 @@ object ConfigSync {
         syncFromConfig(config, XposedPrefs.getPrefs())
     }
 
+    @SuppressLint("ApplySharedPref", "UseKtx")
     internal fun syncFromConfig(config: JsonConfig, prefs: android.content.SharedPreferences?) {
         if (prefs == null) {
             Timber.tag(TAG).d("XposedService not connected — config will sync on next activation")
@@ -103,6 +105,51 @@ object ConfigSync {
         syncAppToPrefs(config, packageName, XposedPrefs.getPrefs())
     }
 
+    fun syncPackages(
+        @Suppress("UNUSED_PARAMETER") context: Context,
+        config: JsonConfig,
+        packageNames: Set<String>,
+    ) {
+        syncPackages(config, packageNames, XposedPrefs.getPrefs())
+    }
+
+    @SuppressLint("ApplySharedPref", "UseKtx")
+    internal fun syncPackages(
+        config: JsonConfig,
+        packageNames: Set<String>,
+        prefs: android.content.SharedPreferences?,
+    ) {
+        if (prefs == null) {
+            Timber.tag(TAG)
+                .d("XposedService not connected — scoped config will sync on next activation")
+            return
+        }
+
+        val committed =
+            prefs
+                .edit()
+                .apply {
+                    putStringSet(
+                        SharedPrefsKeys.KEY_ENABLED_APPS,
+                        config.appConfigs.keys.toSortedSet(),
+                    )
+                    putLong(SharedPrefsKeys.KEY_CONFIG_VERSION, System.currentTimeMillis())
+                    packageNames.toSortedSet().forEach { packageName ->
+                        val state = config.syncStateFor(packageName)
+                        if (state == null) {
+                            removePackageSyncKeys(packageName)
+                            putAppDisabled(packageName)
+                        } else {
+                            putAppSyncState(state)
+                        }
+                    }
+                }
+                .commit()
+        if (!committed) {
+            Timber.tag(TAG).w("RemotePreferences commit failed during scoped sync")
+        }
+    }
+
     suspend fun syncAppAsync(context: Context, config: JsonConfig, packageName: String) {
         withContext(Dispatchers.IO) { syncApp(context, config, packageName) }
     }
@@ -138,13 +185,27 @@ object ConfigSync {
             removeKeys += keysForSyncedPackage(packageName)
         }
 
-        for ((packageName, appConfig) in config.appConfigs.toSortedMap()) {
+        for (packageName in config.appConfigs.keys.toSortedSet()) {
             val state = config.syncStateFor(packageName)
             booleans[SharedPrefsKeys.getAppEnabledKey(packageName)] = state?.appEnabled == true
             booleans[SharedPrefsKeys.getRiskyHooksEnabledKey(packageName)] =
                 state?.riskyHooksEnabled == true
             booleans[SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName)] =
                 state?.classLookupHidingEnabled == true
+            hookFamilyNames.forEach { family ->
+                booleans[SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family)] =
+                    state?.isHookFamilyEnabled(family) == true
+            }
+            booleans[SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(packageName)] = false
+            booleans[SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(packageName)] = false
+            if (state?.persona != null) {
+                strings[SharedPrefsKeys.getPersonaBlobKey(packageName)] =
+                    state.persona.toJsonString()
+                longs[SharedPrefsKeys.getPersonaVersionKey(packageName)] = state.persona.version
+            } else {
+                removeKeys += SharedPrefsKeys.getPersonaBlobKey(packageName)
+                removeKeys += SharedPrefsKeys.getPersonaVersionKey(packageName)
+            }
             state?.spoofTypes.orEmpty().forEach { typeState ->
                 val valueKey = SharedPrefsKeys.getSpoofValueKey(packageName, typeState.type)
                 booleans[SharedPrefsKeys.getSpoofEnabledKey(packageName, typeState.type)] =
@@ -174,6 +235,7 @@ internal suspend fun syncAppAsync(
     withContext(Dispatchers.IO) { syncAppToPrefs(config, packageName, prefs) }
 }
 
+@SuppressLint("ApplySharedPref", "UseKtx")
 internal fun syncAppToPrefs(
     config: JsonConfig,
     packageName: String,
@@ -183,7 +245,13 @@ internal fun syncAppToPrefs(
     when {
         prefs == null -> Timber.tag(CONFIG_SYNC_TAG).d(notConnectedMessage("syncApp", packageName))
         state == null -> {
-            prefs.edit().putAppDisabled(packageName).commit()
+            prefs
+                .edit()
+                .apply {
+                    removePackageSyncKeys(packageName)
+                    putAppDisabled(packageName)
+                }
+                .commit()
             Timber.tag(CONFIG_SYNC_TAG).d("App $packageName removed from spoofing (no group)")
         }
         else -> commitAppSync(packageName, state, prefs)
@@ -194,6 +262,7 @@ internal suspend fun clearAppAsync(packageName: String, prefs: android.content.S
     withContext(Dispatchers.IO) { clearAppFromPrefs(packageName, prefs) }
 }
 
+@SuppressLint("ApplySharedPref", "UseKtx")
 internal fun clearAppFromPrefs(packageName: String, prefs: android.content.SharedPreferences?) {
     if (prefs == null) {
         Timber.tag(CONFIG_SYNC_TAG).d(notConnectedMessage("clearApp", packageName))
@@ -213,6 +282,13 @@ private fun android.content.SharedPreferences.Editor.removePackageSyncKeys(packa
     remove(SharedPrefsKeys.getAppEnabledKey(packageName))
     remove(SharedPrefsKeys.getRiskyHooksEnabledKey(packageName))
     remove(SharedPrefsKeys.getClassLookupHidingEnabledKey(packageName))
+    hookFamilyNames.forEach { family ->
+        remove(SharedPrefsKeys.getHookFamilyEnabledKey(packageName, family))
+    }
+    remove(SharedPrefsKeys.getJavaProcMapsByteRedactionEnabledKey(packageName))
+    remove(SharedPrefsKeys.getJavaProcMapsNioRedactionEnabledKey(packageName))
+    remove(SharedPrefsKeys.getPersonaBlobKey(packageName))
+    remove(SharedPrefsKeys.getPersonaVersionKey(packageName))
 
     for (type in SpoofType.entries) {
         remove(SharedPrefsKeys.getSpoofEnabledKey(packageName, type))
@@ -220,6 +296,7 @@ private fun android.content.SharedPreferences.Editor.removePackageSyncKeys(packa
     }
 }
 
+@SuppressLint("ApplySharedPref", "UseKtx")
 private fun commitAppSync(
     packageName: String,
     state: AppSyncState,

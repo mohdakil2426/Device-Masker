@@ -12,6 +12,7 @@ package com.astrixforge.devicemasker.common
  *
  * Package names are sanitized by replacing '.' with '_' to avoid XML issues.
  */
+@Suppress("TooManyFunctions")
 object SharedPrefsKeys {
 
     // ═══════════════════════════════════════════════════════════
@@ -32,6 +33,11 @@ object SharedPrefsKeys {
     private const val PREFIX_SPOOF_VALUE = "spoof_"
     private const val PREFIX_RISKY_HOOKS_ENABLED = "risky_hooks_enabled_"
     private const val PREFIX_CLASS_LOOKUP_HIDING_ENABLED = "class_lookup_hiding_enabled_"
+    private const val PREFIX_HOOK_FAMILY_ENABLED = "hook_family_enabled_"
+    private const val PREFIX_JAVA_PROC_MAPS_BYTE_REDACTION_ENABLED =
+        "java_proc_maps_byte_redaction_enabled_"
+    private const val PREFIX_JAVA_PROC_MAPS_NIO_REDACTION_ENABLED =
+        "java_proc_maps_nio_redaction_enabled_"
     private const val PREFIX_PERSONA_BLOB = "persona_blob_"
     private const val PREFIX_PERSONA_VERSION = "persona_version_"
     private val VALID_KEY_REGEX =
@@ -46,6 +52,9 @@ object SharedPrefsKeys {
                     "${PREFIX_SPOOF_VALUE}[a-zA-Z0-9_]+_[A-Z_]+",
                     "${PREFIX_RISKY_HOOKS_ENABLED}[a-zA-Z0-9_]+",
                     "${PREFIX_CLASS_LOOKUP_HIDING_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_HOOK_FAMILY_ENABLED}[a-zA-Z0-9_]+_[a-z_]+",
+                    "${PREFIX_JAVA_PROC_MAPS_BYTE_REDACTION_ENABLED}[a-zA-Z0-9_]+",
+                    "${PREFIX_JAVA_PROC_MAPS_NIO_REDACTION_ENABLED}[a-zA-Z0-9_]+",
                     "${PREFIX_PERSONA_BLOB}[a-zA-Z0-9_]+",
                     "${PREFIX_PERSONA_VERSION}[a-zA-Z0-9_]+",
                 )
@@ -87,6 +96,21 @@ object SharedPrefsKeys {
     /** Gets the key for per-app class lookup hiding opt-in. */
     fun getClassLookupHidingEnabledKey(packageName: String): String {
         return "$PREFIX_CLASS_LOOKUP_HIDING_ENABLED${sanitize(packageName)}"
+    }
+
+    /** Gets the key for enabling or disabling a hook family for crash isolation. */
+    fun getHookFamilyEnabledKey(packageName: String, family: String): String {
+        return "$PREFIX_HOOK_FAMILY_ENABLED${sanitize(packageName)}_$family"
+    }
+
+    /** Gets the key for opt-in Java byte-level proc maps redaction. */
+    fun getJavaProcMapsByteRedactionEnabledKey(packageName: String): String {
+        return "$PREFIX_JAVA_PROC_MAPS_BYTE_REDACTION_ENABLED${sanitize(packageName)}"
+    }
+
+    /** Gets the key for opt-in Java NIO proc maps redaction. */
+    fun getJavaProcMapsNioRedactionEnabledKey(packageName: String): String {
+        return "$PREFIX_JAVA_PROC_MAPS_NIO_REDACTION_ENABLED${sanitize(packageName)}"
     }
 
     /** Gets the device profile preset key for an app. */

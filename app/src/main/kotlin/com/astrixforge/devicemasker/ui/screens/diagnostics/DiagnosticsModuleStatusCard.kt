@@ -26,12 +26,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
-import com.astrixforge.devicemasker.ui.theme.StatusActive
-import com.astrixforge.devicemasker.ui.theme.StatusInactive
+import com.astrixforge.devicemasker.ui.theme.statusActive
+import com.astrixforge.devicemasker.ui.theme.statusInactive
+import com.astrixforge.devicemasker.ui.theme.statusOnActive
+import com.astrixforge.devicemasker.ui.theme.statusOnInactive
 
 @Composable
 internal fun ModuleStatusCard(isXposedActive: Boolean, modifier: Modifier = Modifier) {
-    val statusColor = if (isXposedActive) StatusActive else StatusInactive
+    val statusColor =
+        if (isXposedActive) MaterialTheme.colorScheme.statusActive
+        else MaterialTheme.colorScheme.statusInactive
+    val onStatusColor =
+        if (isXposedActive) MaterialTheme.colorScheme.statusOnActive
+        else MaterialTheme.colorScheme.statusOnInactive
 
     ExpressiveCard(
         onClick = { /* Status card click */ },
@@ -44,7 +51,7 @@ internal fun ModuleStatusCard(isXposedActive: Boolean, modifier: Modifier = Modi
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ModuleStatusIcon(statusColor = statusColor)
+            ModuleStatusIcon(statusColor = statusColor, onStatusColor = onStatusColor)
             Spacer(modifier = Modifier.width(16.dp))
             ModuleStatusText(isXposedActive = isXposedActive, statusColor = statusColor)
         }
@@ -52,7 +59,7 @@ internal fun ModuleStatusCard(isXposedActive: Boolean, modifier: Modifier = Modi
 }
 
 @Composable
-private fun ModuleStatusIcon(statusColor: Color) {
+private fun ModuleStatusIcon(statusColor: Color, onStatusColor: Color) {
     Box(
         modifier = Modifier.size(48.dp).background(color = statusColor, shape = CircleShape),
         contentAlignment = Alignment.Center,
@@ -60,7 +67,7 @@ private fun ModuleStatusIcon(statusColor: Color) {
         Icon(
             imageVector = Icons.Default.Shield,
             contentDescription = null,
-            tint = Color.White,
+            tint = onStatusColor,
             modifier = Modifier.size(28.dp),
         )
     }

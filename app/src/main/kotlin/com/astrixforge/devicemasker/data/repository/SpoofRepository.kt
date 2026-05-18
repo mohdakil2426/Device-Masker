@@ -128,17 +128,7 @@ constructor(
 
     /** Sets the active group by ID (makes it default). */
     override suspend fun setActiveGroup(groupId: String) {
-        val group = configManager.getGroup(groupId) ?: return
-        // Set this group as default
-        val updatedGroup = group.copy(isDefault = true)
-        configManager.updateGroup(updatedGroup)
-
-        // Unset other groups as default
-        configManager.getAllGroups().forEach { other ->
-            if (other.id != groupId && other.isDefault) {
-                configManager.updateGroup(other.copy(isDefault = false))
-            }
-        }
+        configManager.setDefaultGroup(groupId)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -608,6 +598,10 @@ constructor(
         if (isAssignedByCanonicalConfig || isAssignedByLegacyGroup) {
             configManager.unassignApp(packageName)
         }
+    }
+
+    override suspend fun setAppEnabled(packageName: String, enabled: Boolean) {
+        configManager.setAppEnabled(packageName, enabled)
     }
 
     override suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean) {

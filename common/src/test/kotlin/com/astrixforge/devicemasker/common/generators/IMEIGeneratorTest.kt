@@ -2,6 +2,8 @@ package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.Utils
+import com.astrixforge.devicemasker.common.models.Carrier
+import com.astrixforge.devicemasker.common.util.Luhn
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
@@ -38,6 +40,15 @@ class IMEIGeneratorTest {
         repeat(100) {
             val imei = IMEIGenerator.generate()
             assertTrue(Utils.isValidImei(imei), "IMEI should pass Luhn validation, got: $imei")
+            assertTrue(Luhn.isValid(imei), "IMEI should pass shared Luhn validation, got: $imei")
+        }
+    }
+
+    @Test
+    fun `ICCID generator returns valid Luhn checksum`() {
+        repeat(100) {
+            assertTrue(Luhn.isValid(ICCIDGenerator.generate()))
+            assertTrue(Luhn.isValid(ICCIDGenerator.generate(Carrier.ALL_CARRIERS.first())))
         }
     }
 

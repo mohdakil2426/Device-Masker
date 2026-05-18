@@ -24,9 +24,9 @@ import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.models.Carrier
-import com.astrixforge.devicemasker.ui.components.dialog.CountryPickerDialog
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
+import com.astrixforge.devicemasker.ui.components.sheet.CountryPickerSheet
 
 /**
  * Content layout for SIM Card category with carrier-driven flow.
@@ -45,7 +45,7 @@ fun SIMCardCategoryContent(
     modifier: Modifier = Modifier,
     onCarrierChange: (Carrier) -> Unit = {},
 ) {
-    var showCountryPicker by rememberSaveable { mutableStateOf(false) }
+    var showCountryPickerSheet by rememberSaveable { mutableStateOf(false) }
 
     val currentCarrierMccMnc = group?.selectedCarrierMccMnc
     val currentCarrier =
@@ -58,20 +58,19 @@ fun SIMCardCategoryContent(
         remember(selectedCountryIso) { CarrierOptions(Carrier.getByCountry(selectedCountryIso)) }
     val uiState = group.toSimCardUiState()
 
-    // Country picker dialog
-    if (showCountryPicker) {
-        CountryPickerDialog(
+    if (showCountryPickerSheet) {
+        CountryPickerSheet(
             selectedCountryIso = selectedCountryIso,
             countrySelected = { country ->
                 selectedCountryIso = country.iso
-                showCountryPicker = false
+                showCountryPickerSheet = false
                 // Auto-select first carrier from new country
                 val newCarriers = Carrier.getByCountry(country.iso)
                 if (newCarriers.isNotEmpty()) {
                     onCarrierChange(newCarriers.first())
                 }
             },
-            onDismiss = { showCountryPicker = false },
+            onDismiss = { showCountryPickerSheet = false },
         )
     }
 
@@ -83,7 +82,7 @@ fun SIMCardCategoryContent(
             currentCarrier = currentCarrier,
             currentCarrierMccMnc = currentCarrierMccMnc,
             onToggle = onToggle,
-            onCountryClick = { showCountryPicker = true },
+            onCountryClick = { showCountryPickerSheet = true },
             onCarrierChange = onCarrierChange,
         )
         RegeneratableSimValues(uiState = uiState, onToggle = onToggle, onRegenerate = onRegenerate)

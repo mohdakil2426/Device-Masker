@@ -19,6 +19,8 @@ concurrency:
 
 permissions:
   contents: write
+  attestations: write
+  id-token: write
 
 env:
   JAVA_VERSION: "17"
@@ -44,6 +46,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
@@ -62,9 +66,11 @@ jobs:
           fi
 
           git rev-parse "$TAG_NAME" >/dev/null
-          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          {
+            echo "VERSION_NAME=$VERSION_NAME"
+            echo "VERSION_CODE=$VERSION_CODE"
+            echo "SHORT_SHA=${GITHUB_SHA::7}"
+          } >> "$GITHUB_ENV"
 
       - name: Check release signing secrets
         env:
@@ -93,10 +99,12 @@ jobs:
           KEY_PASS: ${{ secrets.KEY_PASS }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
-          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
-          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
-          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
+          {
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore"
+            echo "KEYSTORE_PASS=$KEYSTORE_PASS"
+            echo "KEY_ALIAS=$KEY_ALIAS"
+            echo "KEY_PASS=$KEY_PASS"
+          } >> "$GITHUB_ENV"
 
       - name: Spotless check
         run: ./gradlew spotlessCheck --build-cache --stacktrace
@@ -115,7 +123,7 @@ jobs:
 
       - name: Prepare release artifacts
         run: |
-          mkdir -p dist/public dist/actions
+          mkdir -p dist/public dist/actions/release dist/actions/debug dist/actions/source dist/actions/mapping dist/actions/metadata
 
           release_apks=(app/build/outputs/apk/release/*.apk)
           if [ "${#release_apks[@]}" -ne 1 ]; then
@@ -135,33 +143,99 @@ jobs:
           debug_apk_name="DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-debug.apk"
 
           cp "${release_apks[0]}" "dist/public/${release_apk_name}"
-          cp "${release_apks[0]}" "dist/actions/${release_apk_name}"
-          cp "${debug_apks[0]}" "dist/actions/${debug_apk_name}"
+          cp "${release_apks[0]}" "dist/actions/release/${release_apk_name}"
+          cp "${debug_apks[0]}" "dist/actions/debug/${debug_apk_name}"
 
           if [ -d app/build/outputs/mapping/release ]; then
-            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/actions/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-mapping-release.zip" .)
+            (cd app/build/outputs/mapping/release && zip -r "$GITHUB_WORKSPACE/dist/actions/mapping/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-mapping-release.zip" .)
           fi
 
           git archive --format=zip \
-            --output "dist/actions/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-source-${SHORT_SHA}.zip" \
+            --output "dist/actions/source/DeviceMasker-v${VERSION_NAME}-code${VERSION_CODE}-source-${SHORT_SHA}.zip" \
             HEAD
+
+          cat > dist/actions/metadata/build-metadata.json <<EOF
+          {
+            "project": "DeviceMasker",
+            "versionName": "${VERSION_NAME}",
+            "versionCode": ${VERSION_CODE},
+            "gitSha": "${GITHUB_SHA}",
+            "shortSha": "${SHORT_SHA}",
+            "tag": "${{ github.event.inputs.tag_name }}",
+            "ref": "${GITHUB_REF}",
+            "workflow": "${GITHUB_WORKFLOW}",
+            "workflowRunId": "${GITHUB_RUN_ID}",
+            "workflowRunNumber": "${GITHUB_RUN_NUMBER}",
+            "publicReleaseAssets": ["${release_apk_name}"]
+          }
+          EOF
 
           echo "Public GitHub Release assets:"
           ls -la dist/public
           echo "Actions-only artifacts:"
-          ls -la dist/actions
+          find dist/actions -maxdepth 2 -type f -print
 
-      - name: Upload release workflow artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload signed release APK artifact
+        uses: actions/upload-artifact@v6
         with:
-          name: DeviceMasker-release-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
+          name: DeviceMasker-release-signed-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
           path: |
-            dist/actions/**
+            dist/actions/release/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: DeviceMasker-debug-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
+          path: |
+            dist/actions/debug/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload source archive artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: DeviceMasker-source-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
+          path: |
+            dist/actions/source/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload mapping artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: DeviceMasker-mapping-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
+          path: |
+            dist/actions/mapping/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload build metadata artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: DeviceMasker-build-metadata-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
+          path: |
+            dist/actions/metadata/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload quality reports artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: DeviceMasker-quality-reports-${{ github.event.inputs.tag_name }}-${{ github.run_id }}
+          path: |
             app/build/reports/**
             common/build/reports/**
             xposed/build/reports/**
-          if-no-files-found: error
+            verifier/build/reports/**
+          if-no-files-found: warn
           retention-days: 14
+
+      - name: Attest public signed release APK
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/public/*.apk
 
       - name: Create GitHub Release
         env:

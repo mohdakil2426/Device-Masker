@@ -25,9 +25,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
-import com.astrixforge.devicemasker.ui.theme.StatusActive
-import com.astrixforge.devicemasker.ui.theme.StatusInactive
-import com.astrixforge.devicemasker.ui.theme.StatusWarning
+import com.astrixforge.devicemasker.ui.theme.statusActive
+import com.astrixforge.devicemasker.ui.theme.statusInactive
+import com.astrixforge.devicemasker.ui.theme.statusOnActive
+import com.astrixforge.devicemasker.ui.theme.statusOnInactive
+import com.astrixforge.devicemasker.ui.theme.statusWarning
 
 /**
  * Status indicator with Material 3 Expressive animated color transitions.
@@ -56,9 +58,12 @@ fun StatusIndicator(
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
     icon: ImageVector? = null,
-    iconTint: Color = Color.White,
+    iconTint: Color = Color.Unspecified,
     showPulse: Boolean = false,
 ) {
+    val resolvedIconTint =
+        if (iconTint == Color.Unspecified) MaterialTheme.colorScheme.statusOnActive else iconTint
+
     // Effect spring for color (NO overshoot)
     val animatedColor by
         animateColorAsState(
@@ -90,7 +95,7 @@ fun StatusIndicator(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = iconTint,
+                tint = resolvedIconTint,
                 modifier = Modifier.size(size * ICON_SIZE_FRACTION),
             )
         }
@@ -105,12 +110,18 @@ fun StatusIndicatorWithIcon(
     isSuccess: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
-    successColor: Color = StatusActive,
-    failureColor: Color = StatusInactive,
+    successColor: Color = MaterialTheme.colorScheme.statusActive,
+    failureColor: Color = MaterialTheme.colorScheme.statusInactive,
 ) {
     StatusIndicator(
         color = if (isSuccess) successColor else failureColor,
         icon = if (isSuccess) Icons.Default.Check else Icons.Default.Close,
+        iconTint =
+            if (isSuccess) {
+                MaterialTheme.colorScheme.statusOnActive
+            } else {
+                MaterialTheme.colorScheme.statusOnInactive
+            },
         modifier = modifier,
         size = size,
     )
@@ -123,9 +134,17 @@ fun HeroStatusIndicator(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
 ) {
+    val statusColor =
+        if (isActive) MaterialTheme.colorScheme.statusActive
+        else MaterialTheme.colorScheme.statusInactive
+    val iconTint =
+        if (isActive) MaterialTheme.colorScheme.statusOnActive
+        else MaterialTheme.colorScheme.statusOnInactive
+
     StatusIndicator(
-        color = if (isActive) StatusActive else StatusInactive,
+        color = statusColor,
         icon = icon,
+        iconTint = iconTint,
         modifier = modifier,
         size = 48.dp,
         showPulse = isActive,
@@ -144,9 +163,9 @@ private fun StatusIndicatorPreview() {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.background(MaterialTheme.colorScheme.surface),
         ) {
-            StatusIndicator(color = StatusActive)
-            StatusIndicator(color = StatusWarning)
-            StatusIndicator(color = StatusInactive)
+            StatusIndicator(color = MaterialTheme.colorScheme.statusActive)
+            StatusIndicator(color = MaterialTheme.colorScheme.statusWarning)
+            StatusIndicator(color = MaterialTheme.colorScheme.statusInactive)
         }
     }
 }

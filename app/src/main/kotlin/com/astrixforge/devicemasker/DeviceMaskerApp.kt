@@ -21,16 +21,17 @@ import timber.log.Timber
  */
 class DeviceMaskerApp : Application() {
 
-    private lateinit var _appLogStore: AppLogStore
+    private var appLogStoreInstance: AppLogStore? = null
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         StrictModeGuard.install()
 
-        _appLogStore = AppLogStore.from(this)
-        Timber.plant(PersistentAppLogTree(_appLogStore))
-        _appLogStore.appendEvent(_appLogStore.appStartEvent())
+        val logStore = AppLogStore.from(this)
+        appLogStoreInstance = logStore
+        Timber.plant(PersistentAppLogTree(logStore))
+        logStore.appendEvent(logStore.appStartEvent())
 
         // Debug logging — release builds strip DebugTree logcat calls via R8.
         if (BuildConfig.DEBUG) {
@@ -68,7 +69,10 @@ class DeviceMaskerApp : Application() {
                 )
 
         val appLogStore: AppLogStore
-            get() = getInstance()._appLogStore
+            get() =
+                checkNotNull(getInstance().appLogStoreInstance) {
+                    "AppLogStore not initialised. Has Application.onCreate() run?"
+                }
 
         /** Whether the app is currently connected to LSPosed's libxposed service. */
         val isXposedModuleActive: Boolean

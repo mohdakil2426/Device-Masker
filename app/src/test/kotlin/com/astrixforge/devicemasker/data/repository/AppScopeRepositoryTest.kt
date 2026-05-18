@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.data.repository
 
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import com.astrixforge.devicemasker.MainDispatcherRule
 import io.mockk.every
@@ -84,5 +85,31 @@ class AppScopeRepositoryTest {
 
         assertTrue(filtered.isNotEmpty())
         assertTrue(filtered.all { it.label.contains(query, ignoreCase = true) })
+    }
+
+    @Test
+    fun `loadScopedApps resolves only requested packages`() = runTest {
+        val packageManager = mockk<PackageManager>()
+        val scopedInfo = ApplicationInfo().apply { packageName = "com.scoped.one" }
+        var getInstalledApplicationsCalls = 0
+
+        every { packageManager.getApplicationInfo("com.scoped.one", 0) } returns scopedInfo
+        every { packageManager.getApplicationLabel(scopedInfo) } returns "Scoped One"
+        every { packageManager.getInstalledApplications(any<Int>()) } answers
+            {
+                getInstalledApplicationsCalls += 1
+                emptyList()
+            }
+
+        val repository = AppScopeRepository(context, packageManager)
+
+        repository.loadScopedApps(setOf("com.scoped.one"), forceRefresh = true)
+
+        assertEquals(setOf("com.scoped.one"), repository.scopedAppMetadata.value.keys)
+        assertEquals(
+            "Scoped One",
+            repository.scopedAppMetadata.value.getValue("com.scoped.one").label,
+        )
+        assertEquals(0, getInstalledApplicationsCalls)
     }
 }

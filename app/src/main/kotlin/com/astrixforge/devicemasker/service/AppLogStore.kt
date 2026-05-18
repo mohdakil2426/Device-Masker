@@ -34,15 +34,17 @@ data class AppLogEntry(
 class AppLogStore(
     private val file: File,
     private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
+    private val queueCapacity: Int = Channel.BUFFERED,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val sessionId = "app-log"
     private val bootId = "unknown"
     private val redactor = DiagnosticRedactor(RedactionMode.REDACTED)
     private val eventStore = JsonlDiagnosticStore(sessionDir = file.toAppLogSessionDir())
-    private val eventChannel = Channel<DiagnosticEvent>(Channel.BUFFERED)
+    private val eventChannel = Channel<DiagnosticEvent>(queueCapacity)
     private val writerScope = CoroutineScope(SupervisorJob() + dispatcher)
     private val pendingEvents = AtomicInteger(0)
+    private val droppedQueueEvents = AtomicInteger(0)
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") private val pendingMonitor = java.lang.Object()
 
     init {
@@ -66,9 +68,12 @@ class AppLogStore(
         pendingEvents.incrementAndGet()
         if (eventChannel.trySend(event).isFailure) {
             pendingEvents.decrementAndGet()
+            droppedQueueEvents.incrementAndGet()
             synchronized(pendingMonitor) { pendingMonitor.notifyAll() }
         }
     }
+
+    fun queueDroppedEventCount(): Int = droppedQueueEvents.get()
 
     @Synchronized
     fun readEntries(): List<AppLogEntry> =

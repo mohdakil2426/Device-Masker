@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.navigation3.runtime.rememberNavBackStack
 
 val topLevelDestinations: List<NavDestination> =
@@ -62,12 +63,20 @@ class DeviceMaskerNavigationState(
     val currentDestination: NavDestination
         get() = backStacks.getValue(topLevelDestination).last()
 
-    val visibleBackStack = mutableStateListOf<NavDestination>().apply { addAll(currentBackStack) }
+    private val mutableVisibleBackStack =
+        mutableStateListOf<NavDestination>().apply { addAll(currentBackStack) }
+
+    val visibleBackStack: List<NavDestination>
+        get() = mutableVisibleBackStack.toList()
+
+    internal val navDisplayBackStack: SnapshotStateList<NavDestination>
+        get() = mutableVisibleBackStack
 
     val isFocusScreen: Boolean
         get() =
             currentDestination is NavDestination.GroupSpoofing ||
-                currentDestination == NavDestination.Diagnostics
+                currentDestination == NavDestination.Diagnostics ||
+                currentDestination == NavDestination.LogsMonitor
 
     internal fun push(destination: NavDestination) {
         backStacks.getValue(topLevelDestination).add(destination)
@@ -107,8 +116,8 @@ class DeviceMaskerNavigationState(
     }
 
     private fun syncVisibleBackStack() {
-        visibleBackStack.clear()
-        visibleBackStack.addAll(currentBackStack)
+        mutableVisibleBackStack.clear()
+        mutableVisibleBackStack.addAll(currentBackStack)
     }
 }
 
@@ -149,6 +158,13 @@ class DeviceMaskerNavigator(private val state: DeviceMaskerNavigationState) {
         state.switchTopLevel(NavDestination.Settings)
         if (state.currentDestination != NavDestination.Diagnostics) {
             state.push(NavDestination.Diagnostics)
+        }
+    }
+
+    fun navigateToLogsMonitor() {
+        state.switchTopLevel(NavDestination.Settings)
+        if (state.currentDestination != NavDestination.LogsMonitor) {
+            state.push(NavDestination.LogsMonitor)
         }
     }
 

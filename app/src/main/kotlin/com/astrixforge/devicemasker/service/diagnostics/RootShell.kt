@@ -67,7 +67,7 @@ class RootShell(private val executor: RootCommandExecutor = LibsuCommandExecutor
         val execution = executor.execute(command.command, command.timeoutMillis)
         val stdoutFile = File(outputDir, "stdout.txt")
         val stderrFile = File(outputDir, "stderr.txt")
-        stdoutFile.writeText(execution.stdout.limitBytes(command.maxOutputBytes), Charsets.UTF_8)
+        stdoutFile.writeText(execution.stdout.keepLastBytes(command.maxOutputBytes), Charsets.UTF_8)
         stderrFile.writeText(execution.stderr, Charsets.UTF_8)
 
         val result =
@@ -90,10 +90,10 @@ class RootShell(private val executor: RootCommandExecutor = LibsuCommandExecutor
         return result
     }
 
-    private fun String.limitBytes(maxBytes: Int): String {
+    private fun String.keepLastBytes(maxBytes: Int): String {
         val bytes = toByteArray(Charsets.UTF_8)
         if (bytes.size <= maxBytes) return this
-        return String(bytes.copyOf(maxBytes), Charsets.UTF_8)
+        return String(bytes.copyOfRange(bytes.size - maxBytes, bytes.size), Charsets.UTF_8)
     }
 }
 

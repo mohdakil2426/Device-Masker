@@ -23,16 +23,18 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
+import com.astrixforge.devicemasker.data.models.ThemeMode
 
 @Composable
 fun ThemeModeDialog(
     currentMode: ThemeMode,
     onModeSelect: (ThemeMode) -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         title = {
             Text(
                 text = stringResource(id = R.string.settings_theme_mode),

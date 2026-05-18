@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common.generators
 
 import com.astrixforge.devicemasker.common.DeviceProfilePreset
+import com.astrixforge.devicemasker.common.util.Luhn
 import java.security.SecureRandom
 
 /**
@@ -17,8 +18,6 @@ object IMEIGenerator {
     private const val TAC_LENGTH = 8
     private const val SERIAL_LENGTH = 6
     private const val PARTIAL_IMEI_LENGTH = 14
-    private const val DECIMAL_RADIX = 10
-    private const val LUHN_DOUBLE_THRESHOLD = 9
 
     /** Secure random instance for cryptographic-quality randomness. */
     private val secureRandom = SecureRandom()
@@ -160,10 +159,7 @@ object IMEIGenerator {
         // Combine TAC and serial (14 digits without check digit)
         val imeiWithoutCheck = tac + serial
 
-        // Calculate and append Luhn check digit
-        val checkDigit = calculateLuhnCheckDigit(imeiWithoutCheck)
-
-        return imeiWithoutCheck + checkDigit
+        return appendValidatedCheckDigit(imeiWithoutCheck)
     }
 
     private fun filterTacPrefixes(manufacturer: String?): List<String> {
@@ -226,8 +222,7 @@ object IMEIGenerator {
         }
         val serial = buildString { repeat(SERIAL_LENGTH) { append(secureRandom.nextInt(10)) } }
         val partial = tac + serial
-        val checkDigit = calculateLuhnCheckDigit(partial)
-        return partial + checkDigit
+        return appendValidatedCheckDigit(partial)
     }
 
     /**
@@ -236,26 +231,9 @@ object IMEIGenerator {
      * @param partial The 14-digit IMEI without check digit
      * @return The single check digit (0-9)
      */
-    private fun calculateLuhnCheckDigit(partial: String): Int {
+    private fun appendValidatedCheckDigit(partial: String): String {
         require(partial.length == PARTIAL_IMEI_LENGTH) { "Partial IMEI must be 14 digits" }
         require(partial.all { it.isDigit() }) { "Partial IMEI must contain only digits" }
-
-        var sum = 0
-
-        for (i in partial.indices) {
-            var digit = partial[i].digitToInt()
-
-            // Double every second digit starting from position 1
-            if (i % 2 != 0) {
-                digit *= 2
-                if (digit > LUHN_DOUBLE_THRESHOLD) {
-                    digit -= LUHN_DOUBLE_THRESHOLD
-                }
-            }
-
-            sum += digit
-        }
-
-        return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
+        return Luhn.appendCheckDigit(partial)
     }
 }

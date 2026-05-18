@@ -33,6 +33,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.R
 import com.astrixforge.devicemasker.data.SettingsDataStore
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.data.repository.SpoofRepository
 import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
@@ -46,7 +47,6 @@ import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import com.astrixforge.devicemasker.ui.theme.LocalMotionPolicy
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import com.astrixforge.devicemasker.ui.theme.rememberMotionPolicy
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
@@ -269,6 +269,7 @@ internal fun SettingsEntry(
         },
         onClearExportResult = { viewModel.clearExportResult() },
         onNavigateToDiagnostics = dropUnlessResumed(block = navigator::navigateToDiagnostics),
+        onNavigateToLogsMonitor = dropUnlessResumed(block = navigator::navigateToLogsMonitor),
         generateLogFileName = { viewModel.generateLogFileName() },
     )
 }

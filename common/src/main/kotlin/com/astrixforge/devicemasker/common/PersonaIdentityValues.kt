@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.common
 
 import com.astrixforge.devicemasker.common.models.Carrier
+import com.astrixforge.devicemasker.common.util.Luhn
 import java.util.Locale
 
 internal fun deterministicImei(
@@ -15,8 +16,7 @@ internal fun deterministicImei(
             "35000000"
         }
     val serial = deterministicDigits(rootSeed, "$label:serial", IMEI_SERIAL_LENGTH)
-    val partial = tac + serial
-    return partial + calculateLuhnCheckDigit(partial)
+    return Luhn.appendCheckDigit(tac + serial)
 }
 
 internal fun deterministicImsi(rootSeed: String, label: String, carrier: Carrier): String {
@@ -26,8 +26,9 @@ internal fun deterministicImsi(rootSeed: String, label: String, carrier: Carrier
 
 internal fun deterministicIccid(rootSeed: String, label: String, carrier: Carrier): String {
     val prefix = "89${carrier.countryCode}${carrier.iccidIssuerCode}"
-    val remaining = (ICCID_LENGTH - prefix.length).coerceAtLeast(1)
-    return prefix + deterministicDigits(rootSeed, label, remaining)
+    val baseLength = (ICCID_LENGTH - 1).coerceAtLeast(prefix.length + 1)
+    val serialLength = (baseLength - prefix.length).coerceAtLeast(1)
+    return Luhn.appendCheckDigit(prefix + deterministicDigits(rootSeed, label, serialLength))
 }
 
 internal fun deterministicPhoneNumber(rootSeed: String, label: String, carrier: Carrier): String {
@@ -70,20 +71,6 @@ private fun deterministicAlphaNumeric(rootSeed: String, label: String, count: In
             append(alphabet[(bytes[index].toInt() and BYTE_MASK) % alphabet.length])
         }
     }
-}
-
-private fun calculateLuhnCheckDigit(partial: String): Int {
-    require(partial.all(Char::isDigit)) { "Luhn input must be decimal digits only" }
-    var sum = 0
-    for (index in partial.indices) {
-        var digit = partial[index].digitToInt()
-        if (index % 2 != 0) {
-            digit *= 2
-            if (digit > LUHN_DOUBLE_THRESHOLD) digit -= LUHN_DOUBLE_THRESHOLD
-        }
-        sum += digit
-    }
-    return (DECIMAL_RADIX - (sum % DECIMAL_RADIX)) % DECIMAL_RADIX
 }
 
 internal fun parseAndroidRelease(fingerprint: String): String =

@@ -58,6 +58,8 @@ interface SpoofAppAssignmentRepository {
 
     suspend fun removeAppFromGroup(groupId: String, packageName: String)
 
+    suspend fun setAppEnabled(packageName: String, enabled: Boolean)
+
     suspend fun setAppRiskyHooksEnabled(packageName: String, enabled: Boolean)
 
     suspend fun setAppClassLookupHidingEnabled(packageName: String, enabled: Boolean)

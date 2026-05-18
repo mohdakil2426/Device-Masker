@@ -3,10 +3,10 @@ package com.astrixforge.devicemasker.ui.screens.settings
 import android.net.Uri
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
+import com.astrixforge.devicemasker.data.models.ThemeMode
 import com.astrixforge.devicemasker.service.ShareableLogResult
 import com.astrixforge.devicemasker.testing.FakeLogManager
 import com.astrixforge.devicemasker.testing.FakeSettingsDataStore
-import com.astrixforge.devicemasker.ui.theme.ThemeMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle

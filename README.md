@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/brand/devicemasker-icon.png" alt="Device Masker app icon" width="200" height="200">
+</p>
+
 # Device Masker
 
 **Android LSPosed module for per-app device identity spoofing with anti-detection.**
@@ -110,7 +114,7 @@ Spoof config is delivered exclusively through RemotePreferences. Hook evidence c
 
 ```bash
 # Clone
-git clone https://github.com/astrixforge/devicemasker.git
+git clone https://github.com/mohdakil2426/DeviceMasker.git
 cd devicemasker
 
 # Debug build
@@ -120,8 +124,8 @@ cd devicemasker
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 # Full quality gate (formatting, lint, tests, debug + release builds)
-./gradlew spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest \
-  :xposed:testDebugUnitTest lint test assembleDebug assembleRelease --no-daemon
+./gradlew spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest \
+  :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --no-daemon
 ```
 
 ---

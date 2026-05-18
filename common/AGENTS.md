@@ -19,9 +19,10 @@ common/src/main/
 
 - `JsonConfig.appConfigs` is canonical for per-app scope. `SpoofGroup.assignedApps` is legacy/display-only.
 - `SharedPrefsKeys` is the ONLY place to build RemotePreferences key strings.
-- Generators live here and run at config time, never at runtime in `:xposed`.
+- Generators live here and run at config time, never at runtime in `:xposed`; target-process hooks only consume stored values.
 - All generators use `SecureRandom` for cryptographic-quality randomness.
 - Detekt baselines are currently empty; keep common logic small enough to avoid new baseline debt.
+- Runtime group resolution must require an explicit enabled `AppConfig.groupId`. Keep any default-group fallback out of hook eligibility and config sync paths.
 
 ## Data Model Hierarchy
 
@@ -109,9 +110,13 @@ Persona generation is intentionally split across focused helpers:
 | Pattern | Example |
 |---------|---------|
 | `module_enabled` | global toggle |
+| `enabled_apps` | current canonical package allowlist |
 | `app_enabled_{sanitizedPkg}` | `app_enabled_com_example_app` |
 | `spoof_enabled_{sanitizedPkg}_{TYPE}` | `spoof_enabled_com_example_app_IMEI` |
 | `spoof_{sanitizedPkg}_{TYPE}` | `spoof_com_example_app_ANDROID_ID` |
+| `hook_family_enabled_{sanitizedPkg}_{family}` | `hook_family_enabled_com_example_app_anti_detect` |
+| `java_proc_maps_byte_redaction_enabled_{sanitizedPkg}` | opt-in Java byte maps redaction |
+| `java_proc_maps_nio_redaction_enabled_{sanitizedPkg}` | opt-in Java NIO maps redaction |
 | `persona_blob_{sanitizedPkg}` | persona JSON blob |
 | `persona_version_{sanitizedPkg}` | persona version counter |
 

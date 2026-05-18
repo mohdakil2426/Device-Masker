@@ -21,7 +21,7 @@ class RootShellTest {
     }
 
     @Test
-    fun `captures exit code stderr and capped stdout`() {
+    fun `captures exit code stderr and keeps capped stdout tail`() {
         val shell = RootShell(FakeExecutor(stdout = "abcdef", stderr = "warning", exitCode = 7))
         val dir = createTempDirectory("root").toFile()
 
@@ -29,7 +29,7 @@ class RootShellTest {
 
         assertEquals(7, result.exitCode)
         assertEquals("warning", result.stderrSummary)
-        assertEquals("abc", result.stdoutPath?.readText())
+        assertEquals("def", result.stdoutPath?.readText())
         assertEquals("warning", result.stderrPath?.readText())
         assertEquals(RootCommandStatus.EXITED, result.status)
         assertTrue(dir.resolve("manifest.json").readText().contains(""""exitCode":7"""))

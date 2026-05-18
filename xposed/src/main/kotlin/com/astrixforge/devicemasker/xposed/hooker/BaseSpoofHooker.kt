@@ -1,9 +1,9 @@
 package com.astrixforge.devicemasker.xposed.hooker
 
-import android.content.SharedPreferences
+import com.astrixforge.devicemasker.common.DeviceProfilePreset
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.xposed.DualLog
-import com.astrixforge.devicemasker.xposed.PrefsHelper
+import com.astrixforge.devicemasker.xposed.HookConfigSnapshot
 import com.astrixforge.devicemasker.xposed.XposedEntry
 import com.astrixforge.devicemasker.xposed.diagnostics.XposedDiagnosticEventSink
 import io.github.libxposed.api.error.XposedFrameworkError
@@ -15,12 +15,11 @@ import java.lang.reflect.Method
  * ## Design contract
  *
  * Each hooker is a stateless Kotlin `object` that extends this class. The lifecycle is:
- * 1. XposedEntry.onPackageLoaded() calls `Hooker.hook(cl, xi, prefs, pkg)`
+ * 1. XposedEntry.onPackageLoaded() calls `Hooker.hook(cl, xi, pkg, snapshot)`
  * 2. `hook()` calls [safeHook] for each method it wants to intercept
- * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook().intercept {}`, then
- *    `xi.deoptimize()`
- * 4. The lambda passed to `intercept` handles the actual callback via `chain.proceed()` + return
- *    value.
+ * 3. Inside each [safeHook] block: resolve the [Method], call `xi.hook().intercept(stableHooker {
+ *    ... })`, then `xi.deoptimize()`
+ * 4. The stable hooker callback handles the actual callback via `chain.proceed()` + return value.
  *
  * ## Why no instance state
  *
@@ -36,15 +35,17 @@ import java.lang.reflect.Method
  *
  * ```kotlin
  * object DeviceHooker : BaseSpoofHooker("DeviceHooker") {
- *     fun hook(cl: ClassLoader, xi: XposedInterface, prefs: SharedPreferences, pkg: String) {
+ *     fun hook(cl: ClassLoader, xi: XposedInterface, pkg: String, snapshot: HookConfigSnapshot) {
  *         val tmClass = cl.loadClassOrNull("android.telephony.TelephonyManager") ?: return
  *         // Each method in its own safeHook — one failure cannot cascade
  *         safeHook("getImei()") {
  *             tmClass.methodOrNull("getImei")?.let { m ->
- *                 xi.hook(m).intercept { chain ->
+ *                 xi.hook(m).intercept(
+ *                     stableHooker { chain ->
  *                     val original = chain.proceed()
- *                     getConfiguredSpoofValue(prefs, pkg, SpoofType.IMEI) ?: original
- *                 }
+ *                     getConfiguredSpoofValue(snapshot, SpoofType.IMEI) ?: original
+ *                     },
+ *                 )
  *                 xi.deoptimize(m)  // bypass ART inlining — CRITICAL for guaranteed delivery
  *             }
  *         }
@@ -109,36 +110,26 @@ abstract class BaseSpoofHooker(protected val tag: String) {
         }
 
     /**
-     * Gets a spoof value from RemotePreferences for a given type. Delegates to PrefsHelper which
-     * understands the SharedPrefsKeys key format.
+     * Gets a spoof value from the package-local config snapshot for a given type.
      *
-     * @param prefs The RemotePreferences for this process (from XposedEntry.getRemotePreferences)
-     * @param pkg The target app's package name
      * @param type The SpoofType being spoofed
      * @param fallback Generator called if no value is configured in prefs
      */
     protected fun getSpoofValue(
-        prefs: SharedPreferences,
-        pkg: String,
+        snapshot: HookConfigSnapshot,
         type: SpoofType,
         fallback: () -> String,
-    ): String = PrefsHelper.getSpoofValue(prefs, pkg, type, fallback)
+    ): String = snapshot.getValue(type) ?: fallback()
 
-    protected fun getConfiguredSpoofValue(
-        prefs: SharedPreferences,
-        pkg: String,
-        type: SpoofType,
-    ): String? = PrefsHelper.getStoredSpoofValue(prefs, pkg, type)
+    protected fun getConfiguredSpoofValue(snapshot: HookConfigSnapshot, type: SpoofType): String? =
+        snapshot.getValue(type)
 
-    /**
-     * Checks if a spoof type is explicitly enabled for a package in RemotePreferences. Returns
-     * false if the key is not present (spoof type defaults to disabled).
-     */
-    protected fun isSpoofTypeEnabled(
-        prefs: SharedPreferences,
-        pkg: String,
-        type: SpoofType,
-    ): Boolean = PrefsHelper.isSpoofTypeEnabled(prefs, pkg, type)
+    protected fun getConfiguredDeviceProfilePreset(
+        snapshot: HookConfigSnapshot
+    ): DeviceProfilePreset? = snapshot.getDeviceProfilePreset()
+
+    protected fun isSpoofTypeEnabled(snapshot: HookConfigSnapshot, type: SpoofType): Boolean =
+        snapshot.isEnabled(type)
 
     /** Records a successful spoof event in hook-side metrics and LSPosed/logcat. */
     protected fun reportSpoofEvent(pkg: String, type: SpoofType) {

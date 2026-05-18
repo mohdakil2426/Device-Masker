@@ -67,6 +67,18 @@ class FakeConfigManager : IConfigManager {
             _config.value.addOrUpdateGroup(group.copy(updatedAt = System.currentTimeMillis()))
     }
 
+    override fun setDefaultGroup(groupId: String) {
+        if (_config.value.getGroup(groupId) == null) return
+
+        _config.value =
+            _config.value.copy(
+                groups =
+                    _config.value.groups.mapValues { (id, group) ->
+                        group.copy(isDefault = id == groupId)
+                    }
+            )
+    }
+
     override fun deleteGroup(groupId: String) {
         _config.value = _config.value.removeGroup(groupId)
     }
@@ -123,7 +135,7 @@ class FakeConfigManager : IConfigManager {
                 }
             }
         val appConfig =
-            getAppConfig(packageName)?.copy(groupId = groupId, isEnabled = true)
+            getAppConfig(packageName)?.copy(groupId = groupId)
                 ?: AppConfig(packageName = packageName, groupId = groupId)
         _config.value = _config.value.copy(groups = groups).setAppConfig(appConfig)
     }
@@ -137,7 +149,10 @@ class FakeConfigManager : IConfigManager {
                     group
                 }
             }
-        _config.value = _config.value.copy(groups = groups).removeAppConfig(packageName)
+        val appConfig =
+            getAppConfig(packageName)?.copy(groupId = null)
+                ?: AppConfig(packageName = packageName, groupId = null)
+        _config.value = _config.value.copy(groups = groups).setAppConfig(appConfig)
     }
 
     override fun setAppEnabled(packageName: String, enabled: Boolean) {

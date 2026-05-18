@@ -77,6 +77,19 @@ class SpoofRepositoryTest {
     }
 
     @Test
+    fun `setActiveGroup leaves exactly one default group`() = runTest {
+        val first = configManager.createGroup("First")
+        val second = configManager.createGroup("Second")
+        configManager.updateGroup(first.copy(isDefault = true))
+        configManager.updateGroup(second.copy(isDefault = false))
+
+        repository.setActiveGroup(second.id)
+
+        val groups = configManager.getAllGroups()
+        assertEquals(listOf(second.id), groups.filter { it.isDefault }.map { it.id })
+    }
+
+    @Test
     fun `import errors return false for malformed json`() = runTest {
         val result = repository.importGroups("this is not json")
         assertFalse(result)

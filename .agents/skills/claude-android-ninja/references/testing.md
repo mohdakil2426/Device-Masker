@@ -15,12 +15,14 @@ Required: hand-written fakes (no mocking libraries) in feature/core modules; Goo
 10. [Navigation Tests](#navigation-tests)
 11. [Compose Stability Testing](#testing-compose-stability-annotations)
 12. [UI Tests](#ui-tests)
-13. [Screenshot Testing](#screenshot-testing)
-14. [Performance Benchmarks](#performance-benchmarks)
-15. [Test Utilities](#test-utilities)
-16. [Rules](#rules)
-17. [Paging 3 Testing](#paging-3-testing)
-18. [Localization Testing](#localization-testing)
+13. [Agent automation (ADB and UIAutomator)](#agent-automation-adb-and-uiautomator)
+14. [Pre-release UI state checklist](#pre-release-ui-state-checklist)
+15. [Screenshot Testing](#screenshot-testing)
+16. [Performance Benchmarks](#performance-benchmarks)
+17. [Test Utilities](#test-utilities)
+18. [Rules](#rules)
+19. [Paging 3 Testing](#paging-3-testing)
+20. [Localization Testing](#localization-testing)
 
 ## Testing Philosophy
 
@@ -1917,9 +1919,141 @@ Required when a screen exposes:
 
 Cross-reference: trackpad behavior change in [compose-patterns.md → Trackpad and mouse input](/references/compose-patterns.md#trackpad-and-mouse-input-compose-111).
 
+## Agent automation (ADB and UIAutomator)
+
+Commands and test shapes an **agent** proposes or runs **only when** a device or emulator is already attached, `adb` resolves, and the session allows shell access. Crash analysis and long `dumpsys`: [android-debugging.md](/references/android-debugging.md). Deep-link `am start` and `pm verify-app-links` matrices: [Testing Deep Links](#testing-deep-links).
+
+### Agent vs device
+
+| Action                                               | Agent                                           | Prerequisite                                        |
+|------------------------------------------------------|-------------------------------------------------|-----------------------------------------------------|
+| Run `adb devices` and parse serial list              | Yes, when shell runs                            | Device or emulator online                           |
+| Build `adb -s SERIAL …` command lines for copy-paste | Yes                                             | Correct `SERIAL` when multiple devices              |
+| Install APK the build produced                       | Yes, when file exists and `adb install` allowed | Artifact path valid; device unlocked if required    |
+| Author `androidTest` UIAutomator or Espresso smoke   | Yes                                             | `./gradlew connectedCheck` or CI emulator available |
+| Instrumented test on real device without CI          | No                                              | Connected device and local Gradle or Studio run     |
+
+Stop: never `adb install` over production user data without explicit user confirmation; never `pm clear` on a device the user did not identify as disposable.
+
+### Device targeting
+
+Required: when more than one line appears under `adb devices`, every mutating command uses `-s <serial>`.
+
+Forbidden: pick a serial not present in the latest `adb devices` output the session captured.
+
+```bash
+adb devices -l
+adb -s emulator-5554 install -r path/to/app-debug.apk
+```
+
+### Install, reset, launch
+
+```bash
+adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s SERIAL shell pm clear com.example.app
+adb -s SERIAL shell am start -W -n com.example.app/.MainActivity
+```
+
+Use `am start -W` when the agent needs a deterministic return after cold start (timeout and exit code surface launch failures).
+
+Cold-start measurement stays in [android-performance.md → Macrobenchmark (Compose)](/references/android-performance.md#macrobenchmark-compose); keep ADB launch checks lightweight.
+
+### Logcat for smoke proof
+
+```bash
+adb -s SERIAL logcat --pid=$(adb -s SERIAL shell pidof -s com.example.app)
+adb -s SERIAL logcat -d -s AndroidRuntime:E | tail -n 80
+```
+
+Use after install or `am start` to confirm absence of immediate process death; full crash triage stays in [android-debugging.md](/references/android-debugging.md).
+
+### UIAutomator v2 (instrumented smoke)
+
+Use when: black-box smoke across process boundaries, launcher widgets, or system UI; single-process Compose surfaces use `createComposeRule` as in [UI Tests](#ui-tests).
+
+Agent-allowed: add or edit a class under `src/androidTest/...` with `@RunWith(AndroidJUnit4::class)`, `InstrumentationRegistry.getInstrumentation()`, `UiDevice.getInstance(instrumentation)`, then `device.wait(Until.hasObject(By.pkg("com.example.app").depth(0)), 5000)` (replace package and timeout with real values).
+
+Minimal pattern (`src/androidTest/...`; replace `pkg` with the debug `applicationId`):
+
+```kotlin
+import android.content.Intent
+import androidx.core.content.ContextCompat
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class SmokeLaunchTest {
+    @Test
+    fun coldStart_reachesPackageSurface() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val device = UiDevice.getInstance(instrumentation)
+        val context = instrumentation.targetContext
+        val pkg = "com.example.app"
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(pkg)
+            ?: error("missing launch intent for $pkg")
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        ContextCompat.startActivity(context, launchIntent, null)
+        device.wait(Until.hasObject(By.pkg(pkg).depth(0)), 10_000)
+    }
+}
+```
+
+Dependencies: add `androidx.test.uiautomator:uiautomator` on `androidTestImplementation`; pin the version beside other AndroidX Test libraries in the catalog ([dependencies.md](/references/dependencies.md)).
+
+### When Compose test vs UIAutomator
+
+| Surface                                           | Use                                                                                                     |
+|---------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| Single-process Compose tree                       | `createComposeRule` + semantics in [UI Tests](#ui-tests)                                                |
+| Cross-app or hybrid View/Compose with stable `id` | UIAutomator `By.res` / `By.text`                                                                        |
+| Macrobenchmark / Baseline Profile collection      | [android-performance.md](/references/android-performance.md) generator patterns with `UiAutomator` APIs |
+
+### CI wiring (reference only)
+
+Agent-allowed: add a workflow job that starts an emulator action (or uses the team's existing emulator service), runs `./gradlew :app:connectedDebugAndroidTest` with `ANDROID_SERIAL` set, uploads log artifacts on failure.
+
+### Further ADB
+
+Meminfo, `gfxinfo`, port forwarding, `run-as` listing: [android-debugging.md → ADB Quick Reference](/references/android-debugging.md#adb-quick-reference).
+
+## Pre-release UI state checklist
+
+Routing for auditing **screens and flows** before ship. Pair with [Screenshot Testing](#screenshot-testing) so each meaningful branch has a `@Preview` or screenshot test.
+
+### State routing
+
+| State or edge                          | Audit in code (agent)                                       | Deep rules                                                                                                                                                                                              |
+|----------------------------------------|-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Empty first load                       | `UiState` branches, empty lists, placeholders               | [compose-patterns.md → Loading and refresh UX](/references/compose-patterns.md#loading-and-refresh-ux)                                                                                                  |
+| Loading / pull-to-refresh              | Skeleton vs full-screen replacement, stale-while-revalidate | [compose-patterns.md → Loading and refresh UX](/references/compose-patterns.md#loading-and-refresh-ux)                                                                                                  |
+| Recoverable error                      | Retry control, dismissible error surface                    | [compose-patterns.md](/references/compose-patterns.md), [kotlin-patterns.md](/references/kotlin-patterns.md)                                                                                            |
+| Offline / no network path              | Cached reads, queued writes, visible offline state          | [android-data-sync.md → Offline-First Architecture](/references/android-data-sync.md#offline-first-architecture), [Network State Monitoring](/references/android-data-sync.md#network-state-monitoring) |
+| Sync conflict in UI                    | User path to resolve or defer                               | [android-data-sync.md → Conflict Resolution](/references/android-data-sync.md#conflict-resolution)                                                                                                      |
+| Permission denied or settings required | Rationale, link to app settings where applicable            | [android-permissions.md → Requesting Runtime Permissions in Compose](/references/android-permissions.md#requesting-runtime-permissions-in-compose)                                                      |
+| Session expired / forced sign-out      | Navigation to auth, cleared back stack                      | [architecture.md](/references/architecture.md)                                                                                                                                                          |
+| RTL / long strings / density           | Truncation, mirroring, overflow                             | [android-i18n.md](/references/android-i18n.md)                                                                                                                                                          |
+
+Stop: do not treat a screen as complete when only the success branch exists in Compose unless domain rules make other branches impossible; then document that exhaustively (for example sealed `when` with a comment or test proving exhaustiveness).
+
 ## Screenshot Testing
 
 Required: use [Compose Preview Screenshot Testing](https://developer.android.com/studio/preview/compose-screenshot-testing) (host JVM, reuses `@Preview`). One test per meaningful state (loading, success, error, empty) for every key screen.
+
+### Preview Screenshot Testing vs Roborazzi
+
+| Approach                                                                              | Use when                                                                                                                           | Avoid when                                                                                                           |
+|---------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| Compose Preview Screenshot Testing (`screenshot` plugin, `screenshotTest` source set) | Layout and state fit a `@Preview` composable; CI without an emulator farm; fast diff of preview renders                            | Flow requires real navigation, gestures, or hybrid View surfaces previews cannot model                               |
+| Roborazzi (Gradle-recorded bitmap diffs)                                              | Need captures after `composeTestRule` / `AndroidComposeTestRule` interactions, Robolectric JVM runs, or full-screen bitmap compare | Team has not pinned Roborazzi coordinates and policy in the catalog yet - add explicit version entries before wiring |
+
+Required: pick one primary visual-regression stack per module family; do not duplicate the same golden coverage in Preview Screenshot and Roborazzi without ownership rules.
+
+Catalog pins for the Compose Preview screenshot plugin live in `assets/libs.versions.toml.template`; refresh those pins whenever Android Studio or AGP release notes change the supported plugin line. Roborazzi coordinates are not template-default - add them to the project catalog only when Roborazzi is adopted, using the versions the [Roborazzi project](https://github.com/takahirom/roborazzi) documents for the chosen setup.
 
 ### Setup
 
