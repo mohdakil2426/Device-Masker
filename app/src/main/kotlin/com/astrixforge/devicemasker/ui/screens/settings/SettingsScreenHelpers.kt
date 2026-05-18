@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
@@ -41,8 +42,9 @@ internal fun isDarkModeActive(themeMode: ThemeMode): Boolean {
 internal fun exportResultMessage(exportResult: ExportResult?): String? =
     when (exportResult) {
         is ExportResult.Success ->
-            stringResource(
-                R.string.settings_export_logs_success,
+            pluralStringResource(
+                R.plurals.settings_export_logs_success,
+                exportResult.lineCount,
                 exportResult.lineCount,
                 exportResult.filePath,
             )

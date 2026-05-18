@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.ui.screens.diagnostics
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
@@ -29,9 +30,20 @@ class DiagnosticsViewModelTest {
     ): DiagnosticsViewModel {
         val app = RuntimeEnvironment.getApplication()
         return if (diagnosticsProvider == null) {
-            DiagnosticsViewModel(app, repository, isXposedActiveFlow)
+            DiagnosticsViewModel(
+                app,
+                repository,
+                isXposedActiveFlow,
+                savedStateHandle = SavedStateHandle(),
+            )
         } else {
-            DiagnosticsViewModel(app, repository, isXposedActiveFlow, diagnosticsProvider)
+            DiagnosticsViewModel(
+                app,
+                repository,
+                isXposedActiveFlow,
+                diagnosticsProvider,
+                savedStateHandle = SavedStateHandle(),
+            )
         }
     }
 

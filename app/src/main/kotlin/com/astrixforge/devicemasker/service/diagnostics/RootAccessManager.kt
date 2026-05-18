@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.service.diagnostics
 
 import android.content.Context
+import androidx.core.content.edit
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,11 +85,9 @@ object RootAccessManager {
     }
 
     private fun persist(context: Context, state: RootAccessState): RootAccessState {
-        context
-            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_STATE, state.name)
-            .apply()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putString(KEY_STATE, state.name)
+        }
         _state.value = state
         return state
     }

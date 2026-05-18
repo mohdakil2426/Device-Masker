@@ -9,6 +9,28 @@ import org.junit.Test
 
 class SupportBundleBuilderTest {
     @Test
+    fun `support bundle streams app and xposed events as jsonl`() {
+        val outputDir = createTempDirectory("bundle").toFile()
+        val appEvents = (1..1000).map { """{"message":"app-$it"}""" }
+        val xposedEvents = (1..1000).map { """{"message":"xposed-$it"}""" }
+
+        val bundle =
+            SupportBundleBuilder(appEvents = appEvents, xposedEvents = xposedEvents)
+                .build(outputDir, RedactionMode.UNREDACTED)
+
+        ZipFile(bundle).use { zip ->
+            val appText =
+                zip.getInputStream(zip.getEntry("app/app_events.jsonl")).bufferedReader().readText()
+            val xposedText =
+                zip.getInputStream(zip.getEntry("xposed/xposed_events.jsonl"))
+                    .bufferedReader()
+                    .readText()
+            assertTrue(appText.contains("""{"message":"app-1000"}"""))
+            assertTrue(xposedText.contains("""{"message":"xposed-1000"}"""))
+        }
+    }
+
+    @Test
     fun `root maximum zip contains expected support artifacts`() {
         val rootDir = createTempDirectory("root-artifacts").toFile()
         rootDir.resolve("logcat_main_system_crash.txt").writeText("imei=490154203237518")

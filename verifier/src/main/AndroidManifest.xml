@@ -15,7 +15,10 @@
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:extractNativeLibs="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/ic_verifier"
         android:label="DeviceMasker Verifier"
         android:theme="@style/VerifierTheme">
         <activity

@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  */
 class GroupsViewModel(
     private val repository: ISpoofRepository,
-    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupsState())

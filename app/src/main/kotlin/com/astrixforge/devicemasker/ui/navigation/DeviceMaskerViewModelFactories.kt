@@ -1,6 +1,7 @@
 package com.astrixforge.devicemasker.ui.navigation
 
 import android.app.Application
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.astrixforge.devicemasker.data.ISettingsDataStore
@@ -12,7 +13,7 @@ import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 
 internal fun homeViewModelFactory(repository: ISpoofRepository) = viewModelFactory {
-    initializer { HomeViewModel(repository) }
+    initializer { HomeViewModel(repository, savedStateHandle = createSavedStateHandle()) }
 }
 
 internal fun settingsViewModelFactory(application: Application, settingsStore: ISettingsDataStore) =
@@ -22,14 +23,20 @@ internal fun settingsViewModelFactory(application: Application, settingsStore: I
 
 internal fun groupSpoofingViewModelFactory(repository: ISpoofRepository, groupId: String) =
     viewModelFactory {
-        initializer { GroupSpoofingViewModel(repository, groupId) }
+        initializer { GroupSpoofingViewModel(repository, groupId, createSavedStateHandle()) }
     }
 
 internal fun groupsViewModelFactory(repository: ISpoofRepository) = viewModelFactory {
-    initializer { GroupsViewModel(repository) }
+    initializer { GroupsViewModel(repository, createSavedStateHandle()) }
 }
 
 internal fun diagnosticsViewModelFactory(application: Application, repository: ISpoofRepository) =
     viewModelFactory {
-        initializer { DiagnosticsViewModel(application, repository) }
+        initializer {
+            DiagnosticsViewModel(
+                application,
+                repository,
+                savedStateHandle = createSavedStateHandle(),
+            )
+        }
     }

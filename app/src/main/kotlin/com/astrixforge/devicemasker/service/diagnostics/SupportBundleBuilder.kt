@@ -28,11 +28,8 @@ class SupportBundleBuilder(
                 "README_REPRO.md",
                 "Reproduce the issue, then attach this local support bundle.\n",
             )
-            zip.writeText("app/app_events.jsonl", appEvents.joinToString("\n").redact(redactor))
-            zip.writeText(
-                "xposed/xposed_events.jsonl",
-                xposedEvents.joinToString("\n").redact(redactor),
-            )
+            zip.writeJsonl("app/app_events.jsonl", appEvents, redactor)
+            zip.writeJsonl("xposed/xposed_events.jsonl", xposedEvents, redactor)
 
             snapshots.forEach { (name, content) ->
                 val prefix =
@@ -58,6 +55,19 @@ class SupportBundleBuilder(
     private fun ZipOutputStream.writeText(path: String, content: String) {
         putNextEntry(ZipEntry(path))
         write(content.toByteArray(Charsets.UTF_8))
+        closeEntry()
+    }
+
+    private fun ZipOutputStream.writeJsonl(
+        path: String,
+        lines: List<String>,
+        redactor: DiagnosticRedactor,
+    ) {
+        putNextEntry(ZipEntry(path))
+        lines.forEach { line ->
+            write(line.redact(redactor).toByteArray(Charsets.UTF_8))
+            write('\n'.code)
+        }
         closeEntry()
     }
 

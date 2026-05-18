@@ -28,7 +28,7 @@ class DiagnosticsViewModel(
     private val repository: ISpoofRepository,
     isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
     private val diagnosticsProvider: IDiagnosticsProvider = DefaultDiagnosticsProvider(application),
-    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(DiagnosticsState())

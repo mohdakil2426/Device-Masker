@@ -196,6 +196,7 @@ private object VerifierEvidenceCollector {
             adapter.javaClass.getMethod("getAddress").invoke(adapter)
         }
 
+    @SuppressLint("PrivateApi")
     private fun systemPropertiesEvidence(): JSONObject =
         JSONObject()
             .putResult("ro.serialno") { systemProperty("ro.serialno") }
@@ -321,6 +322,7 @@ private object VerifierEvidenceCollector {
                 }
             }
 
+    @SuppressLint("PrivateApi")
     private fun systemProperty(name: String): Any? {
         val clazz = Class.forName("android.os.SystemProperties")
         return clazz.getMethod("get", String::class.java).invoke(null, name)
