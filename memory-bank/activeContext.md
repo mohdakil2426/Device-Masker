@@ -4,6 +4,20 @@
 
 Logs system remediation on `release/0.1.5`. Release R8 is enabled and runtime-validated historically. The latest logs work has local unit/static proof and fresh rooted emulator export evidence for the fixed support bundle.
 
+## 2026-05-18 Logs Monitor E2E Hardening
+
+- Created branch `release/0.2.0` for the requested logs/UI hardening work; no commit or push was performed.
+- Mobile MCP reproduced a real live monitor efficiency bug: a short capture replayed old logcat backlog and left `120394` persisted JSONL lines.
+- `LiveLogCaptureService` now starts logcat from the current device timestamp instead of replaying old buffers.
+- `LogMonitorStore` now keeps the persisted live monitor JSONL bounded to the newest row tail instead of allowing unbounded growth.
+- Logs Monitor UI now has text-labeled Start/Stop and Clear actions, explicit Source and Minimum level filter headers, user-facing chip labels, wrapping filter chips, and selected-state level filter chips.
+- Search now matches parsed/displayed row fields as well as raw log lines, and intentional Stop no longer reports `ERROR` from a cancelled/destroyed logcat reader.
+- Added focused regression coverage for bounded persisted monitor rows, live logcat command construction, and parsed-field search.
+- Mobile MCP verified Start -> Running, Stop -> Idle, source filtering, search filtering, Clear, persisted session deletion, and captured `com.mantle.verify` Xposed spoof-event rows on `emulator-5554`.
+- Export Logs was rechecked with a real in-app share ZIP: app JSONL and Xposed JSONL parsed cleanly, LSPosed artifacts were copied, root command manifests were present, and hook health was derived from parsed Xposed export events.
+- Quick visual smoke covered Home, Groups, Group Detail, Apps tab, Settings, and Logs Monitor; screenshots are under `logs/device/2026-05-18-logs-monitor-ui/`.
+- Summary report: `docs/internal/reports/closed/summaries/2026-05-18/2026-05-18-logs-monitor-e2e-summary.md`.
+
 Next tasks:
 1. Keep logs support bundle checks current after further diagnostics changes.
 2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.

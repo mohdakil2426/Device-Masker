@@ -21,6 +21,19 @@
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## 2026-05-18 Logs Monitor E2E Hardening
+
+- Branch `release/0.2.0` was created for the requested work; no commit or push was performed.
+- Fixed live monitor capture so it does not replay old logcat buffers on start.
+- Fixed live monitor session persistence so the JSONL file is trimmed to the newest row tail instead of growing unbounded.
+- Improved Logs Monitor UI controls and filters: visible Start/Stop and Clear labels, explicit filter section labels, user-facing source/level names, wrapping chip layout, and selected-state minimum-level chips.
+- Fixed search to match parsed/displayed row fields, and fixed intentional stop so cancelled root-logcat reads do not report `ERROR`.
+- Added `LiveLogCaptureServiceTest`, extended `LogMonitorStoreTest`, and added parsed-field search coverage in `LogsMonitorViewModelTest`.
+- Mobile MCP verified Logs Monitor start, stop, source filter, search filter, clear behavior, session-file deletion, and captured target `com.mantle.verify` Xposed spoof-event rows on Android 16 emulator.
+- Export Logs was checked through a real in-app share ZIP; app/Xposed JSONL parsed with zero bad lines, LSPosed artifacts and root command manifests were present, and hook health was derived from parsed Xposed export events.
+- Visual smoke screenshots for Home, Groups, Group Apps, and Logs Monitor are under `logs/device/2026-05-18-logs-monitor-ui/`.
+- Detailed summary report: `docs/internal/reports/closed/summaries/2026-05-18/2026-05-18-logs-monitor-e2e-summary.md`.
+
 ## 2026-05-18 Logs System Remediation
 
 - Support export now uses real app JSONL events and real diagnostic snapshots instead of placeholder `{}` values.
