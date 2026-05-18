@@ -60,11 +60,13 @@ class LiveLogCaptureService : Service() {
             serviceScope.launch {
                 runCatching { tailRootLogcat(store) }
                     .onFailure { error ->
-                        Timber.w(error, "Live log capture failed")
-                        store.appendRawLine(
-                            "DeviceMasker live log monitor failed: ${error.message.orEmpty()}"
-                        )
-                        store.setStatus(LogCaptureStatus.ERROR)
+                        if (captureJob?.isActive == true) {
+                            Timber.w(error, "Live log capture failed")
+                            store.appendRawLine(
+                                "DeviceMasker live log monitor failed: ${error.message.orEmpty()}"
+                            )
+                            store.setStatus(LogCaptureStatus.ERROR)
+                        }
                     }
             }
     }
@@ -78,7 +80,7 @@ class LiveLogCaptureService : Service() {
     }
 
     private fun tailRootLogcat(store: LogMonitorStore) {
-        val process = ProcessBuilder("su", "-c", "logcat -b all -v threadtime").start()
+        val process = ProcessBuilder(liveLogcatCommand()).start()
         captureProcess = process
         BufferedReader(InputStreamReader(process.inputStream)).useLines { lines ->
             lines.forEach { line -> store.appendRawLine(line) }
@@ -136,3 +138,10 @@ class LiveLogCaptureService : Service() {
         private const val NOTIFICATION_ID = 4102
     }
 }
+
+internal fun liveLogcatCommand(): List<String> =
+    listOf(
+        "su",
+        "-c",
+        "now=$(date +%m-%d\\ %H:%M:%S.000); exec logcat -b all -v threadtime -T \"\$now\"",
+    )

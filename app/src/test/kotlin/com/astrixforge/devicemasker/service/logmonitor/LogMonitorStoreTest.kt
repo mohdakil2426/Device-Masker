@@ -22,6 +22,22 @@ class LogMonitorStoreTest {
     }
 
     @Test
+    fun `store keeps persisted session bounded to newest rows`() {
+        val sessionFile = File(temp.root, "monitor.jsonl")
+        val store = LogMonitorStore(sessionFile, maxRows = 2)
+
+        store.appendRawLine("05-18 10:00:00.000  1  1 D DeviceMasker: first")
+        store.appendRawLine("05-18 10:00:01.000  1  1 I DeviceMasker: second")
+        store.appendRawLine("05-18 10:00:02.000  1  1 W DeviceMasker: third")
+
+        val lines = sessionFile.readLines()
+
+        assertEquals(2, lines.size)
+        assertTrue(lines.first().contains("second"))
+        assertTrue(lines.last().contains("third"))
+    }
+
+    @Test
     fun `store filters source level and query`() {
         val store = LogMonitorStore(File(temp.root, "monitor.jsonl"), maxRows = 10)
 

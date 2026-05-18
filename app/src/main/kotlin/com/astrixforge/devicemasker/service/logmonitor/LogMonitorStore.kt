@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
 class LogMonitorStore(private val sessionFile: File, private val maxRows: Int = DEFAULT_MAX_ROWS) {
     private val nextId = AtomicLong(0)
@@ -20,13 +19,25 @@ class LogMonitorStore(private val sessionFile: File, private val maxRows: Int = 
         statusState.value = status
     }
 
+    @Synchronized
     fun appendRawLine(line: String, timestampMillis: Long = System.currentTimeMillis()) {
-        val row = line.toRow(id = nextId.incrementAndGet(), timestampMillis = timestampMillis)
+        val rowId = nextId.incrementAndGet()
+        val row = line.toRow(id = rowId, timestampMillis = timestampMillis)
+        val updatedRows = (rowsState.value + row).takeLast(maxRows)
         sessionFile.parentFile?.mkdirs()
-        sessionFile.appendText(row.toJsonLine() + "\n", Charsets.UTF_8)
-        rowsState.update { rows -> (rows + row).takeLast(maxRows) }
+        rowsState.value = updatedRows
+        if (rowId == maxRows.toLong() + 1L || rowId % FILE_TRIM_INTERVAL == 0L) {
+            sessionFile.writeText(
+                updatedRows.joinToString(separator = "\n") { it.toJsonLine() },
+                Charsets.UTF_8,
+            )
+            sessionFile.appendText("\n", Charsets.UTF_8)
+        } else {
+            sessionFile.appendText(row.toJsonLine() + "\n", Charsets.UTF_8)
+        }
     }
 
+    @Synchronized
     fun clear() {
         rowsState.value = emptyList()
         sessionFile.delete()
@@ -107,6 +118,7 @@ class LogMonitorStore(private val sessionFile: File, private val maxRows: Int = 
 
     private companion object {
         private const val DEFAULT_MAX_ROWS = 1_000
+        private const val FILE_TRIM_INTERVAL = 100
         private val THREADTIME_REGEX =
             Regex(
                 """\d\d-\d\d\s+\d\d:\d\d:\d\d\.\d{3}\s+\d+\s+\d+\s+([VDIWEF])\s+([^:]+):\s?(.*)"""
