@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.service
 
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
+import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -15,13 +16,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import timber.log.Timber
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class ConfigManagerTest {
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
     private val context = RuntimeEnvironment.getApplication()
 

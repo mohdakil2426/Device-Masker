@@ -2,6 +2,7 @@ package com.astrixforge.devicemasker.service
 
 import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEventType
 import java.io.File
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -95,5 +96,20 @@ class AppLogStoreTest {
         assertTrue(content.contains("[xposed]"))
         assertFalse(content.contains("════════"))
         assertFalse(content.contains("Possible reasons:"))
+    }
+
+    @Test
+    fun `app log store tracks dropped queue events`() {
+        val store =
+            AppLogStore(
+                file = File(temp.root, "structured.log"),
+                maxEntries = 10,
+                queueCapacity = 0,
+                dispatcher = StandardTestDispatcher(),
+            )
+
+        store.append(AppLogEntry(1, "I", "app", "ConfigManager", "queued"))
+
+        assertEquals(1, store.queueDroppedEventCount())
     }
 }
