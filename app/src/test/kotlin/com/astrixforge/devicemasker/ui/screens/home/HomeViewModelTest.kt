@@ -1,5 +1,6 @@
 package com.astrixforge.devicemasker.ui.screens.home
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.astrixforge.devicemasker.MainDispatcherRule
 import com.astrixforge.devicemasker.common.AppConfig
@@ -23,10 +24,23 @@ class HomeViewModelTest {
 
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
+    private fun homeViewModel(
+        repository: FakeSpoofRepository,
+        isXposedActiveFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
+        xposedScopeStateFlow: MutableStateFlow<XposedScopeState> =
+            MutableStateFlow(XposedScopeState.Disconnected),
+    ): HomeViewModel =
+        HomeViewModel(
+            repository = repository,
+            isXposedActiveFlow = isXposedActiveFlow,
+            xposedScopeStateFlow = xposedScopeStateFlow,
+            savedStateHandle = SavedStateHandle(),
+        )
+
     @Test
     fun `module toggle updates state`() = runTest {
         val repository = FakeSpoofRepository()
-        val viewModel = HomeViewModel(repository)
+        val viewModel = homeViewModel(repository)
 
         viewModel.state.test {
             assertFalse(awaitItem().isModuleEnabled)
@@ -52,7 +66,7 @@ class HomeViewModelTest {
                             )
                     ),
             )
-        val viewModel = HomeViewModel(repository)
+        val viewModel = homeViewModel(repository)
 
         // Initial state
         assertEquals("TestGroup", viewModel.state.value.selectedGroup?.name)
@@ -72,7 +86,7 @@ class HomeViewModelTest {
     fun `xposed connection updates state`() = runTest {
         val xposedFlow = MutableStateFlow(false)
         val repository = FakeSpoofRepository()
-        val viewModel = HomeViewModel(repository, isXposedActiveFlow = xposedFlow)
+        val viewModel = homeViewModel(repository, isXposedActiveFlow = xposedFlow)
 
         viewModel.state.test {
             assertFalse(awaitItem().isXposedActive)
@@ -94,7 +108,7 @@ class HomeViewModelTest {
                         "d.e.f" to AppConfig(packageName = "d.e.f", groupId = group.id),
                     ),
             )
-        val viewModel = HomeViewModel(repository)
+        val viewModel = homeViewModel(repository)
 
         viewModel.state.test { assertEquals(2, awaitItem().enabledAppsCount) }
     }
@@ -103,36 +117,68 @@ class HomeViewModelTest {
     fun `loads installed apps so scoped apps appear without opening apps tab first`() = runTest {
         val appScopeRepository =
             FakeAppScopeRepository(
-                appsLoadedFromSystem =
-                    listOf(InstalledApp("com.scoped.app", "Scoped App", isSystemApp = false))
+                scopedAppsLoadedFromSystem =
+                    mapOf(
+                        "com.scoped.app" to
+                            InstalledApp("com.scoped.app", "Scoped App", isSystemApp = false)
+                    )
             )
         val repository = FakeSpoofRepository(appScopeRepository = appScopeRepository)
         val scopeState =
             MutableStateFlow<XposedScopeState>(XposedScopeState.Connected(setOf("com.scoped.app")))
 
-        val viewModel = HomeViewModel(repository, xposedScopeStateFlow = scopeState)
+        val viewModel = homeViewModel(repository, xposedScopeStateFlow = scopeState)
         advanceUntilIdle()
 
-        assertEquals(1, appScopeRepository.loadAppsCalls)
+        assertEquals(0, appScopeRepository.loadAppsCalls)
+        assertEquals(1, appScopeRepository.loadScopedAppsCalls)
         assertEquals(false, appScopeRepository.lastForceRefresh)
         assertEquals(listOf("Scoped App"), viewModel.state.value.scopedApps.map { it.label })
     }
 
     @Test
-    fun `refresh scoped apps force refreshes installed app cache`() = runTest {
+    fun `home loads only scoped package metadata on init`() = runTest {
+        val appScopeRepository =
+            FakeAppScopeRepository(
+                scopedAppsLoadedFromSystem =
+                    mapOf(
+                        "com.scoped.app" to
+                            InstalledApp("com.scoped.app", "Scoped App", isSystemApp = false)
+                    )
+            )
+        val repository = FakeSpoofRepository(appScopeRepository = appScopeRepository)
+        val scopeState =
+            MutableStateFlow<XposedScopeState>(
+                XposedScopeState.Connected(setOf("android", "system", "com.scoped.app"))
+            )
+
+        val viewModel = homeViewModel(repository, xposedScopeStateFlow = scopeState)
+        advanceUntilIdle()
+
+        assertEquals(0, appScopeRepository.loadAppsCalls)
+        assertEquals(setOf("com.scoped.app"), appScopeRepository.lastScopedPackages)
+        assertEquals(listOf("Scoped App"), viewModel.state.value.scopedApps.map { it.label })
+    }
+
+    @Test
+    fun `refresh scoped apps force refreshes scoped metadata`() = runTest {
         val appScopeRepository = FakeAppScopeRepository()
         val repository = FakeSpoofRepository(appScopeRepository = appScopeRepository)
         val viewModel =
             HomeViewModel(
                 repository = repository,
-                xposedScopeStateFlow = MutableStateFlow(XposedScopeState.Disconnected),
+                xposedScopeStateFlow =
+                    MutableStateFlow(XposedScopeState.Connected(setOf("com.scoped.app"))),
+                savedStateHandle = SavedStateHandle(),
             )
         advanceUntilIdle()
 
         viewModel.refreshScopedApps()
         advanceUntilIdle()
 
-        assertEquals(2, appScopeRepository.loadAppsCalls)
+        assertEquals(0, appScopeRepository.loadAppsCalls)
+        assertEquals(2, appScopeRepository.loadScopedAppsCalls)
+        assertEquals(setOf("com.scoped.app"), appScopeRepository.lastScopedPackages)
         assertEquals(true, appScopeRepository.lastForceRefresh)
     }
 }

@@ -10,14 +10,25 @@ import kotlinx.coroutines.flow.asStateFlow
 class FakeAppScopeRepository(
     initialApps: List<InstalledApp> = emptyList(),
     private val appsLoadedFromSystem: List<InstalledApp> = initialApps,
+    private val scopedAppsLoadedFromSystem: Map<String, InstalledApp> = emptyMap(),
 ) : IAppScopeRepository {
 
     private val _installedApps = MutableStateFlow(initialApps)
     override val installedApps: StateFlow<List<InstalledApp>> = _installedApps.asStateFlow()
 
+    private val _scopedAppMetadata = MutableStateFlow<Map<String, InstalledApp>>(emptyMap())
+    override val scopedAppMetadata: StateFlow<Map<String, InstalledApp>> =
+        _scopedAppMetadata.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     override val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     var loadAppsCalls = 0
+        private set
+
+    var loadScopedAppsCalls = 0
+        private set
+
+    var lastScopedPackages: Set<String> = emptySet()
         private set
 
     var lastForceRefresh: Boolean? = null
@@ -29,6 +40,14 @@ class FakeAppScopeRepository(
         _isLoading.value = true
         _installedApps.value = appsLoadedFromSystem
         _isLoading.value = false
+    }
+
+    override suspend fun loadScopedApps(packageNames: Set<String>, forceRefresh: Boolean) {
+        loadScopedAppsCalls += 1
+        lastForceRefresh = forceRefresh
+        lastScopedPackages = packageNames - setOf("android", "system")
+        _scopedAppMetadata.value =
+            scopedAppsLoadedFromSystem.filterKeys { it in lastScopedPackages }
     }
 
     override suspend fun getInstalledApps(

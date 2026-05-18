@@ -18,6 +18,7 @@ data class GroupSpoofingState(
     val groups: ImmutableList<SpoofGroup> = persistentListOf(),
     val appConfigs: ImmutableMap<String, AppConfig> = persistentMapOf(),
     val installedApps: ImmutableList<InstalledApp> = persistentListOf(),
+    val appRows: ImmutableList<AppRowModel> = persistentListOf(),
     val selectedTab: Int = 0,
     val spoofTabScrollPosition: Int = 0,
     val appsTabScrollPosition: Int = 0,

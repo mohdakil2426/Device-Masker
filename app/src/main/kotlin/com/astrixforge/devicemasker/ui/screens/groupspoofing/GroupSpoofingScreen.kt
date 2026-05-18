@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicator
 import com.astrixforge.devicemasker.ui.navigation.groupSpoofingViewModelFactory
@@ -76,8 +75,8 @@ fun GroupSpoofingScreenContent(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val group = state.group
-    val groups = state.groups
-    val installedApps = state.installedApps
+    val appRows = state.appRows
+    val hasInstalledApps = state.installedApps.isNotEmpty()
     val isAppsRefreshing = state.isAppsRefreshing
 
     val selectedTab = state.selectedTab
@@ -111,9 +110,9 @@ fun GroupSpoofingScreenContent(
                 GroupSpoofingPager(
                     pagerState = pagerState,
                     group = group,
-                    groups = groups,
                     appConfigs = state.appConfigs,
-                    installedApps = installedApps,
+                    appRows = appRows,
+                    hasInstalledApps = hasInstalledApps,
                     isAppsRefreshing = isAppsRefreshing,
                     spoofTabScrollPosition = state.spoofTabScrollPosition,
                     appsTabScrollPosition = state.appsTabScrollPosition,
@@ -176,13 +175,13 @@ private fun GroupSpoofingTabs(
 private fun GroupSpoofingPager(
     pagerState: androidx.compose.foundation.pager.PagerState,
     group: com.astrixforge.devicemasker.common.SpoofGroup,
-    groups: ImmutableList<com.astrixforge.devicemasker.common.SpoofGroup>,
     appConfigs:
         kotlinx.collections.immutable.ImmutableMap<
             String,
             com.astrixforge.devicemasker.common.AppConfig,
         >,
-    installedApps: ImmutableList<InstalledApp>,
+    appRows: ImmutableList<AppRowModel>,
+    hasInstalledApps: Boolean,
     isAppsRefreshing: Boolean,
     spoofTabScrollPosition: Int,
     appsTabScrollPosition: Int,
@@ -207,10 +206,9 @@ private fun GroupSpoofingPager(
 
             1 ->
                 AppsTabContent(
-                    group = group,
-                    allGroups = groups,
-                    appConfigs = appConfigs,
-                    installedApps = installedApps,
+                    appRows = appRows,
+                    hasInstalledApps = hasInstalledApps,
+                    assignedCount = appConfigs.countAssignedToGroup(group.id),
                     isRefreshing = isAppsRefreshing,
                     onRefresh = { viewModel.refreshApps() },
                     initialScrollPosition = appsTabScrollPosition,
@@ -226,3 +224,7 @@ private fun GroupSpoofingPager(
         }
     }
 }
+
+private fun Map<String, com.astrixforge.devicemasker.common.AppConfig>.countAssignedToGroup(
+    groupId: String
+): Int = values.count { it.groupId == groupId && it.isEnabled }

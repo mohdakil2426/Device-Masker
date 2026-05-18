@@ -9,7 +9,7 @@ import kotlinx.collections.immutable.toImmutableList
 
 fun buildHomeScopedApps(
     scopeState: XposedScopeState,
-    installedApps: List<InstalledApp>,
+    scopedAppMetadata: Map<String, InstalledApp>,
     appConfigs: Map<String, AppConfig>,
     groups: List<SpoofGroup>,
 ): ImmutableList<HomeScopedApp> {
@@ -19,14 +19,13 @@ fun buildHomeScopedApps(
             XposedScopeState.Disconnected,
             is XposedScopeState.Error -> emptySet()
         }
-    val installedByPackage = installedApps.associateBy { it.packageName }
     val groupsById = groups.associateBy { it.id }
 
     return scopePackages
         .asSequence()
         .filterNot { it in DEFAULT_LSPOSED_SCOPE_PACKAGES }
         .mapNotNull { packageName ->
-            val installedApp = installedByPackage[packageName] ?: return@mapNotNull null
+            val installedApp = scopedAppMetadata[packageName] ?: return@mapNotNull null
             val appConfig = appConfigs[packageName]
             val group = appConfig?.groupId?.let(groupsById::get)
             HomeScopedApp(

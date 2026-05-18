@@ -51,9 +51,9 @@ fun SpoofTabContent(
     onToggle: (SpoofType, Boolean) -> Unit,
     onCarrierChange: (Carrier) -> Unit,
     timezoneSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
     initialScrollPosition: Int = 0,
     onScrollPositionChange: (Int) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     var expandedCategories by rememberSaveable(group?.id) { mutableStateOf(emptyList<String>()) }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialScrollPosition)

@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,19 +48,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.astrixforge.devicemasker.BuildConfig
 import com.astrixforge.devicemasker.R
-import com.astrixforge.devicemasker.common.AppConfig
-import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.ui.components.AppListItem
 import com.astrixforge.devicemasker.ui.components.ClearFocusOnImeDismiss
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveLoadingIndicatorWithLabel
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressivePullToRefresh
+import com.astrixforge.devicemasker.ui.screens.groupspoofing.AppRowModel
 import com.astrixforge.devicemasker.ui.theme.DeviceMaskerTheme
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -69,16 +65,15 @@ import kotlinx.coroutines.flow.debounce
 @OptIn(FlowPreview::class)
 @Composable
 fun AppsTabContent(
-    group: SpoofGroup?,
-    allGroups: ImmutableList<SpoofGroup>,
-    appConfigs: ImmutableMap<String, AppConfig>,
-    installedApps: ImmutableList<InstalledApp>,
+    appRows: ImmutableList<AppRowModel>,
+    hasInstalledApps: Boolean,
+    assignedCount: Int,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
     initialScrollPosition: Int = 0,
     onScrollPositionChange: (Int) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -91,13 +86,11 @@ fun AppsTabContent(
             .collect { debouncedQuery = it }
     }
 
-    val filteredApps =
-        rememberFilteredApps(
-            installedApps = installedApps,
-            group = group,
+    val filteredRows =
+        rememberFilteredRows(
+            appRows = appRows,
             debouncedQuery = debouncedQuery,
             showSystemApps = showSystemApps,
-            appConfigs = appConfigs,
         )
 
     Column(
@@ -111,19 +104,16 @@ fun AppsTabContent(
                 AppsHeaderState(
                     searchQuery = searchQuery,
                     showSystemApps = showSystemApps,
-                    filteredCount = filteredApps.size,
-                    assignedCount = appConfigs.countAssignedToGroup(group?.id),
+                    filteredCount = filteredRows.size,
+                    assignedCount = assignedCount,
                 ),
             queryChanged = { searchQuery = it },
             showSystemAppsChanged = { showSystemApps = it },
         )
         ExpressivePullToRefresh(isRefreshing = isRefreshing, onRefresh = onRefresh) {
             AppsTabBody(
-                group = group,
-                allGroups = allGroups,
-                appConfigs = appConfigs,
-                installedApps = installedApps,
-                filteredApps = filteredApps,
+                hasInstalledApps = hasInstalledApps,
+                filteredRows = filteredRows,
                 initialScrollPosition = initialScrollPosition,
                 onScrollPositionChange = onScrollPositionChange,
                 onAppToggle = { app, checked ->
@@ -146,39 +136,20 @@ private data class AppsHeaderState(
 )
 
 @Composable
-private fun rememberFilteredApps(
-    installedApps: ImmutableList<InstalledApp>,
-    group: SpoofGroup?,
+private fun rememberFilteredRows(
+    appRows: ImmutableList<AppRowModel>,
     debouncedQuery: String,
     showSystemApps: Boolean,
-    appConfigs: ImmutableMap<String, AppConfig>,
-): ImmutableList<InstalledApp> {
-    val filteredApps by
-        remember(installedApps, group, debouncedQuery, showSystemApps, appConfigs) {
-            derivedStateOf {
-                val query = debouncedQuery.lowercase()
-                installedApps
-                    .asSequence()
-                    .filter { app -> app.matchesAppSearch(query, showSystemApps) }
-                    .sortedWith(
-                        compareByDescending<InstalledApp> {
-                                appConfigs.isInGroup(it.packageName, group?.id)
-                            }
-                            .thenBy { it.label.lowercase() }
-                    )
-                    .toList()
-                    .toImmutableList()
-            }
-        }
-    return filteredApps
+): ImmutableList<AppRowModel> {
+    val query = debouncedQuery.lowercase()
+    return remember(appRows, query, showSystemApps) {
+        appRows
+            .asSequence()
+            .filter { it.matches(query, showSystemApps, BuildConfig.APPLICATION_ID) }
+            .toList()
+            .toImmutableList()
+    }
 }
-
-private fun InstalledApp.matchesAppSearch(query: String, showSystemApps: Boolean): Boolean =
-    packageName != BuildConfig.APPLICATION_ID &&
-        (showSystemApps || !isSystemApp) &&
-        (query.isEmpty() ||
-            label.lowercase().contains(query) ||
-            packageName.lowercase().contains(query))
 
 @Composable
 private fun AppsSearchHeader(
@@ -248,25 +219,19 @@ private fun AppsSearchHeader(
 
 @Composable
 private fun AppsTabBody(
-    group: SpoofGroup?,
-    allGroups: ImmutableList<SpoofGroup>,
-    appConfigs: ImmutableMap<String, AppConfig>,
-    installedApps: ImmutableList<InstalledApp>,
-    filteredApps: ImmutableList<InstalledApp>,
+    hasInstalledApps: Boolean,
+    filteredRows: ImmutableList<AppRowModel>,
     initialScrollPosition: Int,
     onScrollPositionChange: (Int) -> Unit,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
-        installedApps.isEmpty() -> LoadingAppsState(modifier = modifier)
-        filteredApps.isEmpty() -> EmptyAppsSearchState(modifier = modifier)
+        !hasInstalledApps -> LoadingAppsState(modifier = modifier)
+        filteredRows.isEmpty() -> EmptyAppsSearchState(modifier = modifier)
         else ->
             AppsList(
-                group = group,
-                allGroups = allGroups,
-                appConfigs = appConfigs,
-                apps = filteredApps,
+                rows = filteredRows,
                 initialScrollPosition = initialScrollPosition,
                 onScrollPositionChange = onScrollPositionChange,
                 onAppToggle = onAppToggle,
@@ -296,10 +261,7 @@ private fun EmptyAppsSearchState(modifier: Modifier = Modifier) {
 
 @Composable
 private fun AppsList(
-    group: SpoofGroup?,
-    allGroups: ImmutableList<SpoofGroup>,
-    appConfigs: ImmutableMap<String, AppConfig>,
-    apps: ImmutableList<InstalledApp>,
+    rows: ImmutableList<AppRowModel>,
     initialScrollPosition: Int,
     onScrollPositionChange: (Int) -> Unit,
     onAppToggle: (InstalledApp, Boolean) -> Unit,
@@ -326,13 +288,13 @@ private fun AppsList(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        items(items = apps, key = { it.packageName }, contentType = { "app_item" }) { app ->
+        items(items = rows, key = { it.app.packageName }, contentType = { "app_item" }) { row ->
             AppListItem(
-                app = app,
-                isAssigned = appConfigs.isInGroup(app.packageName, group?.id),
-                isAppEnabled = appConfigs[app.packageName]?.isEnabled != false,
-                assignedToOtherGroupName = app.assignedGroupName(group, allGroups, appConfigs),
-                onToggle = { checked -> onAppToggle(app, checked) },
+                app = row.app,
+                isAssigned = row.isAssignedToCurrentGroup,
+                isAppEnabled = row.isAppEnabled,
+                assignedToOtherGroupName = row.assignedToOtherGroupName,
+                onToggle = { checked -> onAppToggle(row.app, checked) },
                 modifier = Modifier.fillMaxWidth().animateItem(),
             )
         }
@@ -341,26 +303,6 @@ private fun AppsList(
         }
     }
 }
-
-private fun InstalledApp.assignedGroupName(
-    currentGroup: SpoofGroup?,
-    allGroups: ImmutableList<SpoofGroup>,
-    appConfigs: ImmutableMap<String, AppConfig>,
-): String? =
-    appConfigs[packageName]
-        ?.groupId
-        ?.takeIf { it != currentGroup?.id }
-        ?.let { assignedGroupId -> allGroups.firstOrNull { it.id == assignedGroupId }?.name }
-
-private fun Map<String, AppConfig>.countAssignedToGroup(groupId: String?): Int =
-    if (groupId == null) {
-        0
-    } else {
-        values.count { it.groupId == groupId && it.isEnabled }
-    }
-
-private fun Map<String, AppConfig>.isInGroup(packageName: String, groupId: String?): Boolean =
-    groupId != null && this[packageName]?.groupId == groupId
 
 // ═══════════════════════════════════════════════════════════
 // Previews
@@ -371,10 +313,9 @@ private fun Map<String, AppConfig>.isInGroup(packageName: String, groupId: Strin
 private fun AppsTabContentLoadingPreview() {
     DeviceMaskerTheme {
         AppsTabContent(
-            group = null,
-            allGroups = persistentListOf(),
-            appConfigs = persistentMapOf(),
-            installedApps = persistentListOf(),
+            appRows = persistentListOf(),
+            hasInstalledApps = false,
+            assignedCount = 0,
             onAppToggle = { _, _ -> },
             isRefreshing = false,
             onRefresh = {},
@@ -386,31 +327,57 @@ private fun AppsTabContentLoadingPreview() {
 @Composable
 private fun AppsTabContentPopulatedPreview() {
     DeviceMaskerTheme {
+        val exampleApp =
+            InstalledApp(
+                "com.example.app1",
+                "Example App",
+                isSystemApp = false,
+                versionName = "1.0",
+            )
+        val anotherApp =
+            InstalledApp(
+                "com.example.app2",
+                "Another App",
+                isSystemApp = false,
+                versionName = "2.0",
+            )
+        val systemApp =
+            InstalledApp(
+                "com.example.system",
+                "System App",
+                isSystemApp = true,
+                versionName = "1.0",
+            )
         AppsTabContent(
-            group = SpoofGroup.createNew("Preview Group"),
-            allGroups = persistentListOf(),
-            appConfigs = persistentMapOf(),
-            installedApps =
+            appRows =
                 persistentListOf(
-                    InstalledApp(
-                        "com.example.app1",
-                        "Example App",
-                        isSystemApp = false,
-                        versionName = "1.0",
+                    AppRowModel(
+                        app = exampleApp,
+                        normalizedLabel = exampleApp.label.lowercase(),
+                        normalizedPackageName = exampleApp.packageName.lowercase(),
+                        isAssignedToCurrentGroup = true,
+                        isAppEnabled = true,
+                        assignedToOtherGroupName = null,
                     ),
-                    InstalledApp(
-                        "com.example.app2",
-                        "Another App",
-                        isSystemApp = false,
-                        versionName = "2.0",
+                    AppRowModel(
+                        app = anotherApp,
+                        normalizedLabel = anotherApp.label.lowercase(),
+                        normalizedPackageName = anotherApp.packageName.lowercase(),
+                        isAssignedToCurrentGroup = false,
+                        isAppEnabled = true,
+                        assignedToOtherGroupName = null,
                     ),
-                    InstalledApp(
-                        "com.example.system",
-                        "System App",
-                        isSystemApp = true,
-                        versionName = "1.0",
+                    AppRowModel(
+                        app = systemApp,
+                        normalizedLabel = systemApp.label.lowercase(),
+                        normalizedPackageName = systemApp.packageName.lowercase(),
+                        isAssignedToCurrentGroup = false,
+                        isAppEnabled = true,
+                        assignedToOtherGroupName = null,
                     ),
                 ),
+            hasInstalledApps = true,
+            assignedCount = 1,
             onAppToggle = { _, _ -> },
             isRefreshing = false,
             onRefresh = {},

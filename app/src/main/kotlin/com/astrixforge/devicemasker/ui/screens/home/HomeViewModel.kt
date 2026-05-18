@@ -32,7 +32,7 @@ class HomeViewModel(
     private val repository: ISpoofRepository,
     private val isXposedActiveFlow: StateFlow<Boolean> = XposedPrefs.isServiceConnected,
     private val xposedScopeStateFlow: StateFlow<XposedScopeState> = XposedPrefs.scopedPackages,
-    @Suppress("unused") private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    @Suppress("unused") private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -40,7 +40,14 @@ class HomeViewModel(
     private val isScopedAppsRefreshing = MutableStateFlow(false)
 
     init {
-        viewModelScope.launch { repository.appScopeRepository.loadApps(forceRefresh = false) }
+        viewModelScope.launch {
+            xposedScopeStateFlow.collect { scopeState ->
+                repository.appScopeRepository.loadScopedApps(
+                    packageNames = scopeState.packageNamesOrEmpty(),
+                    forceRefresh = false,
+                )
+            }
+        }
         viewModelScope.launch {
             combine(
                     isXposedActiveFlow,
@@ -50,14 +57,14 @@ class HomeViewModel(
                         repository.groups,
                         repository.activeGroup,
                         repository.appConfigs,
-                        repository.appScopeRepository.installedApps,
+                        repository.appScopeRepository.scopedAppMetadata,
                         xposedScopeStateFlow,
-                    ) { groups, activeGroup, appConfigs, installedApps, xposedScopeState ->
+                    ) { groups, activeGroup, appConfigs, scopedMetadata, xposedScopeState ->
                         GroupFlows(
                             groups = groups,
                             activeGroup = activeGroup,
                             appConfigs = appConfigs,
-                            installedApps = installedApps,
+                            scopedMetadata = scopedMetadata,
                             xposedScopeState = xposedScopeState,
                         )
                     },
@@ -80,7 +87,7 @@ class HomeViewModel(
                         scopedApps =
                             buildHomeScopedApps(
                                 scopeState = inner.xposedScopeState,
-                                installedApps = inner.installedApps,
+                                scopedAppMetadata = inner.scopedMetadata,
                                 appConfigs = inner.appConfigs,
                                 groups = inner.groups,
                             ),
@@ -123,7 +130,10 @@ class HomeViewModel(
         viewModelScope.launch {
             isScopedAppsRefreshing.value = true
             try {
-                repository.appScopeRepository.loadApps(forceRefresh = true)
+                repository.appScopeRepository.loadScopedApps(
+                    packageNames = xposedScopeStateFlow.value.packageNamesOrEmpty(),
+                    forceRefresh = true,
+                )
                 XposedPrefs.refreshScope()
             } finally {
                 isScopedAppsRefreshing.value = false
@@ -154,6 +164,13 @@ private data class GroupFlows(
     val groups: List<SpoofGroup>,
     val activeGroup: SpoofGroup?,
     val appConfigs: Map<String, AppConfig>,
-    val installedApps: List<InstalledApp>,
+    val scopedMetadata: Map<String, InstalledApp>,
     val xposedScopeState: XposedScopeState,
 )
+
+private fun XposedScopeState.packageNamesOrEmpty(): Set<String> =
+    when (this) {
+        is XposedScopeState.Connected -> packages
+        XposedScopeState.Disconnected,
+        is XposedScopeState.Error -> emptySet()
+    }

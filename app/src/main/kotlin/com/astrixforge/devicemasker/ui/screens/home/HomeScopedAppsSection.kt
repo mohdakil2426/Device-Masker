@@ -3,16 +3,17 @@ package com.astrixforge.devicemasker.ui.screens.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Android
@@ -23,17 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -42,16 +39,16 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import com.astrixforge.devicemasker.R
+import com.astrixforge.devicemasker.ui.components.AppIconCache
+import com.astrixforge.devicemasker.ui.components.CachedAppIcon
 import com.astrixforge.devicemasker.ui.components.EmptyState
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveCard
 import com.astrixforge.devicemasker.ui.components.expressive.ExpressiveSwitch
 import com.astrixforge.devicemasker.ui.components.expressive.SectionHeader
+import com.astrixforge.devicemasker.ui.components.rememberAppIconCache
 import com.astrixforge.devicemasker.ui.theme.AppMotion
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /** Section showing apps currently selected in LSPosed scope. */
 @Composable
@@ -61,6 +58,7 @@ fun HomeScopedAppsSection(
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(true) }
+    val iconCache = rememberAppIconCache()
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         SectionHeader(
             title = stringResource(R.string.home_scoped_apps),
@@ -80,11 +78,20 @@ fun HomeScopedAppsSection(
                     subtitle = stringResource(R.string.home_scoped_apps_empty_subtitle),
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    scopedApps.forEach { app ->
-                        key(app.packageName) {
-                            HomeScopedAppCard(app = app, onAppEnabledChange = onAppEnabledChange)
-                        }
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = SCOPED_APPS_MAX_HEIGHT),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = scopedApps,
+                        key = { it.packageName },
+                        contentType = { "home_scoped_app" },
+                    ) { app ->
+                        HomeScopedAppCard(
+                            app = app,
+                            onAppEnabledChange = onAppEnabledChange,
+                            iconCache = iconCache,
+                        )
                     }
                 }
             }
@@ -96,6 +103,7 @@ fun HomeScopedAppsSection(
 private fun HomeScopedAppCard(
     app: HomeScopedApp,
     onAppEnabledChange: (HomeScopedApp, Boolean) -> Unit,
+    iconCache: AppIconCache,
     modifier: Modifier = Modifier,
 ) {
     val enabledState = stringResource(R.string.group_app_selected_state)
@@ -120,7 +128,12 @@ private fun HomeScopedAppCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            HomeScopedAppIcon(packageName = app.packageName, label = app.label)
+            CachedAppIcon(
+                packageName = app.packageName,
+                label = app.label,
+                iconCache = iconCache,
+                fallback = { iconModifier -> HomeScopedAppIconFallback(modifier = iconModifier) },
+            )
             HomeScopedAppDetails(app = app, modifier = Modifier.weight(1f))
             ExpressiveSwitch(
                 checked = app.isGloballyEnabled,
@@ -166,44 +179,21 @@ private fun HomeScopedApp.statusSubtitle(): String =
     }
 
 @Composable
-private fun HomeScopedAppIcon(packageName: String, label: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val iconBitmap by
-        produceState<androidx.compose.ui.graphics.ImageBitmap?>(initialValue = null, packageName) {
-            value =
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                            context.packageManager
-                                .getApplicationIcon(packageName)
-                                .toBitmap(width = APP_ICON_SIZE_PX, height = APP_ICON_SIZE_PX)
-                                .asImageBitmap()
-                        }
-                        .getOrNull()
-                }
-        }
-
-    if (iconBitmap != null) {
-        Image(
-            bitmap = iconBitmap!!,
-            contentDescription = label,
-            modifier = modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
+private fun HomeScopedAppIconFallback(modifier: Modifier = Modifier) {
+    Box(
+        modifier =
+            modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Android,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(24.dp),
         )
-    } else {
-        Box(
-            modifier =
-                modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Android,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(24.dp),
-            )
-        }
     }
 }
 
@@ -212,4 +202,4 @@ internal fun homeScopedAppCardAlpha(isGloballyEnabled: Boolean): Float =
 
 private const val ENABLED_SCOPED_APP_CARD_ALPHA = 1f
 private const val DISABLED_SCOPED_APP_CARD_ALPHA = 0.62f
-private const val APP_ICON_SIZE_PX = 80
+private val SCOPED_APPS_MAX_HEIGHT = 420.dp

@@ -3,13 +3,17 @@ package com.astrixforge.devicemasker.ui.screens.groupspoofing
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.astrixforge.devicemasker.common.AppConfig
 import com.astrixforge.devicemasker.common.CorrelationGroup
+import com.astrixforge.devicemasker.common.SpoofGroup
 import com.astrixforge.devicemasker.common.SpoofType
 import com.astrixforge.devicemasker.common.models.Carrier
 import com.astrixforge.devicemasker.common.models.LocationConfig
 import com.astrixforge.devicemasker.common.withValue
 import com.astrixforge.devicemasker.data.models.DeviceIdentifier
+import com.astrixforge.devicemasker.data.models.InstalledApp
 import com.astrixforge.devicemasker.data.repository.ISpoofRepository
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +34,7 @@ import kotlinx.coroutines.launch
 class GroupSpoofingViewModel(
     private val repository: ISpoofRepository,
     private val groupId: String,
-    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state =
@@ -47,8 +51,10 @@ class GroupSpoofingViewModel(
         viewModelScope.launch {
             repository.groups.collect { groups ->
                 val group = groups.find { it.id == groupId }
-                _state.update {
-                    it.copy(groups = groups.toImmutableList(), group = group, isLoading = false)
+                _state.update { current ->
+                    current
+                        .copy(groups = groups.toImmutableList(), group = group, isLoading = false)
+                        .withRebuiltAppRows()
                 }
             }
         }
@@ -63,13 +69,17 @@ class GroupSpoofingViewModel(
 
         viewModelScope.launch {
             repository.appScopeRepository.installedApps.collect { apps ->
-                _state.update { it.copy(installedApps = apps.toImmutableList()) }
+                _state.update { current ->
+                    current.copy(installedApps = apps.toImmutableList()).withRebuiltAppRows()
+                }
             }
         }
 
         viewModelScope.launch {
             repository.appConfigs.collect { appConfigs ->
-                _state.update { it.copy(appConfigs = appConfigs.toImmutableMap()) }
+                _state.update { current ->
+                    current.copy(appConfigs = appConfigs.toImmutableMap()).withRebuiltAppRows()
+                }
             }
         }
     }
@@ -192,6 +202,40 @@ class GroupSpoofingViewModel(
         viewModelScope.launch {
             runCatching { repository.appScopeRepository.loadApps(forceRefresh) }
         }
+    }
+
+    private fun GroupSpoofingState.withRebuiltAppRows(): GroupSpoofingState =
+        copy(appRows = buildAppRows(installedApps, group, groups, appConfigs))
+
+    private fun buildAppRows(
+        installedApps: List<InstalledApp>,
+        currentGroup: SpoofGroup?,
+        allGroups: List<SpoofGroup>,
+        appConfigs: Map<String, AppConfig>,
+    ): ImmutableList<AppRowModel> {
+        val groupsById = allGroups.associateBy { it.id }
+        return installedApps
+            .map { app ->
+                val appConfig = appConfigs[app.packageName]
+                val assignedGroupId = appConfig?.groupId
+                AppRowModel(
+                    app = app,
+                    normalizedLabel = app.label.lowercase(),
+                    normalizedPackageName = app.packageName.lowercase(),
+                    isAssignedToCurrentGroup =
+                        currentGroup != null && assignedGroupId == currentGroup.id,
+                    isAppEnabled = appConfig?.isEnabled != false,
+                    assignedToOtherGroupName =
+                        assignedGroupId
+                            ?.takeIf { it != currentGroup?.id }
+                            ?.let { groupsById[it]?.name },
+                )
+            }
+            .sortedWith(
+                compareByDescending<AppRowModel> { it.isAssignedToCurrentGroup }
+                    .thenBy { it.normalizedLabel }
+            )
+            .toImmutableList()
     }
 
     fun setSpoofTabScrollPosition(position: Int) {

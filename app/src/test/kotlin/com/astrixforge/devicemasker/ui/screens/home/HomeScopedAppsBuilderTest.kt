@@ -16,10 +16,12 @@ class HomeScopedAppsBuilderTest {
         val apps =
             buildHomeScopedApps(
                 scopeState = XposedScopeState.Connected(setOf("com.scope.only")),
-                installedApps =
-                    listOf(
-                        InstalledApp("com.scope.only", "Scoped App", isSystemApp = false),
-                        InstalledApp("com.config.only", "Configured App", isSystemApp = false),
+                scopedAppMetadata =
+                    mapOf(
+                        "com.scope.only" to
+                            InstalledApp("com.scope.only", "Scoped App", isSystemApp = false),
+                        "com.config.only" to
+                            InstalledApp("com.config.only", "Configured App", isSystemApp = false),
                     ),
                 appConfigs =
                     mapOf(
@@ -39,7 +41,8 @@ class HomeScopedAppsBuilderTest {
         val apps =
             buildHomeScopedApps(
                 scopeState = XposedScopeState.Connected(setOf("android", "system", "com.app")),
-                installedApps = listOf(InstalledApp("com.app", "User App", isSystemApp = false)),
+                scopedAppMetadata =
+                    mapOf("com.app" to InstalledApp("com.app", "User App", isSystemApp = false)),
                 appConfigs = emptyMap(),
                 groups = emptyList(),
             )
@@ -58,11 +61,17 @@ class HomeScopedAppsBuilderTest {
                     XposedScopeState.Connected(
                         setOf("com.app.disabled", "com.group.disabled", "com.enabled")
                     ),
-                installedApps =
-                    listOf(
-                        InstalledApp("com.app.disabled", "App Disabled", isSystemApp = false),
-                        InstalledApp("com.group.disabled", "Group Disabled", isSystemApp = false),
-                        InstalledApp("com.enabled", "Enabled", isSystemApp = false),
+                scopedAppMetadata =
+                    mapOf(
+                        "com.app.disabled" to
+                            InstalledApp("com.app.disabled", "App Disabled", isSystemApp = false),
+                        "com.group.disabled" to
+                            InstalledApp(
+                                "com.group.disabled",
+                                "Group Disabled",
+                                isSystemApp = false,
+                            ),
+                        "com.enabled" to InstalledApp("com.enabled", "Enabled", isSystemApp = false),
                     ),
                 appConfigs =
                     mapOf(
@@ -97,11 +106,11 @@ class HomeScopedAppsBuilderTest {
             buildHomeScopedApps(
                 scopeState =
                     XposedScopeState.Connected(setOf("com.zebra", "com.alpha", "com.beta")),
-                installedApps =
-                    listOf(
-                        InstalledApp("com.zebra", "Zebra", isSystemApp = false),
-                        InstalledApp("com.alpha", "Alpha", isSystemApp = false),
-                        InstalledApp("com.beta", "Beta", isSystemApp = false),
+                scopedAppMetadata =
+                    mapOf(
+                        "com.zebra" to InstalledApp("com.zebra", "Zebra", isSystemApp = false),
+                        "com.alpha" to InstalledApp("com.alpha", "Alpha", isSystemApp = false),
+                        "com.beta" to InstalledApp("com.beta", "Beta", isSystemApp = false),
                     ),
                 appConfigs =
                     mapOf(
@@ -132,8 +141,11 @@ class HomeScopedAppsBuilderTest {
         val apps =
             buildHomeScopedApps(
                 scopeState = XposedScopeState.Connected(setOf("com.disabled")),
-                installedApps =
-                    listOf(InstalledApp("com.disabled", "Disabled App", isSystemApp = false)),
+                scopedAppMetadata =
+                    mapOf(
+                        "com.disabled" to
+                            InstalledApp("com.disabled", "Disabled App", isSystemApp = false)
+                    ),
                 appConfigs =
                     mapOf(
                         "com.disabled" to
@@ -155,7 +167,7 @@ class HomeScopedAppsBuilderTest {
         val apps =
             buildHomeScopedApps(
                 scopeState = XposedScopeState.Connected(setOf("com.missing")),
-                installedApps = emptyList(),
+                scopedAppMetadata = emptyMap(),
                 appConfigs = emptyMap(),
                 groups = emptyList(),
             )
@@ -168,7 +180,8 @@ class HomeScopedAppsBuilderTest {
         val apps =
             buildHomeScopedApps(
                 scopeState = XposedScopeState.Disconnected,
-                installedApps = listOf(InstalledApp("com.app", "App", isSystemApp = false)),
+                scopedAppMetadata =
+                    mapOf("com.app" to InstalledApp("com.app", "App", isSystemApp = false)),
                 appConfigs = emptyMap(),
                 groups = emptyList(),
             )
