@@ -21,6 +21,16 @@
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
 
+## 2026-05-18 Logs System Remediation
+
+- Support export now uses real app JSONL events and real diagnostic snapshots instead of placeholder `{}` values.
+- Root export captures all logcat buffers, filtered Device Masker/LSPosed evidence, and copied LSPosed log directories when root is granted.
+- Every root artifact has manifest evidence for status, exit code, byte counts, and root availability.
+- Logs Monitor is available from Settings for live root logcat observation while reproducing target-app behavior.
+- Follow-up export verification fixed and proved three issues: LSPosed directory logs are now copied from `/data/adb/lspd/log*`, redacted `app/app_events.jsonl` plus `xposed/xposed_events.jsonl` remain valid JSONL, and `hook_health.json` is no longer an empty placeholder.
+- Fresh emulator export evidence: `logs/device/2026-05-18-user-export-fixed-final-122647.zip` contains `root/lsposed/lsposed_log.txt` and `root/lsposed/lsposed_log_old.txt`, app JSONL `1063` valid lines, Xposed JSONL `908` valid lines, and derived hook health totals from the parsed Xposed events.
+- Local database storage remains intentionally deferred until measured monitor volume requires it.
+
 ## 2026-05-18 Performance Optimization And Warning Cleanup
 
 - Completed `docs/superpowers/plans/2026-05-18-performance-optimization-and-warning-cleanup.md` without commit or push.

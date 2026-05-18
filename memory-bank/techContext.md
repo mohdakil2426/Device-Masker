@@ -20,7 +20,7 @@
 | IPC | No custom AIDL/Binder path; app-side libxposed service is used for RemotePreferences |
 | Serialization | kotlinx.serialization JSON 1.11.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
-| Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
+| Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed`, root copied LSPosed logs, user-started live logcat monitor |
 | Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and single root/logcat support export |
 | Image loading | Coil Compose 3.4.0 |
 | Static analysis | Detekt 2.0.0-alpha.3 with Compose rules 0.5.8 |
@@ -64,8 +64,10 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/JsonlDiagnosticStore.kt` | Rotating diagnostic JSONL store |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/SupportBundleBuilder.kt` | Local support bundle ZIP builder |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCollector.kt` | Opt-in root maximum artifact collector and command manifest writer |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/LsposedLogCopyCollector.kt` | Root-only copier for known LSPosed persisted log files |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootAccessManager.kt` | Central root grant state and startup root request |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCaptureService.kt` | Foreground service for bounded root startup/boot capture |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/service/logmonitor/LiveLogCaptureService.kt` | User-started foreground service for live root logcat monitor |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/BootCaptureReceiver.kt` | Starts root capture after `BOOT_COMPLETED` when Android allows it |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config repository |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/AppScopeRepository.kt` | Installed-app metadata repository plus scoped metadata fast path for Home |

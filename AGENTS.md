@@ -18,6 +18,8 @@ Android LSPosed/libxposed module for per-app device identity spoofing. Gradle mo
 - Runtime hooks must not use direct Kotlin SAM `.intercept { ... }` callbacks unless release R8/runtime validation explicitly proves it safe.
 - App launch and app-side Xposed service connection do not prove hooks work.
 - Hook success requires LSPosed/logcat evidence and, where possible, actual spoofed values inside target apps.
+- Support bundles must use real captured evidence. Do not export placeholder `{}` snapshots, blank Xposed JSONL by design, or malformed redacted JSONL.
+- LSPosed support capture must handle `/data/adb/lspd/log*` as either files or directories and must preserve command manifests for missing paths.
 - Target app safety is more important than broad spoof coverage.
 - Before any project work, read `docs/AGENTS_PROJECT_RULES.md` and apply those non-negotiable project rules.
 
@@ -114,6 +116,7 @@ Rules:
 - Run the release/R8 gate before release or hook-safety claims.
 - Run `detektBaseline` separately from `detekt`; update baselines only for accepted, documented existing debt.
 - Do not claim hook success without LSPosed/logcat evidence and target-app value checks where possible.
+- After logs/export changes, inspect a real support ZIP when root/emulator access is available. Required checks: app JSONL parseable, Xposed JSONL parseable/non-empty after hook reproduction, LSPosed logs copied or missing status explained, root command manifests present, and `hook_health.json` meaningful.
 - On build failures, find the root cause first; use relevant skills, official docs, Google-developer-knowledge MCP for Android/Google APIs, and web search when current docs are needed.
 
 ## Xposed Safety
@@ -149,6 +152,7 @@ Before claiming hooks work:
 - Force-stop and relaunch target apps after any scope/module/config change.
 - Check LSPosed/logcat for module load, target selection, hook registration, and spoof events.
 - Verify actual spoofed values inside target apps when possible, not only app launch or service connection.
+- Treat support bundle hook health as parsed log evidence, not target-value proof. It helps debug backend/hook state but does not replace verifier or target-app value checks.
 - After hook safety or R8 callback changes, run the R8 hook ABI guard and validate more than one target app before stability claims.
 
 ## Module Guides
@@ -177,7 +181,7 @@ Must use all of these skills accourding to there job never skip.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **DeviceMasker** (6545 symbols, 14007 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **DeviceMasker** (6723 symbols, 14442 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -209,11 +213,11 @@ This project is indexed by GitNexus as **DeviceMasker** (6545 symbols, 14007 rel
 
 | Task | Read this skill file |
 |------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Understand architecture / "How does X work?" | `skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->

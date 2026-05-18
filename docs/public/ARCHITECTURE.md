@@ -206,6 +206,7 @@ flowchart TD
     Export["LogManager export"]
     Hook["Target hookers"]
     LS["LSPosed logs"]
+    Health["Parsed hook health"]
     UI["Diagnostics UI"]
     Root["Root/logcat support artifacts"]
 
@@ -213,17 +214,22 @@ flowchart TD
     Hook --> LS
     LS --> UI
     LS --> Root --> Export
+    Root --> Health --> Export
 ```
 
 Important facts:
 - `HookConfigSnapshot` is built once in `XposedEntry.onPackageReady()` for the selected package. Value hookers read the snapshot in callbacks; anti-detect and proc-maps policy still read their app-level preference keys.
 - Hook registration keeps one final `All hooks registered` event plus health counters. Per-hook debug start/success spam is not part of the common path.
-- App logs are stored without root in app-owned storage.
-- LSPosed logs are the authoritative hook-side runtime evidence.
+- App logs are stored as app-owned structured JSONL.
+- Hook-side logs remain LSPosed/logcat-owned; the app does not use a custom Binder path for hook evidence.
 - Support export has one user-facing path: Export Logs.
 - Export Logs builds the maximum local support bundle.
-- The bundle includes app JSONL events, redacted diagnostic snapshots, latest boot/startup root capture, and a fresh export-time root/logcat snapshot when root is granted.
+- Export copies app JSONL, real redacted snapshots, LSPosed log files or log directories copied from known root paths when available, and root/logcat artifacts with sidecar manifests.
+- `xposed/xposed_events.jsonl` is generated only from parsed copied logcat/LSPosed lines. If no matching hook lines are captured, the bundle manifest and root sidecars explain the capture state.
+- `diagnostics/hook_health.json` is derived from parsed Xposed export events. It summarizes module load, target selection, hook registration, hook failures/skips, and spoof events; it is not target-value proof.
+- Logs Monitor is a user-started live root logcat capture screen for debugging target launches. It is not proof of hook success unless LSPosed/logcat lines and target-app values are present.
 - Support bundle JSONL entries are streamed line by line into the ZIP; do not join large log files into memory.
+- Redacted support JSONL must stay valid JSONL so support tooling can parse it after export.
 - If root is unavailable, export still creates a ZIP with app logs, snapshots, and a root-unavailable manifest.
 - There is no custom Device Masker Binder service in system_server.
 - App export should stay structured, bounded, redacted, and useful for support.

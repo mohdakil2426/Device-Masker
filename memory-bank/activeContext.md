@@ -2,12 +2,22 @@
 
 ## Current Focus
 
-Performance optimization and warning cleanup on `release/0.1.5`. Release R8 is enabled and runtime-validated historically, but the latest work has only local unit/static/build proof, not fresh target-device hook proof.
+Logs system remediation on `release/0.1.5`. Release R8 is enabled and runtime-validated historically. The latest logs work has local unit/static proof and fresh rooted emulator export evidence for the fixed support bundle.
 
 Next tasks:
-1. Add automated expected-vs-actual report generation so future verifier runs do not require ad hoc PowerShell matrix construction.
+1. Keep logs support bundle checks current after further diagnostics changes.
 2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.
-3. Run fresh target-device LSPosed validation after any further hook or R8 callback changes; the 2026-05-18 work has build/R8 proof, not fresh runtime hook proof.
+3. Run fresh target-device LSPosed validation after any further hook or R8 callback changes.
+
+## 2026-05-18 Logs System Remediation
+
+- Implemented real support export inputs for app logs, config/scope snapshots, root/logcat artifacts, and copied LSPosed log directories.
+- Removed the fake production path where `xposed/xposed_events.jsonl` was created from an empty list.
+- Added artifact sidecar manifests so blank files explain missing output, command status, byte counts, and root availability.
+- Added user-started Logs Monitor flow for live root logcat capture and filtering from Settings.
+- Follow-up ZIP audit found two broken details and both were fixed: LSPosed `/data/adb/lspd/log*` paths may be directories, and support JSONL redaction must stay parseable after timestamps/IDs are redacted.
+- Fresh emulator export `logs/device/2026-05-18-user-export-fixed-final-122647.zip` proved LSPosed current/old directory logs were copied, app/xposed JSONL parsed with zero bad lines, and `diagnostics/hook_health.json` contains a derived parsed-Xposed summary.
+- No Room database was added; JSONL plus an in-memory bounded tail remains the current KISS data shape.
 
 ## 2026-05-18 Performance Optimization And Warning Cleanup
 

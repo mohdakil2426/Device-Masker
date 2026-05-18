@@ -69,6 +69,17 @@ Avoid:
 - Put scratch checks in `logs/tmp/`.
 - Do not place temporary logs or evidence in the project root.
 
+## Support Bundle Contract
+
+- Support bundles are debugging evidence, not decoration. Do not add placeholder files that look authoritative but contain fake `{}` data or intentionally blank streams.
+- App and Xposed event exports must remain valid JSONL after redaction. If a line is structured, redact through the structured event model and re-encode it.
+- Hook-side evidence is owned by LSPosed/logcat. The app may parse copied LSPosed/logcat lines into `xposed/xposed_events.jsonl`, but must not add a custom Binder/AIDL hook-evidence path.
+- LSPosed root capture must handle `/data/adb/lspd/log` and `/data/adb/lspd/log.old` as either files or directories. Missing paths must be explicit in the copied artifact and manifest.
+- Root/logcat capture must include sidecar manifests with command, status, exit code, timeout, byte counts, and root availability. Blank artifacts need an explanation in the artifact, not silent emptiness.
+- `diagnostics/hook_health.json` must be either real derived evidence or absent by design. Do not ship `{}` as a health result.
+- When root/emulator access is available, validate logs/export work against a real generated ZIP, not only unit tests.
+- Support bundle hook evidence proves module/backend behavior only. It does not prove final target-observed spoof values unless verifier or target-app value evidence is included.
+
 ## Device UI Work
 
 - Use Mobile MCP for manual emulator/device UI work: LSPosed scope changes, Device Masker UI configuration, target app selection, permission dialogs, app launches that need visual confirmation, and visual screen checks.

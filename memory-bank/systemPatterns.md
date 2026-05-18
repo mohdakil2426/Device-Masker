@@ -209,12 +209,20 @@ Diagnostics facts:
 - App logs are rootless structured `DiagnosticEvent` JSONL stored in app sandbox.
 - Support export has one user-facing `Export Logs` path backed by the maximum root/logcat bundle.
 - Exports are redacted by default; raw identifiers must not be logged by default.
-- Root/logcat collection uses bounded fixed command templates during boot/startup capture and export-time fresh snapshot.
+- Root/logcat collection uses bounded fixed command templates during boot/startup capture and export-time fresh snapshot, with sidecar manifests for every artifact.
+- Export copies known LSPosed persisted log files from `/data/adb/lspd/` when root is granted.
 - LSPosed logs are the authoritative source for target-process hook events.
 - There is no custom Device Masker Binder service in system_server.
 - Diagnostics UI does not read custom service status; target hook proof comes from LSPosed/logcat.
 - Support bundle JSONL entries are written line-by-line to the zip; do not join large log lists into
   one string before writing.
+
+Logs Monitor pattern:
+- User-started only; no always-on logcat tailing.
+- Root required for full logcat capture.
+- Stores a bounded in-memory row tail and JSONL raw monitor file.
+- Export remains the durable evidence path.
+- Hook success still requires LSPosed/logcat hook lines plus target-app value evidence.
 
 ## Verifier Matrix Pattern
 
