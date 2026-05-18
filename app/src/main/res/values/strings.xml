@@ -31,7 +31,6 @@
     <string name="home_view_group">View group</string>
     <string name="home_selected">Selected</string>
 
-
     <!-- Groups Screen -->
     <string name="group_screen_title">Groups</string>
     <string name="group_list_empty">No groups found</string>
@@ -51,7 +50,6 @@
     <string name="group_description_example">e.g., For banking apps</string>
     <string name="group_name_length">%1$d/%2$d</string>
     <string name="group_empty_title">No groups found</string>
-
 
     <!-- Actions -->
     <string name="action_more_options">More options</string>
@@ -143,13 +141,6 @@
     <string name="diagnostics_config_sync_title">Configuration Sync</string>
     <string name="diagnostics_config_sync_desc">Configuration updates apply immediately when the live module service is available. If the service is unavailable, the app falls back to cached preferences and some target apps may need a restart.</string>
 
-
-
-
-
-
-
-
     <string name="group_card_default">Default</string>
     <string name="group_card_created">Created %1$s</string>
     <string name="group_card_set_default">Set as default</string>
@@ -157,293 +148,30 @@
     <string name="group_card_delete">Delete group</string>
     <string name="group_card_selected">Selected</string>
 
-
-
-
-
-
-
     <string name="content_country_picker">Country picker</string>
     <string name="content_timezone_picker">Timezone picker</string>
 
     <string name="group_app_selected_state">Assigned</string>
     <string name="group_app_unselected_state">Not assigned</string>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <string name="picker_selected_state">Selected</string>
     <string name="picker_not_selected_state">Not selected</string>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     <string name="bottom_nav_home">Home</string>
     <string name="bottom_nav_groups">Groups</string>
     <string name="bottom_nav_settings">Settings</string>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     <string name="group_card_enabled_state">Group enabled</string>
     <string name="group_card_disabled_state">Group disabled</string>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <string name="action_edit_item">Edit</string>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     <string name="bottom_nav_open_home">Open Home tab</string>
     <string name="bottom_nav_open_groups">Open Groups tab</string>
     <string name="bottom_nav_open_settings">Open Settings tab</string>
-
-
-
-
-
-
-
-
 
     <string name="home_scoped_apps">Scoped Apps</string>
     <string name="home_scoped_apps_empty">No scoped apps found</string>
@@ -452,271 +180,11 @@
     <string name="home_scoped_app_group_disabled">%1$s disabled. Enable the group to apply spoofing.</string>
     <string name="home_scoped_app_not_configured">Not assigned to a spoof group.</string>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <string name="picker_search_country_hint">Search countries…</string>
     <string name="picker_search_timezone_hint">Search timezones…</string>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <string name="section_expand_final">Expand section</string>
     <string name="section_collapse_final">Collapse section</string>
-
-
-
-
-
-
-
-
-
 
     <string name="group_spoofing_back">Back</string>
     <string name="group_spoofing_tab_spoof">Spoof Values</string>
