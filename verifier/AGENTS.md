@@ -29,6 +29,8 @@ Local target app for Android emulator/device validation. This APK is not product
 - Normal target-SDK 29+ apps can hit Android platform restrictions for persistent telephony identifiers and `Build.getSerial()`. If a supported hooked path returns the configured value, the restriction is not a verifier failure.
 - Latitude and longitude require both config values enabled and runtime location permissions granted to the verifier.
 - WebView UA coverage requires both static default UA and instance `WebSettings.getUserAgentString()` evidence. The Android 16 emulator verifier currently proves both through the public validation package; rerun after hook changes.
+- `SystemProperties` reflection exists only as target-process evidence collection. Keep `PrivateApi` lint suppression narrow and local to that probe.
+- The verifier manifest must stay lint-clean with explicit launcher icon, backup, and data-extraction rules even though the APK is not production.
 
 ## Build And Run
 

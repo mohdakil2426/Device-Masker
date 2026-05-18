@@ -5,9 +5,9 @@
 | Area | Status |
 | --- | --- |
 | Project phase | Development, R8 enabled in release |
-| Build | Latest local UI-audit remediation gate passing: `spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint assembleDebug` |
+| Build | Latest local performance/warning gate passing: `spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug` plus release/R8 gate |
 | Unit tests | Passing |
-| Lint/format/static analysis | Passing with Spotless, lint, and Detekt `allRules=true`; baselines are empty |
+| Lint/format/static analysis | Passing with Spotless, lint, and Detekt `allRules=true`; app/common/xposed/verifier lint reports say `No issues found`; Detekt baselines are empty |
 | Debug APK launch | Verified on `emulator-5554` |
 | LSPosed metadata | API 101, entry and scope present |
 | Config architecture | RemotePreferences primary, local JSON persistence |
@@ -20,6 +20,35 @@
 | Verifier | `:verifier` local target app builds, installs, launches, and writes `files/verifier/latest.json` |
 | R8 minification | **Enabled in release** with StableHooker callback adapter. Latest checked APK: 4,007,831 bytes unsigned, 4,069,566 bytes signed. |
 | Stable release readiness | R8 callback crash resolved; broader pass-through, reboot, and app-category validation still required before final stable release claims |
+
+## 2026-05-18 Performance Optimization And Warning Cleanup
+
+- Completed `docs/superpowers/plans/2026-05-18-performance-optimization-and-warning-cleanup.md` without commit or push.
+- Home scoped apps now load only LSPosed-scoped package metadata through `loadScopedApps()` instead of forcing a full installed-app scan at Home startup.
+- Added bounded shared `AppIconCache` and `CachedAppIcon`; Home scoped rows and app-list rows reuse it.
+- Home scoped apps render through a bounded lazy list with stable keys.
+- Config sync now supports dirty package sync through `ConfigSync.syncPackages()` and `ConfigManager` sync hints, avoiding full per-package rewrites for app/group mutations while preserving full sync where global state changes.
+- Xposed value hookers now receive a per-package `HookConfigSnapshot` built once from RemotePreferences. Snapshot lookup supports enabled-type checks, flat values, and persona fallback.
+- Xposed registration logging is coalesced: per-hook success spam removed, health counters/failure logs retained, final `All hooks registered` diagnostic retained.
+- Support bundle JSONL entries are streamed into the zip line-by-line.
+- Startup root capture is delayed by one frame plus 1500 ms.
+- Group Spoofing Apps tab derives sorted/filter-ready `AppRowModel` values in the ViewModel instead of sorting and lowercasing inside composition.
+- Warning cleanup brought app/common/xposed/verifier lint reports to `No issues found`. It removed 1092 lint-reported unused string entries and kept only narrow intentional suppressions for explicit `commit()` checks, target-SDK deferral, dependency availability, and verifier/Xposed platform reflection.
+- GitNexus change detection completed; aggregate risk was critical because of breadth: 52 changed files, 217 changed symbols, and 80 affected symbols. Affected flows matched the planned performance/config/Xposed/UI/diagnostics/startup areas.
+
+Verification passed:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --tests com.astrixforge.devicemasker.data.repository.AppScopeRepositoryTest --tests com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilderTest --tests com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.AppIconCacheTest --tests com.astrixforge.devicemasker.service.ConfigSyncTest --tests com.astrixforge.devicemasker.data.ConfigSyncSnapshotTest --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.HookConfigSnapshotTest --tests com.astrixforge.devicemasker.xposed.PrefsHelperTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest --no-daemon
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon
+.\gradlew.bat lint --no-daemon --no-configuration-cache
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache
+```
 
 ## 2026-05-16 Comprehensive UI Audit Remediation
 
@@ -607,3 +636,21 @@ Engineering cleanup accepted as deferred/user-owned:
 - Clean AGP 10 deprecation warnings.
 - Add more hook helper tests.
 - Keep docs and Memory Bank current after every runtime validation result.
+
+### 2026-05-18 Performance Optimization And Warning Cleanup
+
+- Implemented Home scoped metadata fast path: scoped package metadata is loaded directly from LSPosed scope instead of scanning all installed apps during Home startup.
+- Added shared `AppIconCache` and routed Home/app-list icon rendering through cached async icon loads.
+- Added scoped RemotePreferences sync through `ConfigSync.syncPackages()` and ConfigManager dirty-package hints.
+- Added `HookConfigSnapshot` in `:xposed` so hookers use a process-local snapshot built once at package-ready time.
+- Reduced xposed registration log chatter by removing per-hook debug start/success events while retaining failures, health counters, and final registered events.
+- Streamed support bundle JSONL output, delayed startup root capture after first frame, and precomputed Group Spoofing Apps tab row models in the ViewModel.
+- Cleaned lint warnings/resources: removed 1092 unused string resources, moved adaptive launcher XMLs out of obsolete `mipmap-anydpi-v26`, fixed the export-log plural warning, fixed the modifier-parameter warning, removed an obsolete SDK guard, converted root-state prefs to KTX edit, and added a narrow lint ignore for the preserved launcher foreground vector.
+- Follow-up warning cleanup made all app/common/xposed/verifier lint reports clean. Production ViewModel factories now provide real `SavedStateHandle`s; tests pass explicit handles. Intentional private API reflection in Xposed/verifier remains narrowly suppressed because it is required hook/evidence behavior. Version-catalog dependency availability warnings are suppressed instead of unverified bumps; an attempted coroutine bump failed dependency resolution in this environment.
+- Verification passed:
+  - `.\gradlew.bat lint --no-daemon`
+  - `.\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon`
+  - `.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon`
+  - `.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon`
+  - `.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache`
+- Current module lint reports (`:app`, `:common`, `:xposed`, `:verifier`) all say `No issues found`.

@@ -8,9 +8,10 @@ Android LSPosed/libxposed module for per-app device identity spoofing. Gradle mo
 - `SharedPrefsKeys.kt` is the only source for RemotePreferences key names.
 - `JsonConfig.appConfigs` is canonical for app scope; `SpoofGroup.assignedApps` is legacy/display-only.
 - `AppConfig.isEnabled` is standalone app-level enablement; do not reset it during group assignment or unassignment.
-- LSPosed scoped-app UI must read libxposed service scope data; do not derive a "scoped apps" list from spoof groups.
+- LSPosed scoped-app UI must read libxposed service scope data and use scoped package metadata; do not derive a "scoped apps" list from spoof groups or full-scan installed apps on Home startup.
 - Runtime sync must use explicit app-to-group assignment from `JsonConfig.appConfigs`; do not use default-group fallback for hook eligibility.
-- Xposed target selection must require the current `enabled_apps` allowlist plus the per-package enabled key; a stale `app_enabled_*` key alone must never activate hooks.
+- Dirty RemotePreferences sync must still publish the current `enabled_apps` app-config package set/config version and use explicit `commit()` result checks.
+- Xposed target selection must require the current `enabled_apps` app-config package set plus the per-package enabled key; a stale `app_enabled_*` key alone must never activate hooks.
 - Generated identity values are created in app/common config flows, never inside target-process hooks.
 - `:xposed` must return original values for disabled, missing, blank, malformed, unsafe, or unsupported config.
 - `:xposed` must not use Timber, Compose, random generation, app-private JSON reads, or hardcoded preference keys.
@@ -176,7 +177,7 @@ Must use all of these skills accourding to there job never skip.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **DeviceMasker** (5402 symbols, 12760 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **DeviceMasker** (6545 symbols, 14007 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -208,11 +209,11 @@ This project is indexed by GitNexus as **DeviceMasker** (5402 symbols, 12760 rel
 
 | Task | Read this skill file |
 |------|---------------------|
-| Understand architecture / "How does X work?" | `/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->

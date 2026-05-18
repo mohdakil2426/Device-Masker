@@ -35,13 +35,25 @@ Device Masker does not attempt:
 
 ## Current Verified State
 
-Latest full gate (post-Master Implementation Plan 2026-05-04 M3E follow-up):
+Latest performance/warning cleanup gates on 2026-05-18:
 
 ```powershell
-.\gradlew.bat spotlessCheck :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug assembleRelease :app:assembleCiRelease --no-daemon
+.\gradlew.bat spotlessApply spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon --no-configuration-cache
+.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache
 ```
 
 Result: `BUILD SUCCESSFUL`.
+
+Current performance/warning cleanup state:
+- Home scoped-app loading uses scoped package metadata and no longer full-scans installed apps on startup.
+- App icon decoding is centralized in bounded `AppIconCache`.
+- Config sync supports dirty package writes through `ConfigSync.syncPackages()` while full sync remains available for global/import/repair flows.
+- `:xposed` builds one `HookConfigSnapshot` per selected package and value hook callbacks read from that snapshot.
+- Support bundle JSONL export streams entries into the ZIP instead of joining large logs in memory.
+- Group Spoofing app rows are derived as `AppRowModel` in the ViewModel.
+- App/common/xposed/verifier lint reports say `No issues found`.
+- This work has local unit/static/build/R8 proof only; do not claim fresh target-device hook proof from it.
 
 Latest Detekt strictness state as of 2026-05-08:
 - Detekt runs with `allRules=true`.

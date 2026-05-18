@@ -18,7 +18,7 @@
 | Config bridge | libxposed RemotePreferences |
 | Local config | JSON in app `filesDir` |
 | IPC | No custom AIDL/Binder path; app-side libxposed service is used for RemotePreferences |
-| Serialization | kotlinx.serialization JSON 1.10.0 |
+| Serialization | kotlinx.serialization JSON 1.11.0 |
 | Coroutines | kotlinx.coroutines 1.10.2 |
 | Logging | Timber structured JSONL in `:app`, DualLog/XposedModule structured sink in `:xposed` |
 | Root collection | libsu core 6.0.0 for startup root grant, boot/startup capture, and single root/logcat support export |
@@ -68,13 +68,18 @@ Current expectations:
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/RootLogCaptureService.kt` | Foreground service for bounded root startup/boot capture |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/service/diagnostics/BootCaptureReceiver.kt` | Starts root capture after `BOOT_COMPLETED` when Android allows it |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/SpoofRepository.kt` | UI-facing config repository |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/AppScopeRepository.kt` | Installed-app metadata repository plus scoped metadata fast path for Home |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/data/repository/IAppScopeRepository.kt` | App scope repository contract used by ViewModels/tests |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/components/AppIconCache.kt` | Bounded app icon cache for Home scoped rows and app lists |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/NavDestination.kt` | Navigation 3 `NavKey` destination model |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerNavigationState.kt` | App-owned Navigation 3 top-level stacks and navigator |
 | `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerDeepLinks.kt` | Navigation 3 deep-link URI parsing and synthetic stack definitions |
+| `app/src/main/kotlin/com/astrixforge/devicemasker/ui/navigation/DeviceMaskerViewModelFactories.kt` | Manual factories that create lifecycle `SavedStateHandle` instances for production screens |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/JsonConfig.kt` | Root config model and migration helpers |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/SharedPrefsKeys.kt` | Preference key single source of truth |
 | `common/src/main/kotlin/com/astrixforge/devicemasker/common/util/Luhn.kt` | Shared IMEI/ICCID check-digit implementation |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/XposedEntry.kt` | libxposed module entry |
+| `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/HookConfigSnapshot.kt` | Per-package value/persona snapshot used by hot hook callbacks |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/PrefsHelper.kt` | Hook-side preference helper/reader |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/BaseSpoofHooker.kt` | Shared hook utilities |
 | `xposed/src/main/kotlin/com/astrixforge/devicemasker/xposed/hooker/callback/StableHooker.kt` | R8-safe libxposed `XposedInterface.Hooker` adapter for runtime hook callbacks |
@@ -221,9 +226,12 @@ Runtime validation needs:
 
 ## Known Technical Warnings
 
-- `material3-adaptive-navigation3` is on `1.3.0-alpha10`, which required moving the project to compile SDK 37.
+- `material3-adaptive-navigation3` is on `1.3.0-beta01`, which required moving the project to compile SDK 37.
 - Release shrinking is enabled and was validated on emulator targets plus user-reported real
   Android 16 hardware. Do not bypass `StableHooker` for libxposed runtime callbacks.
+- App/common/xposed/verifier lint reports are clean as of 2026-05-18. Narrow lint suppressions remain intentional for explicit `commit()` checks, target-SDK deferral, dependency availability, and verifier/Xposed platform reflection.
+- The app target SDK remains 36 intentionally. Do not bump target SDK only to silence lint; do it through a behavior-validation plan.
+- Version-catalog dependency availability warnings are suppressed until dependency upgrades can be verified against reachable repositories. An attempted coroutine bump was reverted because dependency resolution failed in this environment.
 - HiddenApiBypass is intentionally not a dependency. Android 16 compatibility work must not add it as a shortcut.
 - Java proc-maps redaction is not native scanner coverage. Native hook engines require a separate evidence-backed plan.
 - Android 16 emulator evidence from `emulator-5554` / Pixel 10 Pro XL API 36.1 proves that emulator path only. Physical-device Android 16 claims still require separate evidence.

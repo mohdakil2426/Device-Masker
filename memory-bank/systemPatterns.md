@@ -86,6 +86,20 @@ sequenceDiagram
     end
 ```
 
+Dirty sync pattern:
+- Full config sync remains the default for module/global/default-group operations and recovery.
+- App/group mutations that only affect known packages should pass a dirty package set through
+  `ConfigManager` to `ConfigSync.syncPackages()`.
+- Dirty package sync still writes the current enabled-app allowlist and config version, then updates
+  only requested package keys or disables removed packages.
+- Keep explicit `commit()` for RemotePreferences sync writes where the app reports sync success.
+
+Scoped app metadata pattern:
+- Home Scoped Apps observes LSPosed scope packages and loads only those package labels/icons through
+  `IAppScopeRepository.loadScopedApps()`.
+- `android` and `system` are scope markers and must be filtered from app metadata lookup.
+- Full installed-app scans are reserved for the Apps tab and explicit refresh paths, not Home startup.
+
 ## Source Of Truth Rules
 
 - `JsonConfig.appConfigs` is the canonical app assignment and enablement table.
@@ -112,6 +126,10 @@ sequenceDiagram
 - Requires global module enabled and per-app enabled preferences before registering app hooks.
 - Requires current enabled-app allowlist membership before trusting any per-app enabled preference.
 - Logs `All hooks registered` to LSPosed when target hook registration completes.
+- Builds one `HookConfigSnapshot` per selected hook package before value hook registration.
+- Passes that snapshot to value hookers so hot callbacks do not repeatedly read RemotePreferences.
+- Emits one final structured hook registration event instead of per-hook DEBUG success spam; disabled
+  and failed hook registrations still produce diagnostics.
 
 ## Hook Safety Rules
 
@@ -126,6 +144,8 @@ Every hook should:
 - Return original values for disabled, missing, blank, malformed, unsafe, or unsupported config.
 - Skip abstract methods and other unhookable framework declarations.
 - Avoid static initializers that can throw inside target processes.
+- Prefer snapshot reads for app/type spoof values in hook callbacks. Hook callbacks should use the
+  package-local `HookConfigSnapshot` for enabled-value checks and persona fallback.
 
 Forbidden in target-process hook callbacks:
 - Random fallback identifier generation.
@@ -193,6 +213,8 @@ Diagnostics facts:
 - LSPosed logs are the authoritative source for target-process hook events.
 - There is no custom Device Masker Binder service in system_server.
 - Diagnostics UI does not read custom service status; target hook proof comes from LSPosed/logcat.
+- Support bundle JSONL entries are written line-by-line to the zip; do not join large log lists into
+  one string before writing.
 
 ## Verifier Matrix Pattern
 
@@ -269,6 +291,7 @@ WebView UA spoofing is defensive:
   `com.astrixforge.devicemasker.xposed.hooker.callback.**`.
 - `ciRelease` build type validates ProGuard rules without affecting debug builds.
 - Lint is fail-fast.
+- App/common/xposed/verifier lint reports should stay at `No issues found`. Suppress only narrow false-positive or intentionally deferred warnings with a reason tied to runtime behavior.
 - Spotless covers Kotlin and Gradle Kotlin files, excluding docs and generated/build folders.
 - Detekt runs for `:app`, `:common`, and `:xposed` using `config/detekt.yml`, module overrides, and per-module baselines.
 - Detekt runs with `allRules=true`; module baselines are currently empty and should stay empty.
@@ -294,9 +317,21 @@ WebView UA spoofing is defensive:
 ## ViewModel State Pattern
 
 - `SavedStateHandle` injected for process-death survival of critical UI state.
+- Production screen factories create lifecycle `SavedStateHandle` instances through Navigation/ViewModel factory APIs; default production constructors must not silently allocate detached handles.
+- Unit tests pass explicit `SavedStateHandle()` values.
 - State classes annotated `@Immutable` with `kotlinx.collections.immutable.ImmutableList`.
 - `Flow.combine` used to merge multiple repository flows into single UI state.
 - Redundant `suspend` modifiers removed from non-suspending methods.
+- Expensive UI row derivation for large lists should happen in the ViewModel. The Group Spoofing
+  Apps tab uses `AppRowModel` to precompute normalized labels/package names, current assignment,
+  app enabled state, other-group label, and sorted order before composition.
+
+## App Icon Pattern
+
+- App icon decoding is centralized through bounded `AppIconCache`.
+- Compose app rows use `CachedAppIcon` and stable package keys instead of decoding drawables in each
+  row composition.
+- Icon decode work belongs on `Dispatchers.IO`; fallbacks render when package icons are missing.
 
 ## Navigation Pattern
 

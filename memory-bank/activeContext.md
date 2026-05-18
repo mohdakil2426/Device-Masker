@@ -2,12 +2,39 @@
 
 ## Current Focus
 
-UI refinements on `release/0.1.5` — unifying component styles, motion, and bottom sheet patterns across screens. Release R8 is enabled and runtime-validated. Android 16 emulator validation is the strongest local evidence path.
+Performance optimization and warning cleanup on `release/0.1.5`. Release R8 is enabled and runtime-validated historically, but the latest work has only local unit/static/build proof, not fresh target-device hook proof.
 
 Next tasks:
 1. Add automated expected-vs-actual report generation so future verifier runs do not require ad hoc PowerShell matrix construction.
 2. Keep Android 16 emulator debug and `ciRelease`/R8 validation current after hook changes.
-3. P3.2 (LazyColumn memoization) and P3.3 (LazyColumn item key uniqueness) from the GroupSpoofingScreen proposals are next candidates.
+3. Run fresh target-device LSPosed validation after any further hook or R8 callback changes; the 2026-05-18 work has build/R8 proof, not fresh runtime hook proof.
+
+## 2026-05-18 Performance Optimization And Warning Cleanup
+
+- Implementation plan: `docs/superpowers/plans/2026-05-18-performance-optimization-and-warning-cleanup.md`.
+- Scope: in-place performance work only; no commit or push was performed.
+- GitNexus index was refreshed with `npx gitnexus analyze --name DeviceMasker`. This refreshed embedded GitNexus metadata in `AGENTS.md` and `CLAUDE.md`.
+- Home scoped-app loading no longer performs a full installed-app scan on startup. `IAppScopeRepository`/`AppScopeRepository` now expose scoped package metadata and `loadScopedApps(packageNames, forceRefresh)`, filtering `android`/`system` and resolving only LSPosed-scoped packages.
+- `HomeViewModel` now reacts to LSPosed scope packages, loads only scoped metadata, and builds Home rows from a package-name map. Pull-to-refresh reloads scoped metadata and LSPosed scope.
+- App icon decoding is centralized in bounded `AppIconCache`; `AppListItem` and Home scoped rows use `CachedAppIcon`. Home scoped rows now render through a bounded `LazyColumn` with stable package keys.
+- `ConfigManager` now carries dirty package sync hints for app/group mutations. `ConfigSync.syncPackages()` writes the current enabled-app allowlist/config version and only updates requested package keys while preserving full sync for global/default-group operations.
+- `HookConfigSnapshot` is built once in `XposedEntry.onPackageReady()` and passed into value hookers. Hookers read enabled values and persona fallback from the snapshot instead of repeatedly reading RemotePreferences in hot callbacks. Anti-detect and proc-maps policy still read their own app-level prefs.
+- Xposed hook registration logging no longer emits per-hook DEBUG structured start/success events on the common path. It keeps health counters, disabled/failure events, and one final `All hooks registered` structured event.
+- `SupportBundleBuilder` streams app/xposed JSONL lines directly into the zip instead of joining large strings.
+- Startup root capture is delayed by one Compose frame and 1500 ms before requesting root capture, reducing first-composition contention without removing startup capture.
+- Group Spoofing Apps tab now uses `AppRowModel` built in `GroupSpoofingViewModel`, moving lowercasing, assignment lookup, other-group labels, and sort order out of composition.
+- Warning cleanup status: all module lint reports now say `No issues found`. Cleanup removed 1092 unused string entries, fixed touched detekt/lint findings, replaced production `SavedStateHandle()` defaults with lifecycle factory handles, and kept only narrow intentional suppressions for explicit `commit()` checks, target-SDK deferral, dependency availability, and verifier/Xposed platform reflection.
+- GitNexus `detect_changes(scope=all)` reported critical aggregate risk because the planned scope was broad: 52 changed files, 217 changed symbols, and 80 affected symbols. Affected flows matched Home, app scope loading, config sync, support bundle/root capture, group app rows, and Xposed hook registration/value lookup.
+
+Verification passed:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeViewModelTest --tests com.astrixforge.devicemasker.ui.screens.home.HomeScopedAppsBuilderTest --tests com.astrixforge.devicemasker.data.repository.AppScopeRepositoryTest --tests com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilderTest --tests com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModelTest --no-daemon
+.\gradlew.bat :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.components.AppIconCacheTest --tests com.astrixforge.devicemasker.service.ConfigSyncTest --tests com.astrixforge.devicemasker.data.ConfigSyncSnapshotTest --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.HookConfigSnapshotTest --tests com.astrixforge.devicemasker.xposed.PrefsHelperTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest --no-daemon
+.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon
+.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon
+```
 
 ## 2026-05-16 Comprehensive UI Audit Remediation
 
@@ -691,3 +718,23 @@ These items are accepted as user-owned completion for plan closure. Do not cite 
 - LSPosed runtime validation is required before stability claims.
 - The first working base should be protected from broad refactors.
 - New hook areas should start disabled or pass-through safe until proven.
+
+## 2026-05-18 Performance And Warning Cleanup
+
+Implemented `docs/superpowers/plans/2026-05-18-performance-optimization-and-warning-cleanup.md` across the planned hot paths:
+- Home startup no longer full-scans installed apps for scoped-app display; `IAppScopeRepository.loadScopedApps()` resolves scoped metadata by package and `HomeViewModel` observes LSPosed scope data.
+- App icon decoding is centralized through bounded `AppIconCache`; Home scoped apps and app rows use `CachedAppIcon`.
+- `ConfigManager` now sends scoped sync hints so package assignment, unassignment, app enablement, risky hooks, class lookup hiding, and group changes can call `ConfigSync.syncPackages()` instead of full RemotePreferences rewrites when possible.
+- `:xposed` builds a per-package `HookConfigSnapshot` once in `XposedEntry.onPackageReady()` and value hookers read from that snapshot instead of repeatedly querying preferences.
+- Hook registration keeps health counters and final registration events but no longer emits per-method debug start/success events.
+- Support bundle JSONL export streams events directly, startup root capture is delayed until after first frame plus 1500 ms, and Group Spoofing Apps tab row derivation moved into `GroupSpoofingViewModel` as `AppRowModel`.
+- Resource cleanup removed 1092 lint-reported unused string entries, moved adaptive launcher XMLs from obsolete `mipmap-anydpi-v26` into `mipmap-anydpi`, converted the export-log count message to plurals, and kept the launcher-looking unused foreground vector via a narrow lint suppression rather than deleting it.
+- Follow-up warning cleanup reduced all module lint reports to `No issues found`. Production `SavedStateHandle()` defaults were replaced with factory-provided lifecycle handles and explicit test handles. Intentional Xposed/verifier private API reflection and deliberate app target-SDK deferral are narrowly suppressed instead of changing runtime behavior. Dependency-update availability lint is suppressed for the version catalog because an attempted coroutine bump could not be verified in this environment and made dependency resolution fail.
+
+Verification:
+- `.\gradlew.bat lint --no-daemon --no-configuration-cache` passed; app/common/xposed/verifier lint reports now say `No issues found`.
+- `.\gradlew.bat spotlessApply spotlessCheck detekt --no-daemon` passed.
+- `.\gradlew.bat spotlessCheck detekt :common:testDebugUnitTest :app:testDebugUnitTest :xposed:testDebugUnitTest lint test assembleDebug --no-daemon` passed.
+- `.\gradlew.bat :xposed:testDebugUnitTest --tests com.astrixforge.devicemasker.xposed.hooker.R8HookerAbiTest assembleRelease :app:assembleCiRelease :verifier:assembleDebug --no-daemon` passed.
+- Follow-up focused verification after the test warning fix passed: `.\gradlew.bat spotlessApply spotlessCheck detekt :app:testDebugUnitTest --tests com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModelTest lint --no-daemon --no-configuration-cache`.
+- GitNexus `detect_changes(scope=all)` reports critical risk from broad planned scope: 52 changed files, 217 changed symbols, 80 affected symbols. Affected flows match Home, app scope loading, config sync, support bundle/root capture, group app rows, and Xposed hook registration/value lookup.

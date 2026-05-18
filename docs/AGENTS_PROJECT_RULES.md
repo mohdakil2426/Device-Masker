@@ -24,10 +24,11 @@ These rules are mandatory for agents working in Device Masker. They cover code c
 - `JsonConfig.appConfigs` is the canonical source for app assignment, app enablement, group app counts, and UI checked state.
 - `SpoofGroup.assignedApps` is legacy/display compatibility only. Do not use it for new runtime, sync, toggle, count, or hook-scope decisions.
 - `AppConfig.isEnabled` is standalone app-level spoof enablement. Group assignment and unassignment must preserve it unless the user explicitly toggles app enablement.
-- UI that claims to show LSPosed scoped apps must read LSPosed/libxposed scope data and join it with installed-app metadata. Do not derive that list from spoof groups or `appConfigs`.
+- UI that claims to show LSPosed scoped apps must read LSPosed/libxposed scope data and join it with scoped package metadata. Home must use the scoped metadata fast path and must not full-scan installed apps on startup.
 - LSPosed scope alone is display/selection input, not runtime hook eligibility.
 - Runtime RemotePreferences sync must require an explicit enabled `AppConfig.groupId` that resolves to an enabled group. Do not let default-group fallback make an unassigned package hookable.
-- Xposed target selection must require both the current `SharedPrefsKeys.KEY_ENABLED_APPS` allowlist membership and the per-package enabled key. A stale `app_enabled_*` boolean is not proof of current assignment.
+- Dirty RemotePreferences sync may rewrite only changed package keys, but it must still publish the current `SharedPrefsKeys.KEY_ENABLED_APPS` app-config package set/config version and preserve explicit `commit()` success checks.
+- Xposed target selection must require both current `SharedPrefsKeys.KEY_ENABLED_APPS` app-config package-set membership and the per-package enabled key. A stale `app_enabled_*` boolean is not proof of current assignment.
 - Hook-family policy keys should follow the enabled spoof types for ordinary value hook families, while app-wide anti-detection/package-manager policy remains explicit and conservative.
 
 ## Constants

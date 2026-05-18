@@ -1,6 +1,6 @@
 # Device Masker Architecture And Runtime Guide
 
-Date: 2026-05-15
+Date: 2026-05-18
 
 ## Summary
 
@@ -33,7 +33,7 @@ flowchart TD
     Sync["ConfigSync"]
     XPrefs["XposedPrefs"]
     Scope["LSPosed module scope"]
-    Apps["Installed app metadata"]
+    Apps["Scoped app metadata"]
     Remote["libxposed RemotePreferences"]
     Common[":common"]
     Verifier[":verifier"]
@@ -59,7 +59,6 @@ flowchart TD
     Entry --> Hookers
     Target --> Framework
     Hookers --> Framework
-    Hookers --> Remote
     Hookers --> LSLogs
     Anti --> LSLogs
     App --> AppLogs
@@ -107,7 +106,8 @@ Rules:
 - `SharedPrefsKeys` builds all RemotePreferences keys.
 - `ConfigSync` writes flattened per-app keys plus a coherent per-package `DevicePersona` blob/version.
 - Full sync clears stale package keys.
-- `ConfigSync` publishes the current enabled-app allowlist; `:xposed` requires that allowlist plus the per-package enabled key before registering target hooks.
+- Dirty package sync writes the current app-config package set/config version and only rewrites requested package keys.
+- `ConfigSync` publishes the current app-config package set; `:xposed` requires package-set membership plus the per-package enabled key before registering target hooks.
 - Hookers read stored values only; persona fallback is allowed only after a spoof type is enabled.
 
 ## Config Flow
@@ -128,8 +128,8 @@ sequenceDiagram
     UI->>Repo: Update domain config
     Repo->>Config: Mutate JsonConfig
     Config->>File: Persist app-local JSON
-    Config->>Sync: Request full sync
-    Sync->>Prefs: Write flattened keys
+    Config->>Sync: Request full sync or dirty package sync
+    Sync->>Prefs: Write allowlist/version and full or dirty package keys
     Hook->>Prefs: Read enabled/value keys
     Hook->>API: Intercept framework call
     alt Safe enabled stored value
@@ -146,7 +146,7 @@ The Home screen has a separate app-side flow for the "Scoped Apps" section. It s
 ```mermaid
 flowchart LR
     LSPosed["LSPosed service scope"] --> XPrefs["XposedPrefs.scopedPackages"]
-    PackageManager["PackageManager installed apps"] --> ScopeRepo["AppScopeRepository.installedApps"]
+    PackageManager["PackageManager scoped package metadata"] --> ScopeRepo["AppScopeRepository.loadScopedApps"]
     XPrefs --> HomeVM["HomeViewModel"]
     ScopeRepo --> HomeVM
     HomeVM --> Builder["buildHomeScopedApps"]
@@ -159,12 +159,13 @@ flowchart LR
 
 Rules:
 
-- The list is derived from `XposedPrefs.scopedPackages` joined with installed app metadata, not from spoof groups or `appConfigs`.
+- The list is derived from `XposedPrefs.scopedPackages` joined with scoped package metadata, not from spoof groups or `appConfigs`.
+- Home startup must use `AppScopeRepository.loadScopedApps()` and must not trigger a full installed-app scan.
 - `android` and `system` are filtered out of the Home list because they are framework scope entries, not user target apps.
 - Packages missing from installed-app metadata are omitted instead of rendered as raw package names.
-- Pull-to-refresh refreshes installed app metadata and rereads LSPosed scope.
+- Pull-to-refresh force-refreshes scoped package metadata and rereads LSPosed scope.
 - Disabling an app here only sets `AppConfig.isEnabled = false`; it does not remove LSPosed scope or clear group assignment.
-- Runtime hooks still require the synced `enabled_apps` allowlist, the per-package enabled key, an explicit enabled group assignment, and enabled spoof type values.
+- Runtime hooks still require synced `enabled_apps` package-set membership, the per-package enabled key, an explicit enabled group assignment, and enabled spoof type values.
 
 ## Runtime Hook Flow
 
@@ -173,6 +174,7 @@ sequenceDiagram
     participant LS as LSPosed/libxposed
     participant Entry as XposedEntry
     participant Prefs as RemotePreferences
+    participant Snapshot as HookConfigSnapshot
     participant Anti as AntiDetectHooker
     participant Hook as Spoof hookers
     participant Target as Target app
@@ -181,13 +183,14 @@ sequenceDiagram
     LS->>Entry: onModuleLoaded
     LS->>Entry: onPackageReady
     Entry->>Prefs: getRemotePreferences
-    Entry->>Prefs: Check module enabled, enabled-app allowlist, and app enabled
+    Entry->>Prefs: Check module enabled, app-config package-set membership, and app enabled
     alt Enabled target app
+        Entry->>Prefs: Build per-package config snapshot
         Entry->>Anti: Register safer anti-detection hooks
-        Entry->>Hook: Register spoof hooks
+        Entry->>Hook: Register spoof hooks with snapshot
         Hook->>Logs: All hooks registered
         Target->>Hook: Calls hooked API
-        Hook->>Prefs: Read stored config
+        Hook->>Snapshot: Read enabled values/persona fallback
         Hook->>Logs: Spoof event
     else Disabled or unconfigured
         Entry-->>LS: Skip hooks
@@ -213,11 +216,14 @@ flowchart TD
 ```
 
 Important facts:
+- `HookConfigSnapshot` is built once in `XposedEntry.onPackageReady()` for the selected package. Value hookers read the snapshot in callbacks; anti-detect and proc-maps policy still read their app-level preference keys.
+- Hook registration keeps one final `All hooks registered` event plus health counters. Per-hook debug start/success spam is not part of the common path.
 - App logs are stored without root in app-owned storage.
 - LSPosed logs are the authoritative hook-side runtime evidence.
 - Support export has one user-facing path: Export Logs.
 - Export Logs builds the maximum local support bundle.
 - The bundle includes app JSONL events, redacted diagnostic snapshots, latest boot/startup root capture, and a fresh export-time root/logcat snapshot when root is granted.
+- Support bundle JSONL entries are streamed line by line into the ZIP; do not join large log files into memory.
 - If root is unavailable, export still creates a ZIP with app logs, snapshots, and a root-unavailable manifest.
 - There is no custom Device Masker Binder service in system_server.
 - App export should stay structured, bounded, redacted, and useful for support.
@@ -264,7 +270,7 @@ Do not:
 flowchart TD
     Call["Hooked API call"]
     Module{"Module enabled?"}
-    AppList{"Package in current enabled-app allowlist?"}
+    AppList{"Package in current app-config package set?"}
     App{"Target app enabled?"}
     Type{"Spoof type enabled?"}
     Value{"Stored value valid?"}

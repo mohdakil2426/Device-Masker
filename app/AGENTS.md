@@ -47,17 +47,19 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 |------|------|
 | `DeviceMaskerApp.kt` | Application entry — plants Timber trees, inits ConfigManager/XposedPrefs/RootAccessManager, registers config sync on LSPosed bind |
 | `data/XposedPrefs.kt` | Writes to RemotePreferences via `XposedService.getRemotePreferences()`, and exposes LSPosed scope via `scopedPackages`/`refreshScope()`. All keys delegate to `SharedPrefsKeys` in `:common`. Uses `commit()` not `apply()`. |
-| `data/ConfigSync.kt` | Flattens `JsonConfig` → flat per-app SharedPreferences keys. `syncFromConfig()` for full sync, `syncApp()` for single app. Clears stale keys. |
+| `data/ConfigSync.kt` | Flattens `JsonConfig` -> flat per-app SharedPreferences keys. `syncFromConfig()` for full sync, `syncPackages()` for dirty package writes, `syncApp()` compatibility for single app. Full sync clears stale keys. |
 | `data/ConfigSyncHelpers.kt` | App sync state and SharedPreferences editor helpers used by `ConfigSync`. |
+| `data/repository/AppScopeRepository.kt` | Full installed-app metadata for the Apps tab plus scoped package metadata fast path for Home. `loadScopedApps()` must not full-scan on startup. |
 | `service/ConfigManager.kt` | JSON config CRUD. Backs `AtomicFile` at `filesDir/config.json`. Exposes `config: StateFlow<JsonConfig>`. Uses `Mutex` for thread-safe saves. |
 | `data/repository/SpoofRepository.kt` | Main repo for ViewModels. Correlation-aware value generation with `AtomicReference` caches for SIM/Location/DeviceHardware configs. Singleton via `getInstance()`. |
-| `ui/navigation/DeviceMaskerViewModelFactories.kt` | Manual ViewModel factories used by screen default parameters. |
+| `ui/components/AppIconCache.kt` | Bounded app-icon cache used by Home scoped rows and app lists. Keep icon decode off repeated composition paths. |
+| `ui/navigation/DeviceMaskerViewModelFactories.kt` | Manual ViewModel factories used by screen default parameters. Production factories create lifecycle `SavedStateHandle` instances with `createSavedStateHandle()`. |
 
 ## Screen → ViewModel → Repository Mapping
 
 | Screen | ViewModel | Key Repository Methods |
 |--------|-----------|----------------------|
-| Home | `HomeViewModel(ISpoofRepository, isXposedActiveFlow, xposedScopeStateFlow)` | `setModuleEnabled()`, `setActiveGroup()`, `refreshScopedApps()`, `setAppEnabled()`, `regenerateAllValues()` |
+| Home | `HomeViewModel(ISpoofRepository, isXposedActiveFlow, xposedScopeStateFlow, SavedStateHandle)` | `setModuleEnabled()`, `setActiveGroup()`, `refreshScopedApps()`, `setAppEnabled()`, `regenerateAllValues()` |
 | Groups | `GroupsViewModel(ISpoofRepository)` | `createGroup()`, `deleteGroup()`, `setDefaultGroup()`, `exportGroups()`, `importGroups()` |
 | GroupSpoofing | `GroupSpoofingViewModel(ISpoofRepository, groupId)` | `generateValue()`, `updateGroupWithCarrier()`, `updateGroupWithDeviceProfile()`, `addAppToGroup()`, `removeAppFromGroup()` |
 | Settings | `SettingsViewModel(Application, ISettingsDataStore, ILogManager, ioDispatcher)` | `setThemeMode()`, `exportLogsToUri()`, `createShareableLogs()` |
@@ -101,9 +103,10 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 - Prefer narrow workflow interfaces for new code. Compatibility facades should not keep growing.
 - `JsonConfig.appConfigs` is canonical for group app counts, app checked state, and RemotePreferences sync inputs.
 - Do not use `SpoofGroup.assignedApps` for new active toggle/count/sync decisions; it is legacy/display compatibility only.
-- Home Scoped Apps must use `XposedPrefs.scopedPackages` joined with installed apps. Do not derive LSPosed scoped-app lists from spoof groups or `appConfigs`.
+- Home Scoped Apps must use `XposedPrefs.scopedPackages` joined with scoped metadata from `AppScopeRepository.loadScopedApps()`. Do not derive LSPosed scoped-app lists from spoof groups or `appConfigs`, and do not full-scan installed apps on Home startup.
 - `AppConfig.isEnabled` is standalone app-level user control. Preserve it during group assignment and unassignment unless the user explicitly toggles app enablement.
 - Runtime sync must require explicit app-to-group assignment. Do not let default-group fallback make an unassigned package hookable.
+- App and group mutations that affect only known packages should use dirty sync hints so `ConfigSync.syncPackages()` can avoid full RemotePreferences rewrites. Global/default/import/repair flows may still request full sync.
 
 ## Diagnostics & Root
 
@@ -120,6 +123,7 @@ All wiring is manual. `DeviceMaskerApp.onCreate()` creates singletons. `MainActi
 - Hand-written fakes for interfaces: `FakeSpoofRepository`, `FakeConfigManager`, `FakeSettingsDataStore`, `FakeLogManager`, `FakeAppScopeRepository`, `FakeSharedPreferences`
 - Turbine for Flow emissions
 - MockK only for Navigation 3 framework types
+- Production ViewModel factories own lifecycle `SavedStateHandle` creation. Unit tests pass explicit `SavedStateHandle()` values.
 - `advanceUntilIdle()` required after async ops in `runTest`
 
 ## Build
