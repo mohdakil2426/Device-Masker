@@ -269,6 +269,7 @@ internal fun SettingsEntry(
         },
         onClearExportResult = { viewModel.clearExportResult() },
         onNavigateToDiagnostics = dropUnlessResumed(block = navigator::navigateToDiagnostics),
+        onNavigateToLogsMonitor = dropUnlessResumed(block = navigator::navigateToLogsMonitor),
         generateLogFileName = { viewModel.generateLogFileName() },
     )
 }

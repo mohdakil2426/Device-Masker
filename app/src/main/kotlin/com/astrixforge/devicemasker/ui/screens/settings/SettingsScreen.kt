@@ -59,6 +59,7 @@ fun SettingsScreen(
     onShareLogs: () -> Unit = {},
     onClearExportResult: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
+    onNavigateToLogsMonitor: () -> Unit = {},
     generateLogFileName: () -> String = { "devicemasker_logs.log" },
 ) {
     var showThemeModeDialog by rememberSaveable { mutableStateOf(false) }
@@ -95,6 +96,7 @@ fun SettingsScreen(
         onDynamicColorChange = onDynamicColorChange,
         onExportLogsClick = { if (!isExportingLogs) showExportSheet = true },
         onNavigateToDiagnostics = onNavigateToDiagnostics,
+        onNavigateToLogsMonitor = onNavigateToLogsMonitor,
         modifier = modifier,
     )
     SettingsDialogsAndSheets(
@@ -162,6 +164,7 @@ internal fun SettingsScreenContent(
     onDynamicColorChange: (Boolean) -> Unit = {},
     onExportLogsClick: () -> Unit = {},
     onNavigateToDiagnostics: () -> Unit = {},
+    onNavigateToLogsMonitor: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -188,6 +191,7 @@ internal fun SettingsScreenContent(
                 isExportingLogs = isExportingLogs,
                 onExportLogsClick = onExportLogsClick,
                 onNavigateToDiagnostics = onNavigateToDiagnostics,
+                onNavigateToLogsMonitor = onNavigateToLogsMonitor,
             )
         }
 

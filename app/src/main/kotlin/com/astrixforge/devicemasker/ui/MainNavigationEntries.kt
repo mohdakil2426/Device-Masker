@@ -20,6 +20,7 @@ import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsScreen
 import com.astrixforge.devicemasker.ui.screens.groups.GroupsScreen
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingScreenContent
 import com.astrixforge.devicemasker.ui.screens.home.HomeScreen
+import com.astrixforge.devicemasker.ui.screens.logsmonitor.LogsMonitorScreen
 
 @Composable
 internal fun HomeDestinationEntry(repository: SpoofRepository, navigator: DeviceMaskerNavigator) {
@@ -82,6 +83,14 @@ internal fun DiagnosticsDestinationEntry(
     DiagnosticsScreen(
         application = context.applicationContext as android.app.Application,
         repository = repository,
+        onNavigateBack = onNavigateBack,
+    )
+}
+
+@Composable
+internal fun LogsMonitorDestinationEntry(context: Context, onNavigateBack: () -> Unit) {
+    LogsMonitorScreen(
+        application = context.applicationContext as android.app.Application,
         onNavigateBack = onNavigateBack,
     )
 }

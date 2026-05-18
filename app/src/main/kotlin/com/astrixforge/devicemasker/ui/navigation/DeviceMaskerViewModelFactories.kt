@@ -10,6 +10,7 @@ import com.astrixforge.devicemasker.ui.screens.diagnostics.DiagnosticsViewModel
 import com.astrixforge.devicemasker.ui.screens.groups.GroupsViewModel
 import com.astrixforge.devicemasker.ui.screens.groupspoofing.GroupSpoofingViewModel
 import com.astrixforge.devicemasker.ui.screens.home.HomeViewModel
+import com.astrixforge.devicemasker.ui.screens.logsmonitor.LogsMonitorViewModel
 import com.astrixforge.devicemasker.ui.screens.settings.SettingsViewModel
 
 internal fun homeViewModelFactory(repository: ISpoofRepository) = viewModelFactory {
@@ -40,3 +41,7 @@ internal fun diagnosticsViewModelFactory(application: Application, repository: I
             )
         }
     }
+
+internal fun logsMonitorViewModelFactory(application: Application) = viewModelFactory {
+    initializer { LogsMonitorViewModel(application = application) }
+}

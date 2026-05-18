@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DarkMode
@@ -97,6 +98,7 @@ internal fun DebugSettingsSection(
     isExportingLogs: Boolean,
     onExportLogsClick: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
+    onNavigateToLogsMonitor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SettingsSection(title = stringResource(id = R.string.settings_debug), modifier = modifier) {
@@ -120,6 +122,13 @@ internal fun DebugSettingsSection(
                 if (isExportingLogs)
                     ({ CompactLoadingIndicator(modifier = Modifier.padding(end = 8.dp)) })
                 else null,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsClickableItem(
+            icon = Icons.Outlined.Article,
+            title = stringResource(id = R.string.settings_logs_monitor),
+            description = stringResource(id = R.string.settings_logs_monitor_description),
+            onClick = onNavigateToLogsMonitor,
         )
         Spacer(modifier = Modifier.height(8.dp))
         SettingsClickableItem(

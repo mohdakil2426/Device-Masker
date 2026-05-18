@@ -84,6 +84,7 @@ internal fun SettingsScreenFrame(
     onDynamicColorChange: (Boolean) -> Unit,
     onExportLogsClick: () -> Unit,
     onNavigateToDiagnostics: () -> Unit,
+    onNavigateToLogsMonitor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
@@ -101,6 +102,7 @@ internal fun SettingsScreenFrame(
             onDynamicColorChange = onDynamicColorChange,
             onExportLogsClick = onExportLogsClick,
             onNavigateToDiagnostics = onNavigateToDiagnostics,
+            onNavigateToLogsMonitor = onNavigateToLogsMonitor,
         )
         SnackbarHost(
             hostState = snackbarHostState,

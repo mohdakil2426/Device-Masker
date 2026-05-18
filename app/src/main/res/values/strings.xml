@@ -84,6 +84,18 @@
     <string name="settings_export_save_desc">Save logs to device</string>
     <string name="settings_export_share">Share</string>
     <string name="settings_export_share_desc">Share logs</string>
+    <string name="settings_logs_monitor">Logs Monitor</string>
+    <string name="settings_logs_monitor_description">Watch live Device Masker, LSPosed, and hook evidence while debugging a target app.</string>
+    <string name="logs_monitor_title">Logs Monitor</string>
+    <string name="logs_monitor_status">Capture: %s</string>
+    <string name="logs_monitor_start">Start capture</string>
+    <string name="logs_monitor_stop">Stop capture</string>
+    <string name="logs_monitor_clear">Clear logs</string>
+    <string name="logs_monitor_empty">No matching logs captured yet.</string>
+    <string name="logs_monitor_search">Search</string>
+    <string name="logs_monitor_notification_channel">Live logs monitor</string>
+    <string name="logs_monitor_notification_title">Monitoring diagnostic logs</string>
+    <string name="logs_monitor_notification_text">Capturing local logcat evidence.</string>
     <string name="root_access_warning_title">Root access required for maximum diagnostics</string>
     <string name="root_access_denied_message">Root access was not granted. Configuration can still be edited, but privileged diagnostics and root log capture will not work.</string>
     <string name="root_access_unavailable_message">Root access is unavailable on this device. Configuration can still be edited, but privileged diagnostics and root log capture will not work.</string>
@@ -212,6 +224,7 @@
     </plurals>
 
     <!-- Actions -->
+    <string name="action_back">Back</string>
     <string name="action_regenerate">Regenerate</string>
     <string name="action_regenerate_all">Regenerate All</string>
     <string name="action_save">Save</string>

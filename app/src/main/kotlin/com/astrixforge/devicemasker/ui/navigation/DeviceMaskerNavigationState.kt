@@ -75,7 +75,8 @@ class DeviceMaskerNavigationState(
     val isFocusScreen: Boolean
         get() =
             currentDestination is NavDestination.GroupSpoofing ||
-                currentDestination == NavDestination.Diagnostics
+                currentDestination == NavDestination.Diagnostics ||
+                currentDestination == NavDestination.LogsMonitor
 
     internal fun push(destination: NavDestination) {
         backStacks.getValue(topLevelDestination).add(destination)
@@ -157,6 +158,13 @@ class DeviceMaskerNavigator(private val state: DeviceMaskerNavigationState) {
         state.switchTopLevel(NavDestination.Settings)
         if (state.currentDestination != NavDestination.Diagnostics) {
             state.push(NavDestination.Diagnostics)
+        }
+    }
+
+    fun navigateToLogsMonitor() {
+        state.switchTopLevel(NavDestination.Settings)
+        if (state.currentDestination != NavDestination.LogsMonitor) {
+            state.push(NavDestination.LogsMonitor)
         }
     }
 

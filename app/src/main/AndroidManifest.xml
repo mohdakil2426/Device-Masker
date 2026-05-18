@@ -116,6 +116,15 @@
                 android:value="Local root diagnostics capture for LSPosed module validation and support bundles" />
         </service>
 
+        <service
+            android:name=".service.logmonitor.LiveLogCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-started live logcat monitor for local LSPosed module debugging" />
+        </service>
+
     </application>
 
 </manifest>

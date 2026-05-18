@@ -189,6 +189,13 @@ internal fun DeviceMaskerNavDisplay(
                         onNavigateBack = navigationBackHandler,
                     )
                 }
+
+                entry<NavDestination.LogsMonitor> {
+                    LogsMonitorDestinationEntry(
+                        context = context,
+                        onNavigateBack = navigationBackHandler,
+                    )
+                }
             },
     )
 }
