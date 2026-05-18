@@ -2,19 +2,21 @@ package com.astrixforge.devicemasker.service
 
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import androidx.core.content.FileProvider
 import com.astrixforge.devicemasker.DeviceMaskerApp
 import com.astrixforge.devicemasker.common.diagnostics.DiagnosticEvent
 import com.astrixforge.devicemasker.common.diagnostics.DiagnosticJson
 import com.astrixforge.devicemasker.common.diagnostics.RedactionMode
-import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotBuilder
-import com.astrixforge.devicemasker.service.diagnostics.DiagnosticSnapshotMetadata
+import com.astrixforge.devicemasker.service.diagnostics.DefaultSupportSnapshotProvider
+import com.astrixforge.devicemasker.service.diagnostics.LogCaptureContext
+import com.astrixforge.devicemasker.service.diagnostics.LsposedLogCopyCollector
+import com.astrixforge.devicemasker.service.diagnostics.ParsedHookHealthSnapshotBuilder
 import com.astrixforge.devicemasker.service.diagnostics.RootAccessManager
 import com.astrixforge.devicemasker.service.diagnostics.RootCaptureStore
 import com.astrixforge.devicemasker.service.diagnostics.RootLogCollector
 import com.astrixforge.devicemasker.service.diagnostics.SecurityStateDiagnostics
 import com.astrixforge.devicemasker.service.diagnostics.SupportBundleBuilder
+import com.astrixforge.devicemasker.service.diagnostics.XposedLogParser
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -101,50 +103,50 @@ object LogManager : ILogManager {
         val rootArtifactsDir =
             RootCaptureStore.prepareExportArtifacts(context, outputDir).also { rootDir ->
                 if (RootAccessManager.hasGrantedRoot()) {
-                    RootLogCollector().collect(File(rootDir, "export_snapshot"), null)
+                    RootLogCollector()
+                        .collect(
+                            outputDir = File(rootDir, "export_snapshot"),
+                            context = LogCaptureContext(selectedTargetPackage = null),
+                        )
+                    LsposedLogCopyCollector().collect(File(rootDir, "lsposed"))
                 } else {
+                    val unavailableMessage =
+                        "Root access is not currently granted; export used app logs and " +
+                            "captured root manifests only."
                     RootCaptureStore.writeManifest(
                         dir = rootDir,
                         trigger = "export",
                         status = "ROOT_UNAVAILABLE",
-                        message =
-                            "Root access is not currently granted; export used captured root artifacts only.",
+                        message = unavailableMessage,
                     )
                 }
             }
-        val rootAvailable = RootAccessManager.hasGrantedRoot()
+        val parsedXposedEvents =
+            rootArtifactsDir
+                .walkTopDown()
+                .filter { it.isFile && it.extension == "txt" }
+                .flatMap { file ->
+                    XposedLogParser.parseLines(file.readLines(Charsets.UTF_8), sessionId = "export")
+                }
+                .toList()
         val snapshots =
-            DiagnosticSnapshotBuilder(
-                    metadata =
-                        DiagnosticSnapshotMetadata(
-                            appVersion =
-                                context.packageManager
-                                    .getPackageInfo(context.packageName, 0)
-                                    .versionName ?: "unknown",
-                            buildType = com.astrixforge.devicemasker.BuildConfig.BUILD_TYPE,
-                            androidSdk = Build.VERSION.SDK_INT,
-                            androidRelease = Build.VERSION.RELEASE ?: "unknown",
-                            device = "${Build.MANUFACTURER} ${Build.MODEL}",
-                            rootAvailable = rootAvailable,
-                            xposedFrameworkConnected = DeviceMaskerApp.isXposedModuleActive,
-                            moduleEnabled = DeviceMaskerApp.isXposedModuleActive,
-                            targetPackage = null,
-                            scopePackages = listOf("android", "system"),
-                            droppedLogCount = 0,
-                        ),
-                    configJson = "{}",
-                    remotePrefs = emptyMap(),
-                    hookHealthJson = "{}",
-                )
-                .build(RedactionMode.REDACTED)
+            DefaultSupportSnapshotProvider(context)
+                .buildSnapshots()
                 .plus(SecurityStateDiagnostics.snapshotFile(context))
+                .plus(
+                    "hook_health.json" to
+                        ParsedHookHealthSnapshotBuilder.buildJson(parsedXposedEvents)
+                )
 
         return SupportBundleBuilder(
                 appEvents =
                     appEvents.map { event ->
                         DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
                     },
-                xposedEvents = emptyList(),
+                xposedEvents =
+                    parsedXposedEvents.map { event ->
+                        DiagnosticJson.encodeToString(DiagnosticEvent.serializer(), event)
+                    },
                 snapshots = snapshots,
                 rootArtifactsDir = rootArtifactsDir,
             )
